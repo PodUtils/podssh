@@ -31,6 +31,18 @@ use crate::prompt::{self, PromptError};
 /// end of a command that got no password (T-501).
 pub const WAIT: Duration = Duration::from_secs(30);
 
+/// The answer to the question for the password: the password, or why
+/// there is none.
+pub type Answer = Result<Zeroizing<String>, String>;
+
+/// What a wait of an elevated command gave ([`Elevated::next`]).
+pub enum Next {
+    /// The time to start, or to end, ran out.
+    Expired,
+    /// The question was answered: [`Elevated::reply`] sends it.
+    Answered(Answer),
+}
+
 /// A pty's defaults for the two keys of [`end_keys`]: Ctrl-U and Ctrl-D.
 const KILL: u8 = 0x15;
 const EOF: u8 = 0x04;
@@ -350,38 +362,50 @@ impl Elevated {
         }
     }
 
-    /// Until the answer to the question was sent (false), or the command's
-    /// time to start is up (true).
-    pub async fn next(&mut self, writer: &ChannelWriteHalf<Msg>, log: &Log) -> bool {
+    /// Until the answer to the question came, or the command's time to start
+    /// is up. It writes nothing: the pump waits on it beside the channel's
+    /// reads, and drops it when a message comes first, so the write of the
+    /// answer is [`Elevated::reply`]'s, which the pump awaits beside the
+    /// channel (T-923). Dropped before its end, it loses no answer.
+    pub async fn next(&mut self) -> Next {
         let deadline = self.deadline;
         tokio::select! {
-            () = self.answer(writer, log) => false,
-            () = until(deadline) => true,
+            answer = self.answered() => Next::Answered(answer),
+            () = until(deadline) => Next::Expired,
         }
     }
 
-    /// Until the answer to the question comes; then it is sent, with a
-    /// newline, or the command's read ends.
-    async fn answer(&mut self, writer: &ChannelWriteHalf<Msg>, log: &Log) {
+    /// Until the answer to the question comes: the password, or why there
+    /// is none.
+    async fn answered(&mut self) -> Answer {
         let Some(asking) = self.asking.as_mut() else { return std::future::pending().await };
         let answer = asking.await;
         self.asking = None;
-        let why = match answer {
-            Ok(Ok(password)) => {
+        match answer {
+            Ok(Ok(password)) => Ok(password),
+            // A helper's output after it failed is no answer, as OpenSSH
+            // reads it: nothing is sent.
+            Ok(Err(why)) => Err(why.to_string()),
+            Err(_) => Err("the thread of the question ended".to_string()),
+        }
+    }
+
+    /// The answer of [`Elevated::next`] sent, with a newline, or the
+    /// command's read ended when there is none.
+    pub async fn reply(&mut self, writer: &ChannelWriteHalf<Msg>, answer: Answer, log: &Log) {
+        match answer {
+            Ok(password) => {
                 let mut line = Zeroizing::new(password.as_bytes().to_vec());
                 line.push(b'\n');
                 let _ = writer.data(&line[..]).await;
                 self.deadline = Some(tokio::time::Instant::now() + WAIT);
                 self.phase = Phase::Sent;
-                return;
             }
-            // A helper's output after it failed is no answer, as OpenSSH
-            // reads it: nothing is sent.
-            Ok(Err(why)) => why.to_string(),
-            Err(_) => "the thread of the question ended".to_string(),
-        };
-        log.info(&unanswered(self.how, &why));
-        self.end(writer, Phase::Ended(why)).await;
+            Err(why) => {
+                log.info(&unanswered(self.how, &why));
+                self.end(writer, Phase::Ended(why)).await;
+            }
+        }
     }
 
     /// What was held back, for the end of a command that never started.

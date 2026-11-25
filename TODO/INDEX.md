@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**855 entries: 5 open, 33 partial, 13 blocked, 804 done.**
+**855 entries: 4 open, 33 partial, 13 blocked, 805 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 7 | 3 | 99 | 109 |
-| P2 | 1 | 20 | 2 | 316 | 339 |
+| P2 | 0 | 20 | 2 | 317 | 339 |
 | P3 | 4 | 6 | 8 | 388 | 406 |
-| **All** | 5 | 33 | 13 | 804 | 855 |
+| **All** | 4 | 33 | 13 | 805 | 855 |
 
 ## Entries
 
@@ -930,4 +930,4 @@ repository and CI).
 | [T-920](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the lines that a transfer the near end never took leaves on the screen are documented |
 | [T-921](copy.md) | P3 | S | backlog | defect | done | `podssh tx receive` into a directory that takes no file says that a file could not be created in it |
 | [T-922](copy.md) | P3 | S | backlog | defect | done | `podssh help` is a documented word, as `podssh help COMMAND` is |
-| [T-923](robustness.md) | P2 | S | none | defect | open | Six waits of a session's write with no read of its channel beside it, the shape of T-780's hang |
+| [T-923](robustness.md) | P2 | S | none | defect | done | Six waits of a session's write with no read of its channel beside it, the shape of T-780's hang |

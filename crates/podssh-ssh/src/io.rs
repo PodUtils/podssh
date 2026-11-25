@@ -11,7 +11,7 @@ use russh::client::{Handle, Msg};
 use russh::{Channel, ChannelMsg, ChannelWriteHalf};
 use tokio::io::AsyncWriteExt;
 
-use crate::elevate::Elevated;
+use crate::elevate::{Elevated, Next};
 use crate::escape::{Command, Escapes};
 use crate::escape_run;
 use crate::expect::Expect;
@@ -25,7 +25,7 @@ use crate::terminal::text::Consoles;
 use crate::terminal::watch::Resize;
 use crate::zmodem::Zmodem;
 
-pub(crate) mod beside;
+pub mod beside;
 mod busy;
 mod feed;
 mod input;
@@ -376,11 +376,18 @@ pub async fn pump(
                 log.error(&missed);
                 return End::NoStatus;
             }
-            expired = elevating(&mut through.elevated, &writer, log) => if expired {
-                log.error(&through.elevated.as_ref().map(Elevated::expired).unwrap_or_default());
-                // The far end closes the session, and its pty hangs up on su.
-                let _ = beside(writer.close(), &mut reader, &mut aside, &mark).await;
-                return End::NoStatus;
+            step = elevating(&mut through.elevated) => match (step, through.elevated.as_mut()) {
+                (Next::Expired, e) => {
+                    log.error(&e.map(|e| e.expired()).unwrap_or_default());
+                    // The far end closes the session, and its pty hangs up on su.
+                    let _ = beside(writer.close(), &mut reader, &mut aside, &mark).await;
+                    return End::NoStatus;
+                }
+                // The answer goes beside the channel, as each write (T-923).
+                (Next::Answered(answer), Some(e)) => {
+                    beside(e.reply(&writer, answer, log), &mut reader, &mut aside, &mark).await;
+                }
+                (Next::Answered(_), None) => {}
             },
             Some(size) = resize.next() => {
                 busy.at("a change of the terminal's size");
@@ -426,11 +433,11 @@ pub async fn pump(
     }
 }
 
-/// An elevated command's question and time (T-032): true when its time is
-/// up; for ever with none.
-async fn elevating(elevated: &mut Option<Elevated>, writer: &ChannelWriteHalf<Msg>, log: &Log) -> bool {
+/// An elevated command's question and time (T-032): its answer, or its time
+/// that ran out; for ever with none.
+async fn elevating(elevated: &mut Option<Elevated>) -> Next {
     match elevated {
-        Some(e) => e.next(writer, log).await,
+        Some(e) => e.next().await,
         None => std::future::pending().await,
     }
 }

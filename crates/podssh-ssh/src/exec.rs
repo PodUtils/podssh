@@ -4,12 +4,14 @@
 //! copy by exec, T-135), each wait bounded so that a far side that stops
 //! reading or writing fails the step and never hangs it.
 
+use std::future::Future;
 use std::time::Duration;
 
 use russh::client::{Handle, Msg};
-use russh::{Channel, ChannelMsg};
+use russh::{Channel, ChannelMsg, ChannelReadHalf};
 
 use crate::handler::Client;
+use crate::io::beside::{self, beside, Backlog, Source};
 use crate::unopened::Unopened;
 
 /// What a command wrote, and how it ended.
@@ -99,13 +101,48 @@ async fn open(handle: &Handle<Client>, command: &str, limit: Duration) -> Result
     }
 }
 
-/// Each message until the channel closes: stdout to `sink`, stderr kept up to
-/// `cap`, and the exit status; each wait `progress` at most. A channel that
-/// ends with neither its close nor an exit status lost its connection: the
-/// command's end was never seen. One that ends after the status and before
-/// the output's end (its EOF) lost the output after the cut (T-461).
-async fn finish(
-    channel: &mut Channel<Msg>,
+/// A write of the session, `progress` at most, beside the channel's reads:
+/// russh's loop puts each message of the command into the channel's bounded
+/// queue, inline, and takes a write only after, so a write that reads
+/// nothing can wait on a loop that waits on it (T-780). What the wait takes
+/// goes into `aside`, which `finish` hands on first (T-923).
+async fn write<F: Future<Output = Result<(), russh::Error>>, S: Source<Msg = ChannelMsg>>(
+    op: F,
+    read: &mut S,
+    aside: &mut Backlog<ChannelMsg>,
+    progress: Duration,
+) -> Result<(), ExecError> {
+    match tokio::time::timeout(progress, beside(op, read, aside, &|| {})).await {
+        Err(_) => Err(ExecError::Timeout(progress)),
+        Ok(Err(e)) => Err(ExecError::Lost(e.to_string())),
+        Ok(Ok(())) => Ok(()),
+    }
+}
+
+/// The end of the command's input. A channel that refused it has ended,
+/// which `finish` reads; one that took no write within `progress` fails the
+/// step.
+async fn end_input(
+    writer: &russh::ChannelWriteHalf<Msg>,
+    read: &mut ChannelReadHalf,
+    aside: &mut Backlog<ChannelMsg>,
+    progress: Duration,
+) -> Result<(), ExecError> {
+    match write(writer.eof(), read, aside, progress).await {
+        Err(ExecError::Timeout(limit)) => Err(ExecError::Timeout(limit)),
+        _ => Ok(()),
+    }
+}
+
+/// Each message until the channel closes, those that `aside` took first:
+/// stdout to `sink`, stderr kept up to `cap`, and the exit status; each wait
+/// `progress` at most. A channel that ends with neither its close nor an
+/// exit status lost its connection: the command's end was never seen. One
+/// that ends after the status and before the output's end (its EOF) lost
+/// the output after the cut (T-461).
+async fn finish<S: Source<Msg = ChannelMsg>>(
+    read: &mut S,
+    aside: &mut Backlog<ChannelMsg>,
     progress: Duration,
     cap: usize,
     sink: &mut dyn FnMut(&[u8]) -> std::io::Result<()>,
@@ -113,7 +150,7 @@ async fn finish(
     let mut out = Captured::default();
     let (mut closed, mut eof) = (false, false);
     loop {
-        match tokio::time::timeout(progress, channel.wait()).await {
+        match tokio::time::timeout(progress, beside::next(read, aside)).await {
             Err(_) => return Err(ExecError::Timeout(progress)),
             Ok(None) if closed || (eof && out.status.is_some()) => return Ok(out),
             Ok(None) if out.status.is_some() => {
@@ -145,11 +182,13 @@ pub async fn receive(
     cap: usize,
     sink: &mut dyn FnMut(&[u8]) -> std::io::Result<()>,
 ) -> Result<Captured, ExecError> {
-    let mut channel = open(handle, command, progress).await?;
+    let channel = open(handle, command, progress).await?;
+    let (mut read, writer) = channel.split();
+    let mut aside = Backlog::default();
     // The command reads no input: the end of it at once, so a command that
     // reads anyway does not wait.
-    let _ = channel.eof().await;
-    finish(&mut channel, progress, cap, sink).await
+    end_input(&writer, &mut read, &mut aside, progress).await?;
+    finish(&mut read, &mut aside, progress, cap, sink).await
 }
 
 /// Run `command` with the pieces that `fill` gives on its stdin (a piece of 0
@@ -164,7 +203,10 @@ pub async fn send(
     fill: &mut dyn FnMut(&mut Vec<u8>) -> std::io::Result<()>,
     sink: &mut dyn FnMut(&[u8]) -> std::io::Result<()>,
 ) -> Result<Captured, ExecError> {
-    let mut channel = open(handle, command, progress).await?;
+    let channel = open(handle, command, progress).await?;
+    let (mut read, writer) = channel.split();
+    // What the command says while its input goes, handed on after (T-923).
+    let mut aside = Backlog::default();
     let mut piece = Vec::new();
     loop {
         piece.clear();
@@ -175,14 +217,10 @@ pub async fn send(
         // Behind a key that waits for its echo (T-661), outside the wait for
         // the window.
         crate::pace::turn().await;
-        match tokio::time::timeout(progress, channel.data(&piece[..])).await {
-            Err(_) => return Err(ExecError::Timeout(progress)),
-            Ok(Err(e)) => return Err(ExecError::Lost(e.to_string())),
-            Ok(Ok(())) => {}
-        }
+        write(writer.data(&piece[..]), &mut read, &mut aside, progress).await?;
     }
-    let _ = channel.eof().await;
-    finish(&mut channel, progress, cap, sink).await
+    end_input(&writer, &mut read, &mut aside, progress).await?;
+    finish(&mut read, &mut aside, progress, cap, sink).await
 }
 
 /// Why a command gave no line of the kind asked for.
@@ -265,6 +303,39 @@ mod tests {
         assert_eq!(shell_word("-n").as_deref(), Some("'-n'"));
         assert_eq!(shell_word("a\nb"), None);
         assert_eq!(shell_word("a\0b"), None);
+    }
+
+    /// The command's output while its input goes waits beside the write, and
+    /// is handed on after, in order, with its status (T-923). The model's
+    /// loop takes the write only once the channel's queue took each message:
+    /// awaited alone, the write waits for ever (the control).
+    #[tokio::test(start_paused = true)]
+    async fn a_write_of_exec_goes_beside_the_command_output() {
+        use crate::io::beside::model::model;
+        let limit = Duration::from_secs(60);
+        let msgs = || {
+            let data = (0..8u8).map(|i| ChannelMsg::Data { data: vec![i; 100].into() });
+            let end = [ChannelMsg::ExitStatus { exit_status: 0 }, ChannelMsg::Eof, ChannelMsg::Close];
+            data.chain(end).collect::<Vec<_>>()
+        };
+        let (chan, cmd, looping) = model(msgs());
+        assert!(tokio::time::timeout(limit, cmd.send("eof")).await.is_err(), "the control");
+        looping.abort();
+        drop(chan);
+
+        let (mut chan, cmd, looping) = model(msgs());
+        let mut aside = Backlog::default();
+        let eof = async { cmd.send("eof").await.map_err(|_| russh::Error::SendError) };
+        assert_eq!(write(eof, &mut chan, &mut aside, limit).await, Ok(()), "the end went beside");
+        assert_eq!(looping.await.expect("the loop ends"), ["data", "eof"]);
+        let mut got = Vec::new();
+        let mut sink = |data: &[u8]| {
+            got.extend_from_slice(data);
+            Ok(())
+        };
+        let out = finish(&mut chan, &mut aside, limit, 1024, &mut sink).await.expect("the command's end");
+        assert_eq!(out.status, Some(0));
+        assert_eq!(got, (0..8u8).flat_map(|i| vec![i; 100]).collect::<Vec<_>>(), "each piece, in order");
     }
 
     #[test]

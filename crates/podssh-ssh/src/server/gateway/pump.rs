@@ -7,6 +7,13 @@
 //! channel alone. The upstream's replies to the requests that the handler
 //! forwards come back in their order, as RFC 4254 sends them, through a
 //! queue that the handler reads.
+//!
+//! Each write goes beside its side's reads (T-923): russh's loop of each
+//! connection puts a message into its channel's bounded queue inline, and
+//! takes a write only after. A task that awaited a write and read nothing
+//! closes a cycle of four waits: the client's side on the upstream's loop,
+//! that loop on the queue of the upstream's side, that side on the client's
+//! loop, and that loop on the queue of the client's side.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,12 +23,19 @@ use russh::{client, Channel, ChannelMsg, ChannelReadHalf, ChannelWriteHalf};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
+use crate::io::beside::{self, beside, Backlog};
 use crate::server::audit::Tally;
 use crate::server::channel::Window;
 
 /// How long the handler waits for the upstream's reply to a request: the
 /// client's connection waits with it.
 pub(super) const REPLY_LIMIT: Duration = Duration::from_secs(20);
+
+/// The most bytes that each side keeps beside a write: the client's side
+/// holds no more data than the window that the gateway gave, and the
+/// upstream's no more than this before it holds the upstream back, as the
+/// channel's queue did. Either side alone breaks the cycle.
+const ASIDE: usize = 2 << 20;
 
 /// The replies that may wait unread: the handler asks one at a time, so a
 /// second one is a fault of the upstream, and is dropped.
@@ -108,12 +122,13 @@ async fn from_client(
     window: Window,
     tally: Arc<Tally>,
 ) {
-    while let Some(message) = read.wait().await {
+    let mut aside = Backlog::with_most(ASIDE);
+    while let Some(message) = beside::next(&mut read, &mut aside).await {
         match message {
             ChannelMsg::Data { data } => {
                 let n = data.len();
                 tally.took(n);
-                if up.data_bytes(data).await.is_err() {
+                if beside(up.data_bytes(data), &mut read, &mut aside, &|| {}).await.is_err() {
                     break;
                 }
                 window.grant(n);
@@ -122,7 +137,7 @@ async fn from_client(
             // 4254, section 5.2): given back, and carried nowhere.
             ChannelMsg::ExtendedData { data, .. } => window.grant(data.len()),
             ChannelMsg::Eof => {
-                if up.eof().await.is_err() {
+                if beside(up.eof(), &mut read, &mut aside, &|| {}).await.is_err() {
                     break;
                 }
             }
@@ -130,7 +145,7 @@ async fn from_client(
             _ => {}
         }
     }
-    let _ = up.close().await;
+    let _ = beside(up.close(), &mut read, &mut aside, &|| {}).await;
 }
 
 /// The upstream's side: its data, its stderr, its EOF, its exit status or
@@ -144,21 +159,25 @@ async fn from_upstream(
     tally: Arc<Tally>,
 ) {
     let id = down.id();
-    while let Some(message) = read.wait().await {
+    let mut aside = Backlog::with_most(ASIDE);
+    while let Some(message) = beside::next(&mut read, &mut aside).await {
         let carried = match message {
             ChannelMsg::Data { data } => {
                 tally.gave(data.len());
-                down.data_bytes(data).await.is_ok()
+                beside(down.data_bytes(data), &mut read, &mut aside, &|| {}).await.is_ok()
             }
             // Stderr; any other code has no meaning (RFC 4254, 5.2).
             ChannelMsg::ExtendedData { data, ext: 1 } => {
                 tally.gave(data.len());
-                down.extended_data_bytes(1, data).await.is_ok()
+                beside(down.extended_data_bytes(1, data), &mut read, &mut aside, &|| {}).await.is_ok()
             }
-            ChannelMsg::Eof => down.eof().await.is_ok(),
-            ChannelMsg::ExitStatus { exit_status } => down.exit_status(exit_status).await.is_ok(),
+            ChannelMsg::Eof => beside(down.eof(), &mut read, &mut aside, &|| {}).await.is_ok(),
+            ChannelMsg::ExitStatus { exit_status } => {
+                beside(down.exit_status(exit_status), &mut read, &mut aside, &|| {}).await.is_ok()
+            }
             ChannelMsg::ExitSignal { signal_name, core_dumped, error_message, lang_tag } => {
-                handle.exit_signal_request(id, signal_name, core_dumped, error_message, lang_tag).await.is_ok()
+                let signal = handle.exit_signal_request(id, signal_name, core_dumped, error_message, lang_tag);
+                beside(signal, &mut read, &mut aside, &|| {}).await.is_ok()
             }
             ChannelMsg::Success => answered(replies.as_ref(), true),
             ChannelMsg::Failure => answered(replies.as_ref(), false),
@@ -169,7 +188,7 @@ async fn from_upstream(
             break;
         }
     }
-    let _ = down.close().await;
+    let _ = beside(down.close(), &mut read, &mut aside, &|| {}).await;
 }
 
 /// A reply of the upstream to the handler's queue, where there is one. A

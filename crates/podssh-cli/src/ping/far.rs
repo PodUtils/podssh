@@ -4,10 +4,13 @@
 //! assumption about the far host, so they run only when the user names a
 //! destination, and the output names them; one that the host lacks ends the
 //! run with its status (127), never with a hang: each wait has a limit.
+//! Each write goes beside the channel's reads: russh's loop takes a write
+//! only after it put each message into the channel's bounded queue (T-923).
 
 use std::time::{Duration, Instant};
 
 use podssh_ssh::handler::Client;
+use podssh_ssh::io::beside::{self, beside, Backlog, Source};
 use podssh_ssh::russh::client::{Handle, Msg};
 use podssh_ssh::russh::{Channel, ChannelMsg};
 
@@ -80,10 +83,14 @@ pub(super) async fn open(handle: &Handle<Client>, command: &str) -> Result<Chann
     }
 }
 
-/// The rest of a channel's messages: its exit status, if one came.
-pub(super) async fn status_of(reader: &mut podssh_ssh::russh::ChannelReadHalf) -> Option<i32> {
+/// The rest of a channel's messages, those taken beside a write first: its
+/// exit status, if one came.
+pub(super) async fn status_of<S: Source<Msg = ChannelMsg>>(
+    reader: &mut S,
+    aside: &mut Backlog<ChannelMsg>,
+) -> Option<i32> {
     let mut status = None;
-    while let Ok(Some(msg)) = tokio::time::timeout(STEP, reader.wait()).await {
+    while let Ok(Some(msg)) = tokio::time::timeout(STEP, beside::next(reader, aside)).await {
         match msg {
             ChannelMsg::ExitStatus { exit_status } => status = Some(i32::try_from(exit_status).unwrap_or(255)),
             ChannelMsg::Close => break,
@@ -97,15 +104,17 @@ pub(super) async fn status_of(reader: &mut podssh_ssh::russh::ChannelReadHalf) -
 /// counted: the first byte can wait for the remote shell to start `cat`.
 pub async fn echo(handle: &Handle<Client>, count: usize) -> Result<Vec<Duration>, Failed> {
     const COMMAND: &str = "cat";
-    let (mut reader, writer) = open(handle, COMMAND).await?.split();
+    let channel = open(handle, COMMAND).await?;
+    let (mut reader, writer) = channel.split();
+    let mut aside = Backlog::default();
     let mut samples = Vec::with_capacity(count);
     for round in 0..=count {
         let started = Instant::now();
-        if writer.data_bytes(vec![b'x']).await.is_err() {
-            return Err(gone(COMMAND, &mut reader).await);
+        if beside(writer.data_bytes(vec![b'x']), &mut reader, &mut aside, &|| {}).await.is_err() {
+            return Err(gone(COMMAND, &mut reader, &mut aside).await);
         }
         loop {
-            match tokio::time::timeout(STEP, reader.wait()).await {
+            match tokio::time::timeout(STEP, beside::next(&mut reader, &mut aside)).await {
                 Ok(Some(ChannelMsg::Data { data })) if !data.is_empty() => break,
                 Ok(Some(ChannelMsg::ExitStatus { exit_status })) => {
                     return Err(Failed::Status(COMMAND.into(), i32::try_from(exit_status).unwrap_or(255)))
@@ -119,14 +128,14 @@ pub async fn echo(handle: &Handle<Client>, count: usize) -> Result<Vec<Duration>
             samples.push(started.elapsed());
         }
     }
-    let _ = writer.eof().await;
-    let _ = status_of(&mut reader).await;
+    let _ = tokio::time::timeout(STEP, beside(writer.eof(), &mut reader, &mut aside, &|| {})).await;
+    let _ = status_of(&mut reader, &mut aside).await;
     Ok(samples)
 }
 
 /// Why a write failed: the program's status when it ended, else a break.
-async fn gone(command: &str, reader: &mut podssh_ssh::russh::ChannelReadHalf) -> Failed {
-    match status_of(reader).await {
+async fn gone<S: Source<Msg = ChannelMsg>>(command: &str, reader: &mut S, aside: &mut Backlog<ChannelMsg>) -> Failed {
+    match status_of(reader, aside).await {
         Some(status) if status != 0 => Failed::Status(command.into(), status),
         _ => Failed::Broke(format!("{command}: the channel closed")),
     }
@@ -168,21 +177,27 @@ pub async fn down(handle: &Handle<Client>, size: u64) -> (String, Result<Duratio
 pub async fn up(handle: &Handle<Client>, size: u64) -> (String, Result<Duration, Failed>) {
     let command = "cat > /dev/null".to_string();
     let result = async {
-        let (mut reader, writer) = open(handle, &command).await?.split();
+        let channel = open(handle, &command).await?;
+        let (mut reader, writer) = channel.split();
+        // What cat says while the bytes go (its error), read after them.
+        let mut aside = Backlog::default();
         let started = Instant::now();
         let mut sent = 0u64;
         while sent < size {
             let n = CHUNK.min((size - sent) as usize);
-            match tokio::time::timeout(STEP, writer.data_bytes(vec![0u8; n])).await {
+            let write = writer.data_bytes(vec![0u8; n]);
+            match tokio::time::timeout(STEP, beside(write, &mut reader, &mut aside, &|| {})).await {
                 Ok(Ok(())) => sent += n as u64,
-                Ok(Err(_)) => return Err(gone(&command, &mut reader).await),
+                Ok(Err(_)) => return Err(gone(&command, &mut reader, &mut aside).await),
                 Err(_) => {
                     return Err(Failed::Broke(format!("{command}: the window stayed shut for {} s", STEP.as_secs())))
                 }
             }
         }
-        let _ = writer.eof().await;
-        match status_of(&mut reader).await {
+        if tokio::time::timeout(STEP, beside(writer.eof(), &mut reader, &mut aside, &|| {})).await.is_err() {
+            return Err(Failed::Broke(format!("{command}: the end of its input waited {} s", STEP.as_secs())));
+        }
+        match status_of(&mut reader, &mut aside).await {
             Some(0) => Ok(started.elapsed()),
             Some(other) => Err(Failed::Status(command.clone(), other)),
             None => Err(Failed::Broke(format!("{command}: no exit status"))),
@@ -190,4 +205,67 @@ pub async fn up(handle: &Handle<Client>, size: u64) -> (String, Result<Duration,
     }
     .await;
     (command, result)
+}
+
+#[cfg(test)]
+mod tests {
+    use tokio::sync::mpsc;
+    use tokio::task::JoinHandle;
+
+    use super::*;
+
+    /// A channel's queue, in small.
+    struct Queue(mpsc::Receiver<ChannelMsg>);
+
+    impl Source for Queue {
+        type Msg = ChannelMsg;
+
+        fn wait(&mut self) -> impl std::future::Future<Output = Option<ChannelMsg>> + Send + '_ {
+            self.0.recv()
+        }
+
+        fn size(msg: &ChannelMsg) -> usize {
+            match msg {
+                ChannelMsg::Data { data } => data.len(),
+                _ => 0,
+            }
+        }
+    }
+
+    /// russh's loop, in small: cat's output, its status and its close, each
+    /// put into the channel's queue of 2 inline; only then the writes, from
+    /// a queue of 1 that one write fills already.
+    fn model() -> (Queue, mpsc::Sender<&'static str>, JoinHandle<()>) {
+        let (chan_tx, chan_rx) = mpsc::channel(2);
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
+        cmd_tx.try_send("data").expect("an empty queue of 1");
+        let looping = tokio::spawn(async move {
+            let output = (0..6u8).map(|i| ChannelMsg::Data { data: vec![i; 10].into() });
+            for msg in output.chain([ChannelMsg::ExitStatus { exit_status: 3 }, ChannelMsg::Close]) {
+                if chan_tx.send(msg).await.is_err() {
+                    return;
+                }
+            }
+            drop(chan_tx);
+            while cmd_rx.recv().await.is_some() {}
+        });
+        (Queue(chan_rx), cmd_tx, looping)
+    }
+
+    /// The end of a measure's input goes beside the channel's output, and
+    /// the status is read from what its wait took (T-923); awaited alone,
+    /// the end waits for ever on a loop that waits on it (the control).
+    #[tokio::test(start_paused = true)]
+    async fn the_end_of_input_goes_beside_the_output_and_its_status_is_kept() {
+        let (chan, cmd, looping) = model();
+        assert!(tokio::time::timeout(STEP, cmd.send("eof")).await.is_err(), "the control");
+        looping.abort();
+        drop(chan);
+
+        let (mut chan, cmd, _looping) = model();
+        let mut aside = Backlog::default();
+        let sent = tokio::time::timeout(STEP, beside(cmd.send("eof"), &mut chan, &mut aside, &|| {})).await;
+        assert!(matches!(sent, Ok(Ok(()))), "the end went beside the output");
+        assert_eq!(status_of(&mut chan, &mut aside).await, Some(3), "the status, from what the wait took");
+    }
 }

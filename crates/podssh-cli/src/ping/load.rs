@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use podssh_ssh::handler::Client;
+use podssh_ssh::io::beside::{beside, Backlog};
 use podssh_ssh::russh::client::Handle;
 use podssh_ssh::russh::{ChannelMsg, ChannelReadHalf};
 use serde_json::{json, Value};
@@ -45,12 +46,14 @@ pub struct UnderLoad {
 
 /// The keys idle, then beside the download, on the connection of `handle`.
 pub async fn measure(handle: &Handle<Client>) -> Result<UnderLoad, Failed> {
-    let (mut reader, writer) = far::open(handle, ECHO).await?.split();
+    let echo = far::open(handle, ECHO).await?;
+    let (mut reader, writer) = echo.split();
     // One key that is not counted: the first can wait for the shell to start cat.
     keys::typed(&writer, &mut reader, 1, Instant::now()).await?;
     let idle = keys::typed(&writer, &mut reader, KEYS, Instant::now()).await?;
     let command = format!("head -c {LOAD} /dev/zero");
-    let (load_reader, load_writer) = far::open(handle, &command).await?.split();
+    let load = far::open(handle, &command).await?;
+    let (load_reader, load_writer) = load.split();
     let started = Instant::now();
     let mut download = Download::start(load_reader);
     tokio::time::sleep_until((started + WARMUP).into()).await;
@@ -62,8 +65,11 @@ pub async fn measure(handle: &Handle<Client>) -> Result<UnderLoad, Failed> {
         under.typing = (download.bytes() - before, to.saturating_duration_since(from));
     }
     under.ended = download.ended().map(|end| end.duration_since(started));
+    // Each write from here goes beside cat's reads, which take what cat
+    // still says (T-923).
+    let mut aside = Backlog::default();
     // Stopped: what is in flight still comes, and goes with the channel.
-    let _ = load_writer.close().await;
+    let _ = tokio::time::timeout(STEP, beside(load_writer.close(), &mut reader, &mut aside, &|| {})).await;
     let status = download.end().await;
     under.bytes = download.bytes();
     // A download that ended by itself ended whole, or the host's head failed.
@@ -77,8 +83,8 @@ pub async fn measure(handle: &Handle<Client>) -> Result<UnderLoad, Failed> {
             Some(other) => return Err(Failed::Status(under.command.clone(), other)),
         }
     }
-    let _ = writer.eof().await;
-    let _ = far::status_of(&mut reader).await;
+    let _ = tokio::time::timeout(STEP, beside(writer.eof(), &mut reader, &mut aside, &|| {})).await;
+    let _ = far::status_of(&mut reader, &mut aside).await;
     Ok(under)
 }
 

@@ -49,7 +49,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 2. One runtime, one task for each host, each on the existing path: the relay
    open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:334-416`,
    `crates/podssh-ssh/src/run.rs:39-89`). Invariant: no second SSH client.
-3. Sinks: give `crates/podssh-ssh/src/io.rs:199-482` (and `crates/podssh-ssh/src/io/msg.rs:11-107`) a sink for stdout and
+3. Sinks: give `crates/podssh-ssh/src/io.rs:199-489` (and `crates/podssh-ssh/src/io/msg.rs:11-107`) a sink for stdout and
    stderr in place of the streams of the process, and give `Log` a prefix
    (`crates/podssh-ssh/src/log.rs:32-38`). Each line gets `HOST: `. With
    `--output-dir`, the bytes go unchanged to `HOST.out` and `HOST.err`, and
@@ -1044,7 +1044,7 @@ that can be missing. `podssh doctor` checks only this host.
    built-ins of the shell, and `df -P` only when `command -v df` finds it.
    No text of the user goes into the script.
 3. Read the output with the sink of T-183
-   (`crates/podssh-ssh/src/io.rs:193-474`), parse it, and print one line for
+   (`crates/podssh-ssh/src/io.rs:193-481`), parse it, and print one line for
    each fact: load, memory and swap, uptime, network bytes (two samples,
    1 s apart), disk, processes. `--json` gives one object, in the shape of
    T-049.
@@ -1057,7 +1057,7 @@ that can be missing. `podssh doctor` checks only this host.
 ## Decision
 
 2026-10-13, the draft. The answer is read with `exec::capture`
-(`crates/podssh-ssh/src/exec.rs:59-79`), as `podssh ping` reads its
+(`crates/podssh-ssh/src/exec.rs:61-81`), as `podssh ping` reads its
 measures and the copy by exec its steps: one command with no pty and no
 input, its own limit (30 s) and cap (1 MiB), its status and its stderr.
 The sink of T-183 lost: it carries a session of `podssh_ssh::run` with the
@@ -1112,7 +1112,7 @@ Plant: read `MemFree` in place of `MemAvailable`; the comparison must fail.
 ## Correction
 
 The first premise is wrong in its last words: podssh reads the output of a
-command with `exec::capture` (`crates/podssh-ssh/src/exec.rs:59-79`), as
+command with `exec::capture` (`crates/podssh-ssh/src/exec.rs:61-81`), as
 `podssh ping` does for its measures (`crates/podssh-cli/src/ping/far.rs`),
 and since T-183 a session's output can go to a sink (`io::Sink` in
 `crates/podssh-ssh/src/io.rs`). The Approach takes the capture

@@ -1171,7 +1171,7 @@ M1, and the NOPASSWD check fails.
 ## Done
 
 2026-10-11. The markers, the command and the filter in
-`crates/podssh-ssh/src/elevate.rs:1-395`. The session wraps the command
+`crates/podssh-ssh/src/elevate.rs:1-419`. The session wraps the command
 (`crates/podssh-ssh/src/session.rs:147-162`, the question at
 `crates/podssh-ssh/src/session.rs:295-304`), and the pump filters the output,
 asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:206-229`,
@@ -3594,7 +3594,7 @@ as the server's are russh's.
 
 - Read: each error of the session's open gives "the server refused to open a session", with
   russh's words after (`crates/podssh-ssh/src/session.rs`, lines 62-63 at `582b1bf`), and that
-  open has no limit, where the exec's and SFTP's have one (`crates/podssh-ssh/src/exec.rs:83`,
+  open has no limit, where the exec's and SFTP's have one (`crates/podssh-ssh/src/exec.rs:85`,
   `crates/podssh-ssh/src/sftp/mod.rs:174`). `describe` reads `Disconnect` and `SendError` as a
   connection that closed (`crates/podssh-ssh/src/run.rs:448-450`); the session's open does not
   call it. The other opens give one line for each error alike (read at `582b1bf`:
@@ -3896,16 +3896,16 @@ asked.
   (`crates/podssh-cli/src/ssh/elevate.rs:32-36`); `sudo -S` reads the channel
   (`crates/podssh-ssh/src/elevate.rs:1-10`).
 - Read: at su's prompt, podssh drops the deadline of the start and asks on a thread
-  (`crates/podssh-ssh/src/elevate.rs:333-337`). A cancelled answer (a helper that exits not 0 is
+  (`crates/podssh-ssh/src/elevate.rs:345-349`). A cancelled answer (a helper that exits not 0 is
   `Cancelled`, `crates/podssh-ssh/src/prompt.rs:27-31`), and each other failure of the question,
   give a line and the end of the channel's input, and no new deadline
   (`crates/podssh-ssh/src/elevate.rs:378-384`); with no deadline the wait has no end
-  (`crates/podssh-ssh/src/elevate.rs:222-227`, `crates/podssh-ssh/src/elevate.rs:355-361`).
+  (`crates/podssh-ssh/src/elevate.rs:234-239`, `crates/podssh-ssh/src/elevate.rs:355-361`).
 - Inferred, from the report's controls: the end of the input stops `sudo -S`, whose stdin is the
   channel, and does not reach `su`, which reads the pty: OpenSSH's server takes the EOF of a pty's
   channel and keeps the pty open, so su waits, and podssh with it.
 - Read: with no way to ask, podssh says so, ends the input and keeps the deadline
-  (`crates/podssh-ssh/src/elevate.rs:325-332`); at 30 s its line says that the command "neither
+  (`crates/podssh-ssh/src/elevate.rs:337-344`); at 30 s its line says that the command "neither
   asked for a password nor started" (`crates/podssh-ssh/src/io.rs:372-376`), though it asked.
 - Read: the tests run `--su` with a right and a wrong password, and with no helper that fails
   (`crates/podssh-cli/tests/ssh_sudo.rs:202-264`).

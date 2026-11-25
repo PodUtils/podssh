@@ -9,6 +9,10 @@
 //! room in the loop's. Each wait of a pump on the session drains the channel
 //! into a backlog instead, and the pump hands the backlog on, in order,
 //! before the channel's next message.
+//!
+//! Each wait on a session's write with a channel open goes through here: the
+//! pumps of `io.rs` and `mux/`, `exec`, the gateway of `serve` and `podssh
+//! ping`'s measures (T-923).
 
 use std::collections::VecDeque;
 use std::future::Future;
@@ -19,14 +23,14 @@ use russh::{ChannelMsg, ChannelReadHalf};
 /// russh's loop waits on the queue as it did before: russh grants the far
 /// end's window as data comes, not as it is taken, so the backlog needs a
 /// bound of its own.
-pub(crate) const BACKLOG_MOST: usize = 16 << 20;
+pub const BACKLOG_MOST: usize = 16 << 20;
 
 /// What a message costs in a backlog at the least: a bound on the count of
 /// messages with no data, too.
 const MSG_COST: usize = 64;
 
 /// Where a pump takes its messages: russh's channel, or a stand-in.
-pub(crate) trait Source {
+pub trait Source {
     type Msg: Send;
     /// The next message; `None` once the channel has ended.
     fn wait(&mut self) -> impl Future<Output = Option<Self::Msg>> + Send + '_;
@@ -50,7 +54,7 @@ impl Source for ChannelReadHalf {
 }
 
 /// The messages taken beside a wait, not yet handed on.
-pub(crate) struct Backlog<M> {
+pub struct Backlog<M> {
     msgs: VecDeque<(M, usize)>,
     bytes: usize,
     /// The channel ended behind the messages kept.
@@ -66,7 +70,7 @@ impl<M> Default for Backlog<M> {
 
 impl<M> Backlog<M> {
     /// A backlog that keeps `most` bytes at the most.
-    pub(crate) fn with_most(most: usize) -> Self {
+    pub fn with_most(most: usize) -> Self {
         Backlog { msgs: VecDeque::new(), bytes: 0, ended: false, most }
     }
 
@@ -96,7 +100,7 @@ impl<M> Backlog<M> {
 
 /// The channel's next message: the backlog's first, else the source's own.
 /// Each read of a pump goes through here, so that the order holds.
-pub(crate) async fn next<S: Source>(source: &mut S, backlog: &mut Backlog<S::Msg>) -> Option<S::Msg> {
+pub async fn next<S: Source>(source: &mut S, backlog: &mut Backlog<S::Msg>) -> Option<S::Msg> {
     if let Some(msg) = backlog.pop() {
         return Some(msg);
     }
@@ -109,7 +113,7 @@ pub(crate) async fn next<S: Source>(source: &mut S, backlog: &mut Backlog<S::Msg
 /// `op`, a wait on russh's session, while the source's messages go into
 /// `backlog`; `polled` is called at each poll of the source's wait (the
 /// pump's watch, `busy.rs`).
-pub(crate) async fn beside<F: Future, S: Source>(
+pub async fn beside<F: Future, S: Source>(
     op: F,
     source: &mut S,
     backlog: &mut Backlog<S::Msg>,
@@ -140,6 +144,10 @@ fn noted<'a, F: Future + 'a>(fut: F, polled: &'a (dyn Fn() + Sync)) -> impl Futu
         fut.as_mut().poll(cx)
     })
 }
+
+#[cfg(test)]
+#[path = "beside_model.rs"]
+pub(crate) mod model;
 
 #[cfg(test)]
 #[path = "beside_tests.rs"]

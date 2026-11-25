@@ -4954,7 +4954,7 @@ alone (COORD-149, PodUtils/podssh#359).
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4966,7 +4966,7 @@ end sends while podssh waits.
 ## Premise
 
 - Read: `crates/podssh-ssh/src/exec.rs:184` awaits `channel.eof()` with no bound after an upload that read nothing.
-- Read: `crates/podssh-ssh/src/elevate.rs:301` and `:346`; `crates/podssh-cli/src/ping/far.rs:122` and `:184`;
+- Read: `crates/podssh-ssh/src/elevate.rs:313` and `:358`; `crates/podssh-cli/src/ping/far.rs:122` and `:184`;
   `crates/podssh-cli/src/ping/load.rs:80`; `crates/podssh-ssh/src/server/gateway/pump.rs:125`.
 - Read: `crates/podssh-ssh/src/io/beside.rs` takes the channel's messages while a write waits, and the test
   `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` holds the pump's waits to it.
@@ -4978,9 +4978,78 @@ end sends while podssh waits.
 2. Add the six files to the list of `each_wait_of_a_pump_on_the_session_goes_beside_the_channel`, so a new wait of that
    shape fails the test.
 
+## Decision
+
+- `io::beside` is made public (`pub mod beside`, its `Source`, `Backlog`, `next` and `beside`), so that `podssh ping`
+  in podssh-cli takes the same one; a second copy in podssh-cli lost (two copies of one rule drift).
+- serve's gateway (`crates/podssh-ssh/src/server/gateway/pump.rs`) has the shape: russh's server loop also puts each
+  CHANNEL_DATA into the channel's bounded queue inline (`vendor/russh/src/server/encrypted.rs:1622`), so the gateway's
+  two tasks close a cycle of four waits (the client's side on the upstream's loop, that loop on the upstream side's
+  queue, that side on the client's loop, that loop on the client side's queue). Each write of each side goes beside
+  its own reads, each side's backlog bounded at 2 MiB (`ASIDE`), not the pump's 16 MiB: a gateway carries many
+  channels, the client's side holds no more data than the window that the gateway gave, and either side alone breaks
+  the cycle. Leaving the server side as it was lost: the cycle is reachable with a client that types in small packets
+  while the upstream floods.
+- exec's waits take a helper `write`, bounded by `progress` and beside the channel; `finish` reads the backlog first.
+  `end_input` keeps the old rule that a refused EOF is the channel's end, which `finish` reads, but a wait past
+  `progress` now fails the step (`Timeout`), as a data wait does.
+- `exec::first_line` keeps its EOF right after the exec: it gives its whole `Channel` to its caller (`podssh ssh`'s
+  upgrade keeps the temporary node's channel), which a split cannot give back, its EOF is the first write after the
+  exec's reply, and its whole run is bounded by `limit`, so the shape there fails within the limit, never hangs.
+- `crates/podssh-cli/src/ping/keys.rs:58` (a key written inside the select, with no read beside it) is left: cat's
+  channel holds only the echoes of the keys sent, at most 40, under russh's queue of 100, so it cannot fill. `load.rs`
+  awaits `keys::typed`, which the test allows by name.
+- The guard test takes a table of pumps (file, start, the names of the session's writes there, and the calls that
+  drain the channel themselves), and a body ends at the close of its item's own indent, so that a method in an `impl`
+  can be held too. Lines that opened a channel and split it in one expression (`open(..).await?.split()`) are split
+  in two, so that the line that awaits names no writer.
+
 ## Prove
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib beside
 CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ping
 ```
+
+## Correction
+
+- `crates/podssh-ssh/src/elevate.rs:301` and `:346` are in `Elevated::end` and `Elevated::act`; the pump already
+  awaits `act` beside the channel (`io.rs`). The gap was elsewhere: `Elevated::next` wrote the password (or the end
+  of input) itself, inside the pump's `select!`, where an arm of the channel ran beside it. A message that came while
+  that write waited won the select and dropped the write: the password was lost after the question was answered, and
+  with no deadline set while the question was asked, the run then waited for ever. Now `next` only waits for the
+  answer or the time (dropped before its end, it loses nothing), and `Elevated::reply` writes the answer, which the
+  pump awaits beside the channel.
+
+## Done
+
+Drafted 2026-11-25 by a worker, not built and not run: UNVERIFIED.
+
+- `crates/podssh-ssh/src/io/beside.rs`, `crates/podssh-ssh/src/io.rs`: `beside` public; the shared model of russh's
+  loop moved to `crates/podssh-ssh/src/io/beside_model.rs` (tests only), with a `Source` for a queue of `ChannelMsg`.
+- `crates/podssh-ssh/src/exec.rs`: `send`'s data and EOF, and `receive`'s EOF, beside the channel through `write`
+  and `end_input`, each within `progress`; `finish` reads the backlog first. New test
+  `a_write_of_exec_goes_beside_the_command_output` (the control waits for ever; beside, the EOF goes, and `finish`
+  gives each piece in order and the status). UNVERIFIED.
+- `crates/podssh-ssh/src/elevate.rs`, `crates/podssh-ssh/src/io.rs`: `Elevated::next` gives `Next` (`Expired` or
+  `Answered`), and `Elevated::reply` sends the answer beside the channel. UNVERIFIED.
+- `crates/podssh-ssh/src/server/gateway/pump.rs`: each write of `from_client` and `from_upstream` (data, stderr, EOF,
+  exit status, exit signal, close) beside its side's reads, backlog 2 MiB. UNVERIFIED.
+- `crates/podssh-cli/src/ping/far.rs`, `crates/podssh-cli/src/ping/load.rs`: `echo`'s and `up`'s data and EOF, and
+  `measure`'s close of the download and EOF, beside cat's reads, each within `STEP`; `status_of` reads the backlog
+  first. `up` fails with "the end of its input waited 60 s" where it waited for ever. New test
+  `the_end_of_input_goes_beside_the_output_and_its_status_is_kept`. UNVERIFIED.
+- `crates/podssh-ssh/src/io/beside_tests.rs`: `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` holds
+  exec's `receive`, `send` and `end_input`, the gateway's two sides, ping's `echo`, `up` and `measure` (by a path
+  into podssh-cli, as `crates/podssh-relay/src/serve/docs.rs` reads podssh-probe's), and that `Elevated::next` names
+  no writer. UNVERIFIED: the Prove, clippy with `-D warnings`, `cargo fmt --check`, a planted defect (a write of
+  `up` awaited alone again must fail the guard and name the line), and `cargo todo remap` of the cited files changed
+  here (`exec.rs`, `elevate.rs`, `io.rs`, `server/gateway/pump.rs`, `ping/far.rs`, `ping/load.rs`).
+
+Merged by the main session on 2026-11-25 (after `cc5e44a`, a cold build) and run: `cargo test -p podssh-ssh --lib` 558
+passed (`beside`'s tests and `a_write_of_exec_goes_beside_the_command_output` among them), `--test serve_exec` 12;
+`-p podssh-cli --lib` 1332 (`ping`'s among them), `--test cp_exec` 6, `ping` 17, `ping_nodes` 3,
+`serve_gateway_openssh` 7, `ssh_result` 4, `ssh_sudo` 9, `upgrade` 5: each passed. Planted, `ping/load.rs`'s EOF awaited
+alone again: `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` fails and names it; restored, it passes.
+Clippy (`-D warnings`, one repair in the guard's test: `contains` for `iter().any`) and rustfmt clean; the Windows check
+clean.

@@ -6,53 +6,17 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
 
+use super::model::Model;
 use super::*;
 
 /// Longer than any step of the model takes; the clock is paused, so a wait
 /// that never ends runs out at once.
 const LIMIT: Duration = Duration::from_secs(60);
 
-impl Source for mpsc::Receiver<Vec<u8>> {
-    type Msg = Vec<u8>;
-
-    fn wait(&mut self) -> impl Future<Output = Option<Vec<u8>>> + Send + '_ {
-        self.recv()
-    }
-
-    fn size(msg: &Vec<u8>) -> usize {
-        msg.len()
-    }
-}
-
-/// The channel's queue, the loop's queue of writes, and the loop.
-type Model = (mpsc::Receiver<Vec<u8>>, mpsc::Sender<&'static str>, JoinHandle<Vec<&'static str>>);
-
-/// russh's loop, in small: it puts `count` messages of 100 bytes into the
-/// channel's queue of 2, each awaited inline, and only then takes the
-/// pump's writes, from a queue of 1 that one write fills already. It gives
-/// the writes that it took, up to the EOF.
-fn model(count: u8) -> Model {
-    let (chan_tx, chan_rx) = mpsc::channel(2);
-    let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
-    cmd_tx.try_send("data").expect("an empty queue of 1");
-    let looping = tokio::spawn(async move {
-        for i in 0..count {
-            if chan_tx.send(vec![i; 100]).await.is_err() {
-                break;
-            }
-        }
-        let mut took = Vec::new();
-        while let Some(cmd) = cmd_rx.recv().await {
-            took.push(cmd);
-            if cmd == "eof" {
-                break;
-            }
-        }
-        took
-    });
-    (chan_rx, cmd_tx, looping)
+/// russh's loop, in small (`model`), with `count` messages of 100 bytes.
+fn model(count: u8) -> Model<Vec<u8>> {
+    super::model::model((0..count).map(|i| vec![i; 100]).collect())
 }
 
 /// The write awaited alone waits for ever on the loop, which waits on the
@@ -117,35 +81,69 @@ async fn the_end_of_the_channel_is_kept_behind_its_messages() {
     assert_eq!(next(&mut chan, &mut backlog).await, None);
 }
 
+/// The lines of the body of the item that starts with `start`: up to the
+/// line that closes it, at the indent of the line where it starts.
+fn body<'a>(file: &str, text: &'a str, start: &str) -> impl Iterator<Item = &'a str> {
+    let at = text.find(start).unwrap_or_else(|| panic!("{file}: no {start}"));
+    let line = text[..at].rfind('\n').map_or(0, |n| n + 1);
+    let indent: String = text[line..].chars().take_while(|c| *c == ' ').collect();
+    let close = format!("{indent}}}");
+    text[at..].lines().take_while(move |line| *line != close)
+}
+
+/// The session's writer and handle, by the names that most pumps give them.
+const SESSION: &[&str] = &["writer", "handle"];
+
+/// A pump: its file, its text, the start of its body, the names of the
+/// session's writes there, and the calls that drain the channel themselves.
+type Pump = (&'static str, &'static str, &'static str, &'static [&'static str], &'static [&'static str]);
+
+/// Beside the pumps of the session (T-780) and the send that waits for the
+/// window (T-859): `exec`'s upload and its end of input, the two sides of
+/// serve's gateway, and `podssh ping`'s measures (T-923). `load.rs` names
+/// no handle: its waits on the handle open channels while cat's channel
+/// holds nothing unread; `keys::typed` reads cat's channel beside each key.
+#[rustfmt::skip]
+const PUMPS: &[Pump] = &[
+    ("io.rs", include_str!("../io.rs"), "pub async fn pump(", SESSION, &["send(&writer"]),
+    ("mux/msession.rs", include_str!("../mux/msession.rs"), "async fn pump(", SESSION, &["send(&writer"]),
+    ("io/send.rs", include_str!("send.rs"), "pub(super) async fn send(", SESSION, &["send(&writer"]),
+    ("exec.rs", include_str!("../exec.rs"), "pub async fn receive(", &["writer"], &["end_input(&writer"]),
+    ("exec.rs", include_str!("../exec.rs"), "pub async fn send(", &["writer"], &["write(writer", "end_input(&writer"]),
+    ("exec.rs", include_str!("../exec.rs"), "async fn end_input(", &["writer"], &["write(writer"]),
+    ("server/gateway/pump.rs", include_str!("../server/gateway/pump.rs"), "async fn from_client(", &["up"], &[]),
+    ("server/gateway/pump.rs", include_str!("../server/gateway/pump.rs"), "async fn from_upstream(", &["down", "handle"], &[]),
+    ("ping/far.rs", include_str!("../../../podssh-cli/src/ping/far.rs"), "pub async fn echo(", &["writer"], &[]),
+    ("ping/far.rs", include_str!("../../../podssh-cli/src/ping/far.rs"), "pub async fn up(", &["writer"], &[]),
+    ("ping/load.rs", include_str!("../../../podssh-cli/src/ping/load.rs"), "pub async fn measure(", &["writer", "load_writer"], &["keys::typed(&writer"]),
+];
+
 /// Each wait of a pump on the session goes beside its channel: in the body
-/// of each pump, and of the send that waits for the window (T-859), a line
-/// that awaits and names the writer or the handle is a call of `beside`, or
-/// of `send`, which drains the channel itself. A wait that drains nothing is
-/// the cycle above.
+/// of each pump of [`PUMPS`], a line that awaits and names one of its
+/// session's writes is a call of `beside`, or of a call that drains the
+/// channel itself. A wait that drains nothing is the cycle above.
 #[test]
 fn each_wait_of_a_pump_on_the_session_goes_beside_the_channel() {
-    let pumps = [
-        ("io.rs", include_str!("../io.rs"), "pub async fn pump("),
-        ("mux/msession.rs", include_str!("../mux/msession.rs"), "async fn pump("),
-        ("io/send.rs", include_str!("send.rs"), "pub(super) async fn send("),
-    ];
-    for (file, text, start) in pumps {
-        let at = text.find(start).unwrap_or_else(|| panic!("{file}: no {start}"));
-        // The body ends at the first line that closes an item.
-        let body = text[at..].lines().take_while(|line| *line != "}");
+    for (file, text, start, names, drains) in PUMPS {
         let mut waits = 0;
-        for line in body.filter(|line| line.contains(".await")) {
+        for line in body(file, text, start).filter(|line| line.contains(".await")) {
             let mut words = line.split(|c: char| !(c.is_alphanumeric() || c == '_'));
-            if !words.any(|word| word == "writer" || word == "handle") {
+            if !words.any(|word| names.contains(&word)) {
                 continue;
             }
             waits += 1;
             assert!(
-                line.contains("beside(") || line.contains("send(&writer"),
-                "{file}: a wait on the session that drains nothing: {}",
+                line.contains("beside(") || drains.iter().any(|call| line.contains(call)),
+                "{file}, {start}: a wait on the session that drains nothing: {}",
                 line.trim()
             );
         }
-        assert!(waits > 0, "{file}: the pump's waits were found");
+        assert!(waits > 0, "{file}, {start}: the pump's waits were found");
+    }
+    // The wait of an elevated command, which the pump runs in its select
+    // and not beside the channel, writes nothing: the pump sends its answer
+    // beside the channel (T-923).
+    for line in body("elevate.rs", include_str!("../elevate.rs"), "pub async fn next(") {
+        assert!(!line.contains("writer"), "elevate.rs: a write in the wait of its question: {}", line.trim());
     }
 }
