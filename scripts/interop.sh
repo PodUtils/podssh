@@ -278,7 +278,8 @@ got=$(ls -d "$TOK"/* 2>/dev/null)
 # podssh ssh -G (T-046): each line that podssh prints is one of OpenSSH's,
 # but for the defaults that differ on purpose, and the lists of algorithms,
 # which are podssh's own (T-505). HOME is the one that OpenSSH reads from
-# the user database.
+# the user database. xauth is found in PATH, where OpenSSH prints its built
+# path, and Debian's patch makes ForwardX11Trusted yes, upstream's no.
 LISTS='ciphers|macs|kexalgorithms|hostkeyalgorithms|pubkeyacceptedalgorithms|casignaturealgorithms'
 home=$(awk -F: -v u="$(id -un)" '$1 == u {print $6}' /etc/passwd)
 for spec in "short:-p 2222 -l alice example.org" \
@@ -289,7 +290,7 @@ for spec in "short:-p 2222 -l alice example.org" \
     # shellcheck disable=SC2086
     env HOME="$home" PODSSH_OFFLINE=1 "$BIN" ssh -F none -G $args </dev/null >"$W/podssh-G" 2>"$W/err"
     rc=$?
-    extra=$(grep -v -E "^(serveraliveinterval|connecttimeout|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
+    extra=$(grep -v -E "^(serveraliveinterval|connecttimeout|xauthlocation|forwardx11trusted|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
     [ "$rc" = 0 ] && [ -s "$W/podssh-G" ] && [ -z "$extra" ] && [ ! -s "$W/err" ] \
         && ok "ssh.config.g.${spec%%:*}" "ssh -G: each line that podssh prints is OpenSSH's ($args)" \
         || bad "ssh.config.g.${spec%%:*}" "ssh -G ($args): exit $rc; not OpenSSH's: ${extra:-nothing}" "$W/err"

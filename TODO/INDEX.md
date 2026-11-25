@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**884 entries: 4 open, 33 partial, 13 blocked, 834 done.**
+**894 entries: 4 open, 33 partial, 13 blocked, 844 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 101 | 110 |
-| P2 | 0 | 20 | 2 | 330 | 352 |
-| P3 | 4 | 7 | 8 | 402 | 421 |
-| **All** | 4 | 33 | 13 | 834 | 884 |
+| P2 | 0 | 20 | 2 | 334 | 356 |
+| P3 | 4 | 7 | 8 | 408 | 427 |
+| **All** | 4 | 33 | 13 | 844 | 894 |
 
 ## Entries
 
@@ -960,3 +960,13 @@ repository and CI).
 | [T-950](reverse.md) | P3 | S | backlog | defect | done | The manual says croc's bridge and smee.io's server are none in this release, and a default node dials both |
 | [T-951](reverse.md) | P3 | S | backlog | defect | done | `relay serve --idle` reads as the end of a session, and it ends a link that the resumable layer resumes |
 | [T-952](robustness.md) | P3 | M | none | defect | partial | `(os error N)` leaves each user line, not only the file commands' |
+| [T-953](ssh.md) | P2 | S | backlog | defect | done | A value in double quotes keeps its quotes for most keywords of `-o` and of ssh_config |
+| [T-954](ssh.md) | P2 | S | backlog | defect | done | `-G` prints no line for X11, the fork, `TCPKeepAlive` or `RekeyLimit` |
+| [T-955](ssh.md) | P2 | S | backlog | defect | done | `--direct` with `-4` or `-6` is refused "not supported yet", though the fallback honours the family |
+| [T-956](ssh.md) | P2 | S | backlog | defect | done | `-N` or `SessionType none` with a command drops the command and waits |
+| [T-957](ssh.md) | P3 | S | backlog | defect | done | `-v` says that a quiet session's wait is held, after 20 s with nothing to read |
+| [T-958](ssh.md) | P3 | S | backlog | defect | done | A skipped encrypted key, and a failed SSH_ASKPASS, are said with the wrong reason or none |
+| [T-959](ssh.md) | P3 | S | backlog | defect | done | A key file that is a directory or not text, and a failed negotiation, are said in the runtime's words |
+| [T-960](ssh.md) | P3 | S | backlog | defect | done | A refusal of a file's value names `-o` with 64; `HostName` quotes the option text; a bad `Host` or `Include` line passes |
+| [T-961](ssh.md) | P3 | S | backlog | defect | done | `podssh ssh --result-file` in a missing directory runs, then says the file could not be written |
+| [T-962](ssh.md) | P3 | S | backlog | defect | done | A stale socket of `-L PATH` is replaced, though StreamLocalBindUnlink is said to have no effect |

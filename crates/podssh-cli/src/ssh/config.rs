@@ -89,6 +89,7 @@ pub fn read(source: &Source, ctx: &Context, seed: Settings) -> Result<Settings, 
         wants_final: false,
         final_host: String::new(),
         chain: Vec::new(),
+        seen: Vec::new(),
         names: None,
     };
     for (path, kind) in &files {
@@ -133,6 +134,7 @@ pub fn host_names(source: &Source, ctx: &Context) -> Result<Vec<String>, String>
         wants_final: false,
         final_host: String::new(),
         chain: Vec::new(),
+        seen: Vec::new(),
         names: Some(Vec::new()),
     };
     for (path, kind) in files_of(source, ctx.system) {
@@ -171,6 +173,9 @@ struct Reader<'a> {
     final_host: String,
     /// The files being read, for the message of a loop.
     chain: Vec<String>,
+    /// The same files, each as the system resolves it, for a loop that two
+    /// spellings of one path would hide.
+    seen: Vec<PathBuf>,
     /// The literal names of the `Host` lines read, when they are asked for
     /// ([`host_names`]).
     names: Option<Vec<String>>,
@@ -188,13 +193,21 @@ impl Reader<'_> {
                 _ => Ok(()),
             };
         };
+        // A file that includes itself, at once or through others, is a loop
+        // whatever its depth: said as one, not as a depth of 16.
+        let resolved = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        if self.seen.contains(&resolved) {
+            return Err(format!("{shown} includes itself: {} -> {shown}", self.chain.join(" -> ")));
+        }
         if self.chain.len() > MAX_DEPTH {
             return Err(format!("{shown}: more than {MAX_DEPTH} nested includes: {}", self.chain.join(" -> ")));
         }
         self.chain.push(shown.clone());
+        self.seen.push(resolved);
         let system = matches!(kind, Kind::System | Kind::Included { system: true });
         let read = self.lines(&shown, &text, system, active);
         self.chain.pop();
+        self.seen.pop();
         read
     }
 
@@ -209,6 +222,9 @@ impl Reader<'_> {
             let value = uncomment(value).trim_end();
             let at = |why: &str| format!("{file}:{n}: {}", why.strip_prefix("-o ").unwrap_or(why));
             match keyword.to_ascii_lowercase().as_str() {
+                // A Host line with no pattern is refused, as OpenSSH refuses
+                // it: read as matching nothing, its block would vanish.
+                "host" if value.trim().is_empty() => return Err(at("Host needs at least one pattern")),
                 "host" => {
                     if let Some(names) = self.names.as_mut() {
                         add_names(names, value);

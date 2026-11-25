@@ -125,7 +125,7 @@ Read: the data is in tables already. Commands and flags: `VERBS`
 (`crates/podssh-cli/src/flags.rs:396-468`), each row with its kind and `instead` (lines 19-47 at `22c3b88`),
 and the availability (lines 443-451 at `22c3b88`). Arguments: the parser
 (`PodUtils/podssh:crates/podssh-cli/src/man/model.rs:204-208`). Keywords:
-`crates/podssh-cli/src/ssh/keywords.rs:25-143`, with the stated defaults (lines 99-104 at `22c3b88`).
+`crates/podssh-cli/src/ssh/keywords.rs:25-145`, with the stated defaults (lines 99-104 at `22c3b88`).
 Variables: `crates/podssh-cli/src/man/facts.rs:46-284`. The files and the exit codes were text
 blocks only (`crates/podssh-cli/src/man/facts.rs` lines 100-145 and 231-271 at `332ee58`), and the blocks of the
 manual do not keep the kind and the `instead` of a flag.
@@ -316,7 +316,7 @@ session to `github.com:22` and checks the host key against GitHub's published ke
 banner step. The script's `ssh` steps trust the key on first use (`accept-new`, line 65), not by
 equality, and its `-tt` step never reaches a pty request: GitHub refuses the key before a
 channel opens. `keygen::generate` makes a key in memory (`crates/podssh-ssh/src/keygen.rs:81-94`),
-and `crates/podssh-ssh/src/keys.rs:124-156` offers a key to the server.
+and `crates/podssh-ssh/src/keys.rs:130-162` offers a key to the server.
 
 ## Approach
 
@@ -545,7 +545,7 @@ at `crates/podssh-cli/src/ssh/transport.rs:225`, and the relay's close reason is
    (`crates/podssh-ssh/src/io.rs:199-209`, and `write_out` at `crates/podssh-ssh/src/io/msg.rs:90-107`). T-055 needs the same change.
 3. stdout and stderr stay byte for byte as now; the command's output never goes into the JSON.
 4. Write the file on each path, also after a failure before the session: at the end of
-   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:323-327`). Mode 0600. Refuse `-`: stdout is data.
+   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:330-334`). Mode 0600. Refuse `-`: stdout is data.
 5. Add the row to `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-299`; the set of short flags
    does not change), and change the `ssh` notes and `docs/cli.md` in the same commit.
 
@@ -625,11 +625,11 @@ failure at `crates/podssh-ssh/src/run.rs:152-163` and
 `crates/podssh-cli/src/ssh/result.rs:18-66`, the channel's verdict at
 `crates/podssh-cli/src/ssh/result.rs:153-163`, the file at
 `crates/podssh-cli/src/ssh/result.rs:165-179`, written at the end of
-`run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:103-143`); the relay host at
+`run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:103-150`); the relay host at
 `crates/podssh-cli/src/ssh/transport.rs:226` and its close at
-`crates/podssh-cli/src/ssh/mod.rs:400`. The flag in `SSH_FLAGS`
+`crates/podssh-cli/src/ssh/mod.rs:408`. The flag in `SSH_FLAGS`
 (`crates/podssh-cli/src/flags.rs:213`), its note at
-`crates/podssh-cli/src/man/notes_ssh_more.rs:157-174`, and `docs/cli.md`.
+`crates/podssh-cli/src/man/notes_ssh_more.rs:161-179`, and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/ssh_result.rs`, against the test server,
 whose `exit N` and `kill NAME` are in
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7432-7462`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7447-7477`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:90-107`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -901,8 +901,8 @@ at `crates/podssh-cli/src/session_log.rs:97-121`, the lines of `ssh` and
 checks and its move aside at `crates/podssh-cli/src/session_log.rs:174-243`,
 and its last line at `crates/podssh-cli/src/session_log.rs:246-263`. The
 line of `podssh ssh` at the end of `run_ssh`, from its result
-(`crates/podssh-cli/src/ssh/mod.rs:108-143`), and its destination at
-`crates/podssh-cli/src/ssh/mod.rs:293`; that of `podssh proxy` at
+(`crates/podssh-cli/src/ssh/mod.rs:108-150`), and its destination at
+`crates/podssh-cli/src/ssh/mod.rs:300`; that of `podssh proxy` at
 `crates/podssh-cli/src/proxy.rs:94-108`, its destination at
 `crates/podssh-cli/src/proxy.rs:191` and `crates/podssh-cli/src/proxy.rs:333`,
 its session at `crates/podssh-cli/src/proxy.rs:453-460`; the bytes of the

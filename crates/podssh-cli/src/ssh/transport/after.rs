@@ -133,7 +133,7 @@ async fn once(
 /// keeps it (T-253); an address is of its own family. A name's addresses go
 /// through the proxy that the name takes, as literals, since a proxy can
 /// keep no family.
-async fn dial(first: &Hop, family: Option<u8>, target: &str, log: &Log) -> Result<TcpStream, String> {
+pub(super) async fn dial(first: &Hop, family: Option<u8>, target: &str, log: &Log) -> Result<TcpStream, String> {
     let literal = first.host.parse::<std::net::IpAddr>().is_ok();
     let Some(family) = family.filter(|_| !literal) else {
         // A bad PODSSH_MPTCP asks for nothing here: the one dial is a plain one.

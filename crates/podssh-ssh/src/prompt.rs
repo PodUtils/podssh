@@ -36,7 +36,7 @@ pub enum PromptError {
 impl std::fmt::Display for PromptError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PromptError::NoTerminal => f.write_str("there is no terminal to ask on (and no SSH_ASKPASS)"),
+            PromptError::NoTerminal => f.write_str(&why_no_one()),
             PromptError::NoAnswer => {
                 write!(f, "nobody answered on the terminal within {} s", crate::terminal::UNWATCHED_PROMPT.as_secs())
             }
@@ -92,6 +92,38 @@ pub fn can_ask() -> bool {
     controlling_terminal_exists() || (askpass && display && require != "never")
 }
 
+/// Why [`can_ask`] found no one to ask, in the words of the variables that
+/// the user set: an `SSH_ASKPASS` that is set but not allowed is named, as
+/// "no SSH_ASKPASS" would send the user looking for the wrong fault.
+pub fn why_no_one() -> String {
+    let var = |name: &str| std::env::var_os(name).filter(|v| !v.is_empty());
+    let display = var("DISPLAY").is_some() || var("WAYLAND_DISPLAY").is_some();
+    let require = std::env::var("SSH_ASKPASS_REQUIRE").unwrap_or_default().to_ascii_lowercase();
+    no_one(var("SSH_ASKPASS").is_some(), display, &require)
+}
+
+/// Why a run may not ask: `BatchMode`, else [`why_no_one`]. A caller that
+/// found `batch || !can_ask()` names its cause with this.
+pub fn why_not_asked(batch: bool) -> String {
+    if batch {
+        "BatchMode is yes, which forbids each question".into()
+    } else {
+        why_no_one()
+    }
+}
+
+/// [`why_no_one`] of the variables given, for its table test.
+fn no_one(askpass: bool, display: bool, require: &str) -> String {
+    match (askpass, display, require) {
+        (false, ..) => "there is no terminal and no SSH_ASKPASS".into(),
+        (true, _, "never") => "there is no terminal, and SSH_ASKPASS_REQUIRE=never forbids SSH_ASKPASS".into(),
+        (true, false, _) => "there is no terminal, and SSH_ASKPASS is set but neither DISPLAY nor WAYLAND_DISPLAY \
+                             is (SSH_ASKPASS_REQUIRE=force uses it anyway)"
+            .into(),
+        (true, true, _) => "there is no terminal to ask on".into(),
+    }
+}
+
 #[cfg(unix)]
 fn controlling_terminal_exists() -> bool {
     crate::terminal::ctty::open().is_ok()
@@ -131,5 +163,29 @@ fn ended(status: std::process::ExitStatus) -> String {
         (Some(code), _) => format!("exited {code}"),
         (None, Some(signal)) => format!("was killed by signal {signal}"),
         (None, None) => "ended with no exit status".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::no_one;
+
+    /// Each way that no one can be asked names the variable at fault: an
+    /// SSH_ASKPASS that is set is never called missing.
+    #[test]
+    fn the_reason_names_the_variable_at_fault() {
+        for (askpass, display, require, says) in [
+            (false, false, "", "no SSH_ASKPASS"),
+            (false, true, "prefer", "no SSH_ASKPASS"),
+            (true, false, "", "neither DISPLAY nor WAYLAND_DISPLAY"),
+            (true, false, "prefer", "neither DISPLAY nor WAYLAND_DISPLAY"),
+            (true, true, "never", "SSH_ASKPASS_REQUIRE=never"),
+            (true, false, "never", "SSH_ASKPASS_REQUIRE=never"),
+            (true, true, "", "no terminal to ask on"),
+        ] {
+            let why = no_one(askpass, display, require);
+            assert!(why.contains(says), "{askpass} {display} {require:?}: {why}");
+            assert_eq!(askpass, !why.contains("no SSH_ASKPASS"), "{why}");
+        }
     }
 }

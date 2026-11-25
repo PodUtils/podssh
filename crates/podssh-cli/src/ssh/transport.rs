@@ -308,7 +308,11 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
                     tokio::time::sleep(wait).await;
                 }
                 log.verbose(&format!("connecting to {target} directly"));
-                let dialled = direct(&first.host, first.port, multipath, &target, log).await;
+                // -4 or -6 keeps the family: that family's addresses alone.
+                let dialled = match resolved.shown.family {
+                    Some(_) => after::dial(first, resolved.shown.family, &target, log).await,
+                    None => direct(&first.host, first.port, multipath, &target, log).await.map_err(|e| e.to_string()),
+                };
                 match dialled {
                     Ok(tcp) => {
                         let _ = tcp.set_nodelay(true);
@@ -332,7 +336,7 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
                         let direct_proxy = Some(DirectProxy { proxy: proxy.to_string(), heard });
                         return Ok(Reached { stream: Box::new(watched), relay: None, direct_proxy, layer: None });
                     }
-                    Err(e) => log.error(&crate::pipe::remote::could_not_connect(&target, e.to_string())),
+                    Err(e) => log.error(&crate::pipe::remote::could_not_connect(&target, podssh_ws::text::plain(&e))),
                 }
             }
             Err(NotReached { lines: Vec::new(), code: sysexits::EX_UNAVAILABLE })

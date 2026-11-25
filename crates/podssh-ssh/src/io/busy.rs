@@ -4,12 +4,13 @@
 //! select, ready for a message, and the hold is in russh's own loop: its step
 //! that holds 20 s is said too (podssh's patch of russh, `Step`), with the
 //! channel that it waits on beside the session's own. An idle pump whose wait
-//! of its channel was not polled for 20 s is said too: its task holds
+//! of its channel was woken and not polled for 20 s is said too: its task holds
 //! elsewhere, and nothing drains the channel's queue. A step that waits on
 //! the session drains the channel beside it (`beside.rs`), and says so.
 
 use std::future::Future;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Wake, Waker};
 use std::time::Duration;
 
 use russh::ChannelId;
@@ -27,6 +28,27 @@ const HOLD: Duration = Duration::from_secs(20);
 pub(super) struct Busy {
     step: Arc<Mutex<Option<(Instant, &'static str)>>>,
     polled: Arc<Mutex<Option<Instant>>>,
+    /// When the wait of the channel was woken and not polled since: a wait
+    /// that nothing woke is idle, not held, however long it lasts.
+    woken: Arc<Mutex<Option<Instant>>>,
+}
+
+/// The waker of the channel's wait, which keeps the time of its first wake
+/// since the last poll, then wakes the task as the runtime's would.
+struct Noted {
+    inner: Waker,
+    woken: Arc<Mutex<Option<Instant>>>,
+}
+
+impl Wake for Noted {
+    fn wake(self: Arc<Self>) {
+        self.wake_by_ref();
+    }
+
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.woken.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(Instant::now);
+        self.inner.wake_by_ref();
+    }
 }
 
 impl Busy {
@@ -44,32 +66,48 @@ impl Busy {
     /// session (`beside.rs`).
     pub(super) fn mark(&self) {
         *self.polled.lock().unwrap_or_else(|e| e.into_inner()) = Some(Instant::now());
+        *self.woken.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
 
-    /// `wait`, the pump's wait of its channel, with the time of each poll kept.
+    /// `wait`, the pump's wait of its channel, with the time of each poll
+    /// kept, and the time of a wake that no poll followed.
     pub(super) fn polled<F: Future>(&self, wait: F) -> impl Future<Output = F::Output> {
-        let polled = self.polled.clone();
+        let (polled, woken) = (self.polled.clone(), self.woken.clone());
         let mut wait = Box::pin(wait);
+        // The task's waker, and ours over it, made again only when the task's
+        // changes.
+        let mut ours: Option<(Waker, Waker)> = None;
         std::future::poll_fn(move |cx| {
             *polled.lock().unwrap_or_else(|e| e.into_inner()) = Some(Instant::now());
-            wait.as_mut().poll(cx)
+            *woken.lock().unwrap_or_else(|e| e.into_inner()) = None;
+            let waker = match &ours {
+                Some((task, noted)) if task.will_wake(cx.waker()) => noted.clone(),
+                _ => {
+                    let noted = Waker::from(Arc::new(Noted { inner: cx.waker().clone(), woken: woken.clone() }));
+                    ours = Some((cx.waker().clone(), noted.clone()));
+                    noted
+                }
+            };
+            wait.as_mut().poll(&mut Context::from_waker(&waker))
         })
     }
 
     /// The line of a step that held [`HOLD`] at `now`, once for each step;
-    /// or of an idle pump whose wait was not polled for [`HOLD`], once for
-    /// each last poll.
+    /// or of an idle pump whose wait was woken and not polled for [`HOLD`],
+    /// once for each wake. A wait that nothing woke is a quiet session (a
+    /// remote `sleep`), and says nothing.
     fn line(&self, now: Instant, said: &mut Option<Instant>) -> Option<String> {
         let step = *self.step.lock().unwrap_or_else(|e| e.into_inner());
         let Some((since, what)) = step else {
-            let last = (*self.polled.lock().unwrap_or_else(|e| e.into_inner()))?;
-            if now.duration_since(last) < HOLD || *said == Some(last) {
+            let woken = (*self.woken.lock().unwrap_or_else(|e| e.into_inner()))?;
+            if now.duration_since(woken) < HOLD || *said == Some(woken) {
                 return None;
             }
-            *said = Some(last);
+            *said = Some(woken);
             return Some(format!(
-                "the session waits for its channel, and its wait was not polled for {} s: the task that runs it holds elsewhere",
-                now.duration_since(last).as_secs()
+                "the session's channel has a message, and its wait was not polled for {} s since: the task that runs \
+                 it holds elsewhere",
+                now.duration_since(woken).as_secs()
             ));
         };
         if now.duration_since(since) < HOLD || *said == Some(since) {
@@ -201,24 +239,37 @@ mod tests {
         assert!(line.ends_with("held in the handler's data"), "{line}");
     }
 
-    /// An idle pump whose wait was not polled for 20 s is said once; one
-    /// polled since says nothing.
+    /// A quiet session, whose wait nothing woke, says nothing however long it
+    /// waits; a wait that was woken and not polled for 20 s is said once, and
+    /// a poll ends it.
     #[tokio::test(start_paused = true)]
-    async fn an_idle_pump_whose_wait_is_not_polled_is_said_once() {
+    async fn only_a_woken_wait_that_is_not_polled_is_said() {
         let busy = Busy::default();
         let mut said = None;
         busy.idle();
         assert_eq!(busy.line(Instant::now(), &mut said), None, "never polled: nothing to say");
-        let mut wait = std::pin::pin!(busy.polled(std::future::pending::<()>()));
+        // The channel's wait keeps its waker, as a channel's receiver does.
+        let kept: Arc<Mutex<Option<Waker>>> = Arc::default();
+        let slot = kept.clone();
+        let channel = std::future::poll_fn(move |cx| {
+            *slot.lock().unwrap() = Some(cx.waker().clone());
+            std::task::Poll::<()>::Pending
+        });
+        let mut wait = std::pin::pin!(busy.polled(channel));
         assert!(futures_poll_once(wait.as_mut()).await.is_pending());
+        tokio::time::advance(3 * HOLD).await;
+        assert_eq!(busy.line(Instant::now(), &mut said), None, "a quiet session is idle, not held");
+        kept.lock().unwrap().take().expect("a waker").wake();
         tokio::time::advance(HOLD / 2).await;
-        assert_eq!(busy.line(Instant::now(), &mut said), None, "polled 10 s ago");
+        assert_eq!(busy.line(Instant::now(), &mut said), None, "woken 10 s ago");
         tokio::time::advance(HOLD).await;
-        let line = busy.line(Instant::now(), &mut said).expect("said after 20 s with no poll");
-        assert!(line.starts_with("the session waits for its channel, and its wait was not polled for 30 s"), "{line}");
-        assert_eq!(busy.line(Instant::now(), &mut said), None, "once for each last poll");
+        let line = busy.line(Instant::now(), &mut said).expect("said 20 s after a wake with no poll");
+        let starts = "the session's channel has a message, and its wait was not polled for 30 s";
+        assert!(line.starts_with(starts), "{line}");
+        assert_eq!(busy.line(Instant::now(), &mut said), None, "once for each wake");
         assert!(futures_poll_once(wait.as_mut()).await.is_pending());
-        assert_eq!(busy.line(Instant::now(), &mut said), None, "polled again: nothing");
+        tokio::time::advance(3 * HOLD).await;
+        assert_eq!(busy.line(Instant::now(), &mut said), None, "polled again, and quiet: nothing");
     }
 
     /// One poll of `fut`.

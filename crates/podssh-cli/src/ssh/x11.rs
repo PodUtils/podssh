@@ -47,6 +47,17 @@ pub fn plan(args: &SshArgs, settings: &Settings) -> Option<Plan> {
     })
 }
 
+/// The X11 lines of `-G`: what `args` and `settings` ask, whatever the
+/// request, as OpenSSH prints them.
+pub fn shown(args: &SshArgs, settings: &Settings) -> super::dump::X11Shown {
+    super::dump::X11Shown {
+        forward: args.forward_x11.or(settings.forward_x11).unwrap_or(false),
+        trusted: args.x11_trusted || settings.forward_x11_trusted.unwrap_or(false),
+        timeout: settings.forward_x11_timeout.unwrap_or(TIMEOUT.as_secs()),
+        xauth: settings.xauth_location.clone(),
+    }
+}
+
 /// What the probe reads of the process: `DISPLAY`, `XAUTHORITY`, the home,
 /// this host's name and `PATH`.
 #[derive(Debug, Clone, Default)]

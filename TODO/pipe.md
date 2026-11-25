@@ -167,7 +167,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
   measured. Only exec is measured with digests (`docs/STATUS.md:259`); `-W`
-  was checked with a banner of 16 bytes (`scripts/interop.sh:346-348`).
+  was checked with a banner of 16 bytes (`scripts/interop.sh:347-349`).
 - Read: `node:` needs T-084 (M4) and `iroh:` needs T-163 (M6); both are done
   before M7 starts.
 
@@ -187,18 +187,18 @@ local program to a target, and `podssh proxy` stays a second pump.
    `crates/podssh-cli/src/pipe/relay.rs:232-266`).
 4. `ssh:[USER@]HOP[,HOP...],HOST:PORT`: the last item is the target, each
    other item a hop, read as `-J` reads it
-   (`crates/podssh-cli/src/ssh/resolve.rs:168-172`,
+   (`crates/podssh-cli/src/ssh/resolve.rs:171-175`,
    `crates/podssh-cli/src/ssh/hop.rs:30-75`). Make
    `crates/podssh-ssh/src/run.rs:174-191` a public `connect_chain` that `-W`
    and the pipe both use; keep each handle alive until the pipe ends. The
    options: `-i`, `-o NAME=VALUE` through
-   `crates/podssh-cli/src/ssh/options.rs:107-280` (a keyword of a session,
+   `crates/podssh-cli/src/ssh/options.rs:112-295` (a keyword of a session,
    such as `RequestTTY` or `RemoteCommand`, exits 64), `--direct`,
    `--relay-host`, `--relay-addr` and `--ca-file`.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7318`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7333`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
@@ -310,8 +310,8 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
 - Measured: `podssh proxy unix-connect:/tmp/x.sock 1` exits 64
   (`':' is not allowed`): no command takes a socket path.
 - Read: podssh connects to a Unix socket only for the agent
-  (`crates/podssh-ssh/src/keys.rs:432-445`, `connect_agent`); on Windows the agent is a
-  named pipe (`crates/podssh-ssh/src/keys.rs:446-467`).
+  (`crates/podssh-ssh/src/keys.rs:423-436`, `connect_agent`); on Windows the agent is a
+  named pipe (`crates/podssh-ssh/src/keys.rs:437-458`).
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
   before the call (`crates/podssh-cli/src/doctor/unix.rs:212-221`,
   `crates/podssh-cli/src/doctor/unix.rs:235-240`).
@@ -610,9 +610,9 @@ running on the server (`docs/design.md:860-864`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7445-7447`). After the attach, send the window size again.
+   (`docs/cli.md:7460-7462`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
-   (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-190`), `docs/design.md:860-864`,
+   (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-195`), `docs/design.md:860-864`,
    `docs/STATUS.md`, and tmux in the interop image
    (`scripts/interop.sh:24-25`). T-025 shares the classes of close codes;
    T-153 replaces this loop when both ends run podssh.
@@ -2276,7 +2276,7 @@ The line was `podssh pipe: the server could not open a connection to 127.0.0.1:1
 - Read: russh's `Display` of `Error::ChannelOpenFailure` is `Failed to open channel ({0:?})`
   (`vendor/russh/src/lib_inner.rs:149`), the Debug name of the reason.
 - Read (at `b981f5f`): `forward::open` and `refusal_words` put that `Display` after the target
-  (`crates/podssh-ssh/src/forward.rs:49`); `describe` had no case for it (`crates/podssh-ssh/src/run_words.rs:37`
+  (`crates/podssh-ssh/src/forward.rs:49`); `describe` had no case for it (`crates/podssh-ssh/src/run_words.rs:38`
   is the new one); `open_failure` gave `{other:?}` for a reason of the server's own
   (`crates/podssh-ssh/src/local.rs:312`).
 - Read: OpenSSH's words of each reason exist once already, `unopened::reason_text`

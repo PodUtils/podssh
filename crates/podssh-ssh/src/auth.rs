@@ -253,7 +253,7 @@ async fn keyboard_interactive(
     // with no echo, as PAM asks (T-228); BatchMode forbids a prompt, not it.
     let mut stored = credential_store::stored(&opts.agent, target, log).await;
     if !can_ask && stored.is_none() {
-        notes.push("keyboard-interactive was skipped: there is no terminal or SSH_ASKPASS to answer it".into());
+        notes.push(format!("keyboard-interactive was skipped: {}", prompt::why_not_asked(opts.batch_mode)));
         return Ok(Step::Exhausted);
     }
     // The prompt that the stored password answered, until the server shows
@@ -298,9 +298,10 @@ async fn keyboard_interactive(
                     answered = Some(prompts[0].prompt.clone());
                     answers.push(secret.to_string());
                 } else if !prompts.is_empty() && !can_ask {
-                    notes.push(
-                        "keyboard-interactive was abandoned: there is no terminal or SSH_ASKPASS to answer it".into(),
-                    );
+                    notes.push(format!(
+                        "keyboard-interactive was abandoned: {}",
+                        prompt::why_not_asked(opts.batch_mode)
+                    ));
                     return Ok(Step::Exhausted);
                 } else {
                     for p in prompts {
@@ -366,7 +367,7 @@ async fn password(
         credential_store::forget(&opts.agent, target, log).await;
     }
     if opts.batch_mode || !prompt::can_ask() {
-        notes.push("password authentication was skipped: there is no terminal or SSH_ASKPASS to ask on".into());
+        notes.push(format!("password authentication was skipped: {}", prompt::why_not_asked(opts.batch_mode)));
         return Ok(Step::Exhausted);
     }
     match ask(format!("{user}@{host}'s password: "), false).await {

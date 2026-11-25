@@ -35,6 +35,10 @@ mod at_once;
 // A key file sealed to a TPM (T-839).
 #[path = "keys_tpm.rs"]
 mod tpm_key;
+// What the key files say of themselves (T-958, T-959).
+#[path = "keys_words.rs"]
+mod words;
+use words::{not_a_file, skipped_lines, unread, warn_if_readable_by_others};
 
 enum AgentState {
     NotTried,
@@ -53,7 +57,9 @@ pub(crate) struct PublicKeys {
     log: Arc<Log>,
     offered: Vec<PublicKey>,
     rsa_hash: Option<Option<HashAlg>>,
-    skipped_encrypted: Vec<PathBuf>,
+    /// Each encrypted key that was not opened, and why: BatchMode, no one
+    /// to ask, or how SSH_ASKPASS failed.
+    skipped_encrypted: Vec<(PathBuf, String)>,
     /// The key files of security keys that no device could sign with, and
     /// why.
     skipped_sk: Vec<String>,
@@ -180,13 +186,7 @@ impl PublicKeys {
                 )
             });
         }
-        if !self.skipped_encrypted.is_empty() {
-            let files: Vec<String> = self.skipped_encrypted.iter().map(|p| p.display().to_string()).collect();
-            notes.push(format!(
-                "skipped encrypted key(s) {}: there is no terminal or SSH_ASKPASS for the passphrase",
-                files.join(", ")
-            ));
-        }
+        notes.extend(skipped_lines(&self.skipped_encrypted));
         if !self.skipped_sk.is_empty() {
             notes.push(format!("skipped the key(s) of a security key: {}", self.skipped_sk.join("; ")));
         }
@@ -325,6 +325,12 @@ impl PublicKeys {
             self.log.debug(&format!("no key file at {}", path.display()));
             return None;
         }
+        // What the path is comes before its mode: a directory is no key
+        // file, whoever may read it.
+        if let Some(why) = not_a_file(path) {
+            self.log.info(&format!("could not use the key file {}: {why}", path.display()));
+            return None;
+        }
         warn_if_readable_by_others(path, &self.log);
         match crate::key_file::load(path, None) {
             Ok(key) => Some(key),
@@ -332,7 +338,7 @@ impl PublicKeys {
             Err(russh::keys::Error::KeyIsEncrypted) if self.kept(path).is_some() => self.kept(path),
             Err(russh::keys::Error::KeyIsEncrypted) => self.decrypt(path).await,
             Err(e) => {
-                self.log.info(&format!("could not use the key file {}: {e}", path.display()));
+                self.log.info(&format!("could not use the key file {}: {}", path.display(), unread(&e)));
                 None
             }
         }
@@ -359,7 +365,7 @@ impl PublicKeys {
             }
         }
         if !self.can_prompt || !prompt::can_ask() {
-            self.skipped_encrypted.push(path.to_path_buf());
+            self.skipped_encrypted.push((path.to_path_buf(), prompt::why_not_asked(!self.can_prompt)));
             return None;
         }
         for _ in 0..self.passphrase_tries {
@@ -378,7 +384,12 @@ impl PublicKeys {
                     }
                     Err(_) => self.log.info(&format!("Bad passphrase for {}.", path.display())),
                 },
-                Err(_) => return None,
+                // How the question failed goes into the final lines: an
+                // SSH_ASKPASS that exited 1 is the cause, not the key.
+                Err(e) => {
+                    self.skipped_encrypted.push((path.to_path_buf(), e.to_string()));
+                    return None;
+                }
             }
         }
         None
@@ -399,26 +410,6 @@ impl PublicKeys {
         }
         out
     }
-}
-
-/// OpenSSH refuses a key file others can read; podssh uses it and says so,
-/// because on the hosts it targets `chmod` may not work at all.
-fn warn_if_readable_by_others(path: &Path, log: &Log) {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if let Ok(meta) = std::fs::metadata(path) {
-            let mode = meta.permissions().mode() & 0o777;
-            if mode & 0o077 != 0 {
-                log.info(&format!(
-                    "warning: the key file {} can be read by others (mode {mode:04o}); using it anyway",
-                    path.display()
-                ));
-            }
-        }
-    }
-    #[cfg(not(unix))]
-    let _ = (path, log);
 }
 
 /// The keys that the agent of `choice` holds: none when no agent runs (for

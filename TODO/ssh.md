@@ -30,7 +30,7 @@ Read:
   never offers a key (`crates/podssh-ssh/src/auth.rs:124-126`).
 - The denial adds the notes of the keys with no condition
   (`crates/podssh-ssh/src/auth.rs` line 115 at `475aea9`). `PublicKeys::notes` writes "no key
-  was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:163-182`).
+  was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:169-188`).
 - The reporter's output (GitHub #7): the line
   `Permission denied (publickey,keyboard-interactive).`, the note about
   keyboard-interactive, then the wrong note.
@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:183-189`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:7430-7490`
+   so that only the notes change. No document changes: `docs/cli.md:7445-7505`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -289,19 +289,19 @@ Read:
    `1001`, `1009` or `1013`.
 4. Wait with the jittered backoff that exists
    (`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). Bound the whole by the rounds
-   of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:417`) and
+   of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:424`) and
    the deadline of each host.
 5. Never prompt again without a person: under `BatchMode`, or with no
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:7304-7404`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:7319-7419`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:7314-7317`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:7329-7332`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:7304-7404`, and the measurement in
+5. Write the measured rule in `docs/cli.md:7319-7419`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:7430-7490` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:7445-7505` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -889,7 +889,7 @@ Read: each hop gets its own name for the check, its host and its port, as
 destination only (`crates/podssh-ssh/src/run.rs`, lines 270-273 at `e85e6d2`). The order of
 host-key algorithms comes from the keys recorded for that hop
 (`crates/podssh-ssh/src/run.rs:440-462`). The gate's check "-J through
-OpenSSH to Dropbear" (`scripts/interop.sh:350-351`) passes only when this
+OpenSSH to Dropbear" (`scripts/interop.sh:351-352`) passes only when this
 holds: both hops are 127.0.0.1, both keys are Ed25519 and differ, and each
 is recorded under its own port.
 
@@ -954,7 +954,7 @@ filed as it is, with no port, as OpenSSH files it (the Correction).
   10.3p1 did, and under `StrictHostKeyChecking=yes` each tool took the key that
   the other had filed and went on to the login.
 - A new harness, `scripts/interop-hostkeys.sh:1-58`, sourced after the check of
-  `-J` (`scripts/interop.sh:352-353`), has four checks (its floor is 4):
+  `-J` (`scripts/interop.sh:353-354`), has four checks (its floor is 4):
   `hostkeys.jump_names`, from an empty file under accept-new, `-J` through
   OpenSSH to Dropbear files `[127.0.0.1]:2201` and `[127.0.0.1]:2203`;
   `hostkeys.jump_changed`, with the jump's key changed, exits 255 with a
@@ -997,8 +997,8 @@ and no other.
   needs an askpass program that it can run, which a noexec sandbox can
   refuse.
 - Read: OpenSSH has no keyword for this. podssh refuses
-  `KnownHostsCommand` (`crates/podssh-cli/src/ssh/options.rs:273-277`,
-  `crates/podssh-cli/src/ssh/keywords.rs:139`).
+  `KnownHostsCommand` (`crates/podssh-cli/src/ssh/options.rs:288-292`,
+  `crates/podssh-cli/src/ssh/keywords.rs:141`).
 - Measured, offline (`PODSSH_OFFLINE=1`):
   `podssh ssh --host-key-fingerprint SHA256:abc example.invalid true` gives
   `unknown flag '--host-key-fingerprint'`, exit 64.
@@ -1022,7 +1022,7 @@ and no other.
    `known_hosts` cannot be read (`unverifiable` in
    `crates/podssh-ssh/src/hostkey.rs`, T-028), next to
    `-o UserKnownHostsFile=FILE`.
-6. The flag's row gives the help and the manual. Update `docs/cli.md:66-1026`,
+6. The flag's row gives the help and the manual. Update `docs/cli.md:66-1027`,
    and add an example to `crates/podssh-cli/src/man/examples.rs`.
 
 ## Decision
@@ -1193,7 +1193,7 @@ asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:206-229`
   OpenSSH's sshd and Alpine's sudo in the box: `sudo.password`, `sudo.wrong`
   and `sudo.nopass`. The gate runs them at this push; their plant in the box
   waits for T-251.
-- `docs/cli.md:875-898` and a note of the manual say what the flags do.
+- `docs/cli.md:876-899` and a note of the manual say what the flags do.
 - `cargo test -p podssh-ssh`: 147 passed; `cargo test -p podssh-cli`:
   570 passed, 0 failed, 31 ignored; clippy; rustfmt.
 
@@ -1240,7 +1240,7 @@ and no player.
    hold a secret.
 4. Playback: a new verb `podssh play FILE`, with `--speed` and
    `--idle-limit`. Not `replay`: it is one edit from `relay`, and the
-   suggestion step would mix them (`docs/cli.md:2360-2369`). Add it to `VERBS`
+   suggestion step would mix them (`docs/cli.md:2375-2384`). Add it to `VERBS`
    (`crates/podssh-cli/src/flags.rs:396-468`), to
    `crates/podssh-cli/src/positionals.rs`, to dispatch, and to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-147`).
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:899-910` and `docs/cli.md:6071-6083`, the manual's notes and an
+- `docs/cli.md:900-911` and `docs/cli.md:6086-6098`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1338,7 +1338,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: podssh uses an agent that `SSH_AUTH_SOCK` names, today. On Unix it
   connects to that socket, or to `IdentityAgent PATH`; on Windows it tries
   the named pipe of `SSH_AUTH_SOCK`, then the pipe of the OpenSSH agent, then
-  Pageant (`crates/podssh-ssh/src/keys.rs:432-469`, `connect_agent`). It offers the agent's
+  Pageant (`crates/podssh-ssh/src/keys.rs:423-460`, `connect_agent`). It offers the agent's
   keys first (`crates/podssh-ssh/src/keys.rs:234-303`), and skips the agent's
   certificates (`crates/podssh-ssh/src/keys.rs:242-245`).
 - Read: russh 0.64.1, which the binary links, has an agent server
@@ -1538,7 +1538,7 @@ Read:
 2. Preferred change: wrap the direct stream in a writer that fails a write
    that makes no progress for 60 s, with the constant of the relay leg
    (`crates/podssh-ws/src/client.rs:45-46`). Only
-   `crates/podssh-cli/src/ssh/transport.rs:297-341` changes, and both roads behave
+   `crates/podssh-cli/src/ssh/transport.rs:297-345` changes, and both roads behave
    the same.
 3. The other change: set `inactivity_timeout` at
    `crates/podssh-ssh/src/run_config.rs:74`. russh resets that timer only in a loop
@@ -1634,7 +1634,7 @@ Read, at `4cfbd5f`:
 - A prompt goes to `SSH_ASKPASS` or to the terminal; with neither, podssh
   refuses and names the remedy (`crates/podssh-ssh/src/prompt.rs:50-93`).
   The askpass program's answer is zeroized
-  (`crates/podssh-ssh/src/prompt.rs:105-122`).
+  (`crates/podssh-ssh/src/prompt.rs:137-154`).
 - The prompts for a credential: the passphrase of a key file
   (`crates/podssh-ssh/src/keys.rs`, lines 211-236), the password
   (`crates/podssh-ssh/src/auth.rs`, lines 231-274), and the answers of
@@ -1733,7 +1733,7 @@ gives the extension messages and the exit codes; the manual's EXIT STATUS has 65
   source; the tests of the password and of keyboard-interactive failed.
 - The doctor's tests failed in their first run on this host, where no agent runs: russh's stream
   to Pageant opens when no Pageant runs, and closes at the first request, so the line said FAIL.
-  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:454-458`), which also
+  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:445-449`), which also
   spares `podssh ssh` that stream, and reads an agent that closes the connection at the store's
   question as one with no store (`crates/podssh-ssh/src/credential_store.rs:366-373`). The
   doctor's tests: 10 passed, on Windows and in the build image.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:636`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:7453-7458`). A person who types slowly must not meet a limit
+  `docs/cli.md:7468-7473`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:7488-7490` asks for a limit on the whole operation.
+   `docs/cli.md:7503-7505` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2265,14 +2265,14 @@ files, the `known_hosts` files, `IdentityAgent` and `-E` (lines 118-130,
    local user, `%r` the remote user, `%n` the destination as typed, `%k` the
    `HostKeyAlias` or the host.
 2. Take the local user from `USER`, `LOGNAME` or `USERNAME`, as `Env` does
-   (`crates/podssh-cli/src/ssh/resolve.rs:76-92`), and the host name from the
-   system; never `getpwuid` (`crates/podssh-cli/src/ssh/resolve.rs:101-122`).
+   (`crates/podssh-cli/src/ssh/resolve.rs:79-95`), and the host name from the
+   system; never `getpwuid` (`crates/podssh-cli/src/ssh/resolve.rs:104-125`).
 3. Compute `%C` as OpenSSH does, and check it against `ssh -G` (step 6).
 4. Refuse an unknown token with exit 64, before anything connects, and name
    it.
 5. Do not expand `-E`, as OpenSSH does not.
 6. T-043 uses the same function for `ssh_config`. Name the tokens in the
-   manual's notes and in `docs/cli.md:66-1026`.
+   manual's notes and in `docs/cli.md:66-1027`.
 
 ## Prove
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
-called. `docs/cli.md:5965-5966` says that the key "is never used".
+called. `docs/cli.md:5980-5981` says that the key "is never used".
 
 ## Approach
 
@@ -2619,7 +2619,7 @@ says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:2
 ## Problem
 
 `podssh ssh -i FILE` asks for the passphrase of a key only when russh says that it is encrypted
-(`crates/podssh-ssh/src/keys.rs:332-333`). russh says so for a key of OpenSSH and for an RSA key
+(`crates/podssh-ssh/src/keys.rs:338-339`). russh says so for a key of OpenSSH and for an RSA key
 in PEM, but not for three others. An encrypted key of PKCS#8 (`BEGIN ENCRYPTED PRIVATE KEY`) is
 read as a plain one, and fails on its DER. An encrypted key of PuTTY fails with ssh-key's "private
 key is encrypted". A key in PEM encrypted with another cipher than AES-128-CBC is read as a plain
@@ -2669,7 +2669,7 @@ Plant: answer as russh does, with no look at the text; the tests of the question
 ## Done
 
 2026-10-11. `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-42`) reads each key
-file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:329-374`), `podssh agent add` and
+file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:335-380`), `podssh agent add` and
 `add-passphrase`, and `podssh keygen -p` and `-c`. It finds an encrypted key by its text (a PEM key
 with `Proc-Type: 4,ENCRYPTED`, `BEGIN ENCRYPTED PRIVATE KEY`, a PuTTY key whose `Encryption` is
 not `none`) and answers "encrypted" with no passphrase. It decrypts a PEM key of AES-128-CBC,
@@ -2946,11 +2946,11 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
 - Read: keepalives are on by default, each 60 s (`crates/podssh-ssh/src/options.rs:394`), as
   russh's own (`crates/podssh-ssh/src/run_config.rs:72-73`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
-  (`crates/podssh-cli/src/ssh/resolve.rs:345-348`) that #83's comment reads. T-332's question on
+  (`crates/podssh-cli/src/ssh/resolve.rs:350-353`) that #83's comment reads. T-332's question on
   `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:288`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
   (`crates/podssh-ssh/src/handler.rs:231`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
-  error has no words of podssh's (`crates/podssh-ssh/src/run_words.rs:34`), so #83 read russh's.
+  error has no words of podssh's (`crates/podssh-ssh/src/run_words.rs:35`), so #83 read russh's.
 - Read: a forward that the server refuses is a warning, and the run goes on
   (`crates/podssh-ssh/src/remote.rs:98-104`); a refusal with the connection gone ends the run as
   lost, with no cause (`crates/podssh-ssh/src/remote.rs:95-96`). `tcpip_forward` gives the same
@@ -3418,7 +3418,7 @@ first word is the cut's. A warning 30 s before would let the user press a key, o
 ## Premise
 
 - Read: the warning at the connect, on the relay's road when ServerAliveInterval is off or at least
-  the cut (`crates/podssh-cli/src/ssh/resolve.rs:345-348`); after the cut, the relay's close with
+  the cut (`crates/podssh-cli/src/ssh/resolve.rs:350-353`); after the cut, the relay's close with
   its remedy (`PodUtils/podssh:crates/podssh-ws/src/close.rs:88-90`). The cut is the relay's, from its limits
   (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:97-100`), counted on payload alone (`docs/relay.md:636`).
 - Read: the relay stream counts the payload both ways
@@ -3744,7 +3744,7 @@ name to give. OpenSSH on the same host connects.
 - Read: the local user is `USER`, else `LOGNAME`, else `USERNAME`, else `root` for uid 0 alone
   (`crates/podssh-cli/src/ssh/resolve_env.rs:40`, `crates/podssh-cli/src/ssh/resolve_env.rs:63-70`);
   with none, a destination with no user, no `-l` and no `User` is refused
-  (`crates/podssh-cli/src/ssh/resolve.rs:219`), and so is a jump host
+  (`crates/podssh-cli/src/ssh/resolve.rs:222`), and so is a jump host
   (`crates/podssh-cli/src/ssh/jump.rs:271-272`). Each verb of the report resolves its destination
   there, so one change serves all eleven.
 - Read: the manual says that podssh never reads the user database
@@ -4042,7 +4042,7 @@ road gives 64 before anything connects.
 ## Premise
 
 - Read, against the report: the check of the relay road is podssh's own, before anything connects
-  (`crates/podssh-cli/src/ssh/resolve.rs:303`, with `crates/podssh-ws/src/names.rs:10-32` and
+  (`crates/podssh-cli/src/ssh/resolve.rs:308`, with `crates/podssh-ws/src/names.rs:10-32` and
   `crates/podssh-ws/src/names.rs:37-45`: letters, digits, `.`, `-` and `_`, or an IPv6 literal),
   not the relay's.
 - Read: on the direct road, the destination is checked for an empty name and a first `-` alone
@@ -4057,7 +4057,7 @@ road gives 64 before anything connects.
   (`openssh/openssh-portable:ssh.c`, at its tag `V_10_0_P2`); it takes `!`, `/` and each byte above
   127.
 - Read: the relay road's check reads the host that is dialed, after `HostName`
-  (`crates/podssh-cli/src/ssh/resolve.rs:303`).
+  (`crates/podssh-cli/src/ssh/resolve.rs:308`).
 
 ## Approach
 
@@ -4173,9 +4173,9 @@ would still say why the pause comes.
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/mod.rs:380-382` says "if let Some(kept) = resolved.persist.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:387-390` says "if let Some(kept) = resolved.persist.clone() {",
   and returns from `persist::run` before the watch of the relay's road starts.
-- `crates/podssh-cli/src/ssh/mod.rs:386-387` says "if let Some(upgrade) = resolved.upgrade.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:394-395` says "if let Some(upgrade) = resolved.upgrade.clone() {",
   and so does `upgrade::run`.
 - Read at `7e457b4`: `docs/cli.md` said "with `--persist`, which attaches again after the cut, and
   `--upgrade`, not before T-583" (this entry changed that line).
@@ -6268,3 +6268,527 @@ which `pod-tpm`'s TBS transport (feature `tbs`, not turned on) lacks; the storag
 tested in `tpm::tests` with a transport that answers `TPM2_CreatePrimary` with `TPM_RC_BAD_AUTH`, as `pod-tpm`'s
 `SoftTpm` has no owner's password; and the refusal of a key file's parent that is neither `0x40000001` nor
 `0x81xxxxxx` before a command is sent.
+
+
+
+# T-953: A value in double quotes keeps its quotes for most keywords of `-o` and of ssh_config
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 1.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`Port "2201"` in a file, or `-o 'Port "2201"'`, was refused "not a port" (78); so were `ServerAliveInterval`,
+`StrictHostKeyChecking`, `IdentitiesOnly` and `Compression` in quotes. `HostName "127.0.0.1"` kept its quotes, and
+`-G` printed `user "a b"` where OpenSSH prints `user a b`. `IdentityFile "..."` alone was read right.
+
+## Premise
+
+- Read: the parser of a keyword (`crates/podssh-cli/src/ssh/options.rs:130`) gave each keyword its value as written;
+  only `IdentityFile`, `IdentityAgent`, `ForwardAgent`, `XAuthLocation` and `ControlPath` called `unquote`
+  (`crates/podssh-cli/src/ssh/options_values.rs:77`). OpenSSH splits each line into words (`argv_split`): double
+  quotes group a word and go, for every keyword.
+
+## Approach
+
+One place: `one_value` (`crates/podssh-cli/src/ssh/options_values.rs:66`) gives a value of one word in double quotes
+without them, before any keyword reads it, also before the lists of algorithms. A list, a command and a forward
+(`SPLIT_LATER`: the known_hosts files, `SendEnv`, `SetEnv`, the commands, the forwards) keep their quotes for their own
+reading, which removes them by word, as before. A value of several words stays as given.
+
+## Decision
+
+- **Double quotes only.** OpenSSH 8.x and later also groups words in single quotes and reads `\` escapes; podssh's
+  `words` reads double quotes alone, and a path with an apostrophe would change meaning if podssh took single quotes
+  now. A later entry can take both, with OpenSSH's escapes, in `words` itself.
+- **A value of several words is not refused.** OpenSSH refuses "garbage at end of line" for a keyword of one value;
+  podssh keeps its reading (`User a b` is the user `a b`), as a refusal would break files that work today.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::options
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::keywords
+```
+
+`each_keyword_takes_its_value_in_double_quotes`: each keyword of `HONOURED` with a value of one word gives the same
+settings in quotes; `User "a b"` and `HostName="127.0.0.1"` lose their quotes; `Port ""` is a missing value. Planted:
+`one_value` returns the value as given, and the test fails at `Port`.
+
+## Done
+
+Drafted 2026-11-25 (`one_value` in `options_values.rs`, called in `apply_at`; the test in `options_tests.rs`; the
+manual's note of a repeated value; `docs/cli.md`, "Options of `podssh ssh`").
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's OpenSSH 9.6p1: `-G -F none -o 'User "a b"' -o 'Port "2201"'` prints `user a b` and `port 2201`, as `ssh -G` does. The planted run waits for T-251.
+
+
+# T-954: `-G` prints no line for X11, the fork, `TCPKeepAlive` or `RekeyLimit`
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 2.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`-o ForwardX11=yes` printed no X11 line, and `ForwardX11Timeout` and `ForkAfterAuthentication` of `-o` were never
+shown, though podssh applies them; `tcpkeepalive`, `xauthlocation` and `rekeylimit`, which OpenSSH prints with its
+defaults, were absent. The manual says `-G` prints each keyword podssh applies.
+
+## Premise
+
+- Read: `lines` (`crates/podssh-cli/src/ssh/dump.rs:102`) wrote a fixed list with no X11 keyword, no fork and none of
+  the keywords that podssh accepts with a note (`keywords::NOTED`). Measured with OpenSSH 9.6p1 (`ssh -G -F none`,
+  2026-11-25): `forwardx11` and `forwardx11trusted` after `exitonforwardfailure`, `forkafterauthentication` after
+  `stdinnull`, `tcpkeepalive`, `tunnel` and `verifyhostkeydns` after `stricthostkeychecking`, `forwardx11timeout 1200`
+  after `connectionattempts`, `xauthlocation` after `pubkeyacceptedalgorithms`, `tunneldevice any:any` after
+  `connecttimeout`, `rekeylimit 0 0` after `escapechar`.
+
+## Approach
+
+- The X11 lines and the fork from what `-X`, `-Y`, `-f` and the keywords ask (`x11::shown`), whatever the request.
+- `NOTED_PLACES` (`crates/podssh-cli/src/ssh/dump.rs:76`): each keyword of `keywords::NOTED`, the line it follows in
+  OpenSSH's order, and OpenSSH's default where OpenSSH prints one; the value given goes in its place, one with no default
+  prints when given. `WHEN_GIVEN` lists the keywords that podssh applies and `-G` prints only when given.
+- A test holds the two tables to `keywords::HONOURED` and `keywords::NOTED`.
+
+## Decision
+
+- **`xauthlocation xauth`**: podssh finds xauth in PATH when `-X` runs; OpenSSH prints the path it was built with. A
+  difference on purpose (`ON_PURPOSE` of `crates/podssh-cli/tests/ssh_config.rs`), as `serveraliveinterval 60`.
+- **`forwardx11trusted no`**: upstream's default; Debian's and Ubuntu's patch makes it yes. `scripts/interop.sh` leaves
+  the line out of its comparison, as it leaves `xauthlocation`.
+- **`ipqos` prints only when given**: its default changed between OpenSSH's releases (`lowdelay throughput` on Ubuntu's
+  9.6p1), and podssh applies none.
+- **A value of a noted keyword prints as given** (`RekeyLimit 1G 1h`, where OpenSSH prints bytes and seconds): podssh
+  does not apply it, and a parser of the sizes only for `-G` would be one more place to be wrong.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::dump
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test ssh_config --test ssh_config_file --test ssh_config_include
+```
+
+## Done
+
+Drafted 2026-11-25 (`dump.rs`, `x11::shown`, `Shown` filled in `resolve.rs`; the expected lines of `ssh_config.rs` and
+`ssh_config_file.rs` with the new lines, measured with OpenSSH 9.6p1; `scripts/interop.sh`; the manual's note of `-G`;
+`docs/cli.md`).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-955: `--direct` with `-4` or `-6` is refused "not supported yet", though the fallback honours the family
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 3.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh --direct -4 HOST` (or `-6`, or `AddressFamily`) was refused "with --direct they are not supported yet"
+(64), though the manual's first note says the direct road tries "the family of -4 or -6 when one is given", and the
+fallback after the relay dials that family alone.
+
+## Premise
+
+- Read: `dialed::direct` (`crates/podssh-cli/src/ssh/dialed.rs:49`) refused each family. The fallback's dial,
+  `after::dial` (`crates/podssh-cli/src/ssh/transport/after.rs:136`), resolves the name and dials the addresses of the
+  family alone (T-253).
+
+## Approach
+
+`--direct` keeps the family: the road of `Transport::Direct` dials through `after::dial` when `-4` or `-6` is given
+(`crates/podssh-cli/src/ssh/transport.rs:312`), so one rule serves both roads. An address of the other family is
+refused before anything connects (64), as the relay road refuses it. The flags' help says so; "yet" goes.
+
+## Decision
+
+- **Through a proxy, the addresses of the family are given to the proxy as literals**, as the fallback does: a proxy
+  keeps no family of a name. The alternative, to refuse `-4` with `HTTPS_PROXY`, would refuse what the fallback does.
+- **`PODSSH_MPTCP` is not asked with a family**: `after::dial` makes a plain dial. Multipath with a family waits for
+  a user who asks for both.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::dialed
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test ssh_args jump_hosts_transport_and_family
+```
+
+Live: `podssh ssh --direct -4 -p 22 localhost true` and `-6` against the own host's sshd (each family dialed alone).
+
+## Done
+
+Drafted 2026-11-25 (`dialed.rs` with its table test, `transport.rs`, `after::dial` made `pub(super)`, the rows of `-4`
+and `-6` in `flags.rs`, `tests/ssh_args.rs`).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's sshd on 127.0.0.1:2201: `--direct -4` ran `echo four` (0); `--direct -6` to 127.0.0.1 is refused "-6 asks for IPv6, but 127.0.0.1 is an IPv4 address" (64). The planted run waits for T-251.
+
+
+# T-956: `-N` or `SessionType none` with a command drops the command and waits
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 4.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh -N HOST ls` (or `-o SessionType=none` with a command) ignored the command and blocked with no sign of why.
+OpenSSH refuses it: "Cannot execute command-line and remote command." (255).
+
+## Premise
+
+- Read: `request` (`crates/podssh-cli/src/ssh/hop.rs:105`) returned `Request::Nothing` for `-N` before it looked at
+  the command.
+
+## Approach
+
+Refuse it in `request`, by the setting that asked for no command: "-N runs no command, and a command was given; drop
+-N or the command" (64). A table test in `hop.rs` holds the four cases.
+
+## Decision
+
+- **64, not OpenSSH's 255.** podssh's table gives each refusal of the command line 64, before anything connects
+  (`docs/cli.md`, the exit codes); 255 is the code of a connection that failed, and a script that reads 255 would retry
+  a run that can never work. `docs/cli.md` names OpenSSH's line and code.
+- **`RemoteCommand` with `-N` stays as it is**: OpenSSH refuses only the command line's command beside a
+  `RemoteCommand`; `-N` with a file's `RemoteCommand` keeps working, as a file's block may hold one for each run.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::hop
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test ssh_args --test detach
+```
+
+## Done
+
+Drafted 2026-11-25 (`hop.rs` with `a_command_that_would_not_run_is_refused`; the row of `-N`; `docs/cli.md`).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live: `podssh ssh -N h true` is refused "-N runs no command, and a command was given" (64) before any dial. The planted run waits for T-251.
+
+
+# T-957: `-v` says that a quiet session's wait is held, after 20 s with nothing to read
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 5.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh -v HOST sleep 30` said after 20 s: "the session waits for its channel, and its wait was not polled for
+20 s: the task that runs it holds elsewhere", though nothing held: the session had nothing to read.
+
+## Premise
+
+- Read: T-780's watch (`crates/podssh-ssh/src/io/busy.rs:99`) said an idle pump whose wait was not polled for 20 s. A
+  future that waits is polled only when it is woken: a quiet channel wakes nothing, so its wait is never polled, and
+  that is no hold.
+
+## Approach
+
+The pump's wait of its channel takes a waker of podssh's (`Noted`, `crates/podssh-ssh/src/io/busy.rs:38`) over the
+task's, which keeps the time of its first wake since the last poll. The line comes only when the wait was woken and not
+polled for 20 s: a message waits, and the task that should take it holds elsewhere. A poll, or a step beside the
+channel (`mark`), ends it.
+
+## Decision
+
+- **Keep the line at `-v`, true, rather than move it to a debug level**: a wake that no poll follows is the fault that
+  T-780 looked for, and a user of `-v` who meets a stall needs it.
+- **The waker is made again only when the task's changes** (`will_wake`), so a busy pump allocates none per poll.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib io::busy
+```
+
+`only_a_woken_wait_that_is_not_polled_is_said`: a wait that nothing woke says nothing after 60 s; woken, it is said at
+20 s, once; polled again, nothing. Live: `podssh ssh -v --direct localhost sleep 30` says no such line.
+
+## Done
+
+Drafted 2026-11-25 (`busy.rs`: `Noted`, `woken`, the line; the test replaces the one that pinned the old line).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-958: A skipped encrypted key, and a failed SSH_ASKPASS, are said with the wrong reason or none
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: findings 6 and 7.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+(6) A skipped encrypted key said "there is no terminal or SSH_ASKPASS for the passphrase" both under `BatchMode=yes` on
+a terminal and when `SSH_ASKPASS` was set but could not be used (no `DISPLAY`, no `SSH_ASKPASS_REQUIRE=force`). (7) An
+`SSH_ASKPASS` that exited 1 on the login path gave no reason: only "Permission denied ... none of these could be used:
+KEY". The `--sudo` path names it.
+
+## Premise
+
+- Read: `decrypt` (`crates/podssh-ssh/src/keys.rs:368`) kept the path alone for both causes, and dropped the error of
+  the question (now `crates/podssh-ssh/src/keys.rs:390`); the note had one fixed reason. The same fixed
+  words were in the notes of keyboard-interactive and password (`crates/podssh-ssh/src/auth.rs:256`) and of a
+  security key's PIN.
+
+## Approach
+
+- `prompt::why_no_one` (`crates/podssh-ssh/src/prompt.rs:98`) names the variable at fault: no SSH_ASKPASS; SSH_ASKPASS
+  set and neither DISPLAY nor WAYLAND_DISPLAY (with the remedy `SSH_ASKPASS_REQUIRE=force`); `SSH_ASKPASS_REQUIRE=never`.
+  `why_not_asked` puts BatchMode first. `PromptError::NoTerminal` says the same.
+- Each skipped key keeps its reason: BatchMode, no one to ask, or the question's error ("SSH_ASKPASS exited 1"); the
+  final lines group the keys by reason (`skipped_lines`, `crates/podssh-ssh/src/keys_words.rs:36`).
+- The notes of keyboard-interactive, password and a security key's PIN take the same words.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib prompt keys::words
+```
+
+Live, against OpenSSH 9.6p1's sshd with an encrypted key: `-o BatchMode=yes` on a terminal names BatchMode;
+`SSH_ASKPASS=/bin/false` with `SSH_ASKPASS_REQUIRE=force` names "SSH_ASKPASS exited 1"; `SSH_ASKPASS` with no DISPLAY
+and no terminal names DISPLAY.
+
+## Done
+
+Drafted 2026-11-25 (`prompt.rs` with its table test; `keys.rs`; `keys_words.rs`, new, with the helpers moved out of
+`keys.rs` for its length; `auth.rs`; `sk/mod.rs`).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-959: A key file that is a directory or not text, and a failed negotiation, are said in the runtime's words
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: findings 8 and 9.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+(8) Lines of `podssh ssh` ended with "(os error N)": a direct connection refused, `-L` on a port in use, `-O check`
+with no master, `-M -S` in a missing directory, `-E` of a directory, `[::1]`. A binary key file said "stream did not
+contain valid UTF-8", and no common host key algorithm said "no Key algorithm in common" (russh's enum). (9) `-i DIR`
+warned "the key file DIR can be read by others (mode 0755); using it anyway" before "Is a directory". A key file of
+mode 0644 is used after a warning, where OpenSSH refuses it, and the manual did not say so.
+
+## Premise
+
+- Read: those lines wrote an `io::Error` with `{e}` (`crates/podssh-cli/src/ssh/local_bind.rs:94`,
+  `crates/podssh-cli/src/ssh/control_unix.rs:49`, `crates/podssh-cli/src/ssh/mod.rs:308`,
+  `crates/podssh-cli/src/ssh/transport.rs:339`); `run_words::describe` wrote `{kind:?}`
+  (`crates/podssh-ssh/src/run_words.rs:24`); `load` warned of the mode before it knew what the path was.
+
+## Approach
+
+- `podssh_ws::text::said` (T-952) at each of those lines, and in `describe`'s fallback.
+- `kind_words` (`crates/podssh-ssh/src/run_words.rs:45`): key exchange, host key, cipher, MAC, compression, with both
+  sides' lists as before.
+- `not_a_file` (`crates/podssh-ssh/src/keys_words.rs:12`) before the mode: "it is a directory, not a key file";
+  `unread`: a file that is not text is "no private key of a format that podssh reads".
+- The manual says that a key file that others can read is used after a warning.
+
+## Decision
+
+- **A key file of mode 0644 stays used, with its warning, and the manual says so.** podssh runs on hosts where `chmod`
+  changes nothing (a mounted volume, a filesystem of Windows), and a refusal there leaves no way to log in. OpenSSH's
+  refusal protects a key that others read already; the warning names it, so the user can move it.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib run_words keys::words
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::local_bind
+```
+
+Live: each line of the finding again, with no "(os error"; `-i /tmp` says "it is a directory" and no mode; a key of
+`head -c 64 /dev/urandom` says "it is not text"; `-o HostKeyAlgorithms=ssh-rsa` against a server with ed25519 alone
+says "no host key algorithm in common".
+
+## Done
+
+Drafted 2026-11-25 (`keys.rs`, `keys_words.rs`, `run_words.rs` with its test, `transport.rs`, `local_bind.rs`,
+`control_unix.rs`, `ssh/mod.rs`; the manual's note of the tokens and key files).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-960: A refusal of a file's value names `-o` with 64; `HostName` quotes the option text; a bad `Host` or `Include` line passes
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: findings 10, 11 and 12.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+(10) An unknown `%` token on line 7 of a file was refused as "-o UserKnownHostsFile=...: %Q is not a token" (64), not
+as FILE:7 with 78 as each other line of a file. (11) `-o HostName=-oProxyCommand=x` said
+`"HostName=-oProxyCommand=x": a host name cannot start with '-'`, quoting the option, not the host name. (12) A `Host`
+line with no pattern was accepted silently, and so, the tester says, was an `Include` loop; OpenSSH refuses both.
+
+## Premise
+
+- Read: the tokens are expanded after the files are read (`crates/podssh-cli/src/ssh/login.rs:28`), and the place of
+  each value was lost by then. `host_rule` took `HostName={name}` as the text to quote
+  (`crates/podssh-cli/src/ssh/resolve.rs:162`, `crates/podssh-cli/src/ssh/jump.rs:244`). The `host` arm of
+  `crates/podssh-cli/src/ssh/config.rs:227` read an empty pattern list as matching nothing.
+- Measured in the record: an `Include` of the file itself by an absolute path was already refused, as more than 16
+  nested includes (`crates/podssh-cli/tests/ssh_config_include.rs:128`). A relative `Include` in a file of `-F`
+  outside `~/.ssh` names a file under `~/.ssh`, as in OpenSSH, so a file that names itself that way includes nothing;
+  that may be the tester's case.
+
+## Approach
+
+- `Settings::origins` keeps the place of each value; `given::placed` (`crates/podssh-cli/src/ssh/given.rs:64`) makes a
+  refusal of `-o NAME=VALUE` that a line gave into `FILE:LINE: NAME=VALUE: ...` with 78. `resolve` maps the refusals of
+  the login's files, the agent and the control path through it.
+- `HostName "NAME": a host name cannot start with '-'`.
+- `Host` with no pattern: FILE:LINE, 78. A file that includes itself, at once or through others, is said as a loop with
+  its chain, by the path that the system resolves.
+
+## Decision
+
+- **`User` and `RemoteCommand` of a file keep their own words** ("User x: ..."), which name the keyword already; the
+  line of each is a later step if a tester asks.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::given ssh::config
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test ssh_config_include --test leading_dash
+```
+
+The tester's `Include` loop, again, with its exact files.
+
+## Done
+
+Drafted 2026-11-25 (`options.rs`: `origins`; `given.rs`: `placed` with its table test; `resolve.rs`, `jump.rs`,
+`config.rs`; `tests/ssh_config_include.rs`: `each_refusal_of_a_files_line_names_it_with_78`, and the loop's line).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-961: `podssh ssh --result-file` in a missing directory runs, then says the file could not be written
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 13 (the part of `ssh`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh --result-file nodir/R.json HOST true` ran the command, then said that the file could not be written, and
+exited 0. The file commands refuse such a file before they connect (T-928).
+
+## Premise
+
+- Read: `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:127`) checked `-` alone; `result::no_place`
+  (`crates/podssh-cli/src/ssh/result.rs:168`) was used by the file commands only.
+
+## Approach
+
+`run_ssh` refuses a FILE that `no_place` refuses before anything runs: "podssh ssh: --result-file FILE: no such
+directory: DIR; nothing ran", 73. The manual's note of `--result-file` says so.
+
+## Decision
+
+- **73, as the file commands.** A record that cannot be made is `EX_CANTCREAT`. `run`, `each` and `job` take the
+  same check in their own area's entry.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::result
+```
+
+Live: `podssh ssh --result-file /nonexistent/r.json --direct localhost true` exits 73, and the command does not run.
+
+## Done
+
+Drafted 2026-11-25 (`ssh/mod.rs`; `notes_ssh_more.rs`).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-962: A stale socket of `-L PATH` is replaced, though StreamLocalBindUnlink is said to have no effect
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH 9.6p1's sshd: finding 14.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`-L /tmp/l.sock:HOST:PORT` replaced a socket of an earlier run silently, while the manual listed
+`StreamLocalBindUnlink` among the keywords accepted with no effect. OpenSSH, with its default `no`, refuses the path.
+
+## Premise
+
+- Read: `-L`'s socket is `podssh pipe`'s listener, which removes a socket that nobody serves
+  (`crates/podssh-cli/src/pipe/listen.rs:255`); `StreamLocalBindUnlink` was in `keywords::IGNORED`.
+
+## Approach
+
+Honour it. `StreamLocalBindUnlink` is a keyword that podssh applies (`HONOURED`, default no, a `-G` line after
+`forkafterauthentication`). With no, a socket already at the path of `-L` or `-D` (also of `~C` and of a master's
+client) is refused before the bind: "cannot listen on PATH: a socket is there already; -o StreamLocalBindUnlink=yes
+replaces one that nobody serves" (255, as each listener that cannot be made). With yes, the bind goes on, and `pipe`'s
+listener replaces a socket that nobody serves, as before.
+
+## Decision
+
+- **Yes still keeps a socket that a program serves** (69 from `pipe`): OpenSSH unlinks the path whatever is there;
+  podssh never takes a live socket from another program.
+- **`pipe unix-listen:` and the control socket keep their rule**: they are podssh's own listeners, whose manual says
+  that a socket that nobody serves is replaced.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::local_bind ssh::keywords ssh::dump
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test ssh_config --test ssh_config_file
+```
+
+Live: a stale socket at the path of `-L`, refused with no, replaced with `-o StreamLocalBindUnlink=yes`.
+
+## Done
+
+Drafted 2026-11-25 (`options.rs`, `keywords.rs`, `resolve.rs`, `local_bind.rs` with
+`a_stale_socket_is_replaced_only_with_stream_local_bind_unlink`, `control_unix.rs`, `ssh/mod.rs`, `dump.rs`;
+`docs/cli.md`, "Options of `podssh ssh`").
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's sshd: `-N -L SOCK:...` with a socket already at SOCK is refused with its line (255); with `-o StreamLocalBindUnlink=yes` the run listens. The planted run waits for T-251.

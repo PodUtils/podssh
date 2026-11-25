@@ -302,6 +302,8 @@ compression no
 controlmaster false
 clearallforwardings no
 exitonforwardfailure no
+forwardx11 no
+forwardx11trusted no
 gatewayports no
 identitiesonly no
 kbdinteractiveauthentication yes
@@ -310,8 +312,14 @@ permitlocalcommand no
 pubkeyauthentication true
 requesttty auto
 sessiontype default
-stdinnull no";
-const COUNTS: &str = "connectionattempts 1
+stdinnull no
+forkafterauthentication no
+streamlocalbindunlink no";
+const COUNTS: &str = "tcpkeepalive yes
+tunnel false
+verifyhostkeydns false
+connectionattempts 1
+forwardx11timeout 1200
 numberofpasswordprompts 3
 serveralivecountmax 3
 serveraliveinterval 30
@@ -321,8 +329,10 @@ const FILES: &str = "globalknownhostsfile none
 userknownhostsfile /kh/user
 forwardagent no
 connecttimeout 7
+tunneldevice any:any
 controlpersist no
-escapechar ~";
+escapechar ~
+rekeylimit 0 0";
 
 /// Each case: the words, then OpenSSH's lines before `SAME`, its
 /// `stricthostkeychecking`, its identity files, and what follows `FILES`.
@@ -349,8 +359,10 @@ fn podssh_reads_the_fixture_as_openssh_10_3_reads_it() {
         let mut all = vec!["-G", "-F", f.as_str()];
         all.extend_from_slice(words);
         let ours = dump::lines(&resolve(&ssh(&all), &h.env()).unwrap_or_else(|e| panic!("{words:?}: {e}")));
-        // The lists of algorithms are podssh's own, apart (T-505).
-        let ours: Vec<String> = ours.into_iter().filter(|l| !algorithms::is_list(l)).collect();
+        // The lists of algorithms are podssh's own (T-505), and so is its xauth,
+        // found in PATH where OpenSSH prints the path it was built with.
+        let own = |l: &String| algorithms::is_list(l) || l.starts_with("xauthlocation ");
+        let ours: Vec<String> = ours.into_iter().filter(|l| !own(l)).collect();
         let theirs = format!("{head}\n{SAME}\nstricthostkeychecking {strict}\n{COUNTS}\n{identities}\n{FILES}\n{tail}");
         let theirs: Vec<&str> = theirs.lines().filter(|l| !l.is_empty()).collect();
         assert_eq!(ours, theirs, "{words:?}");

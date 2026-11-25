@@ -241,7 +241,7 @@ impl Chain<'_> {
         let host = match settings.host_name.as_deref() {
             Some(name) => {
                 let name = super::tokens::host_name(name, &target.host)?;
-                host_rule(&format!("HostName={name}"), &name)?;
+                host_rule(&name, &name).map_err(|why| format!("HostName {why}"))?;
                 name
             }
             None => target.host.clone(),

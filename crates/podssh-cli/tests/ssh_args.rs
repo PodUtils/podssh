@@ -219,7 +219,8 @@ fn jump_hosts_transport_and_family() {
     assert!(matches!(r.transport, Transport::Relay { family: Some(4), then_direct: true, .. }), "T-253");
     let r = resolve(&ssh(&["--direct", "host"]), &env()).unwrap();
     assert_eq!(r.transport, Transport::Direct);
-    assert!(resolve(&ssh(&["--direct", "-6", "host"]), &env()).is_err());
+    assert_eq!(resolve(&ssh(&["--direct", "-6", "host"]), &env()).map(|r| r.shown.family), Ok(Some(6)));
+    assert!(resolve(&ssh(&["--direct", "-6", "192.0.2.1"]), &env()).unwrap_err().contains("IPv4 address"));
     assert!(resolve(&ssh(&["-4", "-6", "host"]), &env()).is_err());
     let err = resolve(&ssh(&["--relay-host", "relay.example:8443", "invalid!host"]), &env()).unwrap_err();
     assert!(err.contains("invalid!host"), "{err}");

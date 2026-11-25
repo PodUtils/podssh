@@ -125,3 +125,27 @@ fn a_proxy_command_that_runs_a_program_is_refused_with_the_way_out() {
     let err = Settings::default().apply("ProxyCommand=nc %h %p").unwrap_err();
     assert!(err.contains("podssh proxy %h %p") && !err.contains("ProxyCommand=none"), "{err}");
 }
+
+/// A value of one word in double quotes is the word, for each keyword that
+/// podssh applies, as OpenSSH splits a line: `Port "2201"` is port 2201.
+#[test]
+fn each_keyword_takes_its_value_in_double_quotes() {
+    // A list, a command and a forward keep their quotes for their own reading.
+    let one_word = |k: &&keywords::Keyword| {
+        !k.sample.contains(' ') && !values::SPLIT_LATER.contains(&k.name.to_ascii_lowercase().as_str())
+    };
+    for k in keywords::HONOURED.iter().filter(one_word) {
+        let (mut plain, mut quoted) = (Settings::default(), Settings::default());
+        plain.apply(&format!("{} {}", k.name, k.sample)).unwrap_or_else(|e| panic!("{}: {e}", k.name));
+        quoted.apply(&format!("{} \"{}\"", k.name, k.sample)).unwrap_or_else(|e| panic!("{} quoted: {e}", k.name));
+        assert_eq!(format!("{plain:?}"), format!("{quoted:?}"), "{} \"{}\"", k.name, k.sample);
+    }
+    let mut s = Settings::default();
+    s.apply("User \"a b\"").unwrap();
+    s.apply("HostName=\"127.0.0.1\"").unwrap();
+    assert_eq!((s.user.as_deref(), s.host_name.as_deref()), (Some("a b"), Some("127.0.0.1")));
+    assert!(Settings::default().apply("Port \"\"").unwrap_err().contains("missing value"));
+    // A list keeps its quotes for its own reading, which removes them.
+    s.apply("UserKnownHostsFile \"/a b\" /c").unwrap();
+    assert_eq!(s.user_known_hosts, Some(vec!["/a b".to_string(), "/c".to_string()]));
+}

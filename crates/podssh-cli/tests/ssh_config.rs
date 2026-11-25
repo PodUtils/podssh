@@ -30,7 +30,10 @@ const EVERY: &[&str] = &[
     // The socket and SOCKS forms of -R (T-365), as OpenSSH 9.6p1 printed them.
     "-R", "/tmp/r.sock:127.0.0.1:22", "-R", "8083:/tmp/local.sock", "-R", "/tmp/r2.sock:/tmp/local.sock",
     "-R", "1082", "-R", "/tmp/x.sock", "-R", "127.0.0.1:1083", "-o", "RemoteForward 9090 db:5432",
-    "-o", "ExitOnForwardFailure=yes", "EXAMPLE.org",
+    "-o", "ExitOnForwardFailure=yes",
+    // X11 as upstream OpenSSH, whose default ForwardX11Trusted is no, and its
+    // xauth, measured with OpenSSH 9.6p1 on 2026-11-25.
+    "-o", "ForwardX11Trusted=no", "-o", "XAuthLocation=/usr/bin/xauth", "EXAMPLE.org",
 ];
 const EVERY_OPENSSH: &str = "host EXAMPLE.org
 user alice
@@ -42,6 +45,8 @@ compression yes
 controlmaster auto
 clearallforwardings no
 exitonforwardfailure yes
+forwardx11 no
+forwardx11trusted no
 gatewayports yes
 identitiesonly yes
 kbdinteractiveauthentication yes
@@ -51,8 +56,14 @@ pubkeyauthentication false
 requesttty force
 sessiontype default
 stdinnull yes
+forkafterauthentication no
+streamlocalbindunlink no
 stricthostkeychecking accept-new
+tcpkeepalive yes
+tunnel false
+verifyhostkeydns false
 connectionattempts 3
+forwardx11timeout 1200
 numberofpasswordprompts 2
 serveralivecountmax 5
 serveraliveinterval 30
@@ -64,6 +75,7 @@ localcommand touch /tmp/lc-%h
 remotecommand uptime
 loglevel VERBOSE
 preferredauthentications password,publickey
+xauthlocation /usr/bin/xauth
 dynamicforward 1080
 dynamicforward [127.0.0.1]:1081
 localforward 8082 [db]:5432
@@ -85,8 +97,10 @@ sendenv LANG
 setenv A=1
 forwardagent yes
 connecttimeout 7
+tunneldevice any:any
 controlpersist 600
 escapechar %
+rekeylimit 0 0
 proxyjump u@b:2200,c";
 
 /// The defaults, with the user and the known_hosts files named so that no
@@ -106,6 +120,8 @@ compression no
 controlmaster false
 clearallforwardings no
 exitonforwardfailure no
+forwardx11 no
+forwardx11trusted no
 gatewayports no
 identitiesonly no
 kbdinteractiveauthentication yes
@@ -115,13 +131,20 @@ pubkeyauthentication true
 requesttty auto
 sessiontype default
 stdinnull no
+forkafterauthentication no
+streamlocalbindunlink no
 stricthostkeychecking ask
+tcpkeepalive yes
+tunnel false
+verifyhostkeydns false
 connectionattempts 1
+forwardx11timeout 1200
 numberofpasswordprompts 3
 serveralivecountmax 3
 serveraliveinterval 0
 requiredrsasize 1024
 loglevel INFO
+xauthlocation /usr/bin/xauth
 identityfile ~/.ssh/id_rsa
 identityfile ~/.ssh/id_ecdsa
 identityfile ~/.ssh/id_ecdsa_sk
@@ -131,14 +154,20 @@ globalknownhostsfile /etc/ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts2
 userknownhostsfile /tmp/podssh-kh
 forwardagent no
 connecttimeout none
+tunneldevice any:any
 controlpersist no
-escapechar ~";
+escapechar ~
+rekeylimit 0 0";
 
 /// The lines that differ on purpose, podssh's first: keepalives keep the
 /// relay's idle cut away (`docs/relay.md`), and the handshake has a limit.
 /// podssh tries the `_sk` identity files too, as OpenSSH does (T-229).
-const ON_PURPOSE: &[(&str, &str)] =
-    &[("serveraliveinterval 60", "serveraliveinterval 0"), ("connecttimeout 60", "connecttimeout none")];
+const ON_PURPOSE: &[(&str, &str)] = &[
+    ("serveraliveinterval 60", "serveraliveinterval 0"),
+    ("connecttimeout 60", "connecttimeout none"),
+    // podssh finds xauth in PATH; OpenSSH prints the path it was built with.
+    ("xauthlocation xauth", "xauthlocation /usr/bin/xauth"),
+];
 
 fn ssh(words: &[&str]) -> SshArgs {
     let argv: Vec<std::ffi::OsString> =

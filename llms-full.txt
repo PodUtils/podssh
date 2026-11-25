@@ -1443,7 +1443,9 @@ podssh ssh
   purpose: ServerAliveInterval and ConnectTimeout are 60, and no identity file
   of a security key is tried; each list of algorithms is what podssh will
   offer, its own unless a keyword gave one. podssh's own settings, such as the
-  relay hosts, print no line, as OpenSSH knows no keyword for them.
+  relay hosts, print no line, as OpenSSH knows no keyword for them. Each
+  keyword that podssh accepts with a note has its line too, in OpenSSH's place.
+  XAuthLocation prints xauth, which podssh finds in PATH.
 
   Ciphers, MACs, KexAlgorithms, HostKeyAlgorithms, PubkeyAcceptedAlgorithms and
   CASignatureAlgorithms filter what podssh offers, as OpenSSH reads them: a
@@ -1462,15 +1464,19 @@ podssh ssh
   Paths in -i and in the IdentityFile, UserKnownHostsFile,
   GlobalKnownHostsFile, IdentityAgent and ForwardAgent keywords take the tokens
   of OpenSSH: %% %C %d %h %i %j %k %L %l %n %p %r %u, with OpenSSH's values. %u
-  is the local user and %r the remote one. An unknown token is refused (exit
-  64). ${NAME} in them is the variable NAME, which must be set (exit 64); a
-  whole $NAME as IdentityAgent or ForwardAgent is the variable that holds the
-  path, and no agent when it is not set. -E FILE is opened as typed.
+  is the local user and %r the remote one. An unknown token is refused: exit 64
+  for -o, and 78 with FILE:LINE for a line of a file. ${NAME} in them is the
+  variable NAME, which must be set (exit 64); a whole $NAME as IdentityAgent or
+  ForwardAgent is the variable that holds the path, and no agent when it is not
+  set. -E FILE is opened as typed. A key file that others can read is used
+  after a warning, where OpenSSH refuses it: on some hosts chmod changes
+  nothing.
 
   A repeated value follows OpenSSH: the first -p and -l, the last -e, -E and
   -F, and the first value of each -o keyword. A second -J or -W is refused, and
   so is a second --relay-host, --relay-addr or --ca-file: give several hops,
-  hosts or addresses as one comma list.
+  hosts or addresses as one comma list. A value in double quotes loses them, as
+  OpenSSH splits a line: Port "2201" is port 2201.
 
   ConnectTimeout bounds the SSH handshake and each answer of the server while
   podssh logs in. The time that a question waits for its answer does not count,
@@ -1553,10 +1559,11 @@ podssh ssh
   the remote exit status and before the end of the output ends lost, with exit
   255 and the status kept. stdout and stderr stay as they are; the command's
   output never goes into the file. A new file is made for its owner alone; - is
-  refused (exit 64). No file is written after a flag that podssh does not know,
-  which ends it before it reads the others. Nor is one written when a signal
-  kills podssh: only a session on a terminal ends at SIGTERM or SIGHUP, as
-  terminated. One with no pty ends at Ctrl-C, by the command's end or as
+  refused (exit 64). A FILE whose directory is missing is refused before
+  anything runs (exit 73). No file is written after a flag that podssh does not
+  know, which ends it before it reads the others. Nor is one written when a
+  signal kills podssh: only a session on a terminal ends at SIGTERM or SIGHUP,
+  as terminated. One with no pty ends at Ctrl-C, by the command's end or as
   interrupted. A run of -N, also with --persist, ends at Ctrl-C as interrupted,
   with 130 and its file.
 
@@ -1874,7 +1881,8 @@ podssh ssh
         log in through these hosts first: [user@]host[:port][,...];
         ssh+tls://[user@]host[:port] is SSH inside TLS.
     -N, --no-remote-command
-        run nothing; stay connected until the server closes.
+        run nothing; stay connected until the server closes; a command with it
+        is refused (64).
     -n, --stdin-null
         do not read stdin; the remote side sees end of input at once.
     -s, --subsystem
@@ -1888,9 +1896,11 @@ podssh ssh
     -C, --compress
         ask the server for compression.
     -4, --ipv4-only
-        use IPv4 only; forwarded to the relay's ?family=4.
+        use IPv4 only: the relay's ?family=4, or the addresses that --direct
+        dials.
     -6, --ipv6-only
-        use IPv6 only; forwarded to the relay's ?family=6.
+        use IPv6 only: the relay's ?family=6, or the addresses that --direct
+        dials.
     -W, --stdio-forward HOST:PORT
         stdin and stdout become a connection the server opens to HOST:PORT, or
         to the Unix socket /PATH on it.
@@ -2409,6 +2419,9 @@ podssh ssh
         the same as -n
     Tag=NAME
         the tag that Match tagged reads; the same as -P
+    StreamLocalBindUnlink=yes|no
+        yes: -L or -D replaces a socket already at its path, when nobody serves
+        it; no refuses the path, as OpenSSH does (default no)
     StrictHostKeyChecking=yes|accept-new|no|ask
         what to do with an unknown host key (default ask); a changed key is
         refused with each value
@@ -2493,8 +2506,8 @@ podssh ssh
     GSSAPIKexAlgorithms, GSSAPIRenewalForcesRekey, GSSAPIServerIdentity,
     GSSAPITrustDns, HashKnownHosts, HostbasedAcceptedAlgorithms;
     HostbasedAuthentication, LogVerbose, NoHostAuthenticationForLocalhost,
-    ObscureKeystrokeTiming, StreamLocalBindMask, StreamLocalBindUnlink,
-    SyslogFacility, VersionAddendum, VisualHostKey.
+    ObscureKeystrokeTiming, StreamLocalBindMask, SyslogFacility,
+    VersionAddendum, VisualHostKey.
 
   Examples:
     log in to a host, through the relay

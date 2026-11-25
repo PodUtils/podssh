@@ -43,6 +43,36 @@ pub fn words(value: &str) -> Vec<String> {
     out
 }
 
+/// The keywords whose value is a list of words, a command or a forward,
+/// which their own reading splits: their quotes stay for it.
+pub(super) const SPLIT_LATER: &[&str] = &[
+    "userknownhostsfile",
+    "globalknownhostsfile",
+    "sendenv",
+    "setenv",
+    "remotecommand",
+    "localcommand",
+    "proxycommand",
+    "localforward",
+    "dynamicforward",
+    "remoteforward",
+    "include",
+];
+
+/// The value of `key` (lowercase) as OpenSSH reads a value of one word:
+/// double quotes group it and go, `"2201"` is `2201` and `"a b"` is `a b`.
+/// A value of several words, and the keywords of [`SPLIT_LATER`], stay as
+/// given.
+pub(super) fn one_value<'a>(key: &str, value: &'a str) -> std::borrow::Cow<'a, str> {
+    if !value.contains('"') || SPLIT_LATER.contains(&key) {
+        return std::borrow::Cow::Borrowed(value);
+    }
+    match words(value).as_slice() {
+        [one] => std::borrow::Cow::Owned(one.clone()),
+        _ => std::borrow::Cow::Borrowed(value),
+    }
+}
+
 pub(super) fn unquote(value: &str) -> String {
     let v = value.trim();
     v.strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap_or(v).to_string()

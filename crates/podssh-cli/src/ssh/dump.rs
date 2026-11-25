@@ -50,7 +50,53 @@ pub struct Shown {
     /// and `PermitLocalCommand` (T-191).
     pub local_command: Option<String>,
     pub permit_local_command: bool,
+    /// `-X`, `-Y` and the keywords of X11 forwarding as given: whether it is
+    /// asked, trusted, its timeout in seconds and the xauth to run.
+    pub x11: X11Shown,
+    /// Each keyword that podssh accepts and does not apply, lowercase, with
+    /// its first value (T-505).
+    pub noted: Vec<(String, String)>,
 }
+
+/// The X11 lines of `-G`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct X11Shown {
+    pub forward: bool,
+    pub trusted: bool,
+    pub timeout: u64,
+    pub xauth: Option<String>,
+}
+
+/// The keywords that podssh accepts and does not apply (`keywords::NOTED`),
+/// each in OpenSSH's place among `-G`'s lines (the keyword that it follows),
+/// with OpenSSH's default where OpenSSH prints one: the value given goes in
+/// its place; one with no default is printed when given. One table, which a
+/// test holds to `keywords::NOTED`.
+#[rustfmt::skip]
+pub const NOTED_PLACES: &[(&str, &str, Option<&str>)] = &[
+    ("tcpkeepalive", "stricthostkeychecking", Some("yes")),
+    ("tunnel", "stricthostkeychecking", Some("false")),
+    ("verifyhostkeydns", "stricthostkeychecking", Some("false")),
+    ("updatehostkeys", "stricthostkeychecking", None),
+    ("bindaddress", "requiredrsasize", None),
+    ("bindinterface", "requiredrsasize", None),
+    ("securitykeyprovider", "macs", None),
+    ("certificatefile", "identityfile", None),
+    ("channeltimeout", "setenv", None),
+    ("tunneldevice", "connecttimeout", Some("any:any")),
+    ("ipqos", "escapechar", None),
+    ("rekeylimit", "escapechar", Some("0 0")),
+    ("warnweakcrypto", "proxyjump", None),
+];
+
+/// The keywords that podssh applies and `-G` prints only when given, as
+/// OpenSSH prints them, or never: an old name prints as its new one.
+#[rustfmt::skip]
+pub const WHEN_GIVEN: &[&str] = &[
+    "challengeresponseauthentication", "controlpath", "dynamicforward", "hostkeyalias", "identityagent",
+    "identityfile", "ignoreunknown", "localcommand", "localforward", "preferredauthentications", "proxyjump",
+    "pubkeyacceptedkeytypes", "remotecommand", "remoteforward", "sendenv", "setenv", "tag",
+];
 
 /// The lines of `ssh -G`.
 pub fn lines(resolved: &Resolved) -> Vec<String> {
@@ -67,6 +113,8 @@ pub fn lines(resolved: &Resolved) -> Vec<String> {
         format!("controlmaster {}", resolved.control.mode.shown()),
         format!("clearallforwardings {}", yes(s.clear_all_forwardings)),
         format!("exitonforwardfailure {}", yes(o.exit_on_forward_failure)),
+        format!("forwardx11 {}", yes(s.x11.forward)),
+        format!("forwardx11trusted {}", yes(s.x11.trusted)),
         format!("gatewayports {}", yes(resolved.gateway_ports)),
         format!("identitiesonly {}", yes(o.identities_only)),
         format!("kbdinteractiveauthentication {}", yes(s.kbd_interactive)),
@@ -76,16 +124,23 @@ pub fn lines(resolved: &Resolved) -> Vec<String> {
         format!("requesttty {}", request_tty(o.request_tty)),
         format!("sessiontype {}", session_type(&o.request)),
         format!("stdinnull {}", yes(o.stdin_null)),
+        format!("forkafterauthentication {}", yes(resolved.detach)),
+        format!("streamlocalbindunlink {}", yes(resolved.stream_local_unlink)),
         format!("stricthostkeychecking {}", strict(o.strict_host_key_checking)),
+    ];
+    out.extend(noted_after("stricthostkeychecking", &s.noted));
+    out.extend([
         format!("connectionattempts {}", resolved.connection_attempts),
+        format!("forwardx11timeout {}", s.x11.timeout),
         format!("numberofpasswordprompts {}", o.password_prompts),
         format!("serveralivecountmax {}", o.keepalive_max),
         format!("serveraliveinterval {}", o.keepalive_interval.map_or(0, |d| d.as_secs())),
         // RequiredRSASize as given, as OpenSSH prints it; each list as podssh
         // will offer it (T-505), in OpenSSH's places among the strings.
         format!("requiredrsasize {}", o.algorithms.required_rsa_size.unwrap_or(MIN_RSA)),
-        listed(o, Kind::Ciphers),
-    ];
+    ]);
+    out.extend(noted_after("requiredrsasize", &s.noted));
+    out.push(listed(o, Kind::Ciphers));
     if let Some(path) = &resolved.control.path {
         out.push(format!("controlpath {}", path.display()));
     }
@@ -106,10 +161,12 @@ pub fn lines(resolved: &Resolved) -> Vec<String> {
     }
     out.push(format!("loglevel {}", log_level(o.log_level)));
     out.push(listed(o, Kind::Macs));
+    out.extend(noted_after("macs", &s.noted));
     if let Some(list) = &s.preferred {
         out.push(format!("preferredauthentications {list}"));
     }
     out.push(listed(o, Kind::Pubkey));
+    out.push(format!("xauthlocation {}", s.x11.xauth.as_deref().unwrap_or("xauth")));
     if let Some(tag) = &s.tag {
         out.push(format!("tag {tag}"));
     }
@@ -135,18 +192,34 @@ pub fn lines(resolved: &Resolved) -> Vec<String> {
     for file in &o.identity_files {
         out.push(format!("identityfile {}", shown_path(file, s.home.as_deref())));
     }
+    out.extend(noted_after("identityfile", &s.noted));
     out.push(format!("globalknownhostsfile {}", files(&o.global_known_hosts)));
     out.push(format!("userknownhostsfile {}", files(&o.user_known_hosts)));
     out.extend(o.send_env.iter().map(|pattern| format!("sendenv {pattern}")));
     out.extend(o.set_env.iter().map(|(name, value)| format!("setenv {name}={value}")));
+    out.extend(noted_after("setenv", &s.noted));
     out.push(format!("forwardagent {}", s.forward_agent));
     out.push(format!("connecttimeout {}", o.connect_timeout.as_secs()));
+    out.extend(noted_after("connecttimeout", &s.noted));
     out.push(format!("controlpersist {}", resolved.control.persist.shown()));
     out.push(format!("escapechar {}", escape_char(o.escape_char)));
+    out.extend(noted_after("escapechar", &s.noted));
     if let Some(jump) = &s.proxy_jump {
         out.push(format!("proxyjump {jump}"));
     }
+    out.extend(noted_after("proxyjump", &s.noted));
     out
+}
+
+/// The lines of the keywords of [`NOTED_PLACES`] that follow `keyword`: the
+/// value given, else OpenSSH's default, else none.
+fn noted_after(keyword: &str, given: &[(String, String)]) -> Vec<String> {
+    let value = |name: &str| given.iter().find(|(n, v)| n == name && !v.is_empty()).map(|(_, v)| v.as_str());
+    NOTED_PLACES
+        .iter()
+        .filter(|(_, after, _)| *after == keyword)
+        .filter_map(|(name, _, default)| value(name).or(*default).map(|v| format!("{name} {v}")))
+        .collect()
 }
 
 /// The line of one list of algorithms: the one given, else podssh's own.
@@ -248,5 +321,79 @@ mod tests {
         assert_eq!(shown_path(Path::new("/tmp/k"), Some(home)), "/tmp/k");
         assert_eq!(files(&[]), "none");
         assert_eq!(log_level(LogLevel::Debug1), "DEBUG");
+    }
+
+    /// The lines of `-G` for `words` after `ssh -G`.
+    fn printed(words: &[&str]) -> Vec<String> {
+        let argv = ["ssh", "-G", "-F", "none"].into_iter().chain(words.iter().copied());
+        let crate::tree::Parsed::Command { ssh: Some(args), .. } = crate::tree::parse(argv) else {
+            panic!("{words:?} is no ssh command")
+        };
+        let env = crate::ssh::resolve::Env { user: Some("user".into()), ..Default::default() };
+        lines(&crate::ssh::resolve::resolve(&args, &env).unwrap_or_else(|e| panic!("{words:?}: {e}")))
+    }
+
+    /// Each keyword that podssh applies has a line of `-G`, or is one that
+    /// OpenSSH prints only when given; each that podssh accepts with a note
+    /// has its place. One table each, held to the keywords' tables.
+    #[test]
+    fn each_keyword_that_podssh_knows_has_its_line() {
+        let lines = printed(&["-l", "u", "example.org"]);
+        for k in crate::ssh::keywords::HONOURED {
+            let name = k.name.to_ascii_lowercase();
+            let shown = lines.iter().any(|l| l.split(' ').next() == Some(name.as_str()));
+            assert!(shown || WHEN_GIVEN.contains(&name.as_str()), "{} has no line of -G: {lines:#?}", k.name);
+        }
+        for (name, _) in crate::ssh::keywords::NOTED {
+            let name = name.to_ascii_lowercase();
+            assert!(NOTED_PLACES.iter().any(|(n, ..)| *n == name), "{name} has no place in -G");
+        }
+        assert_eq!(NOTED_PLACES.len(), crate::ssh::keywords::NOTED.len(), "a place of no keyword");
+        for (_, after, _) in NOTED_PLACES {
+            let printed = lines.iter().any(|l| l.starts_with(&format!("{after} ")));
+            assert!(printed || WHEN_GIVEN.contains(after), "{after} is no line of -G");
+        }
+    }
+
+    /// What -o sets is printed as given: X11, the fork, and a keyword that
+    /// podssh accepts and does not apply.
+    #[test]
+    fn the_keywords_of_o_are_printed_as_given() {
+        let lines = printed(&[
+            "-o",
+            "ForwardX11=yes",
+            "-o",
+            "ForwardX11Trusted=yes",
+            "-o",
+            "ForwardX11Timeout=5m",
+            "-o",
+            "XAuthLocation=/opt/xauth",
+            "-o",
+            "ForkAfterAuthentication=yes",
+            "-o",
+            "TCPKeepAlive=no",
+            "-o",
+            "BindAddress=192.0.2.1",
+            "-l",
+            "u",
+            "-N",
+            "example.org",
+        ]);
+        for line in [
+            "forwardx11 yes",
+            "forwardx11trusted yes",
+            "forwardx11timeout 300",
+            "xauthlocation /opt/xauth",
+            "forkafterauthentication yes",
+            "tcpkeepalive no",
+            "bindaddress 192.0.2.1",
+        ] {
+            assert!(lines.iter().any(|l| l == line), "{line}: {lines:#?}");
+        }
+        let defaults = printed(&["-l", "u", "example.org"]);
+        for line in ["forwardx11 no", "forwardx11timeout 1200", "tcpkeepalive yes", "rekeylimit 0 0"] {
+            assert!(defaults.iter().any(|l| l == line), "{line}: {defaults:#?}");
+        }
+        assert!(!defaults.iter().any(|l| l.starts_with("bindaddress ")), "printed when given alone");
     }
 }

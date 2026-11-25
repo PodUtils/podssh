@@ -38,6 +38,7 @@ const INSTEAD: &str = "-W HOST:PORT carries one connection with no listener";
 pub async fn listeners(
     specs: &[LocalSpec],
     gateway_ports: bool,
+    unlink: bool,
     log: &Arc<Log>,
 ) -> Result<Vec<LocalForward>, (i32, String)> {
     if let Err(refusal) = crate::pipe::listen::allowed() {
@@ -47,7 +48,7 @@ pub async fn listeners(
     for spec in specs {
         let listeners = match &spec.listen {
             local_spec::Listen::Port { bind, port } => ports(spec, bind.as_deref(), *port, gateway_ports, log).await?,
-            local_spec::Listen::Path(path) => vec![socket(spec, path, log).await?],
+            local_spec::Listen::Path(path) => vec![socket(spec, path, unlink, log).await?],
         };
         forwards.push(LocalForward { shown: spec.shown.clone(), target: spec.target.clone(), listeners });
     }
@@ -89,10 +90,11 @@ async fn ports(
     if listeners.is_empty() {
         let (address, e) = failed.into_iter().next().expect("one address at least");
         let instead = if e.kind() == io::ErrorKind::PermissionDenied { "; this host refuses the listener" } else { "" };
+        let e = podssh_ws::text::said(&e);
         return Err((EXIT_FAILURE, format!("{}: cannot listen on {address}: {e}{instead}; {INSTEAD}", spec.shown)));
     }
     for (address, e) in failed {
-        log.verbose(&format!("{}: not on {address}: {e}", spec.shown));
+        log.verbose(&format!("{}: not on {address}: {}", spec.shown, podssh_ws::text::said(&e)));
     }
     let loopback = (bind.is_none() && !gateway_ports) || bind == Some("localhost") || is_loopback(bind);
     let line = format!("{}: listening on {}", spec.shown, at.join(" and "));
@@ -108,7 +110,10 @@ fn is_loopback(bind: Option<&str>) -> bool {
     bind.and_then(|b| b.parse::<std::net::IpAddr>().ok()).is_some_and(|ip| ip.is_loopback())
 }
 
-async fn socket(spec: &LocalSpec, path: &str, log: &Arc<Log>) -> Result<Arc<dyn Listen>, (i32, String)> {
+async fn socket(spec: &LocalSpec, path: &str, unlink: bool, log: &Arc<Log>) -> Result<Arc<dyn Listen>, (i32, String)> {
+    if let Some(why) = held(path, unlink) {
+        return Err((EXIT_FAILURE, format!("{}: {why}; {INSTEAD}", spec.shown)));
+    }
     let said = log.clone();
     let shown = spec.shown.clone();
     let mut say = move |line: &str| said.verbose(&format!("{shown}: {line}"));
@@ -125,6 +130,29 @@ async fn socket(spec: &LocalSpec, path: &str, log: &Arc<Log>) -> Result<Arc<dyn 
             Err((EXIT_FAILURE, format!("{}: {line}; {INSTEAD}", spec.shown)))
         }
     }
+}
+
+/// Why a socket path is held, as OpenSSH holds it: with StreamLocalBindUnlink
+/// no (its default), a socket already there is not replaced, though nobody
+/// serves it. With yes, the bind replaces one that nobody serves; one that a
+/// program serves, and a file that is no socket, are refused at the bind.
+fn held(path: &str, unlink: bool) -> Option<String> {
+    if unlink || path.starts_with('@') {
+        return None;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::FileTypeExt;
+        let meta = std::fs::symlink_metadata(path).ok()?;
+        meta.file_type().is_socket().then(|| {
+            format!(
+                "cannot listen on {path}: a socket is there already; -o StreamLocalBindUnlink=yes replaces one that \
+                 nobody serves"
+            )
+        })
+    }
+    #[cfg(not(unix))]
+    None
 }
 
 /// The error of an accept on a listener that `~C` closed.
@@ -240,12 +268,14 @@ impl Listen for Socket {
 /// What `~C` asks of `podssh ssh` (T-291): a spec of `-L`, `-D` or `-R`
 /// read as the command line reads it, and the listeners of `-L` and `-D`
 /// made as those of the command line are, after the same probe.
-pub fn command_line(gateway_ports: bool, log: Arc<Log>) -> Commands {
-    Commands(Arc::new(EscapeForwards { gateway_ports, log }))
+pub fn command_line(gateway_ports: bool, unlink: bool, log: Arc<Log>) -> Commands {
+    Commands(Arc::new(EscapeForwards { gateway_ports, unlink, log }))
 }
 
 struct EscapeForwards {
     gateway_ports: bool,
+    /// StreamLocalBindUnlink: a stale socket of -L or -D is replaced.
+    unlink: bool,
     log: Arc<Log>,
 }
 
@@ -254,7 +284,7 @@ impl Forwarder for EscapeForwards {
         let spec = if dynamic { local_spec::dynamic(spec) } else { local_spec::local(spec) };
         Box::pin(async move {
             let spec = spec?;
-            let mut forwards = listeners(std::slice::from_ref(&spec), self.gateway_ports, &self.log)
+            let mut forwards = listeners(std::slice::from_ref(&spec), self.gateway_ports, self.unlink, &self.log)
                 .await
                 .map_err(|(_, line)| line)?;
             forwards.pop().ok_or_else(|| "no listener was made".to_string())
@@ -289,6 +319,33 @@ mod tests {
         assert_eq!(ended.expect("the accept ended").expect("no panic"), Some(io::ErrorKind::NotConnected));
         assert!(tcp.accept().await.is_err(), "a closed listener took a connection");
         assert!(tokio::net::TcpStream::connect(at).await.is_err(), "the port still listens");
+    }
+
+    /// A socket that is there already holds its path unless
+    /// StreamLocalBindUnlink is yes, as in OpenSSH; a free path, an abstract
+    /// name, and yes, leave the bind to decide.
+    #[cfg(unix)]
+    #[test]
+    fn a_stale_socket_is_replaced_only_with_stream_local_bind_unlink() {
+        let name = format!("podssh-unlink-{}-{:x}", std::process::id(), rand::random::<u32>());
+        let dir = std::env::temp_dir().join(name);
+        std::fs::create_dir_all(&dir).expect("a scratch directory");
+        let path = dir.join("l.sock");
+        let path_text = path.display().to_string();
+        drop(std::os::unix::net::UnixListener::bind(&path).expect("a socket"));
+        for (path, unlink, held_) in [
+            (path_text.as_str(), false, true),
+            (path_text.as_str(), true, false),
+            ("/nonexistent/podssh/free.sock", false, false),
+            ("@podssh-abstract", false, false),
+        ] {
+            let said = held(path, unlink);
+            assert_eq!(said.is_some(), held_, "{path} {unlink}: {said:?}");
+            if let Some(why) = said {
+                assert!(why.contains("StreamLocalBindUnlink=yes") && why.contains(path), "{why}");
+            }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

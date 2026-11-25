@@ -121,6 +121,13 @@ pub fn run_ssh(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh ssh: --result-file -: stdout carries the command's output; name a file");
         return EXIT_USAGE;
     }
+    // A record that could not be written at the end is refused before the
+    // command runs, as the file commands refuse it: a run that left no
+    // record would read as one that never ran.
+    if let Some(why) = args.result_file.as_deref().and_then(result::no_place) {
+        let _ = writeln!(err, "podssh ssh: {why}; nothing ran");
+        return crate::exitmap::sysexits::EX_CANTCREAT;
+    }
     // The session log (T-056): a value that is not one is refused first.
     let log = match crate::session_log::place() {
         Ok(place) => place,
@@ -298,7 +305,7 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         Some(path) => match Log::to_file(resolved.options.log_level, path) {
             Ok(log) => log,
             Err(e) => {
-                let _ = writeln!(err, "podssh ssh: -E {}: {e}", path.display());
+                let _ = writeln!(err, "podssh ssh: -E {}: {}", path.display(), podssh_ws::text::said(&e));
                 return EXIT_USAGE;
             }
         },
@@ -366,7 +373,7 @@ pub(crate) async fn connect_and_run(mut resolved: Resolved, log: Arc<Log>) -> i3
     }
     // -L and -D: each listener bound before anything connects (T-038).
     if !resolved.local.is_empty() {
-        match local_bind::listeners(&resolved.local, resolved.gateway_ports, &log).await {
+        match local_bind::listeners(&resolved.local, resolved.gateway_ports, resolved.stream_local_unlink, &log).await {
             Ok(forwards) => resolved.options.local_forwards = forwards,
             Err((code, line)) => {
                 log.error(&line);
@@ -378,7 +385,8 @@ pub(crate) async fn connect_and_run(mut resolved: Resolved, log: Arc<Log>) -> i3
     // link (T-866).
     result::name_forwards(&resolved.options);
     // ~C adds forwards as the command line does (T-291).
-    resolved.options.command_line = Some(local_bind::command_line(resolved.gateway_ports, log.clone()));
+    let unlink = resolved.stream_local_unlink;
+    resolved.options.command_line = Some(local_bind::command_line(resolved.gateway_ports, unlink, log.clone()));
     if let Some(kept) = resolved.persist.clone() {
         return Box::pin(persist::run(&resolved, &kept, log)).await;
     }

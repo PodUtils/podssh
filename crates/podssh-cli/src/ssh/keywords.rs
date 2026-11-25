@@ -90,6 +90,8 @@ pub const HONOURED: &[Keyword] = &[
     kw("SetEnv", "NAME=VALUE...", "set these variables on the server", "A=1"),
     kw("StdinNull", "yes|no", "the same as -n", "yes"),
     kw("Tag", "NAME", "the tag that Match tagged reads; the same as -P", "work"),
+    kw("StreamLocalBindUnlink", "yes|no", "yes: -L or -D replaces a socket already at its path, when nobody serves \
+        it; no refuses the path, as OpenSSH does (default no)", "yes"),
     kw("StrictHostKeyChecking", "yes|accept-new|no|ask", "what to do with an unknown host key (default ask); a changed key is refused with each value", "accept-new"),
     kw("User", "USER", "the same as -l, but it takes the % tokens, not %C or %r", "user"),
     kw("UserKnownHostsFile", "FILE...|none", "the user's known_hosts files; a new host key goes to the first", "/dev/null"),
@@ -127,7 +129,7 @@ pub const IGNORED: &[&str] = &[
     "GSSAPIKeyExchange", "GSSAPIKexAlgorithms", "GSSAPIRenewalForcesRekey", "GSSAPIServerIdentity", "GSSAPITrustDns",
     "HashKnownHosts", "HostbasedAcceptedAlgorithms", "HostbasedAuthentication",
     "LogVerbose", "NoHostAuthenticationForLocalhost", "ObscureKeystrokeTiming",
-    "StreamLocalBindMask", "StreamLocalBindUnlink", "SyslogFacility",
+    "StreamLocalBindMask", "SyslogFacility",
     "VersionAddendum", "VisualHostKey",
 ];
 
@@ -257,6 +259,8 @@ mod tests {
         assert_eq!(r.control, crate::ssh::control::Plan::default());
         assert_eq!(o.forward_agent, podssh_ssh::Agent::Off);
         assert_eq!(d("PermitLocalCommand"), "no");
+        assert_eq!(d("StreamLocalBindUnlink"), "no");
+        assert!(!r.stream_local_unlink);
         assert!(o.local_command.is_none());
         assert_eq!(d("RequiredRSASize"), o.algorithms.rsa_floor().to_string());
         assert_eq!(o.algorithms, podssh_ssh::algorithms::Algorithms::default(), "each list is podssh's own");

@@ -467,7 +467,8 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   `-4` or `-6` the direct road keeps the family: a name is resolved on this
   host, and its addresses of that family alone are dialed in turn, each
   through the proxy that the name takes, as an address; an address is of its
-  own family. `podssh ssh` takes the direct road at once, in place of the try
+  own family. `--direct` with `-4`, `-6` or `AddressFamily` dials the same
+  way (T-955). `podssh ssh` takes the direct road at once, in place of the try
   of the relay once more (T-025), when a relay host opened a session to an
   IPv6 target (an address, or `-6`) and closed it before any byte came: with
   `1011 target closed before sending anything`, as the default relay did for
@@ -1035,8 +1036,11 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   `false` where OpenSSH writes them), then exit 0 with nothing opened: no
   relay, no token. A script can compare the two line by line. The defaults
   that differ do on purpose: `serveraliveinterval 60` (the relay's idle
-  cut), `connecttimeout 60`, and the lists of algorithms, which are what
-  podssh will offer (T-505). podssh tries the `_sk` identity files too,
+  cut), `connecttimeout 60`, `xauthlocation xauth` (found in PATH), and the
+  lists of algorithms, which are what podssh will offer (T-505). Each
+  keyword that podssh accepts with a note (`TCPKeepAlive`, `RekeyLimit` and
+  the others of T-505) has its line too, in OpenSSH's place: the value
+  given, else OpenSSH's default, else none. podssh tries the `_sk` identity files too,
   as OpenSSH does: a key of a security key signs in its device (T-229).
   podssh's own settings (relay hosts, `--ca-file`)
   print no line, as OpenSSH knows no such keyword; `podssh status` shows
@@ -1047,6 +1051,15 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   own `--relay-host`, `--relay-addr` and `--ca-file` may be given once: a
   comma list gives several hosts or addresses, and no relay or trust store
   is chosen by its place on the command line.
+- **A value in double quotes loses them**, for each keyword of `-o` and of
+  a file, as OpenSSH splits a line: `Port "2201"` is port 2201 and
+  `User "a b"` is the user `a b`. A list (`UserKnownHostsFile`, `SendEnv`),
+  a command and a forward keep their words apart as before.
+- **`-N`, or `SessionType none`, with a command is refused** (64): the
+  command would not run, and the run would wait with no sign of why.
+  OpenSSH refuses it too ("Cannot execute command-line and remote
+  command.", 255); podssh's code is that of each refusal of the command
+  line.
 - Each flag in the usage of OpenSSH 10.3p1 has a row: supported, accepted
   with no effect (such as `scp -3`), or refused by name with what to use
   instead.
@@ -1131,7 +1144,9 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   fail, not both. A TCP port takes each local user, and other hosts when
   it is not loopback, which podssh says without `-v`. A socket path is the
   listener of `podssh pipe unix-listen:`: mode 0600, a client of another
-  user is closed, and a socket that nobody serves is removed first.
+  user is closed. A socket already at the path is refused, as OpenSSH
+  refuses it, unless `StreamLocalBindUnlink yes`, which replaces one that
+  nobody serves; one that a program serves is refused either way.
 - Each connection goes to the destination over a new channel:
   `direct-tcpip` with the client's address as its originator, or
   `direct-streamlocal@openssh.com` to a socket on the server. `-D` speaks

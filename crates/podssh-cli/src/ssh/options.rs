@@ -80,6 +80,8 @@ pub struct Settings {
     pub local_forwards: Vec<super::local_spec::LocalSpec>,
     /// `GatewayPorts`: `-L` and `-D` with no address listen on each address.
     pub gateway_ports: Option<bool>,
+    /// `StreamLocalBindUnlink`: a stale socket of -L or -D is replaced.
+    pub stream_local_bind_unlink: Option<bool>,
     /// `ClearAllForwardings`: no `-L`, `-D` or `-R`, from any place.
     pub clear_all_forwardings: Option<bool>,
     pub exit_on_forward_failure: Option<bool>,
@@ -100,6 +102,9 @@ pub struct Settings {
     /// Keywords accepted without effect, each with its first place, for a
     /// note at -v.
     pub ignored: Vec<Given>,
+    /// Each value applied, with its place: a refusal of a value after the
+    /// files are read, as of its % tokens, names the line that gave it.
+    pub origins: Vec<Given>,
 }
 
 impl Settings {
@@ -119,9 +124,16 @@ impl Settings {
             return Err(format!("-o {raw:?}: expected NAME=VALUE"));
         }
         let key = name.to_ascii_lowercase();
+        // One value in double quotes loses them here, for each keyword, as
+        // OpenSSH splits a line; a list or a command keeps them for its own
+        // reading.
+        let unquoted = values::one_value(&key, value);
+        let value: &str = &unquoted;
         if value.is_empty() && !keywords::is_ignored(&key) && keywords::noted(&key).is_none() {
             return Err(format!("-o {name}: missing value"));
         }
+        // Where each value came from, for a refusal after the files (T-960).
+        self.origins.push(Given::new(name, value, place));
         // The lists of a restriction, each assembled where it is read (T-505).
         if self.algorithms.apply(&key, name, value, place)? {
             return Ok(());
@@ -251,6 +263,9 @@ impl Settings {
             "localforward" => self.local_forwards.push(super::local_spec::local_keyword(value)?),
             "dynamicforward" => self.local_forwards.push(super::local_spec::dynamic_keyword(value)?),
             "gatewayports" => set(&mut self.gateway_ports, yes_no(value).ok_or_else(|| bad("expected yes or no"))?),
+            "streamlocalbindunlink" => {
+                set(&mut self.stream_local_bind_unlink, yes_no(value).ok_or_else(|| bad("expected yes or no"))?)
+            }
             "clearallforwardings" => {
                 set(&mut self.clear_all_forwardings, yes_no(value).ok_or_else(|| bad("expected yes or no"))?)
             }
@@ -365,6 +380,8 @@ impl Settings {
         local_forwards.extend(file.local_forwards);
         let mut ignored = self.ignored;
         file.ignored.into_iter().for_each(|k| keep_first(&mut ignored, k));
+        let mut origins = self.origins;
+        origins.extend(file.origins);
         let mut noted = self.noted;
         file.noted.into_iter().for_each(|k| keep_first(&mut noted, k));
         Settings {
@@ -412,6 +429,7 @@ impl Settings {
             remote_forwards,
             local_forwards,
             gateway_ports: self.gateway_ports.or(file.gateway_ports),
+            stream_local_bind_unlink: self.stream_local_bind_unlink.or(file.stream_local_bind_unlink),
             clear_all_forwardings: self.clear_all_forwardings.or(file.clear_all_forwardings),
             exit_on_forward_failure: self.exit_on_forward_failure.or(file.exit_on_forward_failure),
             fork_after_authentication: self.fork_after_authentication.or(file.fork_after_authentication),
@@ -422,6 +440,7 @@ impl Settings {
             algorithms: self.algorithms.then(file.algorithms),
             noted,
             ignored,
+            origins,
         }
     }
 }

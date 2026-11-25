@@ -49,9 +49,8 @@ Read on 2026-11-25.
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
 8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). Drafts that wait (2026-11-25), in
-   the order of their ids, each of the sixth black-box pass and filed by its own draft: the SSH client
-   (`worktree-agent-a30f1ee54a7a2fa47`, `65235da`), the local tools (`worktree-agent-aef6c23a02ef70aad`, `3a15961`;
-   one of them asks the owner, below), run, each, job, mcp and play (`worktree-agent-ac9c0b1ead5e94078`, `6c846be`). Merged: T-952's sweep, and
+   the order of their ids, each of the sixth black-box pass and filed by its own draft: the local tools (`worktree-agent-aef6c23a02ef70aad`, `3a15961`;
+   one of them asks the owner, below), run, each, job, mcp and play (`worktree-agent-ac9c0b1ead5e94078`, `6c846be`). Merged: T-952's sweep, T-953 to T-962 (the SSH client), and
    the drafts of T-834, T-846/T-788/T-753, T-906 to T-912, T-913 to T-917 and T-919 to T-922 were merged. A read-only
    advisor on T-627, T-780 and T-796 stopped at a usage limit; its report goes into those entries. Each `draft/*`,
    `beta/*` and `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy
@@ -84,7 +83,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 884 entries: 4 open, 33 partial, 13 blocked, 834 done.
+`TODO/INDEX.md` holds 894 entries: 4 open, 33 partial, 13 blocked, 844 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

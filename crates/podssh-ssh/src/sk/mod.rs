@@ -191,7 +191,7 @@ pub fn ask_pin(prompt: &str, may_ask: bool) -> Result<Zeroizing<String>, String>
         return Err("the key needs the PIN of its security key, and BatchMode forbids the question".into());
     }
     if !crate::prompt::can_ask() {
-        return Err("the key needs the PIN of its security key, and there is no terminal or SSH_ASKPASS to ask".into());
+        return Err(format!("the key needs the PIN of its security key, and {}", crate::prompt::why_no_one()));
     }
     crate::prompt::ask(prompt, false).map_err(|e| format!("the PIN of the security key: {e}"))
 }

@@ -45,6 +45,9 @@ pub struct Resolved {
     /// one with no address listens on each address (`-g`, `GatewayPorts`).
     pub local: Vec<super::local_spec::LocalSpec>,
     pub gateway_ports: bool,
+    /// `StreamLocalBindUnlink`: a socket path of -L or -D that a stale socket
+    /// holds is replaced; else it is refused, as in OpenSSH.
+    pub stream_local_unlink: bool,
     /// `-M`, `-S`, `-O` and the control keywords (T-039).
     pub control: super::control::Plan,
     /// `--record FILE` (T-033), made as the run starts.
@@ -156,7 +159,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     let host = match settings.host_name.as_deref() {
         Some(name) => {
             let name = super::tokens::host_name(name, &target.host)?;
-            host_rule(&format!("HostName={name}"), &name)?;
+            host_rule(&name, &name).map_err(|why| format!("HostName {why}"))?;
             name
         }
         None => target.host.clone(),
@@ -224,7 +227,9 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     let remote_command = settings.remote_command.as_deref().filter(|c| !c.eq_ignore_ascii_case("none"));
     let remote_command = remote_command.map(|c| tokens.text("RemoteCommand ", c, &[])).transpose()?;
     let expand = |setting: &str, p: &str| tokens.expand(setting, p);
-    let login = super::login::login(&args.identity_files, &settings, &tokens, env)?;
+    // A refusal of a value of a file names its line, with 78.
+    let placed = |why: String| super::given::placed(&settings.origins, why);
+    let login = super::login::login(&args.identity_files, &settings, &tokens, env).map_err(placed)?;
 
     let request = request(args, &settings, remote_command.as_deref())?;
     let request_tty = if matches!(request, Request::StdioForward(_) | Request::Nothing) || args.no_tty {
@@ -241,8 +246,8 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
             .ok_or_else(|| format!("-e {e}: expected none, a character or ^X"))?,
         None => settings.escape_char.unwrap_or(Some(b'~')),
     };
-    let agents = super::agents::choose(args.forward_agent, &settings, &expand)?;
-    let control = super::control::plan(args, &settings, &expand)?;
+    let agents = super::agents::choose(args.forward_agent, &settings, &expand).map_err(placed)?;
+    let control = super::control::plan(args, &settings, &expand).map_err(placed)?;
     let mut log_level = settings.log_level.unwrap_or(LogLevel::Info);
     if args.quiet > 0 {
         log_level = LogLevel::Quiet;
@@ -409,6 +414,8 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         tag: args.tag.clone().or_else(|| settings.tag.clone()),
         local_command: settings.local_command.clone(),
         permit_local_command: permit.unwrap_or(false),
+        x11: super::x11::shown(args, &settings),
+        noted: settings.noted.iter().map(|g| (g.name.to_ascii_lowercase(), g.value.clone())).collect(),
     };
     let mut resolved = Resolved {
         options,
@@ -422,6 +429,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         shown,
         local: forwards.local,
         gateway_ports: args.gateway_ports || settings.gateway_ports.unwrap_or(false),
+        stream_local_unlink: settings.stream_local_bind_unlink.unwrap_or(false),
         control,
         record: None,
         x11: None,

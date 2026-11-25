@@ -103,6 +103,12 @@ pub(super) fn request(args: &SshArgs, settings: &Settings, remote_command: Optio
     let command =
         if args.command.is_empty() { remote_command.unwrap_or_default().to_string() } else { args.command.join(" ") };
     if args.no_command || settings.session_type.as_deref() == Some("none") {
+        // A command that would not run is refused, as OpenSSH refuses it,
+        // never dropped: the run would wait with no sign of why.
+        if !args.command.is_empty() {
+            let asked = if args.no_command { "-N" } else { "SessionType none" };
+            return Err(format!("{asked} runs no command, and a command was given; drop {asked} or the command"));
+        }
         return Ok(Request::Nothing);
     }
     if args.subsystem || settings.session_type.as_deref() == Some("subsystem") {
@@ -132,5 +138,28 @@ mod tests {
         assert_eq!(parse_hop("hop.example").map(|h| (h.port, h.tls)), Ok((22, false)));
         assert!(parse_hop("ssh+tls://@hop.example").is_err());
         assert!(parse_hop("ssh+tls://hop.example:0").is_err());
+    }
+
+    /// A command that -N or SessionType none would not run is refused, by
+    /// the setting that asked for none; with no command each is accepted.
+    #[test]
+    fn a_command_that_would_not_run_is_refused() {
+        for (words, refused) in [
+            (&["ssh", "-N", "host", "ls"][..], Some("drop -N or the command")),
+            (&["ssh", "-o", "SessionType=none", "host", "ls"], Some("drop SessionType none or the command")),
+            (&["ssh", "-N", "host"], None),
+            (&["ssh", "-o", "SessionType=none", "host"], None),
+        ] {
+            let crate::tree::Parsed::Command { ssh: Some(args), .. } = crate::tree::parse(words.iter().copied()) else {
+                panic!("{words:?} is no ssh command")
+            };
+            let mut settings = Settings::default();
+            args.options.iter().for_each(|o| settings.apply(o).expect("an option"));
+            match (request(&args, &settings, None), refused) {
+                (Err(why), Some(says)) => assert!(why.contains(says), "{words:?}: {why}"),
+                (Ok(Request::Nothing), None) => {}
+                (other, _) => panic!("{words:?}: {other:?}"),
+            }
+        }
     }
 }

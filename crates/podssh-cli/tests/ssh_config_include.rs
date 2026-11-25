@@ -131,10 +131,33 @@ fn a_loop_of_includes_is_refused_with_the_chain_and_include_needs_a_file() {
     h.file("f7", &format!("Include {f}\n"));
     let err = resolve_or_refuse(&ssh(&["-F", &f, "x"]), &h.env()).unwrap_err();
     assert_eq!(err.code, 78, "{}", err.message);
-    assert!(err.message.contains("nested includes") && err.message.contains(" -> "), "{}", err.message);
+    assert!(err.message.contains("includes itself") && err.message.contains(" -> "), "{}", err.message);
     let f = h.file("fe", "Include\n");
     let err = resolve_or_refuse(&ssh(&["-F", &f, "x"]), &h.env()).unwrap_err();
     assert!(err.message.contains(&format!("{f}:1:")), "{}", err.message);
+}
+
+/// Each refusal of a file's line names FILE:LINE with 78: a loop through
+/// two files, a Host line with no pattern, and a % token that no keyword
+/// takes, refused after the files are read.
+#[test]
+fn each_refusal_of_a_files_line_names_it_with_78() {
+    let h = Home::new("lines");
+    let r = h.root();
+    h.file("inc/b.conf", &format!("Include {r}/inc/a.conf\n"));
+    let a = h.file("inc/a.conf", &format!("Include {r}/inc/b.conf\n"));
+    let empty_host = h.file("host", "Port 2200\nHost\n  Port 2201\n");
+    let token = h.file("token", "# a comment\nUserKnownHostsFile /tmp/%Q\n");
+    for (file, at, says) in [
+        (&a, format!("{a}:1:"), "includes itself"),
+        (&empty_host, format!("{empty_host}:2:"), "Host needs at least one pattern"),
+        (&token, format!("{token}:2:"), "%Q is not a token"),
+    ] {
+        let err = resolve_or_refuse(&ssh(&["-F", file, "-l", "u", "x"]), &h.env()).unwrap_err();
+        assert_eq!(err.code, 78, "{}", err.message);
+        assert!(err.message.starts_with(&at) && err.message.contains(says), "{}", err.message);
+        assert!(!err.message.contains("-o "), "{}", err.message);
+    }
 }
 
 #[test]

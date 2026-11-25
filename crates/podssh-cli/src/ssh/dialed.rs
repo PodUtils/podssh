@@ -42,11 +42,20 @@ pub(super) fn check(road: Road, jump: &[Hop], host: &str) -> Result<(), String> 
     Ok(())
 }
 
-/// The refusals of `--direct` before anything connects: `-4` and `-6`,
-/// which only the relay's dial takes, then the hosts of [`check`].
+/// The refusals of `--direct` before anything connects: an address of the
+/// other family than `-4` or `-6` asks for, which no dial can keep, then the
+/// hosts of [`check`]. A name keeps the family: the dial takes its addresses
+/// of that family alone.
 pub(super) fn direct(family: Option<u8>, jump: &[Hop], host: &str) -> Result<(), String> {
-    if family.is_some() {
-        return Err("-4/-6 select the address family the relay dials; with --direct they are not supported yet".into());
+    let first = jump.first().map_or(host, |hop| hop.host.as_str());
+    match (family, first.parse::<std::net::IpAddr>()) {
+        (Some(4), Ok(std::net::IpAddr::V6(_))) => {
+            return Err(format!("-4 asks for IPv4, but {first} is an IPv6 address"));
+        }
+        (Some(6), Ok(std::net::IpAddr::V4(_))) => {
+            return Err(format!("-6 asks for IPv6, but {first} is an IPv4 address"));
+        }
+        _ => {}
     }
     check(Road::Direct, jump, host)
 }
@@ -94,6 +103,23 @@ mod tests {
         // A tunnel's name is the tunnel's; the host after it is checked.
         assert_eq!(check(Road::Tunnel, &[hop("cf://tunnel.example")], "example.org"), Ok(()));
         assert!(check(Road::Tunnel, &[hop("cf://tunnel.example")], "a$b").is_err());
-        assert!(direct(Some(4), &[], "example.org").unwrap_err().starts_with("-4/-6 "));
+        // --direct keeps the family of -4 or -6; only an address of the
+        // other family is refused.
+        for (family, first, refused) in [
+            (Some(4), "example.org", false),
+            (Some(6), "example.org", false),
+            (Some(4), "192.0.2.1", false),
+            (Some(6), "2001:db8::1", false),
+            (Some(4), "2001:db8::1", true),
+            (Some(6), "192.0.2.1", true),
+            (None, "2001:db8::1", false),
+        ] {
+            let said = direct(family, &[], first);
+            assert_eq!(said.is_err(), refused, "{family:?} {first}: {said:?}");
+            if let Err(why) = said {
+                assert!(why.contains(first) && !why.contains("yet"), "{why}");
+            }
+        }
+        assert!(direct(Some(6), &[hop("192.0.2.1")], "example.org").is_err(), "the first hop is what is dialed");
     }
 }

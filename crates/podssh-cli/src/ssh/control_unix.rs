@@ -45,11 +45,13 @@ pub async fn start(resolved: &mut Resolved, log: &Arc<Log>) -> Start {
         match client::connect(&path).await {
             Ok(mux) => return Start::Exit(through(mux, resolved, log).await),
             Err(Unreached::NoMaster(e)) if plan.mode == Mode::No => {
+                let e = podssh_ws::text::said(&e);
                 log.verbose(&format!("no control master at {}: {e}; this run connects alone", path.display()));
                 return Start::Go;
             }
             Err(Unreached::NoMaster(_)) => {}
             Err(Unreached::Broken(why)) => {
+                let why = podssh_ws::text::plain(&why);
                 log.info(&format!("control socket {}: {why}; this run connects alone", path.display()));
                 return Start::Go;
             }
@@ -113,7 +115,7 @@ fn be_master(resolved: &mut Resolved, plan: &Plan, path: &Path, log: &Arc<Log>) 
         listener,
         path: path.to_path_buf(),
         persist,
-        binder: Some(binder(resolved.gateway_ports, log.clone())),
+        binder: Some(binder(resolved.gateway_ports, resolved.stream_local_unlink, log.clone())),
         ask: matches!(plan.mode, Mode::Ask | Mode::AutoAsk),
         agent: opts.forward_agent != Agent::Off,
         host: opts.destination.host.clone(),
@@ -191,7 +193,7 @@ async fn command_run(resolved: &Resolved, plan: &Plan, command: Command, log: &A
     let mut mux = match client::connect(path).await {
         Ok(mux) => mux,
         Err(e) => {
-            log.error(&format!("Control socket connect({}): {e}", path.display()));
+            log.error(&format!("Control socket connect({}): {}", path.display(), podssh_ws::text::said(&e)));
             return EXIT_FAILURE;
         }
     };
@@ -223,7 +225,7 @@ async fn command_run(resolved: &Resolved, plan: &Plan, command: Command, log: &A
             0
         }
         Err(why) => {
-            log.error(&format!("Control master: {why}"));
+            log.error(&format!("Control master: {}", podssh_ws::text::said(&why)));
             EXIT_FAILURE
         }
     }
@@ -281,13 +283,13 @@ fn spec_of(fwd: &Fwd) -> Result<LocalSpec, String> {
 
 /// The binder of this master: a client's forward gets its listeners as the
 /// run's own `-L` and `-D` get theirs.
-fn binder(gateway_ports: bool, log: Arc<Log>) -> Binder {
+fn binder(gateway_ports: bool, unlink: bool, log: Arc<Log>) -> Binder {
     Arc::new(move |fwd: Fwd| {
         let log = log.clone();
         Box::pin(async move {
             let spec = spec_of(&fwd)?;
             let mut forwards: Vec<LocalForward> =
-                crate::ssh::local_bind::listeners(std::slice::from_ref(&spec), gateway_ports, &log)
+                crate::ssh::local_bind::listeners(std::slice::from_ref(&spec), gateway_ports, unlink, &log)
                     .await
                     .map_err(|(_, line)| line)?;
             forwards.pop().ok_or_else(|| "no listener was made".to_string())

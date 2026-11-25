@@ -47,7 +47,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    flags), and `--parallel N` (default 8, 64 at most), `--fail-fast`,
    `--output-dir DIR`.
 2. One runtime, one task for each host, each on the existing path: the relay
-   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:334-416`,
+   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:341-424`,
    `crates/podssh-ssh/src/run.rs:39-89`). Invariant: no second SSH client.
 3. Sinks: give `crates/podssh-ssh/src/io.rs:199-489` (and `crates/podssh-ssh/src/io/msg.rs:11-107`) a sink for stdout and
    stderr in place of the streams of the process, and give `Log` a prefix
@@ -57,7 +57,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 4. No prompts: BatchMode is on (`crates/podssh-cli/src/ssh/login.rs:86`).
    An unknown host key refuses that host and gives its fingerprint and
    `-o StrictHostKeyChecking=accept-new`. stdin is not read
-   (`crates/podssh-cli/src/ssh/resolve.rs:384`).
+   (`crates/podssh-cli/src/ssh/resolve.rs:389`).
 5. Get the token once, before the fan-out. Serialize `known_hosts::append`
    in the process with a mutex; T-029 covers two processes.
 6. The exit status: the largest status of the hosts, and 255 for a host that
@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:7314-7317`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:7329-7332`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:7530-7645`); they cannot define a group.
+  (`docs/cli.md:7545-7660`); they cannot define a group.
 
 ## Approach
 
@@ -902,7 +902,7 @@ short numbered list helps a person; a script must still get the usage error.
 ## Premise
 
 - Measured: `podssh ssh </dev/null` exits 64 with "missing destination"
-  (`crates/podssh-cli/src/ssh/resolve.rs:79`).
+  (`crates/podssh-cli/src/ssh/resolve.rs:82`).
 - Read: `run_ssh` gets no terminal state
   (`crates/podssh-cli/src/dispatch.rs:417-419`), and the entry point of the
   tests has none on purpose (`crates/podssh-cli/src/dispatch.rs:31-39`,
@@ -1177,8 +1177,8 @@ name is copied by hand.
 ## Premise
 
 - Read: `podssh ssh -t HOST -- docker exec -it NAME sh` works today, as a
-  remote command with a pty (`crates/podssh-cli/src/ssh/resolve.rs:230-238`,
-  `crates/podssh-cli/src/ssh/hop.rs:103-114`). Only the list is missing.
+  remote command with a pty (`crates/podssh-cli/src/ssh/resolve.rs:235-243`,
+  `crates/podssh-cli/src/ssh/hop.rs:103-120`). Only the list is missing.
 - Read: podssh starts a program only when the user names it or a probe
   finds it (`AGENTS.md:440-446`). Here the programs run on the server, for a
   request of the user.
@@ -1359,8 +1359,8 @@ expect rule.
 ## Approach
 
 1. `LocalCommand`: move it and `PermitLocalCommand` from IGNORED to
-   HONOURED (`crates/podssh-cli/src/ssh/keywords.rs:25-97`), with fields in
-   `crates/podssh-cli/src/ssh/options.rs:21-103`. Run it when OpenSSH runs it
+   HONOURED (`crates/podssh-cli/src/ssh/keywords.rs:25-99`), with fields in
+   `crates/podssh-cli/src/ssh/options.rs:21-108`. Run it when OpenSSH runs it
    (check the order in the container). Expand the tokens with `Tokens::expand`
    (`crates/podssh-cli/src/ssh/tokens.rs:69-157`), which has `%p` and `%n`
    since T-238.
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:633`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:7314-7317`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:7329-7332`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1803,7 +1803,7 @@ a ticket, or a tool that asks an AI.
 
 - Read: podssh starts another program only when the user names it
   (`AGENTS.md:440-446`), as it runs `SSH_ASKPASS`: the program, no shell, and
-  its first line read back (`crates/podssh-ssh/src/prompt.rs:105-122`).
+  its first line read back (`crates/podssh-ssh/src/prompt.rs:137-154`).
 - Read: credentials never go to output, logs, URLs or argv
   (`docs/architecture.md:324-326`). The token type never shows itself
   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:28-57`), and doctor never shows proxy
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-145`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:413-457`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:7314-7317`), which is not a failure of podssh.
+  status (`docs/cli.md:7329-7332`), which is not a failure of podssh.
 
 ## Approach
 
@@ -3764,7 +3764,7 @@ tssh resolves each alias once and gives two views of the result: a JSON list and
 ## Premise
 
 - Read: the picker takes its names from `config::host_names` (`crates/podssh-cli/src/ssh/picker.rs:63`,
-  `crates/podssh-cli/src/ssh/config.rs:128`): names only, no resolved field, and only when `podssh ssh`
+  `crates/podssh-cli/src/ssh/config.rs:129`): names only, no resolved field, and only when `podssh ssh`
   has no destination on a terminal (`crates/podssh-cli/src/ssh/picker.rs:46`).
 - Read in the donor report: tssh builds one record for each alias with its host, port, user, identity,
   proxy and labels; wildcard patterns stay out of the list; `--list-hosts` prints the same list as JSON

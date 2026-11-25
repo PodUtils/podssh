@@ -60,11 +60,14 @@ LISTENERS = {
     # 0600 beside the role, no network bind, and a path that exists already is
     # refused. pod-core's `bind_staged` binds it in a private stage beside
     # the path, through a short way to the stage where a socket's address
-    # cannot hold the path, and links it to the path (T-857).
+    # cannot hold the path, and links it to the path (T-857). And the test of
+    # StreamLocalBindUnlink of -L (T-962), which leaves a stale socket in a
+    # scratch directory for the refusal to find.
     "UnixListener": [
         "crates/podssh-cli/src/pipe/cover_tests.rs",
         "crates/podssh-cli/src/pipe/listen.rs",
         "crates/podssh-relay/src/serve/control.rs",
+        "crates/podssh-cli/src/ssh/local_bind.rs",
         "crates/podssh-ssh/src/agent_forward_tests.rs",
         "crates/podssh-ssh/src/remote_tests.rs",
         "crates/podssh-ssh/src/mux/master.rs",

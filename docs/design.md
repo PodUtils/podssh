@@ -763,7 +763,7 @@ that crosses; by a channel to its agent, yes.
   signature: `Signer::auth_sign(key, hash_alg, to_sign)` (`src/auth.rs:170-179`,
   used by `authenticate_publickey_with`, `src/client/mod.rs:632-684`). The
   one signer that russh ships is an SSH agent over any stream (`auth.rs:261-275`),
-  and podssh's client already signs with it (`crates/podssh-ssh/src/keys.rs:151`).
+  and podssh's client already signs with it (`crates/podssh-ssh/src/keys.rs:157`).
 - A server can open a channel to the client's agent, once the client asked for
   agent forwarding with a channel request on a session
   (`encrypted.rs:1775-1789`, `src/server/session.rs:254-266`, `:1429-1430`).

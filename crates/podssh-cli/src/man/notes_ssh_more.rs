@@ -91,7 +91,8 @@ pub(super) const MORE: &[&str] = &[
      that differ from OpenSSH's do on purpose: ServerAliveInterval and ConnectTimeout are 60, and no \
      identity file of a security key is tried; each list of algorithms is what podssh will offer, its own \
      unless a keyword gave one. podssh's own settings, such as the relay hosts, print no line, as OpenSSH \
-     knows no keyword for them.",
+     knows no keyword for them. Each keyword that podssh accepts with a note has its line too, in OpenSSH's place. \
+     XAuthLocation prints xauth, which podssh finds in PATH.",
     "Ciphers, MACs, KexAlgorithms, HostKeyAlgorithms, PubkeyAcceptedAlgorithms and CASignatureAlgorithms \
      filter what podssh offers, as OpenSSH reads them: a list replaces podssh's own, one that starts with + \
      adds to it, with - takes from it, and with ^ puts its names first. A name that podssh does not speak \
@@ -104,13 +105,16 @@ pub(super) const MORE: &[&str] = &[
      change nothing get a note at -v that names their place.",
     "Paths in -i and in the IdentityFile, UserKnownHostsFile, GlobalKnownHostsFile, IdentityAgent and \
      ForwardAgent keywords take the tokens of OpenSSH: %% %C %d %h %i %j %k %L %l %n %p %r %u, with \
-     OpenSSH's values. %u is the local user and %r the remote one. An unknown token is refused (exit 64). \
+     OpenSSH's values. %u is the local user and %r the remote one. An unknown token is refused: exit 64 for -o, \
+     and 78 with FILE:LINE for a line of a file. \
      ${NAME} in them is the variable NAME, which must be set (exit 64); a whole $NAME as IdentityAgent or \
      ForwardAgent is the variable that holds the path, and no agent when it is not set. -E FILE is opened \
-     as typed.",
+     as typed. A key file that others can read is used after a warning, where OpenSSH refuses it: on some hosts \
+     chmod changes nothing.",
     "A repeated value follows OpenSSH: the first -p and -l, the last -e, -E and -F, and the first value \
      of each -o keyword. A second -J or -W is refused, and so is a second --relay-host, --relay-addr or \
-     --ca-file: give several hops, hosts or addresses as one comma list.",
+     --ca-file: give several hops, hosts or addresses as one comma list. A value in double quotes loses them, as \
+     OpenSSH splits a line: Port \"2201\" is port 2201.",
     "ConnectTimeout bounds the SSH handshake and each answer of the server while podssh logs in. The time \
      that a question waits for its answer does not count, the question of a new host key included, which \
      runs inside the handshake: it has its own bound, 60 s when stdin, stdout and stderr are all redirected, \
@@ -167,7 +171,8 @@ pub(super) const MORE: &[&str] = &[
      bytes_down. A link \
      lost after the remote exit status and before the end of the output ends lost, with exit 255 and the status \
      kept. stdout and stderr stay as they are; the command's output never goes into the file. A new file is made \
-     for its owner alone; - is refused (exit 64). No file is written after a flag that podssh does not know, which \
+     for its owner alone; - is refused (exit 64). A FILE whose directory is missing is refused before anything \
+     runs (exit 73). No file is written after a flag that podssh does not know, which \
      ends it before it reads the others. Nor is one written when a signal kills podssh: only a session on a \
      terminal ends at SIGTERM or SIGHUP, as terminated. One with no pty ends at Ctrl-C, by the command's end or as \
      interrupted. A run of -N, also with --persist, ends at Ctrl-C as interrupted, with 130 and its file.",
