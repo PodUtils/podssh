@@ -48,8 +48,7 @@ whom to act on.
 
 ## Each podcrates take
 
-podssh pins each podcrates crate at `tag = "v0.84.0"` (`ca1d3e3`, COORD-155 of podcrates, PodUtils/podcrates#260,
-taken 2026-11-25), and `issue-sync.yml` at the same commit. The crates in `Cargo.toml` at the tag: `pod-acme`,
+podssh pins each podcrates crate at `tag = "v0.85.0"` (`1d1c9fc`, taken 2026-11-25, COORD-150), and `issue-sync.yml` at the same commit. The crates in `Cargo.toml` at the tag: `pod-acme`,
 `pod-core`, `pod-cover`, `pod-derp`, `pod-devtunnel`, `pod-dns`, `pod-e2e`, `pod-egress`, `pod-gsr`, `pod-h2` (as the
 dependency `h2` of `podssh-ws` and `podssh-relay`; `vendor/h2` is gone), `pod-identity`, `pod-iroh`, `pod-link`,
 `pod-manual`, `pod-netstack`, `pod-opentunnel`, `pod-piping`, `pod-proxy`, `pod-quic`, `pod-relay`, `pod-release`,

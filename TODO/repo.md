@@ -6088,6 +6088,19 @@ of `SoftTpm` for an owner's hierarchy with a password (`TPM2_CreatePrimary` unde
 flow of the crate; (c) the trial `pod-tpm.run`'s list of `crates/podssh-ssh/src/tpm` no longer holds at podssh's
 `main` (it has `agent.rs`, `host.rs`, `windows.rs`, `tbs.rs` and their tests).
 
+2026-11-25, the take of podcrates `v0.85.0` (`1d1c9fc`, its release notes "How a consumer takes it", podssh): each pin
+and `issue-sync.yml` at the tag; `Failure::io` takes a step in the two tests that call it
+(`crates/podssh-relay/tests/quick_edge_warp.rs`, `crates/podssh-ws/tests/vless_coalesce.rs`); and as the `Display` of a
+failure of `Failure::io` is now its step alone, the six places that showed a failure of `pod_quic::endpoint` with
+`to_string()` show `chain()` (`crates/podssh-relay/src/serve/quic.rs`, `crates/podssh-relay/src/quick/quic.rs` twice,
+`crates/podssh-ws/src/tuic/mod.rs`, `crates/podssh-ws/src/hysteria/quic.rs` twice). Found by a read-only audit of each
+display of a failure of `pod-gsr`, `pod-ws`, `pod-unit`, `pod-quic`, `pod-warp`, `pod-proxy`, `pod-cloudflare` and
+`pod-natprobe`: podssh's glue over `pod-gsr` and `pod-warp` showed `chain()` already, and podssh reaches no
+`Failure::io` of `pod-ws`, `pod-proxy` or `pod-unit`. No test asserted the old words. The asks of podcrates (COORD-150):
+`pod-quic`'s `connect::handshake` and `pod-relay`'s `quic_road::dial` join their failures with `to_string()`, so a
+failed UDP socket now loses its cause there; and `pod-warp`'s `each_door_failed` keeps the first door's stage, so a
+refusal at a proxy of the second door alone is no longer seen by `podssh_warp::at_proxy`.
+
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
 **Source:** the operator, 2026-11-05: "we use whatever is necessary, including c, zig, modern rust,

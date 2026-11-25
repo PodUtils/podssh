@@ -61,7 +61,9 @@ impl Dial for Tunnel {
                     ))
                 }
             };
-            let tcp = TcpStream::connect(to).await.map_err(|e| Failure::io(Stage::Connect, e))?;
+            let tcp = TcpStream::connect(to)
+                .await
+                .map_err(|e| Failure::io(Stage::Connect, format!("the connection to {to}"), e))?;
             self.carried.fetch_add(1, Ordering::SeqCst);
             Ok(Connected::new(Box::new(tcp)))
         })

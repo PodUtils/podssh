@@ -141,7 +141,7 @@ pub async fn open(server: &Server, host: &str, port: u16, dial: &Dial<'_>) -> Re
     let provider = Arc::new(crate::crypto::provider());
     let tls =
         pod_quic::connect::tls(provider, Arc::new(roots.roots), &alpn).map_err(|f| TuicError::Quic(f.to_string()))?;
-    let endpoint = pod_quic::endpoint::system(addr.is_ipv6()).map_err(|f| TuicError::Quic(f.to_string()))?;
+    let endpoint = pod_quic::endpoint::system(addr.is_ipv6()).map_err(|f| TuicError::Quic(f.chain()))?;
     // QUIC's keepalive beside TUIC's heartbeat: a server that takes no
     // datagram still sees the connection alive.
     let settings = Settings {

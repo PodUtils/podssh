@@ -75,9 +75,13 @@ impl pod_core::dial::Dial for CountingDial {
             let addrs = podssh_ws::resolve::resolve(&target.host(), target.port(), deadline).await.map_err(|e| {
                 pod_core::failure::Failure::new(pod_core::failure::Stage::Dns, pod_core::failure::Class::Unavailable, e)
             })?;
-            let tcp = TcpStream::connect(addrs[0])
-                .await
-                .map_err(|e| pod_core::failure::Failure::io(pod_core::failure::Stage::Connect, e))?;
+            let tcp = TcpStream::connect(addrs[0]).await.map_err(|e| {
+                pod_core::failure::Failure::io(
+                    pod_core::failure::Stage::Connect,
+                    format!("the connection to {}", addrs[0]),
+                    e,
+                )
+            })?;
             let io = Counting { inner: tcp, writes: self.writes.clone() };
             Ok(pod_core::dial::Connected::new(Box::new(io)))
         })

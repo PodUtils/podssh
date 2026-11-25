@@ -70,7 +70,7 @@ pub fn tcp_request(target: &str) -> Vec<u8> {
 /// `obfs` holds its key.
 pub async fn endpoint(addr: SocketAddr, obfs: Option<&[u8]>) -> Result<Endpoint, HysteriaError> {
     let Some(psk) = obfs else {
-        return pod_quic::endpoint::system(addr.is_ipv6()).map_err(|e| HysteriaError::Quic(e.to_string()));
+        return pod_quic::endpoint::system(addr.is_ipv6()).map_err(|e| HysteriaError::Quic(e.chain()));
     };
     let any: SocketAddr = match addr {
         SocketAddr::V4(_) => (Ipv4Addr::UNSPECIFIED, 0).into(),
@@ -78,7 +78,7 @@ pub async fn endpoint(addr: SocketAddr, obfs: Option<&[u8]>) -> Result<Endpoint,
     };
     let socket = SystemDatagrams::bind(any).await.map_err(|e| HysteriaError::Quic(format!("no UDP socket: {e}")))?;
     let way = Arc::new(Salamander::new(socket, psk));
-    pod_quic::endpoint::over(way, None).map_err(|e| HysteriaError::Quic(e.to_string()))
+    pod_quic::endpoint::over(way, None).map_err(|e| HysteriaError::Quic(e.chain()))
 }
 
 /// QUIC to `addr`, then the credential: the connection, once the server

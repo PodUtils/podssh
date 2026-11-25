@@ -63,7 +63,7 @@ pub fn server_config(served: Arc<Served>) -> Result<ServerConfig, String> {
 /// must be made in a runtime, which drives it.
 pub fn endpoint(socket: UdpSocket, served: Arc<Served>) -> Result<Endpoint, String> {
     let server = server_config(served)?;
-    pod_quic::endpoint::on_socket(socket, Some(server)).map_err(|e| e.to_string())
+    pod_quic::endpoint::on_socket(socket, Some(server)).map_err(|e| e.chain())
 }
 
 /// Serve each connection that `endpoint` takes, until it is closed.

@@ -54,7 +54,7 @@ pub fn endpoint_config() -> Result<EndpointConfig, String> {
 /// port that the system picks. A socket that does not bind is the probe's
 /// answer: no QUIC here.
 pub fn endpoint(v6: bool) -> Result<Endpoint, String> {
-    pod_quic::endpoint::system(v6).map_err(|e| e.to_string())
+    pod_quic::endpoint::system(v6).map_err(|e| e.chain())
 }
 
 /// A QUIC connection to `addr` as `server_name`, within the handshake's wait.
@@ -141,7 +141,7 @@ pub async fn handshake(found: &edge::Edge, tls: Arc<rustls::ClientConfig>) -> Re
     if !addrs.is_empty() {
         match pod_quic::connect::handshake(&addrs, server_name(), tls, &Settings::default()).await {
             Ok(answered) => return Ok(answered),
-            Err(e) => failed.push(e.to_string()),
+            Err(e) => failed.push(e.chain()),
         }
     }
     Err(format!("no region of the edge answered over QUIC: {}", failed.join("; ")))
