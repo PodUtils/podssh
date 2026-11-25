@@ -93,7 +93,7 @@ impl Seen {
         "not read on this system".into()
     }
 
-    fn said(&self) -> String {
+    pub fn said(&self) -> String {
         let yes = |b: &AtomicBool| if b.load(Ordering::SeqCst) { "yes" } else { "no" };
         let at = |ms: &AtomicU64| match ms.load(Ordering::SeqCst) {
             0 => "never".to_string(),

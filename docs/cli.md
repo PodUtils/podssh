@@ -5867,7 +5867,10 @@ once the edge registered the tunnel.
 - **The exit status.** A road that failed gives it, as `podssh proxy` gives
   it: 69 for a road out of reach, 77 for a refusal (the relay, a proxy, a
   host key, a login) and 78 for a setting that cannot be used; 65 for a
-  stream of `udp:` that is not its framing. Else the program's, B's when
+  stream of `udp:` that is not its framing. A read of a side that failed
+  (a socket that was reset) is no end of its input: one line names the
+  side and the bytes carried before it, and the status is 69 (T-465).
+  Else the program's, B's when
   both are programs, 128 + N for a signal, 127 for a program that is not
   found and 126 for one that cannot run; with neither, 0.
 

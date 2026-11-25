@@ -125,7 +125,9 @@ pub const PIPE: &[&str] = &[
      program has exited and its output has ended, or when a road has ended. podssh waits for each program, as a shell \
      does.",
     "A road that failed gives the exit status, as podssh proxy gives it: 69 for a road out of reach, and 77 for a \
-     refusal (of the relay, a proxy, a host key or a login). It is 78 for a setting that cannot be used. Else the \
+     refusal (of the relay, a proxy, a host key or a login). It is 78 for a setting that cannot be used. A read of a \
+     side that failed (a socket that was reset) is no end of its input: one line names the side and the bytes \
+     carried before it, and the status is 69. Else the \
      status is the program's (B's when both are programs), or 128 + N for a signal. It is 127 for a program that is \
      not found and 126 for one that cannot run; with neither, 0. 65 for a stream of udp: that is not its framing.",
     "serial:PATH[,BAUD] opens a serial device of this host, such as /dev/ttyUSB0, at BAUD (115200 when none is given; \

@@ -251,7 +251,7 @@ and again 5+ times: Windows runs 41783492970 (1 in 50), 41793576380 and 41795259
 also with no other test beside it), macOS run 42035545363 and 41793580299 (2 in 50), Windows gate
 run 42707316166 (2026-11-09).
 **The measured facts.** podssh's pump says "A's input ended after 1000000 bytes; the other side's
-write half shut down" (`crates/podssh-cli/src/pipe/pump.rs:94`, with `-v`). The server read all
+write half shut down" (`crates/podssh-cli/src/pipe/pump.rs:101`, with `-v`). The server read all
 1,000,000 bytes, and its input **never ended** until podssh was killed at the 10 s limit, when the end
 arrives at once (macOS run 42035545363: stdin closed at 50 ms, last server read at 50 ms, server
 input ended at 10,076 ms, 2 ms after the kill). A standalone probe

@@ -541,7 +541,7 @@ Read, the bounds today:
 - The SSH window: 512 KiB (`crates/podssh-ssh/src/run.rs:34`). The relay pipe:
   256 KiB each way, frames of 64 KiB
   (`crates/podssh-ssh/src/relay_stream.rs:36-39`). Pump buffers: 32 KiB
-  (`crates/podssh-cli/src/pipe/pump.rs:24`).
+  (`crates/podssh-cli/src/pipe/pump.rs:26`).
 - Time: `crates/podssh-ws/src/client.rs:29-46`,
   `PodUtils/podssh:crates/podssh-relay/src/open.rs:33-37`, `crates/podssh-ssh/src/session.rs:22`.
 - No limit: a `known_hosts` file was read whole (`crates/podssh-ssh/src/known_hosts.rs`,
@@ -993,7 +993,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:258`, `docs/STATUS.md:264`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:7171-7172` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:7174-7175` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:7171-7172`). A difference that the table does not name fails,
+   `docs/cli.md:7174-7175`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7171-7172` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7174-7175` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -1054,7 +1054,7 @@ for `podssh ssh`.
 (openssh-portable at its default branch, 2026-10-12; read, not run):
 `client_input_channel_req` in `clientloop.c` takes `exit-status` and no
 `exit-signal`, and `client_loop` starts its status at -1, so a signal gives
-255, as `docs/cli.md:6038-6039` says. `check_host_key` in `sshconnect.c`
+255, as `docs/cli.md:6041-6042` says. `check_host_key` in `sshconnect.c`
 goes on past a changed key under `StrictHostKeyChecking=no`: it turns off
 password and keyboard-interactive login and the forwardings, then accepts
 the key, so `ssh.hostkey.changed_refused` gives 0 with OpenSSH. In
@@ -1095,7 +1095,7 @@ has three rows.
   podssh 143), `changed_key` (OpenSSH 0, podssh 255) and
   `unreadable_known_hosts` (OpenSSH 0, podssh 255).
 - `crates/podssh-ssh/src/lib.rs:16` now agrees with
-  `docs/cli.md:6038-6039`: 128 plus the signal's number, where OpenSSH
+  `docs/cli.md:6041-6042`: 128 plus the signal's number, where OpenSSH
   gives 255. `docs/cli.md` names the two differences of the host keys
   beside their rules; `docs/development.md` (item 7 of the gate) says that
   each code is checked twice; `docs/STATUS.md` has a row for OpenSSH's
@@ -1394,8 +1394,8 @@ that fails at random hides a defect, or teaches the reader to rerun.
   thread and waits 10 s for podssh to end; its server answers the digest once its input ends
   (`crates/podssh-cli/tests/pipe_seen/mod.rs:170`).
 - The pump shuts the other side's write half down when its input ends
-  (`crates/podssh-cli/src/pipe/pump.rs:94`), and reads more of the input that is ready at once
-  without waiting (`crates/podssh-cli/src/pipe/pump.rs:163`).
+  (`crates/podssh-cli/src/pipe/pump.rs:101`), and reads more of the input that is ready at once
+  without waiting (`crates/podssh-cli/src/pipe/pump.rs:195`).
 
 ## Approach
 
@@ -1502,6 +1502,22 @@ Measured 2026-11-10: `cargo test -p podssh-cli --test pipe`, 10 passed. Planted,
 skipped and its writer leaked: the test failed at 10 s with "its reads timed out 38 times" and
 "nothing is queued: the end never came"; put back, it passes. It stays partial for the next failure
 on Windows or macOS, whose count says which cause it was.
+
+2026-11-25: it failed on Windows in a new way, in the gate of `13623b3` (run 45595217853, the job
+`windows`): podssh exited 0 and wrote no digest, inside the 10 s. The pump took a read that failed
+as an end of input (`crates/podssh-cli/src/pipe/pump.rs`), so a reset of B's socket (or an end that
+came early) ended B's way with nothing said, and the pipe exited 0 with its bytes lost: a defect of
+podssh whatever the platform did. Now a failed read still shuts the other side's write half down,
+as an end does, but the pump keeps its line, and `report` (`crates/podssh-cli/src/pipe/mod.rs`)
+says "B's input failed after N bytes: ERROR" and exits 69 for a plain end (a road with an ending
+judges its own reads); `-v` says "failed (ERROR)" where it said "ended". The manual's notes of
+`pipe` and `docs/cli.md` say it. The test now gives podssh's words and its server's steps on a wrong
+code or digest too, so the next failure tells a reset (the server's close after its answer, a
+platform's abort of a graceful close) from an early end. Measured: `cargo test -p podssh-cli --lib`
+(the new `a_read_that_fails_is_said_and_the_other_way_still_carries`; 1305 passed, the manual's
+`llms-full.txt` written again), `--test pipe` (10 passed), `--test pipe_http`, `--test proxy`,
+`--test pipe_listen`, `--test pipe_ws`, `--test pipe_remote`, `--test pipe_udp`, `--test
+forwarder_cli`, each passed. It stays partial for the next failure's words.
 
 # T-564: podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE`
 

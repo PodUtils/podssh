@@ -41,6 +41,7 @@ pub mod ws;
 pub mod ws_listen;
 
 use crate::exit_codes::EXIT_SOFTWARE;
+use crate::exitmap::sysexits::EX_UNAVAILABLE;
 
 /// What `podssh pipe` was asked to do.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -320,9 +321,13 @@ async fn open(address: &address::Address, settings: &remote::Settings, err: &mut
 
 /// After the pump: each road closed and judged, each child waited for, as
 /// a shell waits; the exit code, and each road's lines on `err` after
-/// `prefix`. A road that failed is the pipe's failure; else a child's
-/// status, B's first.
+/// `prefix`. A road that failed is the pipe's failure; else a read that
+/// failed (69, T-465); else a child's status, B's first.
 pub async fn report(pumped: pump::Pumped, prefix: &str, err: &mut dyn Write) -> i32 {
+    // A road's own ending judges its reads; a plain end has only the pump's
+    // word that its read failed.
+    let plain = |left: &pump::Left, line: Option<String>| line.filter(|_| left.ending.is_none());
+    let failed = plain(&pumped.b, pumped.failed.1).or(plain(&pumped.a, pumped.failed.0));
     let a_road = finished(pumped.a.ending).await;
     let b_road = finished(pumped.b.ending).await;
     let a_child = waited(pumped.a.child).await;
@@ -334,6 +339,12 @@ pub async fn report(pumped: pump::Pumped, prefix: &str, err: &mut dyn Write) -> 
     }
     if let Some((code, _)) = b_road.as_ref().or(a_road.as_ref()) {
         return *code;
+    }
+    // A plain socket's reset has only this line, and its lost bytes are no
+    // clean end.
+    if let Some(line) = &failed {
+        let _ = writeln!(err, "{prefix}: {line}");
+        return EX_UNAVAILABLE;
     }
     let child = b_child.or(a_child);
     // A child's status is the child's, no failure of podssh (T-195).

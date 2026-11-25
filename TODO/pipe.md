@@ -198,7 +198,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7173`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7176`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:860-864`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7300-7302`). After the attach, send the window size again.
+   (`docs/cli.md:7303-7305`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-190`), `docs/design.md:860-864`,
    `docs/STATUS.md`, and tmux in the interop image
@@ -1924,7 +1924,7 @@ Read at `2042200`:
 - The check reads no path (`PodUtils/podssh:crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
   no upgrade, whatever its path, as the issue corrects itself.
 - The flag's neighbours: `crates/podssh-cli/src/flags/pipe.rs:40` (`keep-listening`), refused with no
-  listening side in `crates/podssh-cli/src/pipe/mod.rs:82`; `crates/podssh-cli/src/pipe/serve.rs:34`.
+  listening side in `crates/podssh-cli/src/pipe/mod.rs:83`; `crates/podssh-cli/src/pipe/serve.rs:34`.
 
 ## Approach
 

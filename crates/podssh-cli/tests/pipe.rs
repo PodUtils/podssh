@@ -109,8 +109,10 @@ fn unix_connect_passes_the_end_of_input_on_and_the_answer_comes_back() {
     let (code, out, err) = through_seen(&address, sent, &seen);
     let _ = server.join();
     let _ = std::fs::remove_file(&path);
-    assert_eq!(code, 0, "{err}");
-    assert_eq!(out, want, "the far end's digest of 1,000,000 bytes");
+    // podssh's words at -v and the server's steps name where a wrong
+    // answer came from (T-465).
+    assert_eq!(code, 0, "{err}; {}", seen.said());
+    assert_eq!(out, want, "the far end's digest of 1,000,000 bytes; podssh said: {err:?}; {}", seen.said());
 }
 
 #[test]

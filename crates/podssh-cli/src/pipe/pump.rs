@@ -6,7 +6,9 @@
 //! the other side's write half is shut down, and the other direction goes
 //! on: a reply on its way still comes back (an end's write half closes only
 //! itself, as a TCP half-close does). A writer whose reader is gone ends the
-//! pipe, as a reader that left wants no more. An end with a child ends the
+//! pipe, as a reader that left wants no more. A read that fails ends that
+//! direction as an end does, and the pipe's report says it (T-465): a
+//! reset socket is no clean end, and its lost bytes must not exit 0. An end with a child ends the
 //! pipe when its output ended and the child exited, and an end whose output
 //! is its last word (a relay's session that closed) ends it when its output
 //! ends: the other side's input may never end (a terminal), and nobody
@@ -73,10 +75,13 @@ pub struct Left {
 }
 
 /// How one direction ended.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Flow {
     /// Its input ended, and the other side's write half was shut down.
     Ended,
+    /// A read of its input failed: the other side's write half was shut
+    /// down as at an end, and the line says what failed.
+    Failed(String),
     /// Its writer's reader is gone.
     Gone,
 }
@@ -87,6 +92,8 @@ pub struct Pumped {
     pub a: Left,
     pub b: Left,
     pub carried: (u64, u64),
+    /// The line of A's read that failed, and of B's, if one did.
+    pub failed: (Option<String>, Option<String>),
 }
 
 /// Copy `from` to `to` until `from` ends, then shut `to` down; `count`
@@ -94,8 +101,12 @@ pub struct Pumped {
 pub async fn copy(mut from: Reader, mut to: Writer, count: &AtomicU64, input: &str) -> Flow {
     let mut buf = vec![0u8; CHUNK];
     loop {
-        // A read that fails is an end of input, as `podssh proxy` reads stdin.
-        let mut n = from.read(&mut buf).await.unwrap_or(0);
+        // A read that fails ends this direction as an end does, so that a
+        // reply on its way the other way still comes; the pump keeps why.
+        let (mut n, failed) = match from.read(&mut buf).await {
+            Ok(n) => (n, None),
+            Err(e) => (0, Some(e)),
+        };
         if n == 0 {
             drop(from);
             let shut = to.shutdown().await;
@@ -105,13 +116,23 @@ pub async fn copy(mut from: Reader, mut to: Writer, count: &AtomicU64, input: &s
                     Ok(()) => "shut down".to_owned(),
                     Err(e) => format!("not shut down: {e}"),
                 };
+                let ended = match &failed {
+                    None => "ended".to_owned(),
+                    Some(e) => format!("failed ({e})"),
+                };
                 // A closed stderr is no reason to stop the pipe.
                 let _ = writeln!(
                     std::io::stderr(),
-                    "podssh: pipe: {input}'s input ended after {carried} bytes; the other side's write half {how}"
+                    "podssh: pipe: {input}'s input {ended} after {carried} bytes; the other side's write half {how}"
                 );
             }
-            return Flow::Ended;
+            return match failed {
+                None => Flow::Ended,
+                Some(e) => {
+                    let carried = count.load(Ordering::Relaxed);
+                    Flow::Failed(format!("{input}'s input failed after {carried} bytes: {e}"))
+                }
+            };
         }
         n += ready_now(&mut from, &mut buf[n..]);
         if to.write_all(&buf[..n]).await.is_err() || to.flush().await.is_err() {
@@ -134,17 +155,22 @@ pub async fn pump(a: End, b: End) -> Pumped {
     tokio::pin!(b_to_a);
     // Whether A's output, and B's, has ended.
     let (mut a_done, mut b_done) = (false, false);
+    let (mut a_failed, mut b_failed) = (None, None);
     loop {
         tokio::select! {
             flow = &mut a_to_b, if !a_done => {
-                if flow == Flow::Gone {
-                    break;
+                match flow {
+                    Flow::Gone => break,
+                    Flow::Failed(line) => a_failed = Some(line),
+                    Flow::Ended => {}
                 }
                 a_done = true;
             }
             flow = &mut b_to_a, if !b_done => {
-                if flow == Flow::Gone {
-                    break;
+                match flow {
+                    Flow::Gone => break,
+                    Flow::Failed(line) => b_failed = Some(line),
+                    Flow::Ended => {}
                 }
                 b_done = true;
             }
@@ -156,7 +182,13 @@ pub async fn pump(a: End, b: End) -> Pumped {
         }
     }
     let carried = (counts[0].load(Ordering::Relaxed), counts[1].load(Ordering::Relaxed));
-    Pumped { a: Left { child: a_child, ending: a_ending }, b: Left { child: b_child, ending: b_ending }, carried }
+    let failed = (a_failed, b_failed);
+    Pumped {
+        a: Left { child: a_child, ending: a_ending },
+        b: Left { child: b_child, ending: b_ending },
+        carried,
+        failed,
+    }
 }
 
 /// The bytes that `from` has ready at once, into `buf`, waiting for none: a
@@ -275,6 +307,44 @@ mod tests {
         let sizes = sizes.lock().unwrap().clone();
         assert_eq!(sizes.iter().sum::<usize>(), total);
         assert!(sizes.len() <= total / CHUNK + 1, "{} writes for {} reads of 498 bytes", sizes.len(), total / 498);
+    }
+
+    /// A reader that fails at once, as a socket that was reset does.
+    struct Reset;
+
+    impl AsyncRead for Reset {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+            _: &mut tokio::io::ReadBuf<'_>,
+        ) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Err(std::io::ErrorKind::ConnectionReset.into()))
+        }
+    }
+
+    /// A read that fails is no clean end (T-465): the pump says which side's
+    /// read failed, and the other way still carries a reply.
+    #[tokio::test]
+    async fn a_read_that_fails_is_said_and_the_other_way_still_carries() {
+        let (a_ours, mut a_far) = tokio::io::duplex(1024);
+        let (b_ours, mut b_far) = tokio::io::duplex(1024);
+        let (b_read, b_write) = tokio::io::split(b_ours);
+        drop(b_read);
+        let b = End::plain(Box::new(Reset), Box::new(b_write));
+        let pumped = tokio::spawn(pump(end(a_ours), b));
+        a_far.write_all(b"question").await.unwrap();
+        a_far.shutdown().await.unwrap();
+        let mut got = Vec::new();
+        b_far.read_to_end(&mut got).await.unwrap();
+        assert_eq!(got, b"question");
+        // B's failed read shut A's write half down: A reads its end.
+        let mut back = Vec::new();
+        a_far.read_to_end(&mut back).await.unwrap();
+        assert!(back.is_empty());
+        let pumped = tokio::time::timeout(Duration::from_secs(5), pumped).await.expect("the pump ends").unwrap();
+        assert_eq!(pumped.failed.0, None);
+        let line = pumped.failed.1.expect("B's read failed");
+        assert!(line.starts_with("B's input failed after 0 bytes: "), "{line}");
     }
 
     /// A side whose reader left ends the pipe, though the other input goes on.
