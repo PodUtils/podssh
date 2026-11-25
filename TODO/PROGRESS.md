@@ -8,9 +8,9 @@ this page keeps no history (git does).
 
 Read on 2026-11-25.
 
-1. **The gate.** At `0c6e9c4` (2026-11-25, run 45527696631) each job passed but `gate (lint)`, on the format of one
-   line of `attach_screen.rs`, which `a03768f` repaired. Later pushes each cancelled the gate of the one before; read
-   the gate of the last push first. Earlier green runs are in `docs/STATUS.md`.
+1. **The gate.** Green at `6cef237` (2026-11-25, run 45566736621, each job), with the DNS road, `serve --remote-listen`,
+   the screen on attach, and the gateway (T-836, T-902). Read the gate of the last push first: a push cancels the
+   gate of the one before it. Earlier green runs are in `docs/STATUS.md`.
 2. **Releases.** The newest beta is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is `v1.0.1`
    (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete and the black-box pass of T-809 is
    clean (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the
@@ -65,8 +65,7 @@ TBS case passed in the gate), T-896 done, T-875 and T-877 done (the DNS road; T-
 (`serve --remote-listen`), T-161 and T-901 done (a new client's
 screen, measured, and given to a shell at a still prompt and a seat of `--share`; GitHub #20 closed), T-836 done
 (`serve --gateway`; T-903 filed), T-902 done (its routes in the net's signed document), T-904 (a test's freed port, which turned `gate (ts)` red at `7c4442e`),
-podcrates `v0.83.0` taken. Open, in order: the gate of the last push (lint was red at `0c6e9c4` on the format of
-`attach_screen.rs` alone); T-831 (partial); podcrates' answers to the COORD issues of
+podcrates `v0.83.0` taken; the gate green at `6cef237`. Open, in order: T-831 (partial); podcrates' answers to the COORD issues of
 `docs/HANDOFF.md`; T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
 clean**).
 
