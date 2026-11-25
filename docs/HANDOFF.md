@@ -37,6 +37,7 @@ never used (the owner, 2026-11-12); the watcher of `AGENTS.md` finds the answers
 | #358 (COORD-148) | podcrates' answer to the ask of the pane's rows in `pod_term::transfer` (a frame taller than a tmux pane loses its head); it also answers COORD-153 with T-831's commit `97cebe6` |
 | #359 (COORD-149) | a `ConnectError` of `pod-ws` that ends a carrier's stream for good with words that name no relay (T-905) |
 | #360 (COORD-150) | podcrates' record of the take of `v0.85.0` (`f0f7e2c`) and five asks: `chain()` in `pod-quic`'s handshake and `pod-relay`'s QUIC dial, `pod-warp`'s door stage, `FileLock`'s unlock (T-849), `closes::pending`'s look-ahead (T-788), `carry`'s words for a target's failure (T-753) |
+| #361 (COORD-151) | `pod-relay`'s `exchange` aborting its two tasks on drop (hardening after T-627) |
 
 Closed on 2026-11-25, each answered or done: #351 to #356 (answered in `v0.84.0` and taken at `806e0a4`). Earlier:
 #248, #283, #311, #322, #340 to #343, #346, #347, #350. podcrates' COORD-153 (PodUtils/podcrates#258) is answered by COORD-148 (#358).
