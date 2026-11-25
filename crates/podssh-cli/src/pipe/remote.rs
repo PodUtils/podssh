@@ -152,16 +152,20 @@ fn carrier(args: &PipeArgs, addresses: [&Address; 2]) -> Result<(), Refusal> {
     Ok(())
 }
 
-/// `--grant FILE` (T-226): the first session of a `node:` or `udp:node:`
-/// side carries it in its channel; a pipe with none has no node to give it
-/// to (64).
+/// `--grant FILE` (T-226), or `--bearer SIGNER` (T-834): the first session
+/// of a `node:` or `udp:node:` side carries it in its channel; a pipe with
+/// none has no node to give it to (64).
 fn grant(args: &PipeArgs, addresses: [&Address; 2]) -> Result<(), Refusal> {
-    if args.ssh.grant.is_none() {
-        return Ok(());
-    }
+    let flag = match (&args.ssh.grant, &args.ssh.bearer) {
+        (None, None) => return Ok(()),
+        (Some(_), _) => "--grant",
+        (None, Some(_)) => "--bearer",
+    };
     if !addresses.iter().any(|a| matches!(a, Address::Node(_) | Address::UdpNode(_))) {
-        return Err(Refusal::usage("--grant is for the session of a node: or udp:node: side: name one"));
+        return Err(Refusal::usage(format!("{flag} is for the session of a node: or udp:node: side: name one")));
     }
+    // Beside --grant, --bearer is refused before either is read.
+    crate::bearer::ask(args.ssh.bearer.as_deref(), args.ssh.grant.is_some(), args.ssh.no_e2e)?;
     crate::grants::ask(args.ssh.grant.as_deref(), args.ssh.no_e2e)
 }
 

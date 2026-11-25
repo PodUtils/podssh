@@ -4711,6 +4711,32 @@ commands. The rules behind them:
   refused, and the operator exits 77, the reasons in the node's log. A node
   with no `--allow` and no net says, as it starts, that the pair's token
   alone is its door.
+- **A bearer in a grant's place** (T-834, GitHub #317; [design.md](design.md),
+  section 5, "A bearer in `OPEN`") lets in a key that no `--allow` names,
+  with no certificate: `--bearer SIGNER` on the same commands as `--grant`.
+  SIGNER is a podssh key file (read as `client.key` is read, never made),
+  `agent` (the first Ed25519 key of the SSH agent at `SSH_AUTH_SOCK`; on
+  Windows also OpenSSH's pipe, then Pageant) or `agent:SHA256:...` (that key
+  of the agent). The client checks it before anything connects: a URL,
+  `--grant` or `--no-e2e` beside it is 64; a key file that cannot be read,
+  no agent, or no such Ed25519 key in it is 78. Once the channel checked the
+  node's key, the client mints the bearer for that channel alone
+  (`pod-relay`'s `grant::bearer`, 221 bytes): SIGNER's key, this client's
+  operator key, `iat` now and `exp` 30 s later, a fresh nonce, and a `jti`
+  that is HMAC-SHA-256 of the nonce under the channel's binding (the Noise
+  handshake hash, `pod-e2e`'s `Binding`), signed by SIGNER. It rides where
+  a grant rides, in the operator's proof, for the run's first session
+  alone; an agent that does not sign within 20 s is said, and the channel
+  then carries none. The node's door for grants tells it apart by its first
+  bytes and checks it before it dials (`Bearers::verify`): its form, the
+  operator key that the channel proved, a signer that may grant what was
+  asked (the node's key, a key of `--allow` or a member of the net, for what
+  that key may reach itself, the exit's issuers for an exit's target), the
+  signature, a life of at most 30 s with 10 s of skew, the binding of this
+  channel, and a `jti` not seen before, kept in memory for its life. A
+  refusal is 77 at the operator, and the node's line names the check
+  (`a bearer refused (binding): ...`); a bearer let in is named on the
+  node's line with its signer.
 - **`podssh node NAME --ask`** (T-638, GitHub #136; [reverse.md](reverse.md),
   "A person at the node") asks a person at the node's terminal of each
   operator key that the door (`--allow`, the net) or a grant lets through, on

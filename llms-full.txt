@@ -1111,7 +1111,8 @@ podssh ssh
   key (client.key, or --client-key). A node lets it in once although no line of
   its allowlist names that key (see podssh node). A URL in its place, and
   --no-e2e beside it, are refused (64); a destination that is no podssh end is
-  too.
+  too. --bearer SIGNER carries a bearer in its place, as podssh operator
+  --bearer makes it.
 
   node://NAME opens each leg after the first with the session's next token of
   one leg, as podssh operator does (see its notes). It does so where the node
@@ -2114,6 +2115,10 @@ podssh ssh
         node://NAME: a grant used once, an OpenSSH certificate of this client's
         key, which the end-to-end channel carries to the node for this session
         alone; a URL is refused.
+    --bearer SIGNER
+        node://NAME: a bearer of 30 s for this session's channel alone, in the
+        place of --grant, which SIGNER signs: a podssh key file, agent for the
+        SSH agent's first Ed25519 key, or agent:SHA256:...
     --result-file FILE
         at the end, one JSON object in FILE: the exit, the remote status or
         signal, the end, the failure, the bytes and the relay.
@@ -3667,7 +3672,8 @@ podssh proxy
   exit); --pair-file and --carrier are refused with it (64).
 
   node://NAME takes --grant FILE as podssh operator does: a grant used once, in
-  the end-to-end channel of the one session.
+  the end-to-end channel of the one session. It takes --bearer SIGNER as podssh
+  operator does too.
 
   Usage: podssh proxy [OPTIONS] [--] HOST PORT | node://NAME[/ROUTE]
 
@@ -3805,6 +3811,9 @@ podssh proxy
     --grant FILE
         node://NAME: a grant used once, as operator --grant takes it: one
         session, once, in the end-to-end channel.
+    --bearer SIGNER
+        node://NAME: a bearer of 30 s for this channel alone, as operator
+        --bearer takes it: a podssh key file, agent or agent:SHA256:...
     --carrier ADDR
         node://NAME: reach the node at the other end of ADDR, a stream that
         exists already, with no relay and no pair, as podssh operator --carrier
@@ -4059,7 +4068,8 @@ podssh pipe
 
   --grant FILE gives the first session of a node: side a grant used once, as
   podssh operator --grant takes it; a pipe with no node: side refuses it (64),
-  and a listening side's later clients carry none.
+  and a listening side's later clients carry none. --bearer SIGNER is taken the
+  same way, as podssh operator --bearer takes it.
 
   An HTTP CONNECT proxy whose connections go on from an SSH server, and a
   client:
@@ -4181,6 +4191,9 @@ podssh pipe
         ends with its link, and the node keeps nothing of it after a loss.
     --grant FILE
         node:: a grant used once, as operator --grant takes it, for the first
+        session of the side alone.
+    --bearer SIGNER
+        node:: a bearer of 30 s, as operator --bearer takes it, for the first
         session of the side alone.
     --install NAME
         make this pipe a service of this user named NAME, which starts it again
@@ -5054,7 +5067,13 @@ podssh node
   node:SHA256:... -O clear -O critical:once@podssh -V +1h KEY.pub. With
   PODSSH_CACHE_DIR=none no use can be recorded, and each grant is refused. A
   node with no --allow and no net says that the pair's token alone is its door.
-  A TARGET that is not SSH has no other gate behind it.
+  A TARGET that is not SSH has no other gate behind it. The same door takes a
+  bearer of an operator's --bearer: a token of 30 s that a key signs for one
+  channel. Its signer is one that may issue a grant, for what that key may
+  reach itself. The node checks the bearer's signer, signature, life (10 s of
+  skew), operator key and channel. It keeps each bearer in memory for its life,
+  and refuses a second use. A bearer copied to another channel is refused: it
+  names the channel's binding. The node's log names the check that refused it.
 
   With --ask, a person at the node's terminal lets each operator key in, after
   the node's door, on each road of the node: for each key that --allow, the net
@@ -5919,7 +5938,17 @@ podssh operator
   (used already, out of its window, or for another key, node or route) is 77.
   Its reasons are in the node's log. A node of an earlier podssh reads no
   grant, and ends the session in its handshake. Each grant lets in one session:
-  a run that opens more sends it in the first.
+  a run that opens more sends it in the first. --bearer SIGNER gives a bearer
+  in the place of a grant, for a key that no podssh node --allow names. SIGNER
+  is a podssh key file, read and never made. agent is the first Ed25519 key of
+  the SSH agent at SSH_AUTH_SOCK; agent:SHA256:... names one. On Windows the
+  agent is also OpenSSH's pipe, or Pageant. The bearer is made once the node's
+  key was checked, for that channel alone, and lives 30 s. Its signer must be
+  the node's key, a key of the node's podssh node --allow, or a member of its
+  net. A URL, --grant or --no-e2e beside it is refused (64). A key file that
+  cannot be read, or an agent with no such key, is 78. A node that refuses the
+  bearer is 77. An agent that does not sign in 20 s is said, and the channel
+  then carries no bearer. Like a grant, it goes in the first session of a run.
 
   A node through podssh relay serve gives the seed of the session's tokens of
   one leg. Where it did, each leg after the first carries the session's next
@@ -5977,6 +6006,12 @@ podssh operator
         end-to-end channel carries it to the node, never a relay; it lets in
         one session, once, of the node or route that it names; a URL is
         refused.
+    --bearer SIGNER
+        a bearer in the place of a grant: a token of 30 s for this channel
+        alone, which SIGNER signs; SIGNER is a podssh key file, or agent for
+        the first Ed25519 key of the SSH agent, or agent:SHA256:... for one of
+        them; the node takes it once, when SIGNER is its own key, a key of its
+        --allow or a member of its net; never beside --grant.
     --access-host HOST
         the relay's roads to HOST carry the credentials of Cloudflare Access in
         their headers, in the place of AccessHost of the settings; HOST[,...],

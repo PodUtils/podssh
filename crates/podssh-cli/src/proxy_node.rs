@@ -51,6 +51,8 @@ pub struct Flags {
     pub carrier: Option<String>,
     /// `--grant FILE`: a grant used once (T-226).
     pub grant: Option<String>,
+    /// `--bearer SIGNER`: a bearer of the channel (T-834).
+    pub bearer: Option<String>,
 }
 
 impl Flags {
@@ -65,6 +67,7 @@ impl Flags {
             no_resume: m.get_flag("no-resume"),
             carrier: get("carrier"),
             grant: get("grant"),
+            bearer: get("bearer"),
         }
     }
 
@@ -78,6 +81,7 @@ impl Flags {
             (self.no_resume, "--no-resume"),
             (self.carrier.is_some(), "--carrier"),
             (self.grant.is_some(), "--grant"),
+            (self.bearer.is_some(), "--bearer"),
         ]
         .into_iter()
         .find_map(|(given, flag)| given.then_some(flag))
@@ -167,6 +171,8 @@ fn to_operator(text: &str, args: &ProxyArgs) -> Result<OperatorArgs, Refusal> {
         carrier: args.node.carrier.clone(),
         // A grant used once, as `operator --grant` takes it (T-226).
         grant: args.node.grant.clone(),
+        // A bearer of the channel, as `operator --bearer` takes it (T-834).
+        bearer: args.node.bearer.clone(),
         // proxy takes no --access-host: the settings' hosts hold (T-718).
         access_hosts: Vec::new(),
         refused: Vec::new(),

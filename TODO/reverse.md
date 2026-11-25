@@ -766,7 +766,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:7183`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:7209`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -898,13 +898,13 @@ Measured on `3ee70dc`, offline: `podssh operator mynode` gives exit 70;
 `PODSSH_OFFLINE`); `podssh ssh -T node://lab true` gives `"//lab" is not a port` and exit 64.
 
 Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/ssh/hop.rs:30-75`).
-`Transport` is `Relay` or `Direct` (`crates/podssh-cli/src/ssh/transport_kind.rs:9-74`, chosen at `crates/podssh-cli/src/ssh/resolve.rs:260-323`).
+`Transport` is `Relay` or `Direct` (`crates/podssh-cli/src/ssh/transport_kind.rs:9-74`, chosen at `crates/podssh-cli/src/ssh/resolve.rs:261-324`).
 `connect_and_run` gives `relay_stream::spawn` to russh (`crates/podssh-cli/src/ssh/mod.rs` lines 73-116 at `6483366`), and
 `relay_stream` closes with 1002 on a text frame (`crates/podssh-ssh/src/relay_stream.rs:284-290`); the
 operator leg receives text frames (`docs/relay.md:823-826`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
-(`crates/podssh-cli/src/ssh/resolve.rs:364`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:7179-7183`).
+(`crates/podssh-cli/src/ssh/resolve.rs:365`). `podssh ssh` uses the exit codes of OpenSSH, and
+`podssh proxy` sysexits (`docs/cli.md:7205-7209`).
 
 ## Approach
 
@@ -963,7 +963,7 @@ cargo test -p podssh-cli --test node_live -- --ignored ssh_to_a_node
 22. `operator.rs` runs the binary with no stored pair (78, naming `podssh relay pair`), and checks
 that stdout stays empty. The binary line must exit 255, name `podssh relay pair lab`, and open no
 connection. The live test runs `podssh ssh node://lab 'exit 3'` through a node whose TARGET is
-`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:255`), and expects 3. Plant: read `node:`
+`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:256`), and expects 3. Plant: read `node:`
 with no slashes as a node; `node_destinations` must fail.
 
 ## Done
@@ -1769,8 +1769,8 @@ The command line: the targets at `crates/podssh-cli/src/node.rs:251-288`,
 `NAME/ROUTE` at `crates/podssh-cli/src/node.rs:290-305`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/node.rs:305-313`; the channel's glue at
-`crates/podssh-cli/src/channel.rs:376-385` and
-`crates/podssh-cli/src/channel.rs:430-454`; `node://NAME/ROUTE` at
+`crates/podssh-cli/src/channel.rs:379-388` and
+`crates/podssh-cli/src/channel.rs:433-457`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
 `crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
@@ -2803,7 +2803,7 @@ cannot set.
   have no ConnectTimeout; `ssh` has one
   (`crates/podssh-cli/src/flags.rs:174-175`).
 - Read: `operator`'s waits are 30 s for each request of the relay
-  (`crates/podssh-cli/src/operator.rs:155`, `crates/podssh-cli/src/pairs.rs:18`) and 20 s for the
+  (`crates/podssh-cli/src/operator.rs:163`, `crates/podssh-cli/src/pairs.rs:18`) and 20 s for the
   node's `ready` (`PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs:59`); `proxy`'s, 20 s for each
   relay host (`PodUtils/podssh:crates/podssh-relay/src/open.rs:33`), in the order of the failover.
 - Inferred, which the Prove measures: OpenSSH's ConnectTimeout bounds the wait for the server's
@@ -4761,7 +4761,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
-  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:418` says "let (ours, mut theirs)
+  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:421` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
   each run (`crates/podssh-cli/src/node_quick_relay.rs:103` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.
@@ -4826,14 +4826,14 @@ dropped in the same way.
 ## Premise
 
 - Read, at `47e1eba`: `crates/podssh-cli/src/proxy_node.rs:31` holds the reason "the pair names its
-  relay". `crates/podssh-cli/src/proxy_node.rs:178-195` lists the flags (`--relay-host` at line 180,
-  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:260-284` pins
+  relay". `crates/podssh-cli/src/proxy_node.rs:184-201` lists the flags (`--relay-host` at line 180,
+  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:266-290` pins
   `--relay-host does not apply` with exit 64. It has no case for `--relay-failover`.
 - `crates/podssh-cli/src/ssh/node.rs:138-154` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
   and the family for a node. It has no clause for the relay flags.
   `crates/podssh-cli/src/ssh/carried.rs:38-68` refuses them only for `--carrier`.
-- `crates/podssh-cli/src/ssh/resolve.rs:271-272` takes a node destination first. The only read of
-  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:296`,
+- `crates/podssh-cli/src/ssh/resolve.rs:272-273` takes a node destination first. The only read of
+  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:297`,
   on the branch of a plain host.
 - `crates/podssh-cli/src/ssh/exit_road.rs:39-44` builds `Transport::Node` for `--exit NAME` and
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
@@ -4845,7 +4845,7 @@ dropped in the same way.
 
 ## Approach
 
-1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:178-195`) and their
+1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:184-201`) and their
    reasons to one shared helper. `proxy` and `ssh` call it, so the words cannot drift.
 2. Call it in `crates/podssh-cli/src/ssh/node.rs`, `transport`, for `node://NAME`, and in
    `or_exit` of `crates/podssh-cli/src/ssh/exit_road.rs` for `--exit NAME`. Refuse `--relay-host`

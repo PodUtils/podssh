@@ -168,6 +168,9 @@ pub struct SshArgs {
     /// `--grant FILE`: a grant used once, for the first session's channel
     /// (T-226).
     pub grant: Option<String>,
+    /// `--bearer SIGNER`: a bearer minted for the first session's channel
+    /// (T-834).
+    pub bearer: Option<String>,
     /// `--sudo` and `--su`: the remote command runs as root (T-032).
     pub sudo: bool,
     /// `--record FILE`: the session's output in an asciicast v2 file (T-033).
@@ -253,6 +256,7 @@ pub const ONCE: &[(&str, &str)] = &[
     ("client-key", "give one file"),
     ("node-key", "give one key"),
     ("grant", "give one grant: it lets in one session"),
+    ("bearer", "give one signer"),
     ("host-key-fingerprint", "give the fingerprints as one comma list"),
     ("policy", "give one file"),
     ("iroh-relay", "give the relays as one comma list"),
@@ -425,6 +429,7 @@ impl SshArgs {
             resume_deadline: one("resume-deadline"),
             no_resume: flag("no-resume"),
             grant: one("grant"),
+            bearer: one("bearer"),
             sudo: flag("sudo"),
             record: one("record"),
             tag: one("tag").filter(|t| !t.is_empty()),

@@ -180,6 +180,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         ("--no-e2e", args.no_e2e),
         ("--no-resume", args.no_resume),
         ("--grant", args.grant.is_some()),
+        ("--bearer", args.bearer.is_some()),
     ];
     // A cf://HOST name may be a podssh node's quick tunnel (T-300), as the
     // destination or as the first hop of -J, whose node takes the same keys

@@ -55,6 +55,8 @@ pub struct OperatorArgs {
     pub carrier: Option<String>,
     /// `--grant FILE`: a grant used once, for the session's channel (T-226).
     pub grant: Option<String>,
+    /// `--bearer SIGNER`: a bearer minted for the session's channel (T-834).
+    pub bearer: Option<String>,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -76,6 +78,7 @@ impl OperatorArgs {
             timeout: get("timeout"),
             carrier: get("carrier"),
             grant: get("grant"),
+            bearer: get("bearer"),
             access_hosts: many(m, "access-host"),
             refused,
         }
@@ -106,6 +109,11 @@ pub fn run_operator(args: &OperatorArgs, err: &mut dyn Write) -> i32 {
 pub(crate) fn run_as(args: &OperatorArgs, verb: &'static str, err: &mut dyn Write) -> i32 {
     // The hosts of Cloudflare Access on the pair's road (T-718).
     if let Err(refusal) = crate::access::take_flags(&args.access_hosts) {
+        return refusal.report(verb, err);
+    }
+    // A bearer in a grant's place (T-834): beside --grant it is refused
+    // before either is read.
+    if let Err(refusal) = crate::bearer::ask(args.bearer.as_deref(), args.grant.is_some(), args.no_e2e) {
         return refusal.report(verb, err);
     }
     // A grant used once (T-226), on either road, read before anything else.

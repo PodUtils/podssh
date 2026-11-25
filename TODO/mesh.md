@@ -13154,7 +13154,7 @@ Read at `2042200`:
   (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:47`), read again for each session
   (`PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:102-106`); the doors are made in
   `crates/podssh-cli/src/net/admit.rs:119`, `crates/podssh-cli/src/net/admit.rs:230` and
-  `crates/podssh-cli/src/channel.rs:360`.
+  `crates/podssh-cli/src/channel.rs:363`.
 - The verdict: a grant decides first (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:162` says "A grant decides
   alone"), and else the door (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:174`).
 - The issue reads the grant's arm as a way past the door that widens a credential. It is not: the grant's

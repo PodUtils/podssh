@@ -219,12 +219,15 @@ pub fn around_told<A: Bytes + 'static>(
     let Some(Operator { identity, expect, route }) = channel else { return (Box::new(app), None, told) };
     // The net's documents for this channel (T-429): a client takes in silence.
     crate::net::admit::install(false);
-    // A grant of --grant (T-226), for this run's first channel alone.
-    let grant = crate::grants::take(&identity.public(), &say);
+    // A grant of --grant (T-226), or a bearer of --bearer minted for this
+    // channel's binding (T-834), for this run's first channel alone.
+    let say = crate::bearer::shared(say);
+    let grant = crate::grants::take(&identity.public(), &*say);
+    let proof = crate::bearer::proof(grant, identity.public(), say.clone());
     // The node's key, checked, opens the session for the bound of
     // --ConnectTimeout (T-589).
     crate::connect_bound::channel_follows();
-    let checked = check(expect, say);
+    let checked = check(expect, move |line: String| say(line));
     let checked = move |key: &PublicKey| {
         let verdict = checked(key);
         if verdict.is_ok() {
@@ -236,7 +239,7 @@ pub fn around_told<A: Bytes + 'static>(
         let _ = tell.send(event.text);
     };
     let docs = podssh_relay::e2e::net::installed();
-    let (cipher, session) = ends::operator_told(app, identity, checked, route, grant, docs, tell);
+    let (cipher, session) = ends::operator_bound(app, identity, checked, route, proof, docs, tell);
     (Box::new(cipher), Some(Box::pin(session)), told)
 }
 

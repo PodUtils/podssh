@@ -8,7 +8,9 @@
 //! for what it may reach itself; its record of each grant used is
 //! `grants-LABEL` of the cache; `--revoked FILE` names serials that it
 //! refuses. `podssh node NAME --grant-to KEY` mints one with the node's own
-//! key ([`node`]), as `ssh-keygen -s` does with the key of an issuer.
+//! key ([`node`]), as `ssh-keygen -s` does with the key of an issuer. The
+//! same door takes a bearer of `--bearer` (T-834, `crate::bearer`), whose
+//! signer is one of these issuers.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -115,6 +117,11 @@ pub fn door(label: &str, me: PublicKey, allow: Option<PathBuf>) -> Option<Arc<Re
     // An exit's grant (T-721): its own issuers, the same record of each use.
     let exit = crate::node_exit::asked().then(|| Door { issuers: exit_issuers(me), ..door.clone() });
     Some(Arc::new(move |peer: &PublicKey, ask: &Ask, blob: &[u8]| {
+        // A bearer (T-834): signed by an issuer of this same door, for this
+        // channel alone, and taken once.
+        if crate::bearer::is_bearer(blob) {
+            return crate::bearer::redeem(&door, exit.as_ref(), peer, ask, blob, now());
+        }
         exit_caller::redeem(&door, exit.as_ref(), peer, ask, blob, now()).map(|redeemed| redeemed.to_string())
     }))
 }
@@ -142,7 +149,10 @@ pub fn line(label: &str, allow: Option<&Path>) -> String {
         Some(dir) => format!("each one used is kept in {}", dir.display()),
         None => "none can be kept as used here, so each is refused".to_string(),
     };
-    format!("grants used once, signed by {by}, let in one session each; {kept}")
+    format!(
+        "grants used once, signed by {by}, let in one session each; {kept}; a bearer that they sign lets in its own \
+         channel once, within 30 s"
+    )
 }
 
 /// Who may issue a grant beside the node's own key: a member of the net, as

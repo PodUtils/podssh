@@ -65,8 +65,9 @@ pub const PIPE_FLAGS: &[FlagRow] = &[
     super::operator::PIPE_CARRIER,
     // The sessions of a node: side end with their link (T-612), by ssh's id.
     super::node::PIPE_NO_RESUME,
-    // A grant used once for its first session (T-226), by ssh's id.
-    super::grant::PIPE_GRANT,
+    // A grant used once for its first session (T-226), or a bearer (T-834),
+    // by ssh's ids.
+    super::grant::PIPE_GRANT, super::grant::PIPE_BEARER,
     // The pipe as a service of this user (T-726), by ssh's ids.
     row(None, "install", Some("NAME"), FlagKind::Supported,
         "make this pipe a service of this user named NAME, which starts it again whenever it ends: the ways of podssh node --install, with these words but --install NAME. A side of stdio or fd: is refused, and so is a URL with a user and a password", None),

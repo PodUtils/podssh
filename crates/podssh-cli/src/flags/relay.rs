@@ -199,8 +199,8 @@ pub const PROXY_FLAGS: &[FlagRow] = &[
     // A node by its name, as operator reaches it (T-587).
     super::node::PROXY_PAIR_FILE, super::node::PROXY_NODE_KEY, super::node::PROXY_NO_E2E,
     super::node::PROXY_DEADLINE, super::node::PROXY_NO_RESUME,
-    // A grant used once, as operator takes it (T-226).
-    super::grant::PROXY_GRANT,
+    // A grant used once, as operator takes it (T-226), or a bearer (T-834).
+    super::grant::PROXY_GRANT, super::grant::PROXY_BEARER,
     // A node at the other end of a stream, as operator reaches it (T-595).
     super::operator::PROXY_CARRIER,
     // The bound on the open of each road (T-589), by either name (T-613).

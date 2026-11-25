@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:536`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:537`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:115`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:720`; measured: `docs/STATUS.md:544`). 200 MiB each way
+  (`docs/relay.md:720`; measured: `docs/STATUS.md:545`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -2953,7 +2953,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:536`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:537`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -3009,7 +3009,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:483`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:484`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -3027,10 +3027,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:535` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:483`, `docs/STATUS.md:510`),
+- `docs/STATUS.md:536` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:484`, `docs/STATUS.md:511`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:481` is `docs/STATUS.md:483`.
+  The Prove's `docs/STATUS.md:482` is `docs/STATUS.md:484`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -3089,10 +3089,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:536`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:537`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:499`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:500`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -3176,8 +3176,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:535`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:498`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:536`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:499`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -4247,7 +4247,7 @@ ok. `cargo test --release -p podssh-zerotier` 14 passed.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4297,11 +4297,37 @@ session id there yet); a TLS exporter as the binding (a hop's on the reverse roa
 OIDC token first (it has no binding without a proof of possession). The binding and the verifier are shared code:
 asked of podcrates by COORD-145 (PodUtils/podssh#355).
 
+2026-11-25, the main session, after the take of `v0.84.0` (podssh's wiring of the shared parts):
+
+1. The client: `--bearer SIGNER` beside `--grant` on the same commands (`operator`, `proxy node://`, `ssh node://`,
+   `pipe`'s `node:` side), refused with `--grant` (64) and with `--no-e2e` (64). SIGNER is a podssh key file, read as
+   `client.key` is read and never made (78 when it cannot be read), or `agent`: the first Ed25519 key of the SSH agent
+   (`SSH_AUTH_SOCK`; on Windows also OpenSSH's pipe and Pageant, as the login's agent), or the one that
+   `agent:SHA256:...` names (78 with no agent or no such key). Each is checked before anything connects. The bearer
+   is minted inside `operator_bound`'s `mint`, with `iat` now, 32 random bytes of the OS as its nonce, and the
+   client's own e2e key as its holder; only the run's first channel carries one, as a grant. An agent that fails to
+   sign at connect time is said in one line and the channel carries no bearer, so the node's door decides.
+   Lost: a bearer minted before the connect (it has no binding until the handshake); a separate `podssh bearer`
+   verb that prints a token (a token outside the channel can be copied, the lesson of the Problem); refusing `agent`
+   on Windows (russh's agent client reaches the pipe and Pageant there already, so the refusal would remove a road
+   that works).
+2. The node: the door of `grants::door` sends a blob with `is_bearer` to one `Bearers` of the process, with the
+   binding of `pod_e2e::ends::binding()`, the peer's key as the holder, and as signers the issuers of that same door
+   (the node's own key, a key of `--allow`, a member of the net, each for what it may reach itself; the exit's
+   issuers for an exit's target). A certificate keeps its path unchanged. Lost: a separate list of bearer signers
+   (a second trust list that could drift from the grants'); a record of `jti`s on disk (a bearer lives 30 s and is
+   bound to one channel, so a restart lets no copy in).
+3. The agent's signature: russh's `AgentClient::sign_request_signature` (SSH_AGENTC_SIGN_REQUEST, flags 0 for
+   Ed25519) through podssh-ssh's `connect_agent`, with a limit of 20 s, in `podssh_ssh::agent_ed25519`. Lost: a
+   second agent client written by hand (russh's is the login's, tested against OpenSSH's agent).
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of another session, expiry
+cargo test -p podssh-cli --test serve_bearer   # a bearer let in, a copy on another session, a signer not taken
+cargo test -p podssh-cli --lib bearer          # the flag's refusals, the agent's key, the node's choice and check
+cargo test -p podssh-ssh --lib agent_ed25519   # the agent's signature blob and key
 ```
 
 ## Correction
@@ -4346,6 +4372,53 @@ feature `grant` gives `grant::bearer` (221 bytes, `mint` for a key file, `Unsign
 `Bearers::verify` (`LIFE` 30 s, `SKEW` 10 s, `SEEN` 16384, one `Refused` variant for each check, a bearer with no
 binding refused); the wire of the relay is version 2. podssh takes the tag in the take; this entry wires it
 (`operator_bound` at the client, `Bearers::verify` in serve's `Redeem` with `is_bearer`), and is open.
+
+2026-11-25, the draft: the Prove named `cargo test -p podssh-ssh --test serve_bearer`, but the door and the client's
+channel are podssh-cli's (`crates/podssh-cli/src/grants.rs`, `crates/podssh-cli/src/channel.rs`), and "serve's
+`Redeem`" is the door of each `podssh node` road (`grants::door`), not `podssh serve`, which runs no end-to-end
+channel. The Prove above moves to `-p podssh-cli --test serve_bearer`, with the unit tests of `-p podssh-cli --lib
+bearer` and `-p podssh-ssh --lib agent_ed25519`; expiry is pinned by pod-relay's own tests of `Bearers::verify`
+(`PodUtils/podcrates:crates/pod-relay/src/grant/bearer_tests.rs` at `v0.84.0`), so the test here pins podssh's
+wiring: a bearer let in, a copy on another channel, a signer not taken.
+
+## Done
+
+Drafted 2026-11-25 (DRAFT T-834; nothing built or run, each result UNVERIFIED):
+
+- `crates/podssh-cli/src/bearer.rs` (new): the client's `--bearer` (`ask`, `check`, `read`, `from_agent`, `choose`),
+  the proof for `ends::operator_bound` (`proof`, `proof_of`, `make`), and the node's check (`is_bearer`, `redeem`,
+  `redeem_in`, `signs`) over one `Bearers` of the process. Its tests, `crates/podssh-cli/src/bearer_tests.rs`:
+  `each_refusal_of_bearer_has_its_code` (table), `a_key_file_is_a_signer`,
+  `the_agent_s_key_is_its_first_or_the_one_named`, `a_signer_reaches_what_it_may_reach_itself` (table),
+  `the_node_takes_a_bearer_once_and_names_each_refusal`, `the_door_tells_a_bearer_from_a_certificate`,
+  `the_proof_is_the_grant_or_a_bearer_of_the_channel`: UNVERIFIED.
+- `crates/podssh-ssh/src/agent_ed25519.rs` (new): the agent's Ed25519 keys and its signature of plain bytes, 20 s
+  each; tests `an_ed25519_signature_blob_gives_its_64_bytes`, `a_signature_of_another_kind_is_refused`,
+  `an_ed25519_key_is_its_32_bytes`: UNVERIFIED.
+- `crates/podssh-cli/src/channel.rs`: `around_told` runs `ends::operator_bound` with `bearer::proof`.
+- `crates/podssh-cli/src/grants.rs`: the door sends a bearer to `bearer::redeem`; its start line names bearers.
+- The flag: `crates/podssh-cli/src/flags/grant.rs` (four rows), `flags.rs`, `flags/operator.rs`, `flags/relay.rs`,
+  `flags/pipe.rs`; parsed in `operator.rs`, `proxy_node.rs`, `ssh/args.rs`; checked in `operator.rs`, `ssh/mod.rs`,
+  `ssh/resolve.rs` (a destination with no podssh end) and `pipe/remote.rs`.
+- The manual: `crates/podssh-cli/src/man/notes_grant.rs` (node, operator, proxy, ssh, pipe); `docs/cli.md`, "A
+  bearer in a grant's place"; `docs/STATUS.md`, a row marked UNVERIFIED. `llms-full.txt` waits for a build
+  (`podssh man --llms full`).
+- `crates/podssh-cli/tests/serve_bearer.rs` (new): `a_bearer_from_a_key_file_lets_the_operator_in`,
+  `the_same_bearer_on_a_second_session_is_refused`, `a_signer_that_the_node_does_not_take_is_refused`: UNVERIFIED.
+  Plants: `signs` that takes each key (the third fails), no binding in `redeem` (the first fails): UNVERIFIED.
+- Not done here: `agent` against a real `ssh-agent`, and a run through the live relay.
+
+Merged by the main session on 2026-11-25 (the draft's diff applied on `main` after `f0f7e2c`, podcrates `v0.85.0`),
+built and tested on Linux (Rust 1.99.0): `cargo test -p podssh-cli --test serve_bearer`: 3 passed (after one repair:
+the test's helper `session` wanted `G: 'static`, as `tokio::spawn` takes the channel); `-p podssh-cli --lib`: 1317
+passed, `bearer` among them (two repairs: the table expected "--no-e2e turns it off" where the line says "which
+--no-e2e turns off"; the manual's operator note named `--allow` alone, which `each_name_in_a_note_exists` takes as
+the operator's own flag: it now says `podssh node --allow`); `-p podssh-ssh --lib agent_ed25519`: 3 passed;
+`--test node_routes`, `operator`, `pipe_remote`, `node_carrier`, `channel_cli`, `predict_e2e`, `flag_table`,
+`man_flag_parity`, `man_json`, `man_page`: each passed; `--lib man::` 72 passed with `llms.txt` and `llms-full.txt`
+written again; clippy (`-D warnings`) of podssh-ssh and podssh-cli, all targets, clean; rustfmt clean;
+`cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean. Waits: `agent` against a
+real `ssh-agent` (no test drives one), and the two planted runs (T-251).
 
 # T-836: A gateway role: a user name chooses the upstream, and the client's own key proves the second hop
 

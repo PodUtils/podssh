@@ -31,6 +31,8 @@ pub mod access;
 // The ACME client of `podssh relay serve --acme NAME` (T-447).
 pub mod acme;
 pub mod agent;
+// A bearer of --bearer (T-834): a client's signer and mint, a node's check.
+pub mod bearer;
 // `--carrier ADDR`: the node's road over a stream that exists already, and
 // the relay role's side of it in its client (T-595).
 pub mod carrier;

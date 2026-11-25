@@ -25,8 +25,8 @@ pub const PAIR_FLAGS: &[FlagRow] = &[
     super::node::OWN_DEADLINE,
     // A session that ends with its link (T-612).
     super::node::OPERATOR_NO_RESUME,
-    // A grant used once (T-226).
-    super::grant::OPERATOR_GRANT,
+    // A grant used once (T-226), or a bearer in its place (T-834).
+    super::grant::OPERATOR_GRANT, super::grant::OPERATOR_BEARER,
     // The hosts of Cloudflare Access on the pair's road (T-718).
     super::node::ACCESS_HOST,
     OPERATOR_CONNECT_TIMEOUT, TIMEOUT,

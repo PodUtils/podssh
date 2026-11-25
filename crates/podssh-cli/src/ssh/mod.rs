@@ -209,6 +209,11 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         return refusal.report("ssh", err);
     }
     crate::no_resume::ask(args.no_resume);
+    // A bearer in a grant's place (T-834): beside --grant it is refused
+    // before either is read.
+    if let Err(refusal) = crate::bearer::ask(args.bearer.as_deref(), args.grant.is_some(), args.no_e2e) {
+        return refusal.report("ssh", err);
+    }
     // A grant used once, for the first session's channel (T-226).
     if let Err(refusal) = crate::grants::ask(args.grant.as_deref(), args.no_e2e) {
         return refusal.report("ssh", err);

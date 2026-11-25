@@ -38,6 +38,8 @@
 // The key that each host took last, kept across runs (T-664).
 pub mod accepted;
 mod agent_bind;
+// Ed25519 signatures of plain bytes by the SSH agent, for a bearer (T-834).
+pub mod agent_ed25519;
 // The lists of ssh_config's keywords of a restriction (T-505).
 mod agent_forward;
 pub mod algorithms;

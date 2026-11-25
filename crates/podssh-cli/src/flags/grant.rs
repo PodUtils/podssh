@@ -1,5 +1,6 @@
 //! The flag rows of grants used once (T-226): a client's `--grant FILE` on
-//! `operator`, `proxy`, `ssh` and `pipe`, each in its words; a node's
+//! `operator`, `proxy`, `ssh` and `pipe`, each in its words, and its
+//! `--bearer SIGNER` in a grant's place (T-834); a node's
 //! `--grant-to KEY`, which mints one with its own key, with its route and
 //! its life, and `--revoked FILE`; and `relay pair --once`, a connect token
 //! that takes one upgrade.
@@ -28,6 +29,31 @@ pub const PIPE_GRANT: FlagRow = row(
     Some("FILE"),
     FlagKind::Supported,
     "node:: a grant used once, as operator --grant takes it, for the first session of the side alone",
+    None,
+);
+
+/// `--bearer SIGNER` of `operator` (T-834).
+pub const OPERATOR_BEARER: FlagRow = row(None, "bearer", Some("SIGNER"), FlagKind::Supported,
+    "a bearer in the place of a grant: a token of 30 s for this channel alone, which SIGNER signs; SIGNER is a podssh key file, or agent for the first Ed25519 key of the SSH agent, or agent:SHA256:... for one of them; the node takes it once, when SIGNER is its own key, a key of its --allow or a member of its net; never beside --grant", None);
+/// `--bearer SIGNER` of `proxy node://NAME`, as `operator` takes it.
+pub const PROXY_BEARER: FlagRow = row(
+    None,
+    "bearer",
+    Some("SIGNER"),
+    FlagKind::Supported,
+    "node://NAME: a bearer of 30 s for this channel alone, as operator --bearer takes it: a podssh key file, agent or agent:SHA256:...",
+    None,
+);
+/// `--bearer SIGNER` of `ssh node://NAME`.
+pub const SSH_BEARER: FlagRow = row(None, "bearer", Some("SIGNER"), FlagKind::Supported,
+    "node://NAME: a bearer of 30 s for this session's channel alone, in the place of --grant, which SIGNER signs: a podssh key file, agent for the SSH agent's first Ed25519 key, or agent:SHA256:...", None);
+/// `--bearer SIGNER` of `pipe`'s `node:` side.
+pub const PIPE_BEARER: FlagRow = row(
+    None,
+    "bearer",
+    Some("SIGNER"),
+    FlagKind::Supported,
+    "node:: a bearer of 30 s, as operator --bearer takes it, for the first session of the side alone",
     None,
 );
 
