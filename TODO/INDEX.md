@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**854 entries: 4 open, 37 partial, 13 blocked, 800 done.**
+**854 entries: 4 open, 35 partial, 13 blocked, 802 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 10 | 3 | 96 | 109 |
+| P1 | 0 | 8 | 3 | 98 | 109 |
 | P2 | 0 | 21 | 2 | 315 | 338 |
 | P3 | 4 | 6 | 8 | 388 | 406 |
-| **All** | 4 | 37 | 13 | 800 | 854 |
+| **All** | 4 | 35 | 13 | 802 | 854 |
 
 ## Entries
 
@@ -818,7 +818,7 @@ repository and CI).
 | [T-785](ws.md) | P3 | S | M10 | feature | done | The Dev Tunnels road with a tunnel's access token, or none for an anonymous tunnel |
 | [T-786](machine.md) | P2 | M | M10 | measurement | done | An outage and its catch-up, measured beside osewa and OpenSSH |
 | [T-787](machine.md) | P3 | S | M10 | defect | done | A QUIC socket whose reads keep failing must not spin a core |
-| [T-788](robustness.md) | P1 | S | M10 | defect | partial | On macOS, `node_cut`'s strict stand-in sent no 1003 once |
+| [T-788](robustness.md) | P1 | S | M10 | defect | done | On macOS, `node_cut`'s strict stand-in sent no 1003 once |
 | [T-789](resume.md) | P2 | S | M10 | defect | done | The resumable layer comes back about 12.5 s after a cut of 15 s ends, where TCP alone can in under 1 s |
 | [T-790](repo.md) | P1 | M | M10 | chore | done | The help and the manual from `pod-manual`, mechanically free of drift |
 | [T-791](repo.md) | P1 | M | M10 | chore | partial | Each release run first in `pod-lab`'s profiles of podssh's host classes |
@@ -876,7 +876,7 @@ repository and CI).
 | [T-843](robustness.md) | P2 | S | M10 | defect | done | A refusal of the relay's policy no longer says the relay's cause |
 | [T-844](robustness.md) | P1 | S | M10 | defect | done | `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open |
 | [T-845](robustness.md) | P1 | S | M10 | defect | done | Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads |
-| [T-846](robustness.md) | P1 | S | M10 | defect | partial | `serve_pressure`: `yes` on a pty ran on 5 s after its channel closed, once, in the gate |
+| [T-846](robustness.md) | P1 | S | M10 | defect | done | `serve_pressure`: `yes` on a pty ran on 5 s after its channel closed, once, in the gate |
 | [T-847](release.md) | P2 | M | M10 | release | partial | Each release of podssh also on ghcr.io, by digest, beside its GitHub assets |
 | [T-848](terminal.md) | P3 | S | M10 | defect | done | `podssh serve`'s line discipline draws its prompt `$ ` around the output of an exec'd command |
 | [T-849](robustness.md) | P1 | S | M10 | defect | partial | `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS |

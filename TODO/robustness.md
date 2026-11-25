@@ -3035,7 +3035,7 @@ The gate of `c009f3b` (run 43594009290, 2026-11-14) passed, its job `macos` amon
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3088,6 +3088,9 @@ says 'the link to the relay ended with no Close (sending a ping ... failed: Brok
 (podssh T-788, run 43657288233 on macOS). Ask: bound the look-ahead by time (about 1 s) and by bytes read (a few MiB),
 not by a count of frames; a read error still ends it with None."
 
+2026-11-25, the repeat: `suite-repeat.yml` with `runner=macos-15`, `package=podssh-cli`, `test=node_cut`, 30 runs at
+`08abb98` (run 45652066249): 0 of 30 failed. Closed: the stand-in now ends a connection as a relay does, after the
+node's Close; the look-ahead of `closes::pending` is asked of podcrates (COORD-150, PodUtils/podssh#360, ask 4).
 
 # T-796: The gate's OpenSSH and Dropbear interop hung past the job's 45 min, and left no line of where
 
@@ -4398,7 +4401,7 @@ host's (Windows); the next gates of `windows` are its proof.
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4453,6 +4456,10 @@ the same, and its failure says whether the client still read its channel. The ot
 that close a channel (`serve_forward.rs:267`, `serve_lifecycle.rs:250`, `signal_request.rs:157`) have russh's
 default queue of 100 and no flood: none has the shape. Run by the main session (2026-11-25, on `1e44eb9`):
 `cargo test -p podssh-ssh --test serve_pressure` 3 passed; a repeat on the runners follows.
+
+2026-11-25, the repeat: `suite-repeat.yml` with `runner=ubuntu-24.04`, `package=podssh-ssh`, `test=serve_pressure`, 40 runs
+at `4317878` (run 45658712943): 0 of 40 failed. Closed: the cause (the test's client stopped reading its channel of 8
+slots and so never sent its close) is repaired in the test, and the check of `podssh serve` is unchanged.
 
 # T-849: `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS
 
@@ -4660,6 +4667,11 @@ waits for that job's log.
 2026-11-23: the `windows` job of the gate at `444b5181` (run 45213300602) passed, `attach` among its default tests, with
 no line "the far shell answered probe" in its log. It stays partial as each test that failed at random does, until its
 next failure or a run of greens.
+
+2026-11-25: a read-only review found no cause of the T-465 class: the keys came about 0.7 s after the start, within
+milliseconds of the client's raw mode, and no other reader of the console's input exists. `suite-repeat.yml` with
+`runner=windows-2025`, `package=podssh-cli`, `test=attach`, 50 runs at `4317878` (run 45658730524): 0 of 50 failed, and
+no "the far shell answered probe N of M" line. It stays partial for the next failure's words.
 
 # T-859: A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN
 
