@@ -910,3 +910,5 @@ repository and CI).
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
 | [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
 | [T-901](resume.md) | P3 | M | backlog | feature | done | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
+| [T-902](serve.md) | P3 | M | backlog | feature | open | The gateway's routes in the net's signed policy |
+| [T-903](serve.md) | P3 | S | backlog | chore | blocked | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |

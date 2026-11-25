@@ -39,6 +39,7 @@ never used (the owner, 2026-11-12); the watcher of `AGENTS.md` finds the answers
 | #353 (COORD-143) | podcrates' reading of podssh's two answers to COORD-154 (T-831, T-839) |
 | #354 (COORD-144) | podcrates' record of podssh's take of `v0.83.0` (T-684) |
 | #355 (COORD-145) | podcrates' binding of the end-to-end channel to the grant's check, and a bearer grant with its verifier (T-834) |
+| #356 (COORD-146) | podcrates' `Mint` with extensions, so that the gateway (T-836) signs with it (T-903) |
 
 Closed on 2026-11-24, each answered or done: #248, #283, #311, #322, #340 to #343, #346 (podcrates' COORD-153 answered
 it: the 7-bit codec comes in `pod-term`'s next tag, T-831 takes it then), #347 and #350 (answered in `v0.83.0`).

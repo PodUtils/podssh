@@ -786,7 +786,7 @@ that crosses; by a channel to its agent, yes.
   `auth_openssh_certificate` (`crates/podssh-ssh/src/server/options.rs:115-116`,
   `src/server/mod.rs:335-347` gives the refusing default).
 
-The choice among the three paths is in the entry's `## Decision` (T-836).
+The choice among the three paths is in the entry's `## Decision` (T-836); its draft signs with podssh's own `cert::certify`, as `Mint` writes no extension and a stock sshd then opens no pty (its `## Correction` of 2026-11-25).
 
 ### A key sealed to the machine (T-839, drafted 2026-11-24)
 
