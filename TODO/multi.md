@@ -64,9 +64,9 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    could not connect or log in; 0 only when each host gave 0. `--fail-fast`
    starts no new host after a failure, and the running ones finish. A
    summary on stderr gives each host and its status.
-7. In the same commit: `crates/podssh-cli/src/flags.rs:394-464`,
-   `crates/podssh-cli/src/positionals.rs:7-281`, a `Parsed` variant,
-   `crates/podssh-cli/tests/flag_table.rs:110-146`, the notes, an example,
+7. In the same commit: `crates/podssh-cli/src/flags.rs:396-468`,
+   `crates/podssh-cli/src/positionals.rs:7-288`, a `Parsed` variant,
+   `crates/podssh-cli/tests/flag_table.rs:110-147`, the notes, an example,
    `docs/cli.md`, `docs/STATUS.md`. T-013 can then group the commands.
 
 ## Decision
@@ -904,7 +904,7 @@ short numbered list helps a person; a script must still get the usage error.
 - Measured: `podssh ssh </dev/null` exits 64 with "missing destination"
   (`crates/podssh-cli/src/ssh/resolve.rs:79`).
 - Read: `run_ssh` gets no terminal state
-  (`crates/podssh-cli/src/dispatch.rs:414-416`), and the entry point of the
+  (`crates/podssh-cli/src/dispatch.rs:417-419`), and the entry point of the
   tests has none on purpose (`crates/podssh-cli/src/dispatch.rs:31-39`,
   `PodUtils/podcrates:crates/pod-manual/src/pager.rs`, its `Tty`).
 - Read: the names can come only from the `Host` lines of ssh_config (T-043,
@@ -1812,7 +1812,7 @@ a ticket, or a tool that asks an AI.
   command line (`crates/podssh-cli/src/dispatch.rs:26-29`), and `Log`, which
   writes to the stderr of the process itself
   (`crates/podssh-ssh/src/log.rs:123-145`). The exit code leaves through
-  `crates/podssh-cli/src/dispatch.rs:410-454`.
+  `crates/podssh-cli/src/dispatch.rs:413-457`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
   status (`docs/cli.md:7172-7175`), which is not a failure of podssh.
 
@@ -3522,7 +3522,7 @@ session on 2026-11-03.
   podssh-cli --test flag_table`: 9; `--lib session::`, 17; `--lib man`, 66; `--lib help`, 9.
 - Planted: `scripts/plants/t506-empty-silent.plant` (the line of an empty list never written):
   `sh scripts/plant-each.sh --here t506-empty-silent`: caught, the test of the empty list failed.
-- The Premise reads at `582b1bf`, so its citations stay; `crates/podssh-cli/src/tree.rs:475-479`
+- The Premise reads at `582b1bf`, so its citations stay; `crates/podssh-cli/src/tree.rs:479-483`
   (`TODO/cli.md`) and the citations of `docs/cli.md` were moved by hand; `cargo todo remap` from the
   tree before the draft confirmed them. rustfmt of `podssh-cli` (`exchange` of `session/client.rs`)
   and clippy of `podssh-cli` with `-D warnings`, all targets: clean.

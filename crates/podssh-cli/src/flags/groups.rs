@@ -8,7 +8,7 @@
 pub const GROUPS: &[(&str, &[&str])] = &[
     ("Connect", &["ssh", "each", "containers", "proxy", "pipe", "ts"]),
     ("Work on a host", &["run", "job"]),
-    ("Copy files", &["cp", "mv", "scp", "sftp", "edit"]),
+    ("Copy files", &["cp", "mv", "scp", "sftp", "edit", "tx"]),
     ("Keys", &["keygen", "agent"]),
     ("Check this host and the path", &["doctor", "status", "ping", "health"]),
     ("The reverse road", &["node", "operator", "net", "exit", "share", "funnel"]),

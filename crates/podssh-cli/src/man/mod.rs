@@ -102,6 +102,8 @@ mod notes_bore;
 mod notes_roads;
 mod notes_run;
 mod notes_session;
+// The far end of the 7-bit envelope (T-831).
+mod notes_tx;
 // `podssh share` (T-433).
 mod notes_funnel;
 mod notes_share;

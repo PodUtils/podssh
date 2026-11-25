@@ -21,7 +21,7 @@ Read on 2026-11-25.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
    failure: T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
-   T-831 (its step 2 drafted on `draft/d-t831`, item 8). The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
+   none. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
    `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
 5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
@@ -48,10 +48,8 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** One waits (2026-11-25): T-831's step 2 on `draft/d-t831` (`975d98c`), written by a drafting agent
-   against codec version 2 of `pod-term` (`v0.84.0`, taken), not built. Merge it first: `git diff 53553d4 975d98c`,
-   then `git apply --3way` on `main`; its nine checks at the build are in T-831's `## Done`. Each `draft/*`, `beta/*`
-   and `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud
+8. **Drafts.** None waits (2026-11-25): `draft/d-t831` was merged and T-831 closed. Each `draft/*`, `beta/*` and
+   `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud
    session refuses deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
    `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the disk fills, remove `target/` whole,
@@ -81,7 +79,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 837 entries: 6 open, 40 partial, 12 blocked, 779 done.
+`TODO/INDEX.md` holds 837 entries: 6 open, 39 partial, 12 blocked, 780 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

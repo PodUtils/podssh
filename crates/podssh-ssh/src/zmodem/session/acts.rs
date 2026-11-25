@@ -116,7 +116,11 @@ impl Zmodem {
         let acts = match &mut self.mode {
             Mode::Receive(r) => r.proto.cancel(why),
             Mode::Send(s) => s.proto.cancel(why),
-            Mode::Idle | Mode::Armed { .. } => return,
+            // With ZMODEM idle, the envelope's transfer or question ends (T-831).
+            Mode::Idle | Mode::Armed { .. } => {
+                let pieces = self.envelope.stop(why, now, &self.dir);
+                return self.pieces(pieces, now);
+            }
         };
         self.run(acts, now);
     }

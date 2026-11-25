@@ -70,6 +70,7 @@ pub fn usage_tail(verb: &Verb) -> &'static str {
         "cp" | "mv" | "scp" => "[OPTIONS] SRC... DST",
         "sftp" => "[OPTIONS] DESTINATION",
         "edit" => "[OPTIONS] [user@]host:PATH",
+        "tx" => "SUBCOMMAND [FILE | DIR]",
         "chat" => "[OPTIONS] PEER",
         "man" => "[OPTIONS] [SECTION]",
         "relay" => "[OPTIONS] SUBCOMMAND [NAME | HOST PORT]",

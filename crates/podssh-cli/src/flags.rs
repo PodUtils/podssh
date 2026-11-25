@@ -343,6 +343,7 @@ mod share;
 mod signal;
 mod snippet;
 mod ts;
+mod tx;
 mod update;
 mod via;
 mod vless;
@@ -374,6 +375,7 @@ pub use serve::SERVE_FLAGS;
 pub use session::SESSION_FLAGS;
 pub use share::SHARE_FLAGS;
 pub use ts::TS_FLAGS;
+pub use tx::TX_FLAGS;
 pub use update::{ROLLBACK_SINCE, UPDATE_FLAGS};
 
 /// One verb: its names, its flags, and the flag table its `-P` belongs to.
@@ -431,6 +433,8 @@ pub const VERBS: &[Verb] = &[
         about: "move files; across hosts this is a copy and a delete" },
     Verb { name: "edit", aliases: &["edit"], flags: EDIT_FLAGS,
         about: "edit a file of a host in an editor here; it goes back only when the host's file did not change meanwhile" },
+    Verb { name: "tx", aliases: &["tx"], flags: TX_FLAGS,
+        about: "in the shell of a podssh ssh session: a file to or from podssh at its other end, through the terminal itself" },
     Verb { name: "man", aliases: &["man"], flags: MAN_FLAGS,
         about: "this manual: each command, flag, variable, file and exit code" },
     Verb { name: "relay", aliases: &["relay"], flags: RELAY_FLAGS,

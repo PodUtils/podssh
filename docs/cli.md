@@ -2993,6 +2993,34 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   moves ends the run with 130: during the fetch nothing stays here; during
   the send the copy stays, named, with the far side's partial copy.
 
+## `podssh tx`
+
+`podssh tx send FILE` and `podssh tx receive [DIR]` (T-831) move one file through the terminal of
+a `podssh ssh` session, for a path where ZMODEM breaks: tmux, or another program that draws a
+terminal of its own between the far shell and the session's pty, repaints what passes and drops
+ZMODEM's control bytes (`docs/terminal.md`, "Where ZMODEM survives"). It is typed in the far shell,
+so it needs podssh at the far end too: the same static binary. The near end is the `podssh ssh`
+session's own watch, which asks where a file goes, or which file goes, as it asks for `sz` and
+`rz`.
+
+- **The words.** `send` takes one file; `receive` takes one directory at most, the current one with
+  none. Any other shape is 64 before the terminal is touched. It has no flag.
+- **Each byte is printable ASCII, CR or LF**: the codec `pod_term::transfer` of PodUtils/podcrates,
+  as `docs/terminal.md` ("The 7-bit envelope (T-831, step 2)") designs it. Nothing listens and
+  nothing connects (`AGENTS.md`, rule 2): the session's terminal carries it all.
+- **The file** comes as `cp` writes a copy: a temporary name beside it, the size and the SHA-256,
+  then the rename. A name that the far DIR has is never replaced; at the near end it is, after `y`.
+- **The limits.** A terminal of 48 columns at least; each wait 20 s, the first 120 s; Ctrl-C or
+  five CAN at the near end stop it at both ends. A question at the near end has no limit: the
+  near end tells the far end that it waits (the frame `HOLD`). After a file is kept, `receive`
+  waits 25 s more, reading its terminal, so that a confirmation that the terminal lost goes again;
+  Ctrl-C or Ctrl-D ends that wait at once.
+- **Exit codes** (sysexits): 0 the file was kept; 64 a usage error, no terminal, or one too
+  narrow; 65 the size or the SHA-256 differs, or the other end broke the protocol; 66 FILE or DIR
+  cannot be read; 73 the file that came cannot be written or kept; 75 refused, skipped, cancelled,
+  or no answer in time. The last line on stderr says which. A `send` whose file and SHA-256
+  went, but whose confirmation did not come back in 20 s, exits 0 and says so.
+
 ## `podssh doctor`
 
 `podssh man doctor` gives the checks. The rules behind them:
@@ -7467,6 +7495,8 @@ nothing did), and why.
   that failed, as `podssh ssh` does.
 - `podssh run` gives the status of its command, as `podssh ssh` gives it,
   and 255 when the copy failed, which runs nothing.
+- `podssh tx` uses sysexits: 0 the file kept, 64, 65 a size or a SHA-256
+  that differs, 66, 73, and 75 a transfer refused, cancelled or out of time.
 - `podssh job` uses the codes of `podssh ssh`: 255 for a failure of podssh,
   a host with no tmux or no such job among them. `job wait` gives the job's
   status, and 75 when its `--timeout` passed; `job fetch` gives 75 for a

@@ -293,7 +293,9 @@ pub mod play;
 // `--policy FILE`: an algorithm policy, read before anything connects (T-838).
 pub mod policy;
 pub mod positionals;
+// `podssh tx`: the far end of the 7-bit envelope (T-831).
 pub mod proxy;
+pub mod tx;
 // `podssh proxy node://NAME`: the pipe of `podssh operator NAME` (T-587).
 pub mod proxy_node;
 // What `proxy` takes beside `--exit` and `--client-key`.

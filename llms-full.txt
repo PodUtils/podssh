@@ -43,6 +43,8 @@ SYNOPSIS
           sftp
     edit  edit a file of a host in an editor here; it goes back only when the
           host's file did not change meanwhile
+    tx    in the shell of a podssh ssh session: a file to or from podssh at its
+          other end, through the terminal itself
 
   Keys:
     keygen  make an SSH key pair, or print a key's public key or fingerprint
@@ -1187,7 +1189,9 @@ podssh ssh
   removed. A file of 4 GiB or more cannot cross: the positions of ZMODEM have
   32 bits. A command that the server sends (sz with a command) never runs here.
   With no terminal, through a control master, or with PODSSH_ZMODEM set to off,
-  nothing is watched, and the bytes go to stdout as they come.
+  nothing is watched, and the bytes go to stdout as they come. The same watch
+  finds podssh tx at the far end, which carries a file where tmux or another
+  terminal between breaks ZMODEM (see podssh tx).
 
   --sudo runs the command as root with sudo -S, with no pty, and --su with su
   -c, in a pty: the password is asked here, on the terminal or through
@@ -7937,6 +7941,61 @@ podssh edit
     --help
         Print help for this subcommand and exit.
 
+podssh tx
+  in the shell of a podssh ssh session: a file to or from podssh at its other
+  end, through the terminal itself.
+
+  podssh tx moves one file through the terminal of a podssh ssh session, for a
+  path where ZMODEM breaks. tmux and other programs that draw a terminal of
+  their own sit between the shell and the session's pty. They repaint what
+  passes, and drop the bytes of ZMODEM's frames. Type it in the shell at the
+  far end of the session; it needs podssh there too, the same static binary.
+  podssh tx send FILE sends FILE to podssh ssh at the near end, which asks
+  where it goes, as it asks for sz. podssh tx receive [DIR] waits for a file
+  from the near end, which asks which file to send, as it asks for rz; the file
+  comes into DIR, the current directory with none, and a name that DIR has
+  already is never replaced.
+
+  Each byte that crosses is printable ASCII, CR or LF. A first line starts the
+  transfer, and the near end removes it from its screen. Then come frames of
+  base64 with a CRC-32 each. The near end reads them back from what the
+  terminal draws, also wrapped, repainted or cut by escape sequences. One frame
+  waits for its answer at a time, and goes again after a silence; a frame that
+  comes damaged is dropped and sent again. The file comes as podssh cp writes a
+  copy: to .NAME.podssh-RANDOM.part beside its name, then the SHA-256 and the
+  size are compared with the sender's, then a rename gives it its name. Nothing
+  listens and nothing connects: the session's own terminal carries it all.
+
+  podssh tx sets its terminal raw while it runs, and needs one of 48 columns at
+  least. Each wait for the other end has 20 s, and the first one 120 s, for the
+  question at the near end. Ctrl-C at the near end, or five Ctrl-X typed in a
+  row, stops the transfer at both ends. No file that did not end is kept. A
+  question at the near end has no limit: the near end tells the far end that it
+  waits. After the file is kept, podssh tx receive waits 25 s more for a
+  confirmation that the terminal lost; Ctrl-C or Ctrl-D ends that wait. It
+  exits 0 when the file was kept, with one line on stderr. It also exits 0 when
+  podssh tx send sent the file and its SHA-256 and no confirmation came, which
+  the line says. It exits 64 with no terminal, one too narrow, or a word wrong;
+  65 when the size or the SHA-256 differs, or the other end broke the protocol;
+  66 when FILE or DIR cannot be read; 73 when the file that came cannot be
+  written or kept; 75 when it was refused, skipped, cancelled or got no answer
+  in time. The near end is podssh ssh with a pty and a local terminal; with
+  PODSSH_ZMODEM set to off, or through a control master, it watches for neither
+  ZMODEM nor this.
+
+  Usage: podssh tx SUBCOMMAND [FILE | DIR]
+
+  Arguments:
+    [SUBCOMMAND]
+        send or receive.
+    [FILE | DIR]...
+        send: the file that the near end receives; receive: the directory that
+        the file comes into, the current one with none.
+
+  Options:
+    --help
+        Print help for this subcommand and exit.
+
 podssh man
   this manual: each command, flag, variable, file and exit code.
 
@@ -12153,8 +12212,9 @@ ENVIRONMENT
       off silences that too; --jsonl gives progress objects instead.
   PODSSH_ZMODEM
       off: podssh ssh does not watch a session's output for ZMODEM (sz and rz
-      of lrzsz), and the bytes go to stdout as they come. Else it watches in
-      each session with a pty and a local terminal (see podssh ssh).
+      of lrzsz), nor for podssh tx at the far end. The bytes go to stdout as
+      they come. Else it watches in each session with a pty and a local
+      terminal (see podssh ssh and podssh tx).
   PODSSH_SPARE_LINKS
       no: with a node that offers the resumable layer, podssh opens no spare
       link beside a link that went silent; it finds such a link dead after 30 s

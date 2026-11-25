@@ -160,6 +160,8 @@ pub enum Parsed {
     Run(Box<crate::run_cmd::RunArgs>),
     /// `podssh config import FORMAT FILE` (T-047).
     Config(Box<crate::config_import::ConfigArgs>),
+    /// `podssh tx send FILE` or `tx receive [DIR]` (T-831).
+    Tx(Box<crate::tx::TxArgs>),
     /// `podssh mcp` (T-055).
     Mcp(Box<crate::mcp::McpArgs>),
     /// `podssh serve --stdio` (T-107).
@@ -294,6 +296,7 @@ impl Parsed {
             Parsed::Job(args) => !args.refused.is_empty(),
             Parsed::Run(args) => !args.refused.is_empty(),
             Parsed::Config(args) => !args.refused.is_empty(),
+            Parsed::Tx(args) => !args.refused.is_empty(),
             Parsed::Mcp(args) => !args.refused.is_empty(),
             Parsed::Serve(args) => !args.refused.is_empty(),
             Parsed::Session(args) => !args.refused.is_empty(),

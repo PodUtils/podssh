@@ -19,12 +19,10 @@ This page keeps no history: git does.
 
 ## Drafts that wait
 
-| Branch on GitHub | Entry | State |
-| --- | --- | --- |
-| `draft/d-t831` (`975d98c`) | T-831, step 2 | the 7-bit envelope over codec version 2 of `pod-term` (`v0.84.0`): `podssh tx send` and `receive` at the far end, the session's watch at the near end, `pty_envelope`'s vectors, T-859's ends, a model of tmux, `pty.envelope.*` in tmux; written by a drafting agent, not built: its report's nine checks are in T-831's `## Done` |
+None waits: `draft/d-t831` was merged on 2026-11-25 (T-831 done).
 
 `TODO/PROGRESS.md`, "Drafts", is the record. A draft lives on one machine until its branch is on
-GitHub as `draft/<branch>`. Merged on 2026-11-25: `d-t877`, `d-t836`, `d-t902`; the take of `v0.84.0` went
+GitHub as `draft/<branch>`. Merged on 2026-11-25: `d-t877`, `d-t836`, `d-t902`, `d-t831`; the take of `v0.84.0` went
 straight to `main` (`806e0a4`).
 
 ## Open COORD issues

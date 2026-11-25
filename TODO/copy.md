@@ -755,7 +755,7 @@ relay's limits, and logs in as the first session did".
 
 **Source:** ROADMAP M5 ("Across hosts, `mv` is copy, verify, delete; podssh
 says first that it is not atomic"); the description of `mv` in
-`crates/podssh-cli/src/flags.rs:430-431`.
+`crates/podssh-cli/src/flags.rs:432-433`.
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -773,7 +773,7 @@ user must know this before the move starts.
 
 - Measured on `3ee70dc`, offline: `podssh mv --timeout 30s a b` exits 70
   (`'mv' is not implemented yet; nothing was done.`).
-- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:430-431`),
+- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:432-433`),
   so the operands and options of T-134 apply.
 - Measured (T-133's offline probe): `posix-rename@openssh.com` replaces in
   one step; `SSH_FXP_RENAME` refuses an existing target.
@@ -957,7 +957,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 ## Decision
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
-the gate of `crates/podssh-cli/src/dispatch.rs:387-408` skips them; T-133's
+the gate of `crates/podssh-cli/src/dispatch.rs:390-411` skips them; T-133's
 limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7166-7169`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
@@ -2018,7 +2018,7 @@ host, and the copy back then destroys that change with no word.
 
 ## Approach
 
-1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:394-464`),
+1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:396-468`),
    with the connection flags that T-134 gives `cp`. It needs a terminal on
    stdin and stdout; else exit 64.
 2. Download with T-134 into a new directory of mode 0700 in the cache
@@ -2997,7 +2997,7 @@ the names, with no word.
 - Read: `ls` takes `-1afhlnrSt` and keeps `l`, `n` and `a` alone
   (`crates/podssh-cli/src/sftp/commands.rs`, lines 201-205 at `582b1bf`): `-n` is `-l`, and `-f`,
   `-h`, `-r`, `-S` and `-t` do nothing. `docs/cli.md` (line 1916 at `582b1bf`) names `ls [-la]`.
-- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:429`); the
+- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:431`); the
   issue names it the README's.
 - Read: `Sftp::read_dir` keeps the name and the attributes of each entry, and drops the long name
   that the server sends with each (`crates/podssh-ssh/src/sftp/mod.rs`, lines 71-78 and 426-441
@@ -3819,7 +3819,7 @@ to the other two; no manual says that the split is a choice, or why.
 ## Premise
 
 - Read: the gate asks for `--timeout` with no terminal of each verb whose table has the flag
-  (`crates/podssh-cli/src/dispatch.rs:365-389`, `crates/podssh-cli/src/non_interactive.rs:191-215`);
+  (`crates/podssh-cli/src/dispatch.rs:368-392`, `crates/podssh-cli/src/non_interactive.rs:191-215`);
   `cp` and `mv` have it (`crates/podssh-cli/src/flags/copy.rs:63-64`), and `scp` and `sftp` have
   none, by T-139's Decision: as in OpenSSH, so that a script that runs `scp` in a pipe does not exit
   64, with ConnectTimeout and T-133's limits on each wait.
@@ -3829,7 +3829,7 @@ to the other two; no manual says that the split is a choice, or why.
 - Read (L-30): `PODSSH_TIMEOUT` is the default of `--timeout` "for each command that has the flag"
   (`crates/podssh-cli/src/man/facts.rs:113-116`), as the report found; met.
 - Read (L-13): the gate runs at the dispatch, before a verb reads its operands
-  (`crates/podssh-cli/src/dispatch.rs:365-389`), so with no terminal `cp DIR HOST:` with no `-r`
+  (`crates/podssh-cli/src/dispatch.rs:368-392`), so with no terminal `cp DIR HOST:` with no `-r`
   gets 64 for the missing `--timeout` first, and on a terminal 66.
 
 ## Approach
@@ -4198,7 +4198,7 @@ s each, SHA-256 equal). The entry waits for the next failure of the script, whos
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4237,12 +4237,49 @@ second channel. It is not measured whether podssh's ZMODEM fails in these places
 5. Shared code first: the framing is sans-IO; ask podcrates by a COORD issue whether `pod-term` or
    another crate should hold it before a copy is written here.
 
+## Decision
+
+Step 2, 2026-11-25: how a user starts the envelope at the far end. The codec holds the far role,
+and the far end must run it (`docs/terminal.md`, "Roles"), as `sz` and `rz` run ZMODEM's.
+
+- **Chosen: podssh itself, `podssh tx send FILE` and `podssh tx receive [DIR]`.** The far role is
+  the same codec of the same tag, so the two ends cannot drift; podssh is one static binary that
+  runs on each host where the near end runs, and a host whose only way out is HTTPS can fetch it
+  (`podssh update`, the release's installer), or receive it by ZMODEM outside tmux, or have it as
+  the server of `podssh serve`. One verb with two words, as `config import` and `detached`, under
+  "Copy files"; no flag. Its name is the trigger's (`#PODSSH-TX`), short to type at a far prompt
+  as `sz` is. The near end needs nothing new: the session's watch of ZMODEM (`Zmodem`) scans for
+  the trigger first and shares its question, its directory, its keys, its write limit and its
+  ends, so `crates/podssh-ssh/src/io.rs` and its pump do not change.
+- Lost: **a POSIX `sh` script** (base64, `cksum`, `sha256sum` and `stty` of the far host): `cksum`
+  is CRC-32/CKSUM, not the frame's CRC-32/ISO-HDLC; `sh` has no read with a time limit, so the
+  resend, the 20 s waits and the five CAN cannot hold; it is a second implementation of the wire
+  that no test pairs with the codec.
+- Lost: **a Python script**: Python is not on each host (the sandboxes of `docs/target-environment.md`
+  lack it), and it is a second implementation too.
+- Lost: **trzsz's `trz` and `tsz`**: another wire (its own frames, MD5, a listener on the
+  loopback, which `AGENTS.md` rule 2 forbids), and a second program to install.
+- Lost: **a separate small binary of the far role**: a second artifact to build, sign and ship in
+  each release, with no gain over the one static binary, which the far host can run as well.
+- Lost: **two verbs, `podssh sz`-like names**: a user of a terminal with its own ZMODEM would read
+  them as ZMODEM's, and two verbs double the rows of the manual for one feature.
+
+Beside it: one switch for both watches, `PODSSH_ZMODEM=off` (a second variable would name the same
+watch); a receiver at the far end never replaces a name that its directory has (the near end asks
+`y`, as for `sz`), and the far end answers `SKIP`; the far end stays for the codec's `LINGER`
+after it kept a file (version 2), and Ctrl-C or Ctrl-D from the near end, whose keys pass once its
+session ended, ends that wait sooner; a send that ends `Unconfirmed` exits 0 with its words.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test pty_envelope   # frames, resync after junk, limits (after step 2)
+cargo test -p podssh-cli --lib tx              # the words of podssh tx and its exit codes
+cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_page
 ```
+
+The gate's `scripts/interop-pty.py` runs `podssh tx` in tmux against OpenSSH (`pty.envelope.*`).
 
 ## Done
 
@@ -4277,3 +4314,46 @@ sans-IO interface and a table of test vectors (each frame computed with Python's
 `zlib.crc32`). Step 2 waits for the podcrates tag that carries `pod_term::transfer`; then podssh
 wires it into the session as T-148's ZMODEM is wired (the far program, the question, the keys, the
 write limit), and the Prove's `pty_envelope` test runs the vectors against it.
+
+Step 2, drafted 2026-11-25 against version 2 of the codec (podcrates `v0.84.0`, COORD-155; the
+draft names no tag: the main session takes `v0.84.0`), UNVERIFIED, not built:
+
+- The near end: `crates/podssh-ssh/src/zmodem/session/envelope.rs` (the codec's near role, the
+  question, T-134's copy through `files::Incoming`, the read of the file sent at each offset, each
+  end in one line), wired into `Zmodem` (`crates/podssh-ssh/src/zmodem/session.rs`: its scan comes
+  first while ZMODEM runs nothing; `busy`, `transferring`, `deadline`, `tick`, `take`, `keys`; the
+  write limit and `hangup` through `cancel` in `crates/podssh-ssh/src/zmodem/session/acts.rs`).
+  `files::open_whole` and `files::read_at` read a file of any size below 2^63.
+- The far end: `crates/podssh-ssh/src/zmodem/far.rs`, and the verb `tx` of
+  `crates/podssh-cli/src/tx.rs` with its rows (the flag table, the group, the usage, the
+  positionals, the parse, the dispatch, the manual's notes, `crates/podssh-cli/tests/flag_table.rs`).
+- Tests: `crates/podssh-ssh/tests/pty_envelope.rs` (the vectors T, the exchanges, X1, X2, X4 to X8,
+  X10 to X13, X17, X19, X20, byte for byte; the Python-computed `STOP` frames of CAN, `..`, the
+  wait and the limit), `crates/podssh-ssh/tests/envelope_ends/mod.rs` (T-859's ends each way), and
+  `crates/podssh-ssh/tests/envelope_damage/mod.rs` (a file of 150,000 bytes each way through a model of tmux: rows
+  after cursor moves, a far end wider than its pane, a repaint, a status line in a frame, a lost
+  write). The gate's `pty.envelope.send`, `.temp` and `.receive` in tmux
+  (`scripts/interop-pty.py`, `scripts/interop-baseline.txt`).
+- Results, merged by the main session on 2026-11-25 (the draft's diff applied on `main` at `c6fa76a`,
+  the record's citation conflicts taken from `main` and moved by `cargo todo remap`):
+  `cargo test -p podssh-ssh --test pty_envelope`: 11 passed; `--lib`: 552; `--test zmodem`: 23;
+  `cargo test -p podssh-cli --lib` (with `tx`): 1309 passed; `--test flag_table --test
+  man_flag_parity --test man_json --test man_page`: each passed. The manual's text rules found 7
+  sentences over 25 words in `tx`'s notes and `PODSSH_ZMODEM`'s fact; each was split, and
+  `llms.txt` and `llms-full.txt` written again. Clippy (`-D warnings`) found four `&mut PathBuf`
+  where `&Path` does (`envelope.rs`) and a needless borrow in the test; each repaired, then clean.
+- The run in tmux (OpenSSH 9.6p1 on 127.0.0.1:2201, tmux 3.4, `scripts/interop-pty.py` with a user
+  `podtest`): at first `pty.envelope.send` failed: the near end stopped with "no frame in 64 KiB of
+  output". tmux's own output (`script` around it) showed why: a `DATA` of 2 KiB is 23 rows at 120
+  columns, and tmux, behind its client, scrolled and redrew only the last screen, so the frame's
+  `#DATA:` head was never painted; the resend repeats the same bytes, cut the same way. A file of
+  500 bytes passed, 3,000 failed. The far end (`crates/podssh-ssh/src/zmodem/far.rs`, `put`) now
+  writes a frame in parts of half its pane with 40 ms between them: 3,000 bytes and 1 MiB then
+  crossed intact (1 MiB in 52 s), and `pty.envelope.*` passed 3 runs of 3 after the script waited for
+  tmux's `[exited]` before its marker (keys typed earlier went to the closing pane). Planted, the
+  draft's unpaced `put`: `pty.envelope.send` failed as above. The codec has no way to keep a frame
+  within the pane's rows (its chunk is 1 KiB to 32 KiB whatever the pane), which would need no
+  pause: asked of podcrates (`TODO/issues.md`, the COORD issue of this merge).
+- The draft's own planted defects (the trigger shown, a key passed in a transfer, the rename before
+  `Verified`) wait for T-251, as each planted run does until podssh is stable (Q88).
+- The draft asked nothing of podcrates; the merge asks the pane's rows (above).

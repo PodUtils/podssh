@@ -153,9 +153,9 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (
         &["PODSSH_ZMODEM"],
-        "off: podssh ssh does not watch a session's output for ZMODEM (sz and rz of lrzsz), and the bytes \
-      go to stdout as they come. Else it watches in each session with a pty and a local terminal (see \
-      podssh ssh).",
+        "off: podssh ssh does not watch a session's output for ZMODEM (sz and rz of lrzsz), nor for podssh tx \
+      at the far end. The bytes go to stdout as they come. Else it watches in each session with a pty \
+      and a local terminal (see podssh ssh and podssh tx).",
     ),
     (
         &["PODSSH_SPARE_LINKS"],

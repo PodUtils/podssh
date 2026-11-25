@@ -410,7 +410,8 @@ const FIRST: &[&str] = &[
      stops it, and a file that did not end is removed. A file of 4 GiB or more cannot cross: the \
      positions of ZMODEM have 32 bits. A command that the server sends (sz with a command) never runs \
      here. With no terminal, through a control master, or with PODSSH_ZMODEM set to off, nothing is \
-     watched, and the bytes go to stdout as they come.",
+     watched, and the bytes go to stdout as they come. The same watch finds podssh tx at the far end, which \
+     carries a file where tmux or another terminal between breaks ZMODEM (see podssh tx).",
     "--sudo runs the command as root with sudo -S, with no pty, and --su with su -c, in a pty: the password \
      is asked here, on the terminal or through SSH_ASKPASS, never taken from the command line. podssh \
      answers one prompt, holds its input until the command starts, and asks nothing when sudo asks \

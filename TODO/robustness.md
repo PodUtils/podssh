@@ -371,7 +371,7 @@ Read:
    in the gate's container (installed with apk, as `scripts/interop-man.sh:22`
    installs groff) and through `vt100`. The two must give the same screens
    before the model judges podssh.
-6. docs/terminal.md, section "Tests" (`docs/terminal.md:1083`), names the
+6. docs/terminal.md, section "Tests" (`docs/terminal.md:1183`), names the
    oracle.
 
 ## Decision
@@ -4631,10 +4631,10 @@ second, with the file open at offset 851968. A user's terminal hangs, and the pr
   in a body. Lost: dropping the check (a `--direct` session whose far end reads nothing would never end); running the
   write `unconstrained` by tokio's budget (it hides the class at one place, and lets one stream starve the runtime).
 - The limit is that of a write: bytes of ZMODEM's that the channel has not taken within 40 s (`TRIES` waits of
-  `WAIT`, the spec's "40 seconds total") end the transfer (`crates/podssh-ssh/src/zmodem/session.rs:251`). A stream
+  `WAIT`, the spec's "40 seconds total") end the transfer (`crates/podssh-ssh/src/zmodem/session.rs:275`). A stream
   has no wait of the protocol (`crates/podssh-ssh/src/zmodem/send.rs:309` and `:255` clear it), so this is its only
   time. Lost: a deadline of the sans-IO sender while it streams, which cannot know when the channel took its bytes.
-- Five CAN typed in a row, counted across reads (`crates/podssh-ssh/src/zmodem/session.rs:212`), end a transfer as
+- Five CAN typed in a row, counted across reads (`crates/podssh-ssh/src/zmodem/session.rs:234`), end a transfer as
   five from the server do (7.2); fewer are dropped as each other key is.
 - The end of the local input while ZMODEM holds the keys ends the session (`crates/podssh-ssh/src/io.rs:332`,
   `crates/podssh-ssh/src/io/transfer.rs:62`): nobody is left to answer or to see, as with SIGHUP, so it exits 255 as

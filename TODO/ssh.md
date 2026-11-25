@@ -1241,9 +1241,9 @@ and no player.
 4. Playback: a new verb `podssh play FILE`, with `--speed` and
    `--idle-limit`. Not `replay`: it is one edit from `relay`, and the
    suggestion step would mix them (`docs/cli.md:2360-2369`). Add it to `VERBS`
-   (`crates/podssh-cli/src/flags.rs:394-464`), to
+   (`crates/podssh-cli/src/flags.rs:396-468`), to
    `crates/podssh-cli/src/positionals.rs`, to dispatch, and to `DISPATCHED`
-   (`crates/podssh-cli/tests/flag_table.rs:110-146`).
+   (`crates/podssh-cli/tests/flag_table.rs:110-147`).
 5. Refuse a file whose header is not version 2. Skip unknown event types.
 6. Write the risks in the manual: the output can hold secrets (a printed
    key, a password that a remote program echoes); a recording sends control
@@ -1373,9 +1373,9 @@ runs: with no user database entry, OpenSSH's programs stop at once
 6. When the probe fails, refuse with the reason and the other ways: key
    files with `-i`, and the helper of T-228.
 7. In the same commit: the verb in `VERBS`
-   (`crates/podssh-cli/src/flags.rs:394-464`), in
+   (`crates/podssh-cli/src/flags.rs:396-468`), in
    `crates/podssh-cli/src/positionals.rs` and in `DISPATCHED`
-   (`crates/podssh-cli/tests/flag_table.rs:110-146`); `docs/cli.md`;
+   (`crates/podssh-cli/tests/flag_table.rs:110-147`); `docs/cli.md`;
    "Nothing listens" in `SECURITY.md:274-309`; `docs/STATUS.md`.
 
 ## Decision

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**837 entries: 6 open, 40 partial, 12 blocked, 779 done.**
+**837 entries: 6 open, 39 partial, 12 blocked, 780 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 6 | 7 | 7 | 374 | 394 |
-| **All** | 6 | 40 | 12 | 779 | 837 |
+| P3 | 6 | 6 | 7 | 375 | 394 |
+| **All** | 6 | 39 | 12 | 780 | 837 |
 
 ## Entries
 
@@ -861,7 +861,7 @@ repository and CI).
 | [T-828](robustness.md) | P3 | M | M10 | defect | done | The second black-box pass's smaller findings: the documents and the lines |
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |
 | [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |
-| [T-831](copy.md) | P3 | M | backlog | research | partial | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
+| [T-831](copy.md) | P3 | M | backlog | research | done | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
 | [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | done | An attach ticket for a kept shell: who may attach, and replay or reset |
 | [T-834](serve.md) | P3 | M | backlog | research | open | A bearer identity in the session's OPEN, bound to the session and its carrier |

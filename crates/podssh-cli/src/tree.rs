@@ -379,6 +379,10 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
         }));
     }
 
+    if verb.name == "tx" {
+        return Parsed::Tx(Box::new(crate::tx::TxArgs::from_matches(&matches, refused)));
+    }
+
     if verb.name == "mcp" {
         return Parsed::Mcp(Box::new(crate::mcp::McpArgs::from_matches(&matches, refused)));
     }

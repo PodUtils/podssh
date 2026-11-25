@@ -33,6 +33,7 @@ llms-full.txt has the manual and the documents in one file.
 - `podssh sftp`: file commands on a host, from a batch or at a prompt, as OpenSSH's sftp
 - `podssh mv`: move files; across hosts this is a copy and a delete
 - `podssh edit`: edit a file of a host in an editor here; it goes back only when the host's file did not change meanwhile
+- `podssh tx`: in the shell of a podssh ssh session: a file to or from podssh at its other end, through the terminal itself
 - `podssh man`: this manual: each command, flag, variable, file and exit code
 - `podssh relay`: the relay's hosts, pool and view of a target; the pairs of the reverse road; its document
 - `podssh status`: the state of this host as one line of JSON: relays, token, proxy, terminal, a host key

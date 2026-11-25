@@ -12,11 +12,17 @@
 //! only in a session with a pty and a local terminal, asks on the terminal
 //! before a file comes or goes, and writes a file that comes as T-134
 //! writes a copy (a temporary name beside it, the checks, then the rename).
+//!
+//! The same watcher carries the 7-bit envelope (T-831), `pod_term::transfer`,
+//! for a path that repaints the terminal's output (tmux drops ZDLE): its near
+//! end scans the output before ZMODEM does (`session/envelope.rs`), and
+//! [`far`] is its far end, `podssh tx` in the server's shell.
 
 use std::time::Duration;
 
 pub mod ask;
 pub mod detect;
+pub mod far;
 pub mod files;
 mod read;
 pub mod receive;
