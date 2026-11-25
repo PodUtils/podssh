@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**833 entries: 4 open, 44 partial, 13 blocked, 772 done.**
+**834 entries: 5 open, 43 partial, 13 blocked, 773 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 4 | 11 | 8 | 368 | 391 |
-| **All** | 4 | 44 | 13 | 772 | 833 |
+| P3 | 5 | 10 | 8 | 369 | 392 |
+| **All** | 5 | 43 | 13 | 773 | 834 |
 
 ## Entries
 
@@ -235,7 +235,7 @@ repository and CI).
 | [T-158](resume.md) | P3 | M | backlog | feature | done | Detach and attach again |
 | [T-159](resume.md) | P3 | M | backlog | feature | done | Sessions on the far end that outlive the client |
 | [T-160](resume.md) | P3 | L | backlog | feature | done | Local echo and prediction for high latency |
-| [T-161](resume.md) | P3 | L | backlog | research | partial | Screen state and scrollback when a client attaches |
+| [T-161](resume.md) | P3 | L | backlog | research | done | Screen state and scrollback when a client attaches |
 | [T-162](roads.md) | P2 | L | M6 | feature | done | The iroh road behind the cargo feature `iroh` |
 | [T-163](roads.md) | P2 | S | M6 | feature | done | iroh tickets and node keys |
 | [T-164](roads.md) | P2 | M | M6 | feature | done | Race the iroh road and the reverse road |
@@ -909,3 +909,4 @@ repository and CI).
 | [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
 | [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
+| [T-901](resume.md) | P3 | M | backlog | feature | open | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |

@@ -1,11 +1,11 @@
 The work of milestone M7, `podssh pipe` and `--persist`, and the backlog of
 streams that `pipe` can carry: desktop streams and Telnet, a published HTTP
-service, serial devices and USB/IP. The design is `docs/design.md:1338-1406`;
+service, serial devices and USB/IP. The design is `docs/design.md:1351-1419`;
 the milestone is `docs/ROADMAP.md:238-247`.
 
 # T-174: `podssh pipe A B` with local addresses
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1355-1406`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1368-1419`;
 GitHub #26 (Nemo-010, 2026-10-08). Measured here on `3ee70dc`.
 **Category:** feature
 **Milestone:** M7
@@ -71,7 +71,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    (`crates/podssh-cli/src/man/notes.rs:34-73`), two examples
    (`crates/podssh-cli/src/man/examples.rs:8-328`; its test at
    `crates/podssh-cli/src/man/examples_tests.rs:101-127` learns the new variant),
-   `docs/design.md:1357-1366`, `docs/STATUS.md`. Each file stays under 500
+   `docs/design.md:1370-1379`, `docs/STATUS.md`. Each file stays under 500
    lines (`AGENTS.md:445-446`).
 
 ## Decision
@@ -136,7 +136,7 @@ pump of `podssh proxy` stays until T-175 moves it onto this one.
 
 # T-175: `podssh pipe` with remote addresses
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1362-1366`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1375-1379`;
 GitHub #26 (Nemo-010, 2026-10-08); the RustConn report in GitHub #24 (one
 address model across roads; read in the report, not verified here).
 **Category:** feature
@@ -202,7 +202,7 @@ local program to a target, and `podssh proxy` stays a second pump.
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
-7. In the same commit: `docs/cli.md`, `docs/design.md:1357-1366`, the notes,
+7. In the same commit: `docs/cli.md`, `docs/design.md:1370-1379`, the notes,
    the examples, `docs/STATUS.md`.
 
 ## Decision
@@ -332,7 +332,7 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
    after a probe at run time; where one fails, exit 69 with the reason
    (the operator's ruling of 2026-10-08).
 5. T-040 gives the remote form: a socket on the server, through `-W`.
-6. In the same commit: `docs/cli.md`, `docs/design.md:1361`, the notes,
+6. In the same commit: `docs/cli.md`, `docs/design.md:1374`, the notes,
    `docs/STATUS.md`. With T-174 and T-175 done, the first item of ROADMAP M7
    is done.
 
@@ -389,7 +389,7 @@ ROADMAP M7 is done; T-040 gives the remote form.
 
 # T-177: `podssh pipe` with a local listener after a probe
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:243-244`), `docs/design.md:1400-1406`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:243-244`), `docs/design.md:1413-1419`;
 GitHub #26 (a local-only mode, as the `--local` of bunflared; read in the
 report, not verified here); sandbox A of T-001.
 **Category:** feature
@@ -401,9 +401,9 @@ report, not verified here); sandbox A of T-001.
 ## Problem
 
 Desktop clients, browsers and database clients call `connect()` themselves:
-they need a local port or socket (`docs/design.md:1403-1406`). podssh refuses
+they need a local port or socket (`docs/design.md:1416-1419`). podssh refuses
 each listener. The design allows one for `pipe`, locally, after a probe
-shows that an AF_UNIX or loopback bind works (`docs/design.md:1400-1402`).
+shows that an AF_UNIX or loopback bind works (`docs/design.md:1413-1415`).
 
 ## Premise
 
@@ -725,7 +725,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 
 - Read: a byte pipe carries each TCP protocol
   (`crates/podssh-cli/src/man/notes.rs:241-251`); a client that calls
-  `connect()` itself needs a listener (`docs/design.md:1403-1406`), which
+  `connect()` itself needs a listener (`docs/design.md:1416-1419`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
   (`docs/relay.md:638`), then Close 1009 (`docs/relay.md:720`); public
@@ -756,7 +756,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
    protocol, what works now, what needs a listener, the 64 MiB limit. Add
    form a to `crates/podssh-cli/src/man/examples.rs:8-328`; its ProxyCommand
    parses (`crates/podssh-cli/src/man/examples_tests.rs:78-85`). Link the table
-   from `docs/design.md:1403-1406`.
+   from `docs/design.md:1416-1419`.
 5. No code. Record the measurements in `docs/STATUS.md`.
 
 ## Prove
@@ -802,7 +802,7 @@ but an AF_UNIX one, which sandbox A allows where it refuses AF_INET
 - The manual's example of form a, in
   `crates/podssh-cli/src/man/examples.rs`: OpenSSH's `ssh` with
   `-N -L 5901:127.0.0.1:5901` and `podssh proxy %h %p` as its
-  ProxyCommand. `docs/design.md:1362` links the table.
+  ProxyCommand. `docs/design.md:1375` links the table.
 - `scripts/interop-desktop.sh`, sourced by `scripts/interop.sh` after
   `scripts/interop-pipe.sh`, with 7 checks (the harness `desktop`, floor 7,
   in `scripts/interop-baseline.txt`): TigerVNC's `Xvnc` and BusyBox's

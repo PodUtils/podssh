@@ -534,18 +534,44 @@ colours that the ring dropped are not set again (they are no modes of
 still comes.
 
 Three ways to give a new client its screen, compared (T-161, step 4). The
-cells are read from the designs; the measured row waits for the run of
-T-161.
+first column is measured (below); the others are read from their designs.
 
 | | The modes, the replay and a redraw | A log with offsets, no model (ekzhang/sshx) | A snapshot of a model (mosh, rose) |
 | --- | --- | --- | --- |
 | A full-screen program that sat still | drawn again by the program | an empty screen | the screen |
 | A replay cut after the modes | the modes, then the bytes | the bytes, with no modes | the screen |
-| A shell at its prompt | the bytes, and the prompt drawn again | the bytes | the screen |
+| A shell at its prompt | the bytes since the detach: bash at a still prompt draws nothing again, so a fresh attach shows an empty screen; a reset shows it | the bytes | the screen |
 | The new client's scrollback | the replay | the replay | the scrollback that the far end keeps, or none |
 | serve's memory for each shell | the ring (256 KiB) and the modes of the bytes that it dropped | the ring | the ring, and a grid of each cell with its scrollback |
 | serve's code | `pod-term`'s modes, and a change of size | none | a terminal model in each `podssh serve` |
-| Measured with vi, less, top and a shell | UNVERIFIED | UNVERIFIED | UNVERIFIED |
+| Measured with vi, less, top and a shell | below | not built | not built |
+
+The measure (`cargo test -p podssh-ssh --test attach_measure -- --ignored
+--nocapture`, 2026-11-25, Linux, vi, less and top of Ubuntu 24.04, bash as
+the login shell): a client runs each in a kept shell and detaches; a new
+client joins, fresh (no count) and with a reset, and after 3 s its model of
+the screen is compared with the first client's last one. "Rows" counts the
+rows of text that the two share.
+
+| Program | Joined | Rows shared | Its text shown | Modes | Bytes |
+| --- | --- | --- | --- | --- | --- |
+| bash at its prompt | fresh | 0 of 3 | no | the same | 101 |
+| bash at its prompt | reset | 3 of 3 | yes | the same | 158 |
+| vi | fresh | 23 of 24 | yes | the same | 1,162 |
+| vi | reset | 23 of 24 | yes | the same | 2,067 |
+| less | fresh | 23 of 24 | yes | the same | 1,078 |
+| less | reset | 23 of 24 | yes | the same | 1,701 |
+| top | fresh | 18 of 23 | yes | the same | 9,775 |
+| top | reset | 18 of 23 | yes | the same | 12,490 |
+
+A full-screen program draws its screen again: each row but the last line's
+message for vi and less, and for top the rows that its next second did not
+change. The modes are the far end's in each case. A shell at a still prompt
+is the gap: its fresh attach shows nothing until the shell writes, as bash
+does not draw its line again at a change of size. A model on the far end
+would cost a cell of 32 bytes in `vt100` (the oracle's model): 60 KiB for a
+screen of 80 by 24, and 2.5 MB for 1,000 lines of scrollback, for each kept
+shell, beside the ring of 256 KiB.
 
 `cargo test -p podssh-ssh --test attach_screen` checks it with the
 oracle's model (T-200) at both ends: a client runs a full-screen program
@@ -553,7 +579,8 @@ in a kept shell and detaches; a new client attaches, and its model must
 show the rows, the cursor and the modes of the first one's. The cases: a
 stand-in program that sat still, joined with no count; the same after
 more output than the ring holds, joined with a reset; and `vi` where the
-host has it. UNVERIFIED.
+host has it, whose text and modes it compares (BusyBox's `vi` redraws in its
+own way). It passes here and in the gate's `ssh` job (2026-11-25).
 
 ## ZMODEM in a session
 

@@ -916,6 +916,19 @@ beside the contract, as the far end of layer 2 below (T-173;
 An interactive echo for high latency (as mosh does) is a later option on top
 of layer 2. It needs podssh at both ends, and it cannot use UDP here.
 
+**A new client's screen** (T-161, measured 2026-11-25, `docs/terminal.md`,
+"Screen on attach"). A client that attaches to a kept shell from a new
+process gets the modes, the bytes since its detach, and a redraw by a change
+of the pty's size. That gives vi, less and top their screen and modes; a
+model of the screen on the far end would cost 60 KiB a screen and 2.5 MB for
+1,000 lines of scrollback for each kept shell, in each `podssh serve`, so
+podssh keeps none. The gap is a shell at a still prompt, which draws nothing
+again: a fresh attach shows an empty screen until it writes. The
+recommendation, taken by the owner's rule "Decisions" as it adds and removes
+nothing: a fresh attach (no count) outside the alternate screen gets the
+ring's last screenful from a boundary, after a reset's line that names its
+offset, so a client that counts (T-895) stays right (T-901).
+
 The fault-injection harness in the gate (`scripts/interop-faults.sh`) tests
 layer 1. Layers 2 and 3 need it extended: latency, jitter, limited
 bandwidth, a changed address.

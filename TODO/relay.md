@@ -5677,7 +5677,7 @@ Podcrates T-120 takes the document at its import; podssh writes it first.
 - `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`: the forward contract, as the default relay
   gives it.
 - `docs/reverse.md`, `docs/design.md` (section 5): the reverse and layer frames, in prose.
-- `docs/design.md:1521`: a test vector exists for iroh's tickets only.
+- `docs/design.md:1534`: a test vector exists for iroh's tickets only.
 
 ## Approach
 
@@ -5750,7 +5750,7 @@ Plant: change one byte of a codec; the vector test fails.
   through those re-exports; podssh changes no codec here. The forward road's frames are `pod-ws`'s,
   through `podssh_ws::frame`. Only the relay role's tokens are podssh's own code
   (`crates/podssh-relay/src/serve/tokens.rs`).
-- "A test vector exists for iroh's tickets only" (`docs/design.md:1521`) held at the reading of the
+- "A test vector exists for iroh's tickets only" (`docs/design.md:1534`) held at the reading of the
   entry; since T-712, `docs/relay.md:1990` gives vectors of the liveness member too, and
   `pod-identity`'s tests pin the key of the seed `0x11` (which `grants.json` uses, so both agree).
 - The Approach's `HELLO` is the layer's `GREETING` and `OPEN` (`Hello` in `pod-session`): the page

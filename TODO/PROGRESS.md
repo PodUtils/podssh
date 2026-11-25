@@ -61,9 +61,9 @@ Read on 2026-11-24.
 
 Cloud sessions of 2026-11-24 and 2026-11-25. Done on 2026-11-25: T-839 done (TPM keys; Windows'
 TBS case passed in the gate), T-896 done, T-875 and T-877 done (the DNS road; T-900, its form over DoH, waits for podcrates), T-123 done
-(`serve --remote-listen`),
+(`serve --remote-listen`), T-161 done (the measure; T-901 filed for a shell at a still prompt),
 podcrates `v0.83.0` taken. Open, in order: the gate of the last push (lint was red at `0c6e9c4` on the format of
-`attach_screen.rs` alone); T-161 and T-831 (partial); podcrates' answers to the COORD issues of
+`attach_screen.rs` alone); T-901; T-831 (partial); podcrates' answers to the COORD issues of
 `docs/HANDOFF.md`; T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
 clean**).
 
@@ -75,7 +75,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 833 entries: 4 open, 44 partial, 13 blocked, 772 done.
+`TODO/INDEX.md` holds 834 entries: 5 open, 43 partial, 13 blocked, 773 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
