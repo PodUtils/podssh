@@ -78,11 +78,10 @@ impl Ask {
             return Err("--client-key and --iroh-key are one flag by two names: give one".into());
         }
         let node_key = match node_key {
-            Some(text) => Some(KeyName::parse(text).ok_or_else(|| {
-                format!(
-                    "--node-key {text:?}: not a key (64 hex digits, or iroh's base32) nor a fingerprint (SHA256:...)"
-                )
-            })?),
+            Some(text) => Some(
+                allow::key_name(text)
+                    .ok_or_else(|| format!("--node-key {text:?}: not a key: give {}", allow::FORMS))?,
+            ),
             None => None,
         };
         if off && node_key.is_some() {
@@ -253,17 +252,19 @@ pub fn judged(e: &e2e::Error, me: Option<&Identity>) -> Option<(Fault, String)> 
         e2e::Error::Refused(NodeRefusal::NotAllowed) => (
             Fault::Auth,
             format!(
-                "the node refused this client's key{mine}: not in its allowlist, nor a member that its net's policy \
-                 lets reach that; the node's operator adds the key to the file of --allow, or the net's owner a rule; \
-                 or the person at a node of --ask said no, or gave no answer"
+                "the node refused this client's key{mine}: not in its allowlist for that (a line of routes= alone \
+                 reaches those routes, as NAME/ROUTE), nor a member that its net's policy lets reach that; the node's \
+                 operator adds the key to the file of --allow, or the net's owner a rule; or the person at a node of \
+                 --ask said no, or gave no answer"
             ),
         ),
         e2e::Error::Refused(NodeRefusal::NoTarget(why)) => {
             (Fault::SessionFault, format!("the node could not reach its target: {why}"))
         }
-        // A grant that the node refused is a refused key (T-226).
+        // A grant that the node refused is a refused key (T-226); a bearer
+        // comes back in a grant's words, and is named (T-942).
         e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::GRANT_REFUSED => {
-            (Fault::Auth, format!("the node refused: {why}"))
+            (Fault::Auth, crate::bearer::refused_line(why))
         }
         // podssh's hint of the flag that makes a node an exit (pod-e2e's words name none).
         e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::NO_EXIT => {
@@ -315,15 +316,20 @@ pub fn node(label: &str, key: file::Key, allow: Option<PathBuf>, err: &mut dyn W
     if let Some(note) = key.path.as_deref().and_then(podssh_relay::cache::kept_note) {
         let _ = writeln!(err, "podssh node: {label}: {note}");
     }
-    let _ = writeln!(err, "podssh node: {label}: {}", who_may(allow.as_deref()));
-    // A member of the net lets in its members too (T-429).
+    // A member of the net lets in its members too (T-429); with no --allow,
+    // the net is the whole door, and a net of --net-url whose copy is too
+    // old lets nobody in: the pair's token lets in no one more (T-941).
     let member = crate::net::admit::line(&me);
-    if let Some(line) = &member {
+    let closed = crate::net::remote::door_closed();
+    if allow.is_some() || (member.is_none() && closed.is_none()) {
+        let _ = writeln!(err, "podssh node: {label}: {}", who_may(allow.as_deref()));
+    }
+    if let Some(line) = member.as_ref().or(closed.as_ref()) {
         let _ = writeln!(err, "podssh node: {label}: {line}");
     }
     // The pair's token alone as the door leaves a TARGET that is not SSH with
     // no gate of its own (T-226).
-    if allow.is_none() && member.is_none() {
+    if allow.is_none() && member.is_none() && closed.is_none() {
         let _ = writeln!(err, "podssh node: {label}: {}", crate::node_serve::open_door(OPEN_DOOR));
     }
     let _ = writeln!(err, "podssh node: {label}: {}", crate::grants::line(label, allow.as_deref()));
@@ -364,6 +370,8 @@ pub fn admit_of(allow: Option<PathBuf>) -> Arc<ends::Admit> {
     match allow {
         Some(path) => Arc::new(move |key: &PublicKey, ask: &Asking| match ask {
             Asking::Exit { .. } => Err(NO_KEY_EXIT.into()),
+            // A line of routes alone reaches no TARGET with no route (T-945).
+            Asking::Target => allow::reaches_target(&path, key),
             _ => allow::admits(&path, key),
         }),
         None => Arc::new(|_: &PublicKey, ask: &Asking| match ask {
@@ -392,15 +400,15 @@ pub fn who_may(allow: Option<&Path>) -> String {
     let Some(path) = allow else {
         return "each operator with the pair's connect token may come in, and its key is said".into();
     };
-    match allow::Allowlist::read(path) {
+    match allow::read(path) {
         Ok(list) if list.bad_lines().is_empty() => {
             format!("{} operator keys may come in ({})", list.len(), path.display())
         }
         Ok(list) => format!(
-            "{} operator keys may come in ({}); lines {:?} are not keys",
+            "{} operator keys may come in ({}); {}",
             list.len(),
             path.display(),
-            list.bad_lines()
+            allow::bad_lines_said(list.bad_lines())
         ),
         Err(why) => format!("no operator may come in yet: {why}"),
     }

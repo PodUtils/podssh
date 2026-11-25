@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use podssh_relay::e2e::{ends, Ask};
-use podssh_relay::identity::{file, KeyName, PublicKey};
+use podssh_relay::identity::{allow, file, KeyName, PublicKey};
 use podssh_relay::pair;
 use podssh_relay::relay::{self, Relay};
 use podssh_relay::reverse::routes::Route;
@@ -69,11 +69,8 @@ struct Ready {
 }
 
 fn prepare(args: &NodeArgs, key: &str) -> Result<Ready, Refusal> {
-    let client = KeyName::parse(key).ok_or_else(|| {
-        Refusal::usage(format!(
-            "--temporary {key:?}: not a key (64 hex digits, or base32) nor a fingerprint (SHA256:...)"
-        ))
-    })?;
+    let client = allow::key_name(key)
+        .ok_or_else(|| Refusal::usage(format!("--temporary {key:?}: not a key: give {}", allow::FORMS)))?;
     // The node makes its own pair and key, and lets in KEY alone.
     let refused = [
         ("--iroh", args.iroh),

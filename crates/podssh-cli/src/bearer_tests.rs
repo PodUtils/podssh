@@ -173,3 +173,15 @@ async fn the_proof_is_the_grant_or_a_bearer_of_the_channel() {
     let grant = proof(Some(b"a grant".to_vec()), holder, quiet)(identity(1).public(), here).await;
     assert_eq!(grant.as_deref(), Some(&b"a grant"[..]));
 }
+
+/// The node's refusal of the proof, in pod-e2e's words of a grant, names the
+/// bearer when this run sent one, and stays a grant's words when it did not
+/// (T-942).
+#[test]
+fn a_refused_bearer_is_named_a_bearer_at_the_operator() {
+    let why = podssh_relay::e2e::ends::GRANT_REFUSED;
+    let bearer = refused_line_of(true, why);
+    assert!(bearer.starts_with("the node refused this run's bearer (--bearer)"), "{bearer}");
+    assert!(!bearer.contains("grant"), "{bearer}");
+    assert_eq!(refused_line_of(false, why), format!("the node refused: {why}"));
+}

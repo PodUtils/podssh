@@ -6,9 +6,9 @@
 /// The note of `podssh node`, after the transit relay's.
 pub(super) const NODE: &str = "A node of the pair's road with a TCP TARGET also waits for the pair's operators \
      at croc's public relays, a last fallback. It does so only with the resumable layer and the end-to-end \
-     channel (no --plain, no --no-e2e). Its way there is croc-web's WebSocket bridge at the address that \
-     podssh's list of services names (wss://getcroc.com/ws, while the list names it; none in this release), or \
-     the bridge of PODSSH_CROC (wss://HOST/ws, croc-web of your own before croc relay), through HTTPS_PROXY. The \
+     channel (no --plain, no --no-e2e). Its way there is croc-web's WebSocket bridge, through HTTPS_PROXY. \
+     That bridge is the one that podssh's list of services names (wss://getcroc.com/ws, while the list names it). \
+     PODSSH_CROC names another (wss://HOST/ws, croc-web of your own before croc relay). The \
      bridge pipes the WebSocket to one of croc's relays, which the pair's secret picks. The node passes croc's \
      own handshake: a PAKE on the curve SIEC with croc's public key, then the relay's password and a room, in \
      AES-GCM. It then waits in the first of the pair's 4 rooms that no link of its own holds; the relay \

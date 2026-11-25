@@ -285,7 +285,7 @@ pub(crate) fn make(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
     pairs::online()?;
     let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
     let ctx = pairs::context(&control, &trust, &context);
-    let (made, once) = block_on(pair::once::create_with(&ctx, args.once))?.map_err(|e| pairs::refusal(&e))?;
+    let (made, once) = block_on(pair::once::create_with(&ctx, args.once))?.map_err(|e| pairs::made_refusal(&e))?;
     // A relay that does not offer --once made a pair whose token takes each
     // upgrade (T-226): a guarantee asked for and not given, so the pair is
     // stopped before the refusal, as it is not the one asked for.

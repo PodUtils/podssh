@@ -4,6 +4,10 @@
 
 pub use pod_identity::*;
 
+/// The allowlist in podssh's one grammar of a key, which also takes the
+/// line that `podssh keygen -y` prints (T-938).
+pub mod allow;
+
 pub mod file {
     pub use pod_identity::file::*;
 

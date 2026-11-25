@@ -12,6 +12,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex, PoisonError};
 
 use podssh_relay::e2e::{ends, Ask, Binding};
@@ -46,6 +47,10 @@ impl Signer {
 
 /// The signer of this run's first channel, as `--bearer` gave it.
 static ASKED: Mutex<Option<Signer>> = Mutex::new(None);
+
+/// Whether this run's channel carried a bearer: the node's refusal of it
+/// comes in the words of a grant's (T-942).
+static SENT: AtomicBool = AtomicBool::new(false);
 
 /// The record of this process's nodes: a bearer is taken once, by any.
 static BEARERS: LazyLock<Bearers> = LazyLock::new(Bearers::default);
@@ -186,7 +191,10 @@ pub fn proof_of(
         };
         Box::pin(async move {
             match make(&signer, holder, &binding, now()).await {
-                Ok(blob) => Some(blob),
+                Ok(blob) => {
+                    SENT.store(true, Ordering::Relaxed);
+                    Some(blob)
+                }
                 Err(why) => {
                     say(format!("--bearer: {why}; this channel carries no bearer, so the node's door alone decides"));
                     None
@@ -209,6 +217,23 @@ pub async fn make(signer: &Signer, holder: PublicKey, binding: &Binding, iat: u6
             Ok(unsigned.signed(&signature))
         }
     }
+}
+
+/// The operator's line of the node's refusal of its proof, `why` in
+/// pod-e2e's words of a grant: with a bearer sent, the bearer is named, as
+/// the node's own line names it (T-942); else the words as they came.
+pub fn refused_line(why: &str) -> String {
+    refused_line_of(SENT.load(Ordering::Relaxed), why)
+}
+
+/// [`refused_line`] with whether a bearer was sent named (for tests).
+pub fn refused_line_of(sent: bool, why: &str) -> String {
+    if !sent {
+        return format!("the node refused: {why}");
+    }
+    "the node refused this run's bearer (--bearer): it was taken already, its 30 s passed, its signer may not let \
+     this key reach what it asked, or it is not for this key or this channel; the node's log says which"
+        .to_string()
 }
 
 /// Whether `blob` is a bearer, never a certificate: the door tells them

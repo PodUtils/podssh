@@ -120,7 +120,7 @@ fn sshd_with_a_cover_is_a_usage_error() {
     let out = run(&place.s.0, &args);
     assert_eq!(out.status.code(), Some(64), "{}", String::from_utf8_lossy(&out.stderr));
     let said = String::from_utf8_lossy(&out.stderr);
-    assert!(said.contains("--sshd goes not with --cover"), "{said}");
+    assert!(said.contains("--sshd does not go with --cover"), "{said}");
 }
 
 /// A single-name certificate is no cover of a second name that it does not

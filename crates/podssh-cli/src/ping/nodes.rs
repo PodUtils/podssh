@@ -216,7 +216,10 @@ async fn one(shown: &str, resolved: &Result<Resolved, Refusal>, limit: Duration,
             let error = measures.won.is_none().then(|| measures.why_none());
             Outcome { shown: shown.to_string(), measures: Some(measures), code, error }
         }
-        Ok(Err(not)) => Outcome::failed(shown.to_string(), not.code, not.lines.join("; ")),
+        Ok(Err(not)) => {
+            let why = super::joined(not.lines.iter().flat_map(|l| l.lines()));
+            Outcome::failed(shown.to_string(), not.code, why)
+        }
         Err(_) => {
             let why = format!("no road answered within {:.1} s", limit.min(left).as_secs_f64());
             Outcome::failed(shown.to_string(), EX_TEMPFAIL, why)

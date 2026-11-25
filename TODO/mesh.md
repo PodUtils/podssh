@@ -3717,7 +3717,7 @@ The draft's calls, 2026-11-02:
    each socket of both roads, which needs a token or a pair that the brake let through and is
    checked with a MAC or a digest and no state. Lost: a brake of the upgrades with no token, as
    the default relay counts them: the role's refusal of one costs less than the count.
-4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:403`), never a
+4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:404`), never a
    header, which each client of a listener writes, and would make up anew for each request.
    Behind the quick tunnel (T-428) the peer is Cloudflare's edge, so the hook for T-428 is
    `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:235`),
@@ -5029,7 +5029,7 @@ of podssh's.
 
 ## Premise
 
-- `crates/podssh-cli/src/man/notes_pair.rs:172` says "Tailscale's free servers for tailcat", and
+- `crates/podssh-cli/src/man/notes_pair.rs:174` says "Tailscale's free servers for tailcat", and
   `crates/podssh-cli/src/man/notes_ssh.rs:244` says "Four words name public forwarders".
 - `docs/carriers.md` (the forward road, item 7 and its "Ruled out"; the reverse road, item 2):
   Tailscale's main fleet serves Tailscale's clients; the public Wisp lists come from web proxies
@@ -11110,7 +11110,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:305-315`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:309-319`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -11464,8 +11464,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:314-315`), and needs the net's role exit, signed by
-  its owner (`:311-312`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:318-319`), and needs the net's role exit, signed by
+  its owner (`:315-316`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:172`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -13154,7 +13154,7 @@ Read at `2042200`:
   (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:47`), read again for each session
   (`PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:102-106`); the doors are made in
   `crates/podssh-cli/src/net/admit.rs:119`, `crates/podssh-cli/src/net/admit.rs:230` and
-  `crates/podssh-cli/src/channel.rs:363`.
+  `crates/podssh-cli/src/channel.rs:369`.
 - The verdict: a grant decides first (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:162` says "A grant decides
   alone"), and else the door (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:174`).
 - The issue reads the grant's arm as a way past the door that widens a credential. It is not: the grant's
@@ -13905,7 +13905,7 @@ reached each and measures nothing.
 ## Premise
 
 - Read: `ping NAME` races the roads of a member and gives each its time and the winner
-  (T-435; `crates/podssh-cli/src/ping/node.rs:87-185`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:51`).
+  (T-435; `crates/podssh-cli/src/ping/node.rs:87-199`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:51`).
 - Read: `ping` takes one destination (`crates/podssh-cli/src/flags/ping.rs`, the positional).
 - Read: `status --net` measures no road (`crates/podssh-cli/src/status.rs:30`).
 - Read: each probe drops its link before `OPEN` (`TODO/mesh.md`, T-435 Decision), so no session starts.
@@ -17253,3 +17253,126 @@ Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test 
 `carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
 and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
 for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-946: EXIT STATUS omits the codes of `podssh net` (65, 66) and of `ping --nodes` (1)
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh net add` of a key that another member has exits 65, `net policy set` of a missing file 66 and of a bad file
+65, `net take` of a missing file 66, and `ping --nodes` with some nodes offline 1. The manual's EXIT STATUS names none
+of these for those commands.
+
+## Premise
+
+- Read: `podssh net` gives 65 (`EX_DATAERR`) for a document or a file that cannot be used, a key of another member
+  (`crates/podssh-cli/src/net/doc.rs:188`), a document that `take` refuses, a false case of `policy test` and a
+  widened policy of `policy diff --exit-code`; 66 (`EX_NOINPUT`) for a missing FILE of `take`
+  (`crates/podssh-cli/src/net/mod.rs:270`), `policy set`, `test` and `diff` (`crates/podssh-cli/src/net/policy_cmd.rs:124`)
+  and `gateway set` (`crates/podssh-cli/src/net/gateway_cmd.rs:139`).
+- Read: `ping --nodes` gives 0, 69 when none answered, else 1 (`crates/podssh-cli/src/ping/nodes.rs:231`).
+- Read: EXIT STATUS is one table, `exit_codes` (`crates/podssh-cli/src/man/data.rs:17`), from the constants.
+
+## Approach
+
+The rows of 65, 66 and 1 name `podssh net`'s and `ping --nodes`' cases; `docs/cli.md` ("Exit codes") says them; a
+test holds each command's words in its code's row.
+
+## Decision
+
+The words go into the one table, not into each command's note: EXIT STATUS is where a script's author looks, and the
+table's rows come from the constants that the commands return.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test man_page --test net --test ping_nodes
+```
+
+`exit_status_names_the_codes_of_net_and_ping_nodes` passes; `llms-full.txt` written again for the manual's change.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/man/data.rs` (rows 1, 65, 66), `crates/podssh-cli/src/man/notes_tests.rs` (the
+  test), `docs/cli.md`.
+- UNVERIFIED: each Prove line.
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-947: The help and the manual of `podssh net` omit `policy test` and `policy diff`
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh net --help` and the manual's Arguments of `podssh net` list `policy check`, `show`, `set` and `clear`; the
+parser also takes `policy test FILE` and `policy diff POLICY`, which they do not name.
+
+## Premise
+
+- Read: `shape` takes `check`, `test`, `diff`, `set`, `show` and `clear` (`crates/podssh-cli/src/net/policy_cmd.rs:24`).
+- Read: the help of SUBCOMMAND and of the arguments of `net` (`crates/podssh-cli/src/positionals.rs:157`), which the
+  manual's Arguments show too, named four of them.
+
+## Approach
+
+The two helps name `policy test FILE` and `policy diff POLICY`; a test holds each verb that `shape` takes in both
+helps.
+
+## Decision
+
+The test reads the verbs from `shape`'s own words, so that a verb added later fails it until the help names it; the
+list of the verbs in the test is the one place to add it, beside the parser's table.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib net::policy_cmd
+cargo test -p podssh-cli --test man_flag_parity --test man_page --test net
+```
+
+`the_help_of_net_names_each_verb_of_policy` passes, and fails on the help before. `llms-full.txt` written again.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/positionals.rs` (the helps of `net`), `crates/podssh-cli/src/net/policy_cmd.rs`
+  (the test).
+- UNVERIFIED: each Prove line; whether a test pins the old help's text (none found by a search).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.

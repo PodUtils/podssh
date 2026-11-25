@@ -57,7 +57,7 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
     row(None, "cert", Some("FILE"), FlagKind::Supported,
         "serve: the certificate chain that the relay presents, in PEM, read again on SIGHUP or when it changes", None),
     row(None, "key", Some("FILE"), FlagKind::Supported,
-        "serve: the certificate's P-256 key, in PEM (EC PRIVATE KEY or PRIVATE KEY), in a file that only its owner reads; read again with --cert", None),
+        "serve: the certificate's P-256 key, in PEM (EC PRIVATE KEY or PRIVATE KEY), in a file that only its owner should read; a key that others may read is named, with its mode, as the role starts; read again with --cert", None),
     row(None, "acme", Some("NAME"), FlagKind::Supported,
         "serve: a certificate for NAME from an ACME CA (Let's Encrypt by default), in place of --cert and --key: proven by TLS-ALPN-01 on the listener, which the CA reaches at NAME on port 443, kept in the cache and renewed in the role", None),
     row(None, "acme-directory", Some("URL"), FlagKind::Supported,
@@ -75,7 +75,7 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
         "serve: send each client an empty frame every SECONDS, 1 to 3600 (default 25)", None),
     // The contract's limits, which the operator may move (T-704).
     row(None, "idle", Some("SECONDS"), FlagKind::Supported,
-        "serve: end a session after SECONDS with no payload either way, 1 to 86400 (default 180, the default relay's); published in /relays.json as idle_timeout_ms. A value above the default moves this role's cut only: a client keeps its own lower budget", None),
+        "serve: end a connection (one link) after SECONDS with no payload either way, 1 to 86400 (default 180, the default relay's); a session of the resumable layer resumes on a new link, so it lives on; published in /relays.json as idle_timeout_ms. A value above the default moves this role's cut only: a client keeps its own lower budget", None),
     row(None, "session-hours", Some("HOURS"), FlagKind::Supported,
         "serve: end a session after HOURS, 1 to 168 (default 12); published as max_session_ms. Above the default, a client still stops at its own budget", None),
     row(None, "max-session-mib", Some("MIB"), FlagKind::Supported,

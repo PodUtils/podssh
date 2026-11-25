@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**869 entries: 4 open, 32 partial, 13 blocked, 820 done.**
+**883 entries: 4 open, 32 partial, 13 blocked, 834 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 101 | 110 |
-| P2 | 0 | 20 | 2 | 325 | 347 |
-| P3 | 4 | 6 | 8 | 393 | 411 |
-| **All** | 4 | 32 | 13 | 820 | 869 |
+| P2 | 0 | 20 | 2 | 330 | 352 |
+| P3 | 4 | 6 | 8 | 402 | 420 |
+| **All** | 4 | 32 | 13 | 834 | 883 |
 
 ## Entries
 
@@ -945,3 +945,17 @@ repository and CI).
 | [T-935](copy.md) | P3 | S | backlog | defect | done | A destination that cannot take several sources, or a tree, is said once with its true reason |
 | [T-936](copy.md) | P3 | S | backlog | defect | done | `cp -r` to a server with no SFTP, and `sftp df` with no `statvfs@openssh.com`, exit 69 |
 | [T-937](copy.md) | P3 | S | backlog | defect | done | `sftp put` expands a local pattern, `DIR/.` copies what DIR holds, and the small words of the pass |
+| [T-938](reverse.md) | P2 | S | backlog | defect | done | An allowlist and a relay's key list refuse the line that `podssh keygen -y` prints, and `--grant-to` takes a private key file |
+| [T-939](reverse.md) | P2 | S | backlog | defect | done | A refused new pair is said as a stopped one, and a spent token of `--once` as an expired pair |
+| [T-940](reverse.md) | P2 | S | backlog | defect | done | `podssh proxy` exits 69 when the relay refuses to mint for its key, though a refusal of the relay is 77 |
+| [T-941](reverse.md) | P2 | S | backlog | defect | done | A node of a net with no `--allow` says that each operator with the pair's connect token may come in |
+| [T-942](serve.md) | P2 | S | backlog | defect | done | A bearer that the node refuses is said to the operator as a grant, and its session as one "by a grant" |
+| [T-943](reverse.md) | P3 | S | backlog | defect | done | `relay serve`: a malformed `--listen` exits 69, a missing `--derp-keys` file 64, and a key that others read only warns |
+| [T-944](reverse.md) | P3 | S | backlog | defect | done | A refused certificate is said in rustls's `Debug` names ("Other(OtherError(CaUsedAsEndEntity))") |
+| [T-945](reverse.md) | P3 | S | backlog | defect | done | A key whose allowlist line names `routes=` also reaches the node's TARGET with no route |
+| [T-946](mesh.md) | P3 | S | backlog | defect | done | EXIT STATUS omits the codes of `podssh net` (65, 66) and of `ping --nodes` (1) |
+| [T-947](mesh.md) | P3 | S | backlog | defect | done | The help and the manual of `podssh net` omit `policy test` and `policy diff` |
+| [T-948](reverse.md) | P3 | S | backlog | defect | done | `ping --nodes` says a road "said nothing within 30 s" that failed after 24.7 ms |
+| [T-949](reverse.md) | P3 | S | backlog | defect | done | Lines that garble: "the label the pair name is empty", "--sshd goes not with --cover", and ping's ".;" |
+| [T-950](reverse.md) | P3 | S | backlog | defect | done | The manual says croc's bridge and smee.io's server are none in this release, and a default node dials both |
+| [T-951](reverse.md) | P3 | S | backlog | defect | done | `relay serve --idle` reads as the end of a session, and it ends a link that the resumable layer resumes |

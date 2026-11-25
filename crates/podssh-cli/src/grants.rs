@@ -169,7 +169,7 @@ fn issuers(me: PublicKey, allow: Option<PathBuf>) -> Arc<grant::Issuers> {
             return Err("this node has no --allow, and its net names no such issuer".into());
         };
         match ask {
-            Ask::Target => allow::admits(path, issuer),
+            Ask::Target => allow::reaches_target(path, issuer),
             Ask::Route(route) => allow::grants(path, issuer, route),
             Ask::Exit { .. } => Err("an exit's target takes no grant".into()),
         }
@@ -260,7 +260,9 @@ fn sign(
 }
 
 /// The grantee's key: `ssh-ed25519 BASE64`, 64 hex digits, base32, or a
-/// file of one such line; a fingerprint names a key but is none.
+/// file of one such line; a fingerprint names a key but is none. A file of
+/// 64 hex digits alone is podssh's own private key file (a seed, T-938):
+/// read as a public key, it would grant a key that nobody holds.
 fn grantee(text: &str) -> Result<PublicKey, Refusal> {
     if let Some(key) = grant::parse_public(text) {
         return Ok(key);
@@ -268,14 +270,29 @@ fn grantee(text: &str) -> Result<PublicKey, Refusal> {
     let path = Path::new(text);
     if path.is_file() {
         let read = std::fs::read_to_string(path).map_err(|e| Refusal::config(format!("--grant-to {text}: {e}")))?;
+        if is_seed_file(&read) {
+            return Err(Refusal::config(format!(
+                "--grant-to {text}: this is a private key file of podssh (64 hex digits alone); give its public line, \
+                 which podssh keygen -y {text} prints"
+            )));
+        }
         let line = read.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with('#')).unwrap_or_default();
-        return grant::parse_public(line)
-            .ok_or_else(|| Refusal::config(format!("--grant-to {text}: its first line is no Ed25519 key")));
+        return grant::parse_public(line).ok_or_else(|| {
+            Refusal::config(format!("--grant-to {text}: its first line is no Ed25519 key: give {}", allow::FORMS))
+        });
     }
     Err(Refusal::usage(format!(
-        "--grant-to {text:?}: not a key (ssh-ed25519 BASE64, 64 hex digits) nor a file of one; a fingerprint names a \
-         key, but a grant needs the key itself"
+        "--grant-to {text:?}: not a key nor a file of one: give {}; a fingerprint names a key, but a grant needs the \
+         key itself",
+        allow::FORMS
     )))
+}
+
+/// Whether `text` is the form of podssh's own key file: one line of 64 hex
+/// digits and nothing else, as `pod-identity` writes a seed.
+fn is_seed_file(text: &str) -> bool {
+    let word = text.trim();
+    word.len() == 64 && word.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
 /// A window of `--grant-for`: a whole number, then s, m, h or d.
@@ -325,6 +342,26 @@ mod tests {
         let refused = grantee(&key.fingerprint()).unwrap_err();
         assert_eq!(refused.code, crate::exit_codes::EXIT_USAGE);
         assert!(refused.message.contains("needs the key itself"), "{}", refused.message);
+    }
+
+    /// A file of podssh's private key (a seed in 64 hex digits) is refused
+    /// (78) with the keygen -y line to give; a file of the public line is
+    /// read; the same hex as an argument stays a key (T-938).
+    #[test]
+    fn a_private_key_file_is_no_grantee() {
+        let dir = std::env::temp_dir().join(format!("podssh-grantee-{}-{}", std::process::id(), line!()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let key = Identity::from_seed(&[0x11; 32]).public();
+        let seed = dir.join("client.key");
+        std::fs::write(&seed, format!("{}\n", "ab".repeat(32))).unwrap();
+        let public = dir.join("client.pub");
+        std::fs::write(&public, format!("{} me@lab\n", grant::openssh_public(&key))).unwrap();
+        let refused = grantee(seed.to_str().unwrap()).unwrap_err();
+        assert_eq!(refused.code, crate::exitmap::sysexits::EX_CONFIG, "{}", refused.message);
+        assert!(refused.message.contains("keygen -y"), "{}", refused.message);
+        assert_eq!(grantee(public.to_str().unwrap()).unwrap(), key);
+        assert_eq!(grantee(&"ab".repeat(32)).unwrap(), PublicKey([0xab; 32]));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     /// The node's key signs a grant of its own principal, with the option

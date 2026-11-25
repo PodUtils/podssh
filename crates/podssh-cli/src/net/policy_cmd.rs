@@ -264,3 +264,26 @@ fn require(whole: &mut Map<String, Value>, on: bool) {
     }
     whole.insert("requires".into(), Value::Array(parts));
 }
+
+#[cfg(test)]
+mod tests {
+    /// Each verb of `policy` that the parser takes is in the help of `podssh
+    /// net`'s arguments, with its words, and each verb of an end in its
+    /// SUBCOMMAND (T-947): the help and the manual come from the same text.
+    #[test]
+    fn the_help_of_net_names_each_verb_of_policy() {
+        let cmd = crate::positionals::add(clap::Command::new("net"), "net");
+        let help = |id: &str| {
+            let arg = cmd.get_arguments().find(|a| a.get_id() == id);
+            arg.and_then(|a| a.get_help()).map(|h| h.to_string()).unwrap_or_default()
+        };
+        let (verbs, args) = (help("subcommand"), help("args"));
+        for verb in ["check", "test", "diff", "show", "set", "clear"] {
+            let words = [verb.to_string()];
+            let (_, usage) = super::shape(&words).unwrap();
+            assert!(args.contains(usage), "{usage}: {args}");
+            assert!(verbs.contains(verb), "{verb}: {verbs}");
+        }
+        assert!(super::shape(&["nope".to_string()]).is_err());
+    }
+}

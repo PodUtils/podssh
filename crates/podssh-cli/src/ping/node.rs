@@ -130,7 +130,21 @@ fn road_line(shown: &str, measured: &Measured) -> String {
     };
     match &timed.answered {
         Ok(()) => format!("{shown}: {road}: answered in {}{into}", shown_ms(timed.took)),
-        Err(why) => format!("{shown}: {road}: failed after {}{into}: {why}", shown_ms(timed.took)),
+        Err(why) => {
+            format!("{shown}: {road}: failed after {}{into}: {}", shown_ms(timed.took), true_why(why, timed.took))
+        }
+    }
+}
+
+/// A road's why, true of its time (T-948): pod-session says a link that
+/// closed before its first byte as one that "said nothing within 30 s", its
+/// wait; a road that failed before that wait was closed, not silent.
+fn true_why(why: &str, took: Duration) -> String {
+    let wait = podssh_relay::session::client::FIRST_BYTE_WAIT;
+    let silent = format!("the far end said nothing within {} s", wait.as_secs());
+    match why.contains(&silent) && took < wait {
+        true => why.replace(&silent, "the far end closed the link before it said anything"),
+        false => why.to_string(),
     }
 }
 
@@ -224,6 +238,21 @@ mod tests {
         let lines = super::lines(&none);
         let failed = "node://gone: the pair's road: failed after 30.0 ms: the node is offline";
         assert_eq!(lines, [failed, "node://gone: not reached: no road answered"]);
+    }
+
+    /// A link that closed before its first byte is said as closed, not as a
+    /// wait of 30 s that did not pass (T-948); a wait that passed keeps its
+    /// words, and another why is kept.
+    #[test]
+    fn a_road_closed_before_its_first_byte_is_not_said_silent() {
+        let silent = "the far end said nothing within 30 s";
+        let closed = true_why(silent, Duration::from_micros(24_700));
+        assert_eq!(closed, "the far end closed the link before it said anything");
+        assert_eq!(true_why(silent, Duration::from_secs(30)), silent);
+        assert_eq!(true_why("the node is offline", Duration::from_millis(5)), "the node is offline");
+        let failed = Measured { road: "the pair's road", timed: timed(0, 24_700, Err(silent.into())) };
+        let lines = super::lines(&Measures { shown: "node://gone".into(), roads: vec![failed], won: None });
+        assert_eq!(lines[0], format!("node://gone: the pair's road: failed after 24.7 ms: {closed}"));
     }
 
     /// The JSON has each road with its times in milliseconds, the road that

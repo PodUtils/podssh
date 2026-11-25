@@ -14,7 +14,8 @@ pub const PUBLIC: &str =
      on the reverse road, Tailscale's DERP servers for tailcat, then Tailscale's main DERP fleet. That fleet serves \
      Tailscale's own clients, and let podssh in when it was tried (PODSSH_DERP_MAIN=no keeps to tailcat's). Then come \
      Least Authority's transit relay, ppng.io then piping.onrender.com, and n0's server of pkarr (see podssh node); \
-     last, croc's public relays behind croc-web's bridge, Pinggy's free TLS tunnels, then Serveo's private aliases, \
+     last, croc's public relays behind croc-web's bridge, Pinggy's free TLS tunnels, then smee.io's server, then \
+     Serveo's private aliases, \
      then ssh-j.com's names. Then come localhost.run's tunnels, then localtunnel's names, then bore.pub's TCP ports. \
      Each goes where podssh's list of services names its server, whose lines say so. PODSSH_LAST_RESORT=no turns each \
      such last fallback off. Each is a third party that nobody vouches \

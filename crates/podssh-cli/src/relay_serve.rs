@@ -93,6 +93,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let listen = s.listen.as_deref().ok_or_else(|| {
         Refusal::usage("serve needs --listen ADDR:PORT, the address to serve on (127.0.0.1:0 takes a free port)")
     })?;
+    let listen = args::listen_of(listen)?;
     // The private ranges that it dials too (T-635), read before anything.
     let routes = routes_of(s.routes.as_deref(), s.allow_private)?;
     let source = certs::Source::of(s, ca_file)?;
@@ -332,10 +333,10 @@ pub(crate) fn inside_shown(private: bool, routes: &[(String, Range)]) -> String 
 /// a URL's by its host, whose copy has not come.
 fn list_shown(list: &List) -> Result<String, Refusal> {
     let List::File(file) = list else { return Ok(format!("the keys of the list at {}", list.shown())) };
-    let list = podssh_relay::identity::allow::Allowlist::read(file).map_err(Refusal::config)?;
+    let list = podssh_relay::identity::allow::read(file).map_err(Refusal::config)?;
     let bad = match list.bad_lines() {
         [] => String::new(),
-        lines => format!("; lines {lines:?} hold no key, and let nobody in"),
+        lines => format!("; {}, and let nobody in", podssh_relay::identity::allow::bad_lines_said(lines)),
     };
     let keys = match list.len() {
         1 => "the one key".to_string(),

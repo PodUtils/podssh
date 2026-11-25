@@ -482,21 +482,21 @@ podssh ssh
   when it was tried (PODSSH_DERP_MAIN=no keeps to tailcat's). Then come Least
   Authority's transit relay, ppng.io then piping.onrender.com, and n0's server
   of pkarr (see podssh node); last, croc's public relays behind croc-web's
-  bridge, Pinggy's free TLS tunnels, then Serveo's private aliases, then
-  ssh-j.com's names. Then come localhost.run's tunnels, then localtunnel's
-  names, then bore.pub's TCP ports. Each goes where podssh's list of services
-  names its server, whose lines say so. PODSSH_LAST_RESORT=no turns each such
-  last fallback off. Each is a third party that nobody vouches for: its
-  operator sees the target or the two ends, the sizes and the times, may log
-  them, and may stop serving podssh at any time; the host key of SSH, and on
-  the reverse road the end-to-end channel, keep the bytes from it. podssh names
-  no other public server of their kinds: no community DERP server, no Wisp
-  server of a web proxy's list and no public proxy node of an aggregator's
-  list. None of them names an operator who answers for it. A server that you
-  name (--derp-server, --forwarder, --shadowsocks, --vless, --via, --wstunnel)
-  is yours to trust. podssh never uses, and never names, a domain that looks
-  taken over: a school's, a church's or a shop's, or a name made to look like
-  one.
+  bridge, Pinggy's free TLS tunnels, then smee.io's server, then Serveo's
+  private aliases, then ssh-j.com's names. Then come localhost.run's tunnels,
+  then localtunnel's names, then bore.pub's TCP ports. Each goes where podssh's
+  list of services names its server, whose lines say so. PODSSH_LAST_RESORT=no
+  turns each such last fallback off. Each is a third party that nobody vouches
+  for: its operator sees the target or the two ends, the sizes and the times,
+  may log them, and may stop serving podssh at any time; the host key of SSH,
+  and on the reverse road the end-to-end channel, keep the bytes from it.
+  podssh names no other public server of their kinds: no community DERP server,
+  no Wisp server of a web proxy's list and no public proxy node of an
+  aggregator's list. None of them names an operator who answers for it. A
+  server that you name (--derp-server, --forwarder, --shadowsocks, --vless,
+  --via, --wstunnel) is yours to trust. podssh never uses, and never names, a
+  domain that looks taken over: a school's, a church's or a shop's, or a name
+  made to look like one.
 
   --shadowsocks FILE reaches the first hop through Shadowsocks servers, in
   place of the relay: a server that takes the target in an address header and
@@ -4348,12 +4348,14 @@ podssh node
   file of --key, made when it is missing; --ephemeral-key makes one for this
   run only. The node says its fingerprint as it starts, and an operator pins it
   at the first sight. With --allow FILE, only the operator keys of FILE come
-  in, on each road: one key or fingerprint on each line, read again for each
-  session; a refused operator gets no byte of TARGET, and its key is said on
-  stderr, as the line to add. With no allowlist, each operator with the pair's
-  connect token comes in, and its key is said. TARGET is dialled only once the
-  operator's key is let in. --no-e2e carries the bytes with no channel, to
-  operators run with --no-e2e too: the relay then sees them.
+  in, on each road: one key on each line, as podssh keygen -y prints it, or its
+  fingerprint, read again for each session; a refused operator gets no byte of
+  TARGET, and its key is said on stderr, as the line to add. With no allowlist,
+  each operator with the pair's connect token comes in, and its key is said. A
+  node that is a member of a net, with no allowlist, lets in the net's members
+  alone, and says so. TARGET is dialled only once the operator's key is let in.
+  --no-e2e carries the bytes with no channel, to operators run with --no-e2e
+  too: the relay then sees them.
 
   Routes: podssh node lab 127.0.0.1:22 web=127.0.0.1:8080 db=127.0.0.1:5432
   offers each TARGET under its route, here web and db. A route is a name of the
@@ -4363,13 +4365,16 @@ podssh node
   iroh:TICKET/ROUTE). The name goes in the end-to-end channel, so the relay
   never sees it and --no-e2e offers none. With --allow, a key reaches a route
   only when its line says so: KEY routes=web,db, or routes=* for each; a key
-  with no routes= reaches the TARGET with no route alone. A route that the node
-  does not have, or that the key may not use, is refused with the same words,
-  before any dial. With no allowlist, each operator may use each route. Each
-  TARGET is dialled once at the start. A node of the channel serves its shares
-  too: routes that podssh share adds and removes while it runs. It reads them
-  again for each session from node-NAME.shares in the cache or the file of
-  --shares FILE. Each is dialled at its session alone (see podssh share).
+  with no routes= reaches the TARGET with no route alone. A line of
+  routes=web,db reaches those routes alone, not the TARGET with no route;
+  routes=* reaches both. Two lines of one key give it what each gives. A route
+  that the node does not have, or that the key may not use, is refused with the
+  same words, before any dial. With no allowlist, each operator may use each
+  route. Each TARGET is dialled once at the start. A node of the channel serves
+  its shares too: routes that podssh share adds and removes while it runs. It
+  reads them again for each session from node-NAME.shares in the cache or the
+  file of --shares FILE. Each is dialled at its session alone (see podssh
+  share).
 
   TARGET udp:HOST:PORT offers a UDP service, for a host that allows UDP: each
   session is one flow, a UDP socket from this host to HOST:PORT. Each datagram
@@ -4538,31 +4543,34 @@ podssh node
   next at each meeting. It keeps the sessions of both roads with one keeper, so
   that a session resumes on either; its line names the relay. The relay sees
   the token, the sizes and the times; the channel keeps the bytes from it. A
-  node of --derp with a pair waits there too.
+  node of --derp with a pair waits there too. A node of a pair also waits,
+  unasked, at croc's bridge and at smee.io's server, below, as last fallbacks.
+  Its lines name each service; PODSSH_LAST_RESORT=no turns them off with the
+  other last fallbacks.
 
   A node of the pair's road with a TCP TARGET also waits for the pair's
   operators at croc's public relays, a last fallback. It does so only with the
   resumable layer and the end-to-end channel (no --plain, no --no-e2e). Its way
-  there is croc-web's WebSocket bridge at the address that podssh's list of
-  services names (wss://getcroc.com/ws, while the list names it; none in this
-  release), or the bridge of PODSSH_CROC (wss://HOST/ws, croc-web of your own
-  before croc relay), through HTTPS_PROXY. The bridge pipes the WebSocket to
-  one of croc's relays, which the pair's secret picks. The node passes croc's
-  own handshake: a PAKE on the curve SIEC with croc's public key, then the
-  relay's password and a room, in AES-GCM. It then waits in the first of the
-  pair's 4 rooms that no link of its own holds; the relay sends it a frame each
-  second while it waits. A client of the pair meets it there, and each proves
-  the pair's secret to the other before the resumable layer. This way a peer
-  that knows a room alone, as the relay does, is refused. The rooms and the
-  proof come from the pair's connect token. The node opens its next wait at
-  each meeting. It keeps the sessions of each road with one keeper, so that a
-  session resumes on any; its line names the bridge and, for the public one,
-  says that a volunteer's service that nobody vouches for carries the sessions
-  of this road. croc's relay keeps a room 3 h at most, and a waiting room only
-  while it has fewer than 128: the layer moves a session to a new room, and the
-  node waits again at once. PODSSH_CROC=no or PODSSH_LAST_RESORT=no turns the
-  road off. The bridge and the relay see the room, the sizes and the times; the
-  channel keeps the bytes from them.
+  there is croc-web's WebSocket bridge, through HTTPS_PROXY. That bridge is the
+  one that podssh's list of services names (wss://getcroc.com/ws, while the
+  list names it). PODSSH_CROC names another (wss://HOST/ws, croc-web of your
+  own before croc relay). The bridge pipes the WebSocket to one of croc's
+  relays, which the pair's secret picks. The node passes croc's own handshake:
+  a PAKE on the curve SIEC with croc's public key, then the relay's password
+  and a room, in AES-GCM. It then waits in the first of the pair's 4 rooms that
+  no link of its own holds; the relay sends it a frame each second while it
+  waits. A client of the pair meets it there, and each proves the pair's secret
+  to the other before the resumable layer. This way a peer that knows a room
+  alone, as the relay does, is refused. The rooms and the proof come from the
+  pair's connect token. The node opens its next wait at each meeting. It keeps
+  the sessions of each road with one keeper, so that a session resumes on any;
+  its line names the bridge and, for the public one, says that a volunteer's
+  service that nobody vouches for carries the sessions of this road. croc's
+  relay keeps a room 3 h at most, and a waiting room only while it has fewer
+  than 128: the layer moves a session to a new room, and the node waits again
+  at once. PODSSH_CROC=no or PODSSH_LAST_RESORT=no turns the road off. The
+  bridge and the relay see the room, the sizes and the times; the channel keeps
+  the bytes from them.
 
   In a build with the feature zerotier, a node of the pair's road also waits
   for the pair's operators on ZeroTier. It does so only with a TCP TARGET, the
@@ -4681,18 +4689,19 @@ podssh node
   operators at smee.io's server. It does so only with the resumable layer and
   the end-to-end channel (no --plain, no --no-e2e). This is the last fallback
   after the onion road, for a proxy that refuses the WebSocket upgrade. Its
-  server is podssh's listed one (none while the list names none), or the one of
-  PODSSH_SMEE (https://HOST[:PORT][/PREFIX], smee.io's server of your own). It
-  is reached over HTTPS by name on 443 through HTTPS_PROXY, with no account and
-  no upgrade. It reads its door, a channel whose name comes from the pair's
-  name and connect token, as a stream of server-sent events; a client's hello
-  there names a link. Each end then posts its way to a channel of that way, one
-  numbered frame of base64 in JSON at a time. Each reads the other's. While a
-  link runs the door waits, so the node holds two connections at most. Its line
-  names the server. For the listed one, it says that the server carries the
-  sessions of this road. It says too that anyone who knows a channel's name
-  sees the times and the sizes; the channel keeps the bytes. PODSSH_SMEE=no or
-  PODSSH_LAST_RESORT=no (for the listed server) turns the road off.
+  server is podssh's listed one (https://smee.io, while the list names it), or
+  the one of PODSSH_SMEE (https://HOST[:PORT][/PREFIX], smee.io's server of
+  your own). It is reached over HTTPS by name on 443 through HTTPS_PROXY, with
+  no account and no upgrade. It reads its door, a channel whose name comes from
+  the pair's name and connect token, as a stream of server-sent events; a
+  client's hello there names a link. Each end then posts its way to a channel
+  of that way, one numbered frame of base64 in JSON at a time. Each reads the
+  other's. While a link runs the door waits, so the node holds two connections
+  at most. Its line names the server. For the listed one, it says that the
+  server carries the sessions of this road. It says too that anyone who knows a
+  channel's name sees the times and the sizes; the channel keeps the bytes.
+  PODSSH_SMEE=no or PODSSH_LAST_RESORT=no (for the listed server) turns the
+  road off.
 
   In a build with the feature filehost (none of a release yet), a node of the
   pair's road waits at public file hosts too. There it waits for the pair's
@@ -5073,23 +5082,25 @@ podssh node
   key. The resumable layer carries the session on with no new check. podssh
   node NAME --grant-to KEY prints one on stdout and serves nothing: the node's
   key signs it for KEY (ssh-ed25519 BASE64, or its 64 hex digits), for its
-  TARGET or for --grant-route ROUTE. --grant-route +exit names the node's exit:
-  its caller goes out to public addresses alone, never to a range of --routes.
-  Port 25, private, loopback and metadata addresses are refused as podssh relay
-  serve refuses them. Its issuer is the node's key, or a member that may go out
-  through the exit itself. It is for --grant-for TIME (1h by default), with a
-  random serial; the operator gives it with podssh operator --grant FILE. An
-  issuer of --allow makes one with OpenSSH: ssh-keygen -s ISSUER -I ID -n
-  node:SHA256:... -O clear -O critical:once@podssh -V +1h KEY.pub. With
-  PODSSH_CACHE_DIR=none no use can be recorded, and each grant is refused. A
-  node with no --allow and no net says that the pair's token alone is its door.
-  A TARGET that is not SSH has no other gate behind it. The same door takes a
-  bearer of an operator's --bearer: a token of 30 s that a key signs for one
-  channel. Its signer is one that may issue a grant, for what that key may
-  reach itself. The node checks the bearer's signer, signature, life (10 s of
-  skew), operator key and channel. It keeps each bearer in memory for its life,
-  and refuses a second use. A bearer copied to another channel is refused: it
-  names the channel's binding. The node's log names the check that refused it.
+  TARGET or for --grant-route ROUTE. KEY may be a file of the line that podssh
+  keygen -y prints; a private key file is refused (exit 78). --grant-route
+  +exit names the node's exit: its caller goes out to public addresses alone,
+  never to a range of --routes. Port 25, private, loopback and metadata
+  addresses are refused as podssh relay serve refuses them. Its issuer is the
+  node's key, or a member that may go out through the exit itself. It is for
+  --grant-for TIME (1h by default), with a random serial; the operator gives it
+  with podssh operator --grant FILE. An issuer of --allow makes one with
+  OpenSSH: ssh-keygen -s ISSUER -I ID -n node:SHA256:... -O clear -O
+  critical:once@podssh -V +1h KEY.pub. With PODSSH_CACHE_DIR=none no use can be
+  recorded, and each grant is refused. A node with no --allow and no net says
+  that the pair's token alone is its door. A TARGET that is not SSH has no
+  other gate behind it. The same door takes a bearer of an operator's --bearer:
+  a token of 30 s that a key signs for one channel. Its signer is one that may
+  issue a grant, for what that key may reach itself. The node checks the
+  bearer's signer, signature, life (10 s of skew), operator key and channel. It
+  keeps each bearer in memory for its life, and refuses a second use. A bearer
+  copied to another channel is refused: it names the channel's binding. The
+  node's log names the check that refused it.
 
   With --ask, a person at the node's terminal lets each operator key in, after
   the node's door, on each road of the node: for each key that --allow, the net
@@ -6234,13 +6245,15 @@ podssh net
     [SUBCOMMAND]
         init, add, rm, renew, invite, policy set or clear and gateway set or
         rm, the owner's, each signing a new document; join, ls, show, take,
-        policy check or show and gateway show, each end's.
+        policy check, test, diff or show and gateway show, each end's.
     [NAME|KEY|FILE]...
         init NAME, the net's; add NAME KEY, a member and its key or
         fingerprint; rm NAME; invite NAME, a code for a new device, which join
         takes; take FILE, a document that its owner signed; policy check FROM
-        TO, policy show, policy set FILE, policy clear; gateway set NAME FILE,
-        a gateway's routes; gateway show NAME; gateway rm NAME.
+        TO, policy test FILE (its cases under the policy), policy diff POLICY
+        (what POLICY changes), policy show, policy set FILE, policy clear;
+        gateway set NAME FILE, a gateway's routes; gateway show NAME; gateway
+        rm NAME.
 
   Options:
     --owner-key FILE
@@ -8381,29 +8394,34 @@ podssh relay
   podssh relay serve is the relay itself, as a role of podssh: it serves the
   relay's forward road, the contract that podssh speaks (version
   2026-10-03-r2), on --listen ADDR:PORT. Its TLS is from --cert FILE and --key
-  FILE (a P-256 key in PEM), or from --acme NAME. So each podssh reaches it
-  with --relay-host and the CA that signed its certificate. It serves /health,
-  /v1/mint, /connect/HOST/PORT, /relays.json, /trace and /llms-full.txt, dials
-  a target only once its name resolves to public addresses (--allow-private
-  dials the others too; --routes RANGES, those inside its ranges alone,
-  ADDR/BITS or one address, separated by commas, each address of a name
-  checked, and never beside --allow-private; a prefix that sets bits past it,
-  as 10.0.0.5/8, is refused with the network that it names). It refuses port 25
-  in each case. It answers a name that does not resolve, or not to a public
-  address, with one 403 that names no address. The cause is a line on stdout.
-  It keeps the default relay's limits unless told: 180 s with no payload
-  (--idle SECONDS, 1 to 86400) and 12 hours (--session-hours H, 1 to 168). Also
-  64 MiB a session (--max-session-mib M, 1 to 4096) and 10 s to dial a target
-  (--connect SECONDS, 1 to 120). Also an empty frame each 25 s (--keepalive
-  SECONDS, 1 to 3600). /relays.json publishes the first four as they are, never
-  the keepalive. A value above the default moves this role's cut only: a client
-  keeps its own lower budgets and its own warning, as it only lowers them to
-  what /relays.json says. --mint anyone mints a token for each client; by
-  default it mints for no one (503), as its tokens are given another way. A
-  token lives until the relay stops. Each mint, upgrade and refusal is a line
-  on stdout, and so is each session's end: end client, end gone, or end close
-  CODE REASON. It listens because you ask it to, and PODSSH_LISTEN=no refuses
-  it; Ctrl-C or SIGTERM stops it.
+  FILE (a P-256 key in PEM), or from --acme NAME. A missing or unreadable FILE
+  stops the start (78). A key that others may read is named with its mode in
+  the first line, and served: a secret that a container mounts is often of mode
+  0644 and cannot be changed. So each podssh reaches it with --relay-host and
+  the CA that signed its certificate. It serves /health, /v1/mint,
+  /connect/HOST/PORT, /relays.json, /trace and /llms-full.txt, dials a target
+  only once its name resolves to public addresses (--allow-private dials the
+  others too; --routes RANGES, those inside its ranges alone, ADDR/BITS or one
+  address, separated by commas, each address of a name checked, and never
+  beside --allow-private; a prefix that sets bits past it, as 10.0.0.5/8, is
+  refused with the network that it names). It refuses port 25 in each case. It
+  answers a name that does not resolve, or not to a public address, with one
+  403 that names no address. The cause is a line on stdout. It keeps the
+  default relay's limits unless told: 180 s with no payload (--idle SECONDS, 1
+  to 86400) and 12 hours (--session-hours H, 1 to 168). Also 64 MiB a session
+  (--max-session-mib M, 1 to 4096) and 10 s to dial a target (--connect
+  SECONDS, 1 to 120). Also an empty frame each 25 s (--keepalive SECONDS, 1 to
+  3600). /relays.json publishes the first four as they are, never the
+  keepalive. Each limit ends one connection, a link. A session of the resumable
+  layer goes on: its client resumes it on a new link, so --idle ends an idle
+  link, never such a session. A value above the default moves this role's cut
+  only: a client keeps its own lower budgets and its own warning, as it only
+  lowers them to what /relays.json says. --mint anyone mints a token for each
+  client; by default it mints for no one (503), as its tokens are given another
+  way. A token lives until the relay stops. Each mint, upgrade and refusal is a
+  line on stdout, and so is each session's end: end client, end gone, or end
+  close CODE REASON. It listens because you ask it to, and PODSSH_LISTEN=no
+  refuses it; Ctrl-C or SIGTERM stops it.
 
   --cover DIR answers the role's own TLS name as a static site from DIR while
   the tunnel keeps the same name: index.html for /, each asset with its type,
@@ -8714,15 +8732,15 @@ podssh relay
   podssh ts in its relay mode takes it in the place of the operator's Tailscale
   relay. The flag of podssh ts that names a DERP server pins the node to this
   relay. Two nodes whose keys FILE lists meet here. FILE holds one node key a
-  line, nodekey:HEX (# starts a comment); it is read at the start, where a line
-  that is no key stops it (64). It is read again at each login, so that a key
-  added takes no restart. A key that it does not list is closed with 1008 not
-  authorized, which podssh ts reads as the refusal of its node key (77). Each
-  packet goes to the key that it names, 32 of them waiting for a receiver at
-  most; /derp/probe and /derp/latency-check answer an empty 200. The packets
-  are WireGuard's, sealed end to end: the relay sees keys, sizes and times.
-  Each login and each end is a line on stdout, with the key's first 8 hex
-  digits.
+  line, nodekey:HEX (# starts a comment); it is read at the start, where a
+  missing file or a line that is no key stops it (78). It is read again at each
+  login, so that a key added takes no restart. A key that it does not list is
+  closed with 1008 not authorized, which podssh ts reads as the refusal of its
+  node key (77). Each packet goes to the key that it names, 32 of them waiting
+  for a receiver at most; /derp/probe and /derp/latency-check answer an empty
+  200. The packets are WireGuard's, sealed end to end: the relay sees keys,
+  sizes and times. Each login and each end is a line on stdout, with the key's
+  first 8 hex digits.
 
   --relay-roads WORDS makes the relay the meeting point of a net, on its one
   listener. A net whose hosts let only port 443 in then needs neither n0's iroh
@@ -8993,7 +9011,9 @@ podssh relay
         again on SIGHUP or when it changes.
     --key FILE
         serve: the certificate's P-256 key, in PEM (EC PRIVATE KEY or PRIVATE
-        KEY), in a file that only its owner reads; read again with --cert.
+        KEY), in a file that only its owner should read; a key that others may
+        read is named, with its mode, as the role starts; read again with
+        --cert.
     --acme NAME
         serve: a certificate for NAME from an ACME CA (Let's Encrypt by
         default), in place of --cert and --key: proven by TLS-ALPN-01 on the
@@ -9025,10 +9045,11 @@ podssh relay
         serve: send each client an empty frame every SECONDS, 1 to 3600
         (default 25).
     --idle SECONDS
-        serve: end a session after SECONDS with no payload either way, 1 to
-        86400 (default 180, the default relay's); published in /relays.json as
-        idle_timeout_ms. A value above the default moves this role's cut only:
-        a client keeps its own lower budget.
+        serve: end a connection (one link) after SECONDS with no payload either
+        way, 1 to 86400 (default 180, the default relay's); a session of the
+        resumable layer resumes on a new link, so it lives on; published in
+        /relays.json as idle_timeout_ms. A value above the default moves this
+        role's cut only: a client keeps its own lower budget.
     --session-hours HOURS
         serve: end a session after HOURS, 1 to 168 (default 12); published as
         max_session_ms. Above the default, a client still stops at its own
@@ -12581,8 +12602,9 @@ ENVIRONMENT
       ciphertext. no: no road; a ws:// or wss:// URL: that bridge (croc-web of
       your own, its query relay=N&port=P when it names one, else relay 0 and
       port 9009), which PODSSH_LAST_RESORT does not turn off; unset, empty or
-      yes: the listed bridge, none while the list names none; another word is a
-      configuration error (78), which does not echo the value.
+      yes: the listed bridge, wss://getcroc.com/ws while the list names it;
+      another word is a configuration error (78), which does not echo the
+      value.
   PODSSH_ZEROTIER
       ZeroTier's road of a pair, in a build with the feature zerotier, the last
       fallback after croc's: an ad-hoc network of the pair's own through
@@ -12655,8 +12677,8 @@ ENVIRONMENT
       back, and the server sees ciphertext. no: no road;
       https://HOST[:PORT][/PREFIX]: that server (smee.io's server of your own),
       which PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the
-      server of podssh's list of services, none while the list names none;
-      another word is a configuration error (78), which does not echo the
+      server of podssh's list of services, https://smee.io while the list names
+      it; another word is a configuration error (78), which does not echo the
       value.
   PODSSH_ONION
       The onion road of a pair, in a build with the feature tor, the last
@@ -13490,11 +13512,13 @@ FILES
       fetched again too when each of its servers failed.
   the file of --allow
       The operator keys that may come in to podssh node, on each road: one key
-      on each line, as its fingerprint (SHA256:...) or in iroh's hex or base32,
-      then routes=ROUTE,... for the routes that it may use (routes=* for each),
-      then a comment if any; # starts a comment line. Read again for each
-      session. A file of the user that others cannot change; others may read
-      it.
+      on each line, as the line that podssh keygen -y prints (ssh-ed25519
+      BASE64), its fingerprint (SHA256:...), or its hex or base32. Then
+      routes=ROUTE,... for the routes that it may use, and those alone
+      (routes=* for each, and the TARGET with no route); a line with no routes=
+      reaches the TARGET with no route. Then a comment if any; # starts a
+      comment line. Read again for each session. A file of the user that others
+      cannot change; others may read it.
   podssh-ca.pem
       CA certificates in the directory of the podssh binary, added to the trust
       store.
@@ -13666,7 +13690,8 @@ EXIT STATUS
       podssh keygen: a key could not be made or read. podssh health
       --preflight: after the login, a check failed or the facts did not come.
       podssh play: the recording cannot be read, or its version is not one that
-      it plays.
+      it plays. podssh ping --nodes: some nodes answered and some did not (69
+      when none did).
   64
       A usage error: an unknown command or flag, a bad value, a missing
       argument. podssh did nothing.
@@ -13674,12 +13699,19 @@ EXIT STATUS
       podssh agent add-passphrase: the passphrase does not open the key file,
       or the file needs none; nothing is kept. podssh pipe: the bytes of a udp:
       address are not each datagram after its length. podssh containers: a tool
-      listed a name that podssh does not take, which is left out.
+      listed a name that podssh does not take, which is left out. podssh net: a
+      file or a document that cannot be used, nothing kept. Such a file is not
+      UTF-8, not JSON, too large, a policy or a gateway that is not valid, or a
+      signature that fails; add of a key that another member has; take of a
+      document that the rule of the store refuses; policy test: a case is
+      false; policy diff --exit-code: the new policy widens the old.
   66
       podssh cp and mv: a source is missing or cannot be read. podssh mv: a
       source that changed during the move, which stays. podssh chat: the file
       of --file or --sendfile cannot be read. podssh edit: the file is not on
-      the host. podssh sftp: the file of -b cannot be read.
+      the host. podssh sftp: the file of -b cannot be read. podssh net: the
+      FILE of take, policy set, test or diff, or gateway set is missing or
+      cannot be read.
   69
       podssh proxy: no relay host could be reached, or the relay ended the
       session abnormally. podssh node, operator and relay: the relay or TARGET

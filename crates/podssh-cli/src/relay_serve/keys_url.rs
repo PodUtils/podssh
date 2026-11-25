@@ -117,7 +117,7 @@ pub(crate) fn first(mint: &Mint) -> Result<String, Refusal> {
     let list = came.map_err(|why| Refusal::config(format!("--mint keys:{}: {why}", copy.shown())))?;
     let bad = match list.bad_lines() {
         [] => String::new(),
-        lines => format!("; lines {lines:?} hold no key, and let nobody in"),
+        lines => format!("; {}, and let nobody in", podssh_relay::identity::allow::bad_lines_said(lines)),
     };
     let (ttl, stale) = (copy.ttl().as_secs(), copy.stale().as_secs());
     let read = format!("fetched again each {ttl} s, and read {stale} s more while its server fails");

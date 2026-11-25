@@ -66,10 +66,11 @@ pub(super) const NODE: &[&str] = &[
      cache (node-NAME.key, or iroh-node-NAME.key of an earlier podssh). Or it is the file of --key, made when it \
      is missing; --ephemeral-key makes one for this run only. The node says its \
      fingerprint as it starts, and an operator pins it at the first sight. With --allow FILE, only the \
-     operator keys of FILE come in, on each road: one key or fingerprint on each line, read again for \
-     each session; a refused operator gets no byte of TARGET, and its key is said on stderr, as the \
+     operator keys of FILE come in, on each road: one key on each line, as podssh keygen -y prints it, or its \
+     fingerprint, read again for each session; a refused operator gets no byte of TARGET, and its key is said on stderr, as the \
      line to add. With no allowlist, each operator with the pair's connect token comes in, and its key \
-     is said. TARGET is dialled only once the operator's key is let in. --no-e2e carries the bytes with \
+     is said. A node that is a member of a net, with no allowlist, lets in the net's members alone, and says \
+     so. TARGET is dialled only once the operator's key is let in. --no-e2e carries the bytes with \
      no channel, to operators run with --no-e2e too: the relay then sees them.",
     "Routes: podssh node lab 127.0.0.1:22 web=127.0.0.1:8080 db=127.0.0.1:5432 offers each TARGET under its \
      route, here web and db. A route is a name of the form of a pair's, with one pair and one node for all; the \
@@ -77,7 +78,8 @@ pub(super) const NODE: &[&str] = &[
      (podssh operator NAME/ROUTE, podssh ssh node://NAME/ROUTE, iroh:TICKET/ROUTE). The name goes in the \
      end-to-end channel, so the relay never sees it and --no-e2e offers none. With --allow, a key reaches a \
      route only when its line says so: KEY routes=web,db, or routes=* for each; a key with no routes= reaches \
-     the TARGET with no route alone. A route that the node does not have, or that the key may not use, is \
+     the TARGET with no route alone. A line of routes=web,db reaches those routes alone, not the TARGET with no \
+     route; routes=* reaches both. Two lines of one key give it what each gives. A route that the node does not have, or that the key may not use, is \
      refused with the same words, before any dial. With no allowlist, each operator may use each route. Each \
      TARGET is dialled once at the start. A node of the channel serves its shares too: routes that podssh share \
      adds and removes while it runs. It reads them again for each session from node-NAME.shares in the cache or \
@@ -202,7 +204,9 @@ pub(super) const NODE: &[&str] = &[
      token alone, as the relay does, is thus refused before the resumable layer. The node keeps one connection \
      waiting there, and opens the next at each meeting. It keeps the sessions of both roads with one keeper, so \
      that a session resumes on either; its line names the relay. The relay sees the token, the sizes and the \
-     times; the channel keeps the bytes from it. A node of --derp with a pair waits there too.",
+     times; the channel keeps the bytes from it. A node of --derp with a pair waits there too. A node of a pair \
+     also waits, unasked, at croc's bridge and at smee.io's server, below, as last fallbacks. Its lines name each \
+     service; PODSSH_LAST_RESORT=no turns them off with the other last fallbacks.",
     super::notes_croc::NODE,
     super::notes_zerotier::NODE,
     super::notes_tox::NODE,

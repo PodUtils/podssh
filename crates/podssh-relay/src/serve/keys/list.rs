@@ -16,7 +16,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use crate::identity::allow::Allowlist;
+use crate::identity::allow::{self, Allowlist};
 use crate::serve::brake::Clock;
 
 /// How often a list of a URL is fetched again, by default.
@@ -52,7 +52,7 @@ impl List {
     /// which the role keeps for its owner.
     pub fn read(&self) -> Result<Allowlist, String> {
         match self {
-            List::File(path) => Allowlist::read(path),
+            List::File(path) => allow::read(path),
             List::Fetched(copy) => {
                 // A role whose binary did not start the fetches still gets them.
                 copy.start(None);
@@ -163,7 +163,7 @@ impl Fetched {
     /// copy to age. The new list, or why none came.
     pub fn put(&self, fetched: Result<Vec<u8>, String>, now: u64) -> Result<Allowlist, String> {
         let list = match String::from_utf8(fetched?) {
-            Ok(text) => Allowlist::parse(&text),
+            Ok(text) => allow::parse(&text),
             Err(_) => Allowlist::default(),
         };
         *lock(&self.copy) = Some(Held { list: list.clone(), at: now });

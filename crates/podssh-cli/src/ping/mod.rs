@@ -239,16 +239,48 @@ const NOT_REACHED: &str = "not reached; each try is said on stderr";
 /// which is the command line's fault. Never an empty line.
 /// A cause on one line: its own lines (a hint under it) joined by "; ".
 fn one_line(why: &str) -> String {
-    why.lines().map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("; ")
+    joined(why.lines())
+}
+
+/// Lines as one: each after "; ", but after a line that ends its own
+/// sentence or clause (".", ";" or ":"), after a space alone, so that no
+/// line reads ".;" (T-949).
+fn joined<'a>(parts: impl IntoIterator<Item = &'a str>) -> String {
+    let mut out = String::new();
+    for part in parts.into_iter().map(str::trim).filter(|l| !l.is_empty()) {
+        if !out.is_empty() {
+            out.push_str(if out.ends_with(['.', ';', ':']) { " " } else { "; " });
+        }
+        out.push_str(part);
+    }
+    out
 }
 
 fn unreached(not: &NotReached) -> (i32, String) {
     let code = if not.code == EX_USAGE { EX_USAGE } else { podssh_ssh::EXIT_FAILURE };
     // A line of the client can hold its own hint on a second line (the keys
     // that were tried): ping's result is one line, so each part is joined.
-    let lines: Vec<&str> = not.lines.iter().flat_map(|l| l.lines()).map(str::trim).filter(|l| !l.is_empty()).collect();
-    let why = if lines.is_empty() { NOT_REACHED.to_string() } else { lines.join("; ") };
+    let why = joined(not.lines.iter().flat_map(|l| l.lines()));
+    let why = if why.is_empty() { NOT_REACHED.to_string() } else { why };
     (code, why)
+}
+
+#[cfg(test)]
+mod joined_tests {
+    /// A line that ends its sentence is followed by a space, another by
+    /// "; ": the line of an unknown host reads "...SSH_ASKPASS). Its ...".
+    #[test]
+    fn lines_join_with_no_dot_before_a_semicolon() {
+        let why =
+            "'h' is not a known host, and there is no terminal (and no SSH_ASKPASS).\n  Its ED25519 key fingerprint \
+                   is SHA256:x.\n  If that is the right key, re-run";
+        let one = super::one_line(why);
+        assert!(!one.contains(".;"), "{one}");
+        assert!(one.contains("SSH_ASKPASS). Its ED25519"), "{one}");
+        assert_eq!(super::one_line("refused\n  the keys tried: a, b"), "refused; the keys tried: a, b");
+        assert_eq!(super::one_line("the cause:\n a hint"), "the cause: a hint");
+        assert_eq!(super::one_line("\n \n"), "");
+    }
 }
 
 /// The cold connects when asked, then log in: the echo and the throughput,

@@ -105,6 +105,7 @@ pub use pod_proxy::stun;
 pub mod text;
 pub mod tls;
 pub mod tls_server;
+pub mod tls_words;
 mod tls_wrap;
 // Trojan in TLS and in a WebSocket, to a server that the user runs (T-491).
 pub mod trojan;

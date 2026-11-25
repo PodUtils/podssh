@@ -20,7 +20,7 @@ use podssh_relay::code::exchange::{Done, Offer};
 use podssh_relay::code::phrase::TYPED_MOST;
 use podssh_relay::code::run::{self, Ends, Waits};
 use podssh_relay::code::{self, Code, Failed};
-use podssh_relay::identity::allow::Allowlist;
+use podssh_relay::identity::allow;
 use podssh_relay::identity::pins::{self, Seen};
 use podssh_relay::identity::{file, PublicKey};
 use podssh_relay::pair::{self, OperatorPart, Pair};
@@ -150,7 +150,7 @@ fn admitted(allow: Option<&Path>, label: &str, key: &PublicKey) -> (Done, String
 /// is missing: `false` when a line names it already.
 fn add_line(path: &Path, key: &PublicKey) -> Result<bool, String> {
     let text = cache::read_own(path, Others::Read)?.unwrap_or_default();
-    if Allowlist::parse(&text).admits(key) {
+    if allow::parse(&text).admits(key) {
         return Ok(false);
     }
     let start = if text.is_empty() || text.ends_with('\n') { "" } else { "\n" };
@@ -345,7 +345,7 @@ mod tests {
         let text = std::fs::read_to_string(&path).unwrap();
         assert_eq!(text.lines().count(), 1, "{text}");
         assert!(text.starts_with(&format!("{} # paired by a code, ", key.fingerprint())), "{text}");
-        assert!(Allowlist::parse(&text).admits(&key));
+        assert!(allow::parse(&text).admits(&key));
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;

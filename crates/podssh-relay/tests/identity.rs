@@ -163,6 +163,28 @@ fn the_node_reads_its_allowlist_again_for_each_session() {
     assert!(allow::admits(&path, &operator).is_err(), "a key taken away, at the next session");
 }
 
+/// The line that `podssh keygen -y` and `ssh-keygen -y` print for the key
+/// above (its fingerprint is OpenSSH's): an allowlist takes it, with its
+/// comment and its routes, as a node's `--allow` and a relay's
+/// `--mint keys:FILE` read it (T-938).
+const OPENSSH_LINE: &str = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHdptAMOaTFp3rJuCl4yqE1RCLZRfg3QXbDRPKUG6FSv";
+
+#[test]
+fn an_allowlist_takes_the_line_that_keygen_y_prints() {
+    let path = scratch("allow-openssh").join("allow");
+    let operator = key(OPENSSH_KEY);
+    assert_eq!(operator.fingerprint(), OPENSSH_FINGERPRINT);
+    write_own(&path, &format!("{OPENSSH_LINE} me@lab\n"));
+    assert_eq!(allow::admits(&path, &operator), Ok(()));
+    assert!(allow::grants(&path, &operator, "web").is_err(), "no routes= word: no route");
+    write_own(&path, &format!("# the laptop\n{OPENSSH_LINE} routes=web me@lab\n"));
+    assert_eq!(allow::grants(&path, &operator, "web"), Ok(()));
+    let list = allow::read(&path).unwrap();
+    assert!(list.bad_lines().is_empty(), "{:?}", list.bad_lines());
+    let said = allow::bad_lines_said(&[2]);
+    assert!(said.contains("keygen -y") && said.contains("SHA256:"), "the refusal names the forms: {said}");
+}
+
 #[cfg(unix)]
 #[test]
 fn an_allowlist_that_others_can_change_is_refused() {

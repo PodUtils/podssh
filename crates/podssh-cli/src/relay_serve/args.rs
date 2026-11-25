@@ -2,6 +2,7 @@
 //! value unparsed, as each module of the role parses its own.
 
 use super::publish;
+use crate::relay_settings::Refusal;
 
 /// The flags of `serve`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -144,5 +145,45 @@ impl ServeArgs {
     /// Whether a flag of `serve` was given, which another subcommand refuses.
     pub fn any(&self) -> bool {
         self != &ServeArgs::default()
+    }
+}
+
+/// `--listen ADDR:PORT` in its form, before anything is read (T-943): a word
+/// that is no address is a usage error (64); a name that does not resolve,
+/// or a port that is taken, is the host's answer at the bind (69).
+pub(super) fn listen_of(text: &str) -> Result<&str, Refusal> {
+    let bad = || {
+        Refusal::usage(format!(
+            "--listen {text:?}: not ADDR:PORT; give an address and a port, as 127.0.0.1:443, [::]:443 or \
+             127.0.0.1:0 (a free port)"
+        ))
+    };
+    if text.parse::<std::net::SocketAddr>().is_ok() {
+        return Ok(text);
+    }
+    let (host, port) = text.rsplit_once(':').ok_or_else(bad)?;
+    port.parse::<u16>().map_err(|_| bad())?;
+    // A name of the host: letters, digits, '-' and '.'; an IPv6 address goes
+    // in brackets, which SocketAddr read above.
+    let named = !host.is_empty() && host.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.');
+    named.then_some(text).ok_or_else(bad)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::listen_of;
+
+    /// A word that is no address is 64, before a bind; an address or a name
+    /// with a port goes on to the bind. One table, one rule.
+    #[test]
+    fn listen_is_an_address_and_a_port() {
+        for good in ["127.0.0.1:0", "[::]:443", "0.0.0.0:8443", "localhost:8080", "relay.example:443"] {
+            assert_eq!(listen_of(good).map_err(|r| r.message), Ok(good), "{good}");
+        }
+        for bad in ["nonsense", "", ":443", "127.0.0.1", "127.0.0.1:", "127.0.0.1:99999", "::1:443", "a b:1", "h:-1"] {
+            let refused = listen_of(bad).unwrap_err();
+            assert_eq!(refused.code, crate::exit_codes::EXIT_USAGE, "{bad}");
+            assert!(refused.message.starts_with(&format!("--listen {bad:?}: not ADDR:PORT")), "{}", refused.message);
+        }
     }
 }

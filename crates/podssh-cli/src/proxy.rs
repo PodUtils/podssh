@@ -485,6 +485,8 @@ async fn session(
 pub fn sysexit(e: &OpenError) -> i32 {
     match e {
         OpenError::Token(TokenError::BadEnvironment) => EX_CONFIG,
+        // A relay that mints for a list of keys refuses this key (T-940).
+        OpenError::Token(TokenError::Failed { status: 401 | 403, .. }) => EX_NOPERM,
         OpenError::Token(TokenError::Connect(c)) | OpenError::Connect { error: c, .. } => match c {
             ConnectError::Config(_) | ConnectError::Dial(DialError::BadProxy(_)) => EX_CONFIG,
             ConnectError::Refused { status: 401 | 403, .. } => EX_NOPERM,

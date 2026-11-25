@@ -190,7 +190,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:388-389`,
 5. The node prints its ticket and its fingerprint on stderr when it starts.
    `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1390`).
 6. Add the key files to FILES in the manual
-   (`crates/podssh-cli/src/man/data_files.rs:13-362`), and each new variable to
+   (`crates/podssh-cli/src/man/data_files.rs:13-364`), and each new variable to
    `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-284`).
 
 ## Decision
@@ -7164,7 +7164,7 @@ ask, and nothing does so.
 ## Premise
 
 - Read: the node of the iroh road serves the pair's road beside it, with one keeper for both
-  (`crates/podssh-cli/src/node_iroh.rs:384-385`), and `podssh node` sends `--iroh` there
+  (`crates/podssh-cli/src/node_iroh.rs:388-389`), and `podssh node` sends `--iroh` there
   (`crates/podssh-cli/src/node.rs:129-131`).
 - Read: `podssh ssh` resolves its destination into an enum of transports
   (`crates/podssh-cli/src/ssh/transport_kind.rs:10-74`), in a file of 488 of its 500 lines.

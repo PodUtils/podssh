@@ -15,7 +15,8 @@ pub(super) const NODE: &str = "A node lets in an operator with a grant used once
      crash between the two spends it. A grant that leaks is worth nothing without its key. \
      The resumable layer carries the session on with no new check. podssh node NAME --grant-to KEY prints \
      one on stdout and serves nothing: the node's key signs it for KEY (ssh-ed25519 BASE64, or its 64 hex \
-     digits), for its TARGET or for --grant-route ROUTE. --grant-route +exit names the node's exit: its caller \
+     digits), for its TARGET or for --grant-route ROUTE. KEY may be a file of the line that podssh keygen -y \
+     prints; a private key file is refused (exit 78). --grant-route +exit names the node's exit: its caller \
      goes out to public addresses alone, never to a range of --routes. Port 25, private, loopback and metadata \
      addresses are refused as podssh relay serve refuses them. Its issuer is the node's key, or a member that may \
      go out through the exit itself. It is for --grant-for TIME (1h by default), with a \

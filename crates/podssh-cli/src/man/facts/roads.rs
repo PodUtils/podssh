@@ -52,8 +52,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           podssh ssh node://NAME meets it there when each other road failed. Its rooms and the proof of the \
           pair come from the pair's connect token; the relay sees ciphertext. no: no road; a ws:// or wss:// \
           URL: that bridge (croc-web of your own, its query relay=N&port=P when it names one, else relay 0 and \
-          port 9009), which PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the listed bridge, none \
-          while the list names none; another word is a configuration error (78), which does not echo the value.",
+          port 9009), which PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the listed bridge, \
+          wss://getcroc.com/ws while the list names it; another word is a configuration error (78), which does not echo the value.",
     ),
     (
         &["PODSSH_ZEROTIER"],
@@ -116,8 +116,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           pair's road. podssh ssh node://NAME posts a hello there when each other road failed; each way of a \
           link is a POST for each frame and a stream of server-sent events back, and the server sees ciphertext. \
           no: no road; https://HOST[:PORT][/PREFIX]: that server (smee.io's server of your own), which \
-          PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the server of podssh's list of services, none \
-          while the list names none; another word is a configuration error (78), which does not echo the value.",
+          PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the server of podssh's list of services, \
+          https://smee.io while the list names it; another word is a configuration error (78), which does not echo the value.",
     ),
     (
         &["PODSSH_ONION"],

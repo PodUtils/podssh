@@ -150,10 +150,12 @@ pub(super) fn open(
         }
         chosen
     };
+    // A directory that is missing or unread is a fault of the host's files
+    // (78), as a missing --cert is (T-943).
     if !Path::new(dir).is_dir() {
-        return Err(Refusal::usage(format!("{FLAG} {dir}: not a directory")));
+        return Err(Refusal::config(format!("{FLAG} {dir}: not a directory")));
     }
-    let site = Site::load(dir).map_err(|e| Refusal::usage(format!("{FLAG} {dir}: {e}")))?;
+    let site = Site::load(dir).map_err(|e| Refusal::config(format!("{FLAG} {dir}: {e}")))?;
     let (name, owned) = names.split_first().expect("a cover has a name");
     Cover::new_covered(site, name, owned, issuer, server, script)
         .map_err(|why| Refusal::usage(format!("{FLAG} {dir}: {why}")))
@@ -193,7 +195,7 @@ pub(super) fn of(
     }
     if args.sshd.is_some() {
         return Err(Refusal::usage(
-            "--sshd goes not with --cover: an SSH client of this port would name the role that the cover hides",
+            "--sshd does not go with --cover: an SSH client of this port would name the role that the cover hides",
         ));
     }
     let facts = certs.facts();

@@ -208,3 +208,24 @@ fn the_manual_lists_each_rate_of_serial_that_the_parser_takes() {
         assert!(bauds.contains(n), "the manual lists {n}, which the parser refuses");
     }
 }
+
+/// EXIT STATUS names each code that `podssh net` and `ping --nodes` give
+/// (T-946): one row of the table for each code, and the command in it.
+#[test]
+fn exit_status_names_the_codes_of_net_and_ping_nodes() {
+    use super::super::data::{exit_codes, Code};
+    use crate::exitmap::sysexits::{EX_DATAERR, EX_NOINPUT};
+    let rows = exit_codes();
+    let words_of = |code: i32| {
+        rows.iter().find(|(c, _)| matches!(c, Code::Value(n) if *n == code)).map(|(_, w)| w.clone()).unwrap_or_default()
+    };
+    for (code, said) in [
+        (EX_DATAERR, "podssh net: a file or a document that cannot be used"),
+        (EX_DATAERR, "add of a key that another member"),
+        (EX_DATAERR, "policy test: a case is false"),
+        (EX_NOINPUT, "podssh net: the FILE of take, policy set"),
+        (crate::doctor::EXIT_FAILED, "podssh ping --nodes: some nodes answered"),
+    ] {
+        assert!(words_of(code).contains(said), "{code}: {said}");
+    }
+}

@@ -4,7 +4,7 @@
 
 use iroh::{PublicKey, SecretKey};
 use pod_iroh::keys::{self, Place};
-use pod_iroh::Allowlist;
+use podssh_relay::identity::allow;
 use podssh_relay::identity::PublicKey as IdentityKey;
 use podssh_relay::session::OsEntropy;
 
@@ -28,15 +28,17 @@ pub(crate) fn who_may(allow: Option<&std::path::Path>) -> String {
     let Some(path) = allow else {
         return "no client may connect over the iroh road: --allow FILE names the client keys that may, one on each line".into();
     };
-    match Allowlist::read(path) {
+    // podssh's grammar of a key, as the relay's road reads the same file
+    // (T-938): pod-iroh's list reads a key in one word.
+    match allow::read(path) {
         Ok(list) if list.bad_lines().is_empty() => {
             format!("{} client keys may connect ({})", list.len(), path.display())
         }
         Ok(list) => format!(
-            "{} client keys may connect ({}); lines {} are not keys",
+            "{} client keys may connect ({}); {}",
             list.len(),
             path.display(),
-            lines(list.bad_lines())
+            allow::bad_lines_said(list.bad_lines())
         ),
         Err(why) => format!("no client may connect yet: {why}"),
     }
@@ -60,8 +62,8 @@ pub(crate) fn admits(
         say(format!("refused the client key {shown}: no --allow file"));
         return false;
     };
-    match Allowlist::read(path) {
-        Ok(list) if list.admits(key) => {
+    match allow::read(path) {
+        Ok(list) if list.admits(&keys::identity_key(key)) => {
             say(format!("the client key {shown} connected"));
             true
         }
@@ -74,8 +76,4 @@ pub(crate) fn admits(
             false
         }
     }
-}
-
-fn lines(numbers: &[usize]) -> String {
-    numbers.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
 }

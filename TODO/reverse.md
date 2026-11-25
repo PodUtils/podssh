@@ -766,7 +766,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:7309`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:7318`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -904,7 +904,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:823-826`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:365`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:7305-7309`).
+`podssh proxy` sysexits (`docs/cli.md:7314-7318`).
 
 ## Approach
 
@@ -1769,8 +1769,8 @@ The command line: the targets at `crates/podssh-cli/src/node.rs:251-288`,
 `NAME/ROUTE` at `crates/podssh-cli/src/node.rs:290-305`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/node.rs:305-313`; the channel's glue at
-`crates/podssh-cli/src/channel.rs:379-388` and
-`crates/podssh-cli/src/channel.rs:433-457`; `node://NAME/ROUTE` at
+`crates/podssh-cli/src/channel.rs:387-396` and
+`crates/podssh-cli/src/channel.rs:441-465`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
 `crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
@@ -2679,7 +2679,7 @@ documents works; the form that a user expects is missing.
   (`crates/podssh-ws/src/names.rs:41`). The issue's prefix `podssh ssh:` is not this code's,
   which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:166`); not reproduced.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
-  (`crates/podssh-cli/src/man/notes_pair.rs:342-344`), and `pipe` takes `node:NAME`
+  (`crates/podssh-cli/src/man/notes_pair.rs:346-348`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
   byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:410`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of
@@ -3078,7 +3078,7 @@ to go on. A feature.
   (`crates/podssh-cli/src/relay_cmd.rs` lines 235-239 at `2608b91`), as it did at `35a0d19`; the
   issue's claim holds where no pair is stored under NAME, as on an operator's host.
 - Read: it reads the pair from the store alone (`crates/podssh-cli/src/relay_cmd.rs` line 229 at
-  `2608b91`, `crates/podssh-cli/src/pairs.rs:36-44`); `relay` takes no `--pair-file`, and `--operator-file`
+  `2608b91`, `crates/podssh-cli/src/pairs.rs:42-50`); `relay` takes no `--pair-file`, and `--operator-file`
   goes with `pair` alone (`crates/podssh-cli/src/relay_cmd.rs:147-150`).
 - Read: the relay answers `/v1/status/<name>` to the connect token
   (`PodUtils/podssh:crates/podssh-relay/src/pair.rs:202-206`), which the operator's part holds.
@@ -4761,7 +4761,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
-  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:421` says "let (ours, mut theirs)
+  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:429` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
   each run (`crates/podssh-cli/src/node_quick_relay.rs:103` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.
@@ -5537,3 +5537,822 @@ socket to the new process, as the manual says.
   the child as a TCP one does changes with the result.
 - Waits for T-251, planted: `duplicate` made to fail always (its call's result taken as an error) must make the new test
   fail with the line "its Unix socket did not go to the new binary".
+
+# T-938: An allowlist and a relay's key list refuse the line that `podssh keygen -y` prints, and `--grant-to` takes a private key file
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The manual says that `podssh keygen -y` gives "the line that --grant-to and an allowlist take". `podssh node --allow
+FILE` and `podssh relay serve --mint keys:FILE` refuse that line, `ssh-ed25519 BASE64 [comment]` ("lines [1] are not
+keys"); only `SHA256:...` and 64 hex digits work there, and the refusal does not say which forms do. `--grant-to`
+takes the line. Each place that takes a key reads its own grammar.
+
+`podssh node NAME --grant-to FILE` with a podssh private key file (one line of the 64 hex digits of a seed) reads the
+seed as a public key, and mints a grant for a key that nobody holds.
+
+## Premise
+
+- Read: the allowlist of `pod-identity` reads a key in one word (`KeyName::parse`, PodUtils/podcrates:crates/pod-identity/src/allow.rs,
+  `parse_with`); `ssh-ed25519` is no key, so the whole line is a bad one. The relay role's list is the same reader
+  (`crates/podssh-relay/src/serve/keys/list.rs:55`), and so is the iroh road's (`pod_iroh::Allowlist`).
+- Read: `--grant-to` reads OpenSSH's line with `grant::parse_public` (`crates/podssh-cli/src/grants.rs:266`), and
+  `keygen -y` prints it for podssh's own key file (`crates/podssh-cli/src/keygen_convert.rs:148`).
+- Read: `--temporary` and `--node-key` read one word with `KeyName::parse`, and name their forms in their own words.
+- Read: `grantee` reads the first line of a file with `grant::parse_public`, which takes 64 hex digits as a key; the
+  key file that `pod-identity` writes is the seed in 64 hex digits and a newline.
+
+## Approach
+
+1. One grammar of a key in podssh's glue, `crates/podssh-relay/src/identity/allow.rs` (it shadows
+   `pod_identity::allow`): `normalised` makes a line that begins with OpenSSH's public line the key's 64 hex digits
+   and its other words, one line out for each line in, before the crate reads it; `read`, `parse`, `admits` and
+   `grants` read through it; `key_name` reads an argument (OpenSSH's line with a comment, or one word); `FORMS` names
+   the forms for each refusal; `bad_lines_said` says the bad lines with the forms.
+2. Each place reads through it: the node's `--allow` (`crates/podssh-cli/src/channel.rs:398`, and the grants' door),
+   the iroh road's door (`crates/podssh-cli/src/node_iroh_door.rs`), the relay role's list of a file or a URL, the
+   code's allowlist (`crates/podssh-cli/src/relay_code.rs`), `--temporary`, `--node-key` and `net add`.
+3. `--grant-to FILE`: a file of 64 hex digits alone is refused (78) as podssh's private key file, with the
+   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:293`).
+4. The manual (the file of `--allow`, the node's paragraph of `--allow`, the grant's paragraph) and `docs/cli.md`
+   say the forms.
+
+## Decision
+
+- The glue normalises the line before the crate reads it, rather than a copy of the crate's parser: the crate stays
+  the one reader of a key's word, routes and comments. The crate's part is asked of podcrates (below); when
+  `KeyName`/`Allowlist` read OpenSSH's line, the glue's `normalised` goes.
+- A line `ssh-ed25519 BASE64 routes=web comment`: `routes=` stays the word right after the key, as for each other
+  form. OpenSSH's options before the key type (`authorized_keys`) are not read: a node's allowlist is not sshd's.
+- An argument of another form than OpenSSH's takes one word: a stray word would hide a key that is not the one
+  meant (a pasted fingerprint with its comment is refused, with the forms).
+- `--grant-to FILE` refuses each file of 64 hex digits alone, not only a file of mode 0600 or of a name `*.key`: the
+  rule is the content, the same on each system. Lost: a public key in hex kept in a file; it is given as an argument,
+  or as its OpenSSH line, which the refusal says. The same 64 hex digits as an argument stay a key.
+- Ask of podcrates (a COORD issue): `pod_identity::KeyName::parse` and `allow::Allowlist::parse_with` read
+  OpenSSH's public line (`ssh-ed25519 BASE64`, then the routes and the comment), and `pod_iroh::Allowlist` with
+  them; the refusal of a bad line names the forms.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --lib identity::allow
+cargo test -p podssh-relay --test identity
+cargo test -p podssh-cli --lib grants
+cargo test -p podssh-cli --lib relay_code
+cargo test -p podssh-cli --test channel_cli --test upgrade --test net --test chat_cli
+```
+
+The table of forms: each form of a key lets it in, the routes after it count, a bad line is named by its number. The
+key that OpenSSH made, as its line, with a comment and with `routes=web`: admitted and granted. `--grant-to` of a seed
+file: 78 and the `keygen -y` words; of a file of the public line: the key. The refusals of `--node-key`,
+`--temporary` and `net add` still say "not a key". By hand: `podssh keygen -y` of a client key into `--allow` and into
+`relay serve --mint keys:FILE`; `podssh relay pair` with that key then mints.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- New: `crates/podssh-relay/src/identity/allow.rs` (the grammar, its unit tests); the test
+  `an_allowlist_takes_the_line_that_keygen_y_prints` in `crates/podssh-relay/tests/identity.rs` (OpenSSH's line of
+  the test's OpenSSH key, computed from its bytes; its fingerprint is OpenSSH's).
+- Changed: `crates/podssh-relay/src/identity.rs` (`pub mod allow`), `crates/podssh-relay/src/serve/keys/list.rs`,
+  `crates/podssh-cli/src/channel.rs`, `crates/podssh-cli/src/node_iroh_door.rs`, `crates/podssh-cli/src/node_temp.rs`,
+  `crates/podssh-cli/src/net/edit.rs`, `crates/podssh-cli/src/relay_code.rs`, `crates/podssh-cli/src/relay_serve.rs`,
+  `crates/podssh-cli/src/relay_serve/keys_url.rs`, `crates/podssh-cli/src/grants.rs` (`is_seed_file`, a test);
+  the manual (`crates/podssh-cli/src/man/data_files.rs`, `notes_pair.rs`, `notes_grant.rs`) and `docs/cli.md`.
+- Unsure to compile: `PublicKey(key.try_into().ok()?)` from a slice; the shadowing of `allow` by a local module beside
+  `pub use pod_identity::*`. UNVERIFIED: each Prove line; `llms-full.txt` written again for the manual's change.
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-939: A refused new pair is said as a stopped one, and a spent token of `--once` as an expired pair
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh relay pair` against a relay of `--mint keys:FILE` that does not list this client's key says "the relay
+refused the token (403 reverse: forbidden): the pair is stopped or has expired", though no pair existed; the relay
+said "/v1/mint: the key ... is not on this relay's list". After the connect token of a pair of `--once` took its one
+upgrade, `podssh operator` and `podssh relay status` say "stopped, or has expired": the pair is neither.
+
+## Premise
+
+- Read: `pod-relay` maps each `403` of a pairing call to `PairError::Forbidden`, which holds no body and says "the
+  pair is stopped or has expired" (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `refused` and the `Display` of
+  `PairError`); `create_by` maps the `403` of `/v1/pair` the same (PodUtils/podcrates:crates/pod-relay/src/pair/once.rs).
+- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:86`), for `relay pair`
+  (`crates/podssh-cli/src/relay_cmd.rs:288`) and `relay status`; an operator's `403` at the upgrade had its own words,
+  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:264`).
+- Read: the store keeps no mark of `--once`, so the operator cannot tell a spent token from a stopped pair.
+
+## Approach
+
+1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:110`): a `403` of a request for a new pair says that the relay
+   refused to make a pair, that a relay of `--mint keys:FILE` or `net` makes pairs for the keys of its list alone, and
+   this client's fingerprint, with `podssh keygen -y` for the owner's list. Exit 77 as before.
+2. `refusal`: a `403` of a pair's token names each cause that gives it, the spent token of `--once` among them.
+3. `connect_refusal`: the relay's own body after the status, then the same causes.
+
+## Decision
+
+- The relay's own words of `/v1/pair` cannot reach podssh while the crate keeps none: asked of podcrates (a COORD
+  issue): `PairError::Forbidden` takes a `detail`, the relay's body as `RateLimited` and `NotIssued` keep it, and its
+  words name no pair for `/v1/pair`; the store keeps whether a pair's connect token takes one upgrade, so that a
+  `403` of such a pair names the spent token alone. Until then the glue names this client's key, which is the fact
+  that the owner needs, and each cause of a token's `403`.
+- No new exit: a refusal of the relay stays 77.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib pairs
+cargo test -p podssh-cli --test relay_serve --test operator
+```
+
+The unit tests: a refused new pair starts "the relay refused to make a pair (403)" and names no expiry (77); a
+refused token names `--once`; an operator's `403` keeps the relay's words. By hand against `podssh relay serve --mint
+keys:FILE` with another key: `podssh relay pair lab` names this client's fingerprint; `relay pair lab --once`, one
+operator, then `relay status lab` names the spent token of `--once`.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/pairs.rs` (`refusal`, `TOKEN_ENDED`, `made_refusal`, `connect_refusal`, tests),
+  `crates/podssh-cli/src/relay_cmd.rs` (`relay pair` takes `made_refusal`).
+- UNVERIFIED: each Prove line; a test of a process that pins the old words (none found by a search).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-940: `podssh proxy` exits 69 when the relay refuses to mint for its key, though a refusal of the relay is 77
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve --mint keys:FILE` (the binary and
+the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh proxy` through a relay whose `--mint keys:FILE` does not list this client's key exits 69, as if no relay
+answered. The manual's EXIT STATUS gives 77 to a refusal of the relay, and the same refusal at the upgrade is 77.
+
+## Premise
+
+- Read: `pod-relay` gives the `403` of `/v1/mint` as `TokenError::Failed { status: 403, .. }`
+  (PodUtils/podcrates:crates/pod-relay/src/token.rs, `TokenError`).
+- Read: `sysexit` (`crates/podssh-cli/src/proxy.rs:487`) mapped `TokenError::Failed` to `EX_UNAVAILABLE` (69); a
+  `401` or `403` of the upgrade was `EX_NOPERM` (77). `relay_layer.rs` already reads a mint's `401`/`403` as a refusal
+  (`crates/podssh-cli/src/relay_layer.rs:386`). `ssh`, `pipe`, `chat` and the layer take the same map.
+
+## Approach
+
+`sysexit` maps a mint's `401` and `403` to 77; a table test (`crates/podssh-cli/tests/proxy_exit.rs`) holds each row
+of the map against EXIT STATUS.
+
+## Decision
+
+- 401 and 403 of the mint are 77, as at the upgrade: a retry with the same key gets the same answer, and the owner's
+  list is the remedy. Another status of the mint stays 69 (a relay that failed).
+- The test is a new file: `proxy.rs` is at 500 lines.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test proxy_exit --test proxy
+```
+
+The table passes; on the code before, the rows of `failed(403)` and `failed(401)` fail with 69. By hand: `podssh proxy
+HOST 22` through `podssh relay serve --mint keys:FILE` with another key exits 77.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/proxy.rs` (`sysexit`). New: `crates/podssh-cli/tests/proxy_exit.rs`.
+- UNVERIFIED: each Prove line; whether `OpenError`, `TokenError` and `ConnectError` are built as the test builds them
+  (their fields as read in the crates).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-941: A node of a net with no `--allow` says that each operator with the pair's connect token may come in
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only): `podssh node` with `--net-url`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A node that is a member of its net (here by `--net-url`) and has no `--allow` says both "each operator with the
+pair's connect token may come in, and its key is said" and the net's line ("a member of the net ... its N other
+members may come in"). The first is untrue: such a node refuses each key that is not a member. On the iroh road the
+node says "no client may connect over the iroh road", though the net's members may.
+
+## Premise
+
+- Read: `admit` (`crates/podssh-cli/src/net/admit.rs`) refuses a key that is no member when the node is one and has
+  no `--allow` (`Verdict::Refused` with `allow` none is `Err`); a net of `--net-url` whose copy is too old refuses each
+  key (`door_closed`, `crates/podssh-cli/src/net/remote.rs:334`).
+- Read: `node` (`crates/podssh-cli/src/channel.rs:321`) said `who_may` before the net's line in each case; the iroh
+  node did the same (`crates/podssh-cli/src/node_iroh.rs:337`).
+
+## Approach
+
+1. `channel::node`: with no `--allow`, a node of a net says the net's line alone; a net of `--net-url` whose door is
+   closed says why; the line of the open door (the pair's token alone) only when neither is so.
+2. The iroh node: with no `--allow`, a member says the net's line alone.
+3. The manual's paragraph of `--allow` says that a member of a net with no allowlist lets in the net's members alone.
+
+## Decision
+
+The net's line replaces the line of the pair's token, rather than a corrected sentence beside it: the net's line
+already says who comes in, and two lines of the door that differ are the confusion found. A node of `--net-url` that
+is no member of the net keeps the line of the pair's token: the net says nothing of its door (`Verdict::Outside`).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_net_url
+cargo test -p podssh-cli --test node --test channel_cli
+```
+
+`node_net_url`: the node as the member m31 (its key's seed in a file of `--key`), no `--allow`: its log holds "a
+member of the net fleet as m31" and not "each operator with the pair's connect token may come in". A node with no net
+still says the line of the pair's token (the tests of `node`).
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/channel.rs` (`node`), `crates/podssh-cli/src/node_iroh.rs`,
+  `crates/podssh-cli/src/man/notes_pair.rs`, `crates/podssh-cli/tests/node_net_url.rs` (`node_until`, the case of m31).
+- UNVERIFIED: each Prove line; whether a node of `--carrier stdio` says its door's lines before its stdin ends (the
+  test waits for the grants' line, which `channel::node` says last).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-943: `relay serve`: a malformed `--listen` exits 69, a missing `--derp-keys` file 64, and a key that others read only warns
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- `podssh relay serve --listen nonsense` exits 69, the code of a relay that cannot be reached; a malformed address is
+  a usage error (64).
+- `--derp-keys /nonexist` exits 64, while a missing `--cert` or `--key` exits 78: a missing file is a fault of the
+  host's files, one code for each. `--cover DIR` that is missing is 64 too.
+- `--key` of mode 0644 only warns, though the help says "a file that only its owner reads"; `--pair-file` refuses such
+  a file (78).
+
+## Premise
+
+- Read: `prepare` handed `--listen` to `TcpListener::bind` as it came, and `bind_then_drop` maps each failure to 69
+  (`crates/podssh-cli/src/relay_serve.rs:234`).
+- Read: `derp::of` mapped each failure of the file to `Refusal::usage` (`crates/podssh-cli/src/relay_serve/derp.rs:15`);
+  `cover::of` said a missing directory with `Refusal::usage`.
+- Read: T-827 chose a warning for a key that others may read (`crates/podssh-cli/src/relay_serve/certs.rs:167`); its
+  record says the help's words allow it.
+
+## Approach
+
+1. `args::listen_of` (`crates/podssh-cli/src/relay_serve/args.rs:154`): `ADDR:PORT`, `[V6]:PORT` or `NAME:PORT` with a
+   port of 0 to 65535, before anything is read; another word is 64 with the forms. A name that does not resolve and a
+   port that is taken stay the bind's (69). A table test.
+2. `--derp-keys`: a file that is missing, unreadable or holds a line that is no key is 78; `--cover DIR` missing or
+   unreadable is 78. The manual's 64 of `--derp-keys` is 78.
+3. `--key`: the warning stays, and the help and the manual say why.
+
+## Decision
+
+- A key that others may read is served with the warning, not refused: a secret that a container mounts (Kubernetes'
+  `defaultMode` is 0644, a read-only mount) often cannot be made 0600, and the role is the relay of such a host; the
+  first line names the mode and `chmod 600`. `--pair-file` is a client's file in the user's own place, where `chmod`
+  always works. The help now says "should read", and the manual gives the reason. Lost: the refusal that the help's
+  old words asked.
+- A name in `--listen` is taken as it was (`localhost:8080`): the bind resolves it, and its failure is the host's.
+- A cover's content that the site refuses (`Cover::new_covered`) stays 64: it is an argument's fault, a name, not a
+  file's.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib relay_serve
+cargo test -p podssh-cli --test relay_serve --test cover_refusal
+```
+
+`listen_is_an_address_and_a_port`: each good form passes; `nonsense`, `:443`, `127.0.0.1:99999`, `::1:443` and the
+others are 64 with "not ADDR:PORT". By hand: `relay serve --listen nonsense` exits 64; `--derp-keys /nonexist` 78;
+`--cover /nonexist` 78; `--key` of mode 0644 serves, and its first line names the mode.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/relay_serve/args.rs` (`listen_of`, its test), `crates/podssh-cli/src/relay_serve.rs`,
+  `crates/podssh-cli/src/relay_serve/derp.rs`, `crates/podssh-cli/src/relay_serve/cover.rs`,
+  `crates/podssh-cli/src/flags/relay.rs` (the help of `--key`), `crates/podssh-cli/src/man/notes_relay.rs`.
+- UNVERIFIED: each Prove line; a test of a process that pins 64 for `--derp-keys` or a missing `--cover` (none found).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-944: A refused certificate is said in rustls's `Debug` names ("Other(OtherError(CaUsedAsEndEntity))")
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` whose certificate is a CA's, used as
+the server's own (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh relay status` (and `info`, `spec`, `conform`) against that relay says "invalid peer certificate:
+Other(OtherError(CaUsedAsEndEntity))": the `Debug` text of Rust's types, not words. `UnknownIssuer` alone has a hint.
+
+## Premise
+
+- Read: rustls 0.23.46 writes a `CertificateError` with no `Display` arm of its own as its `Debug`, and each error of
+  rustls-webpki as `Other(OtherError(NAME))`; `pod-tls`'s `handshake_failure` keeps that text and adds a hint for an
+  unknown issuer and a clock (PodUtils/podcrates:crates/pod-tls/src/hint.rs, `handshake_hint`, `cause`).
+- Read: podssh-ws took the text as it came, in `handshake_failure` (`crates/podssh-ws/src/tls.rs:129`) and in the
+  `why` of `ConnectError::Tls` (`crates/podssh-ws/src/tls.rs:148`), which each road and `relay status` say.
+
+## Approach
+
+`crates/podssh-ws/src/tls_words.rs`: one table of each `Debug` name of rustls 0.23's `CertificateError` and of
+rustls-webpki 0.103's `Error`, with its words; `plain` puts the words in place of the name after "invalid peer
+certificate: ", also inside `Other(OtherError(..))` and with its fields; a name that the table lacks gets words that
+say a certificate was refused, then its name. `handshake_failure` and `connect_error` take it. The hints of pod-tls
+are made before, from the raw text, so they stay.
+
+## Decision
+
+- The table is podssh's glue, after the crate's words, not a copy of `pod-tls`: the crate has no such table to copy.
+  Asked of podcrates (a COORD issue): `pod_tls::handshake_failure` and `cause` say each variant of rustls's
+  `CertificateError` and of rustls-webpki's `Error` in words, by one table; podssh's `tls_words` then goes.
+- The words keep "expired" and "not valid yet", which `clock_refused` reads, so the clock's hint stays where it was.
+- A name that a later rustls adds keeps its name, after words: a line with the name is still searchable, and the
+  table's test lists each variant of the versions in `Cargo.lock`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --lib tls_words
+cargo test -p podssh-ws --lib tls
+cargo test -p podssh-cli --lib doctor::relay_checks
+```
+
+Each name of the table, alone and inside `Other(OtherError(..))`, comes out in its words with the text after it kept;
+each variant of rustls's own with no fields is in the table; fields and braces go; an unknown name is kept after
+words. By hand: `podssh relay status` against `relay serve` with a CA's certificate as its own says "a CA's
+certificate served as the server's own".
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- New: `crates/podssh-ws/src/tls_words.rs` (the table, `plain`, its tests). Changed: `crates/podssh-ws/src/lib.rs`,
+  `crates/podssh-ws/src/tls.rs`.
+- UNVERIFIED: each Prove line; whether a road says the TLS text by another path than these two (the search found
+  none in podssh's crates).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-945: A key whose allowlist line names `routes=` also reaches the node's TARGET with no route
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A key whose line in `--allow FILE` is `KEY routes=web` reaches the route `web`, and also the node's TARGET with no
+route. The documents say that a key with no `routes=` reaches the TARGET with no route alone, and nothing of a key
+with `routes=`.
+
+## Premise
+
+- Read: the node's admission let each key of the file in for the TARGET with no route (`allow::admits`, any line of
+  the key), and checked a route against the line's routes (`crates/podssh-cli/src/channel.rs:373`); a grant's issuer
+  likewise (`crates/podssh-cli/src/grants.rs:172`).
+- Read: `pod-identity` merges each line of one key into one entry (routes and `routes=*`), which keeps no mark of a
+  line with no `routes=` (PodUtils/podcrates:crates/pod-identity/src/allow.rs, `parse_with`).
+
+## Approach
+
+1. `allow::reaches_target` (`crates/podssh-relay/src/identity/allow.rs:133`): the key reaches the TARGET with no route
+   when a line of it has no `routes=` word or has `routes=*`; the crate's read lets the key in first.
+2. The node's admission of the TARGET with no route and a grant's issuer for it take it; a route keeps its check.
+3. The operator's line of a refused key says that a line of `routes=` alone reaches those routes, as `NAME/ROUTE`.
+4. The manual (the paragraph of routes, the file of `--allow`) and `docs/cli.md` say the rule.
+
+## Decision
+
+- A line of `routes=` reaches those routes alone, as the owner's brief prefers: a line that names routes narrows the
+  key, and the TARGET with no route (often the host's sshd) is the widest door. Lost: a key that reached both with
+  one line of routes; it now takes `routes=*`, or a second line with no `routes=`. A node whose list relied on the
+  old reading refuses such a key at its next session, and its log line says why.
+- `routes=*` reaches the TARGET with no route too: "each" of the node's targets, as its words read.
+- The lines are read again for the mark that the crate's merge loses, rather than a copy of the crate's parser: the
+  crate decides each key and route. Asked of podcrates (a COORD issue): `Allowlist` keeps whether a key has a line
+  with no `routes=`, with `reaches_target` beside `admits` and `grants`; then the glue's read goes.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --lib identity::allow
+cargo test -p podssh-cli --test node_routes --test node
+cargo test -p podssh-cli --lib doctor
+```
+
+`a_line_of_routes_alone_does_not_reach_the_target_with_no_route`: a line with no `routes=`, a comment, or
+`routes=*` reaches it; `routes=web` and `routes=web,db` do not; a second line with no `routes=` does; another key
+does not. By hand: a node `lab 127.0.0.1:22 web=...` with `KEY routes=web`: `podssh operator lab` is refused (77),
+`lab/web` comes in.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-relay/src/identity/allow.rs` (`reaches_target`, its test), `crates/podssh-cli/src/channel.rs`
+  (`admit_of`, the line of `NotAllowed`), `crates/podssh-cli/src/grants.rs` (`issuers`),
+  `crates/podssh-cli/src/man/notes_pair.rs`, `crates/podssh-cli/src/man/data_files.rs`, `docs/cli.md`.
+- UNVERIFIED: each Prove line; whether a test of a process gives a key a line of routes and asks the TARGET with no
+  route (none found by a search).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-948: `ping --nodes` says a road "said nothing within 30 s" that failed after 24.7 ms
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ping --nodes lab --timeout 8s` of an offline node says "failed after 24.7 ms: the far end said nothing within
+30 s". Neither bound is true: the run's bound was 8 s, and the road failed in 24.7 ms, when the far end closed the
+link.
+
+## Premise
+
+- Read: `pod-session`'s `greeted` reads the far end's first bytes within `FIRST_BYTE_WAIT` (30 s); a read of 0 bytes
+  (the far end closed) and a wait that passed both give no first bytes, and `greeting` says both as "the far end said
+  nothing within 30 s" (PodUtils/podcrates:crates/pod-session/src/race.rs, `greeting`; client.rs, `greeted`).
+- Read: `road_line` said the road's why as it came (`crates/podssh-cli/src/ping/node.rs:119`).
+
+## Approach
+
+`true_why` (`crates/podssh-cli/src/ping/node.rs:142`): a road whose why is the crate's words of a silent wait, and
+that failed before that wait, is said as "the far end closed the link before it said anything"; a wait that passed
+keeps its words. A test.
+
+## Decision
+
+- The time decides, not new words of the crate: the line already holds the road's time, and a road that failed
+  before 30 s cannot have waited 30 s. Asked of podcrates (a COORD issue): `greeted` tells a close (a read of 0 bytes)
+  from a silent wait, and `greeting` says each in its own words; then `true_why` goes, and `podssh ssh node://`'s
+  lines, which take the same words, are true too.
+- The run's `--timeout` stays the bound of the node's whole measure ("no road answered within 8.0 s"): a road's line
+  says its own time, which is the one that matters for that road.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib ping::node
+cargo test -p podssh-cli --test ping_nodes
+```
+
+`a_road_closed_before_its_first_byte_is_not_said_silent` passes. By hand: `podssh ping --nodes lab --timeout 8s` of
+an offline node: "failed after N ms: the far end closed the link before it said anything".
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/ping/node.rs` (`road_line`, `true_why`, the test).
+- Unsure to compile: the path `podssh_relay::session::client::FIRST_BYTE_WAIT` (`pod_session::client` is public).
+- UNVERIFIED: each Prove line.
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-949: Lines that garble: "the label the pair name is empty", "--sshd goes not with --cover", and ping's ".;"
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- An empty pair name says "the label the pair name is empty".
+- `relay serve --sshd ... --cover DIR` says "--sshd goes not with --cover".
+- `podssh ping` of a host whose key is unknown says "... (and no SSH_ASKPASS).; Its ED25519 key fingerprint is ...":
+  a "." then a ";".
+
+## Premise
+
+- Read: `pod-relay`'s `file_name` puts "the label " before `pod-core`'s "the pair name is empty"
+  (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `file_name`; crates/pod-core/src/names.rs, `check_node_name`);
+  podssh said it as it came (`crates/podssh-cli/src/pairs.rs:37`).
+- Read: the refusal of `--sshd` with `--cover` (`crates/podssh-cli/src/relay_serve/cover.rs:198`).
+- Read: ping joined the lines of a cause with "; " (`crates/podssh-cli/src/ping/mod.rs:248`), after a line of the
+  host key's refusal that ends with ".".
+
+## Approach
+
+1. `label_words`: "the label the pair name" is "the label", in `check_label` and in the refusal of a `BadLabel`.
+2. "--sshd does not go with --cover", and its test's words.
+3. `joined`: a line after one that ends with ".", ";" or ":" follows a space alone; `one_line`, `unreached` and
+   `ping --nodes` take it.
+4. Tests: each label's line said once; the host key's lines joined with no ".;".
+
+## Decision
+
+The crate's words of a label are mended in podssh's glue, by the one prefix that doubles, rather than a second check
+of the name: the crate stays the one rule of a pair's name. Asked of podcrates (a COORD issue): `file_name` says
+"the label is empty" itself (the words of `check_node_name` without "the pair name" when a caller adds its own noun).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib pairs
+cargo test -p podssh-cli --lib ping
+cargo test -p podssh-cli --test cover_refusal --test ping --test relay
+```
+
+`a_bad_label_is_said_once` and `lines_join_with_no_dot_before_a_semicolon` pass; `sshd_with_a_cover_is_a_usage_error`
+passes with the new words.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/pairs.rs` (`label_words`, a test), `crates/podssh-cli/src/ping/mod.rs` (`joined`, a
+  test), `crates/podssh-cli/src/ping/nodes.rs`, `crates/podssh-cli/src/relay_serve/cover.rs`,
+  `crates/podssh-cli/tests/cover_refusal.rs`.
+- UNVERIFIED: each Prove line.
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-950: The manual says croc's bridge and smee.io's server are none in this release, and a default node dials both
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only): a default `podssh node` printed and
+dialled `wss://getcroc.com/ws`, Least Authority's transit relay and smee.io, unasked.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The node's manual says that croc's bridge is the one that podssh's list of services names, "none in this release",
+and that smee.io's server is "none while the list names none". A default node waits at `wss://getcroc.com/ws` and at
+smee.io, beside Least Authority's transit relay. The manual does not say that a default node dials them, nor in one
+place how to turn each off.
+
+## Premise
+
+- Read: `pod-services` at v0.85.0 names croc's bridge (services/croc.toml, `wss://getcroc.com/ws`) and smee.io's
+  server (services/smee-io.toml), and Least Authority's transit relay (services/leastauthority-transit.toml), in
+  PodUtils/podcrates:crates/pod-services.
+- Read: the notes of croc (`crates/podssh-cli/src/man/notes_croc.rs:10`) and smee (`crates/podssh-cli/src/man/notes_smee.rs:11`),
+  and their variables in `crates/podssh-cli/src/man/facts/roads.rs`, said that the list names none.
+- Read, the rulings: Q65 lets podssh try Least Authority's transit relay unasked (`docs/decisions.md`, 2026-11-02);
+  Q77 makes croc a road tried unasked after podssh's own; Q78 makes each public service a last fallback, whatever
+  its terms, which covers croc's bridge and smee.io; Q94 allows their short live tests. Each default dial found has
+  a ruling.
+
+## Approach
+
+1. The notes and the variables of croc and smee name the listed server, "while the list names it".
+2. The node's paragraph of the transit relay says that a node of a pair also waits, unasked, at croc's bridge and at
+   smee.io's server, as last fallbacks, that its lines name each, and that `PODSSH_LAST_RESORT=no` turns them off;
+   `PODSSH_TRANSIT=no` turns the transit relay off, as it said.
+3. The note of the public services (`podssh ssh`) names smee.io's server in its order.
+
+## Decision
+
+- No new entry for a dial without a ruling: each one found has its ruling (Q65, Q77, Q78). The manual's words were
+  stale, not the behaviour.
+- "while the list names it", not the bare name: the list of `pod-services` can drop a server at a new tag, and the
+  manual then stays true.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test man_page
+```
+
+The notes' tests (`notes_croc`, `notes_public`) pass; `llms-full.txt` written again. By hand: a default `podssh node
+lab 127.0.0.1:22` names croc's bridge and smee.io's server in its lines, as the manual now says.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/man/notes_croc.rs`, `crates/podssh-cli/src/man/notes_smee.rs`,
+  `crates/podssh-cli/src/man/facts/roads.rs`, `crates/podssh-cli/src/man/notes_pair.rs`,
+  `crates/podssh-cli/src/man/notes_public.rs`.
+- UNVERIFIED: each Prove line; the order of smee.io's server among the last fallbacks in the note of the public
+  services (its own note puts it after the onion road and before Serveo's).
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-951: `relay serve --idle` reads as the end of a session, and it ends a link that the resumable layer resumes
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve --idle 2` (the binary and the
+documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With `--idle 2`, the role cuts an idle `podssh proxy` link each 2 s, and the resumable layer resumes it at once, so
+the session never ends. The help says "end a session after SECONDS with no payload", which reads as the end of the
+session.
+
+## Premise
+
+- Read: the role's limits are of each connection; "each link keeps the limits of a session (180 s with no payload, 12
+  h, 64 MiB)" and the layer keeps a session whose link is lost for its deadline (`docs/relay.md:1719`).
+- Read: the help of `--idle` (`crates/podssh-cli/src/flags/relay.rs:77`) and the manual's paragraph of the role's
+  limits (`crates/podssh-cli/src/man/notes_relay.rs:168`) said "a session".
+
+## Approach
+
+The help of `--idle` says that it ends a connection, one link, and that a session of the resumable layer resumes on
+a new link; the manual says that each limit ends one link, never a session of the layer.
+
+## Decision
+
+The words change, not the behaviour: the role's limits are the contract's limits of a connection, which the default
+relay sets, and the layer exists to carry a session across such cuts. A role that ended the session at an idle link
+would end each session of a client whose heartbeat is slower than `--idle`, and the client's `ServerAliveInterval`
+and the layer's deadline already bound a session that nobody uses. Lost: an owner's way to end an idle session of the
+layer at the role; the owner's bounds of the layer's sessions are `--resume-deadline` and `--resume-budget`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test man_flag_parity --test man_page
+```
+
+The manual's tests pass; `llms-full.txt` written again.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/flags/relay.rs` (the help of `--idle`), `crates/podssh-cli/src/man/notes_relay.rs`.
+- UNVERIFIED: each Prove line.
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.

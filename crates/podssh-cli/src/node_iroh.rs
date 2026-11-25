@@ -333,8 +333,12 @@ where
     let _ = writeln!(err, "podssh {verb}: {label}: ticket {}", ticket::of(&endpoint, &relay));
     // The endpoint is up with its home relay: a detached node goes on (T-380).
     crate::detach::ready("node");
-    let _ = writeln!(err, "podssh {verb}: {label}: {}", admission::who_may(allow.as_deref()));
-    if let Some(line) = crate::net::admit::line(&me) {
+    // With no --allow, a net's members are the whole door (T-941).
+    let member = crate::net::admit::line(&me);
+    if allow.is_some() || member.is_none() {
+        let _ = writeln!(err, "podssh {verb}: {label}: {}", admission::who_may(allow.as_deref()));
+    }
+    if let Some(line) = member {
         let _ = writeln!(err, "podssh {verb}: {label}: {line}");
     }
     let say = {

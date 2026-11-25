@@ -153,7 +153,9 @@ pub const RELAY: &[&str] = &[
      target. The exit codes are in EXIT STATUS.",
     "podssh relay serve is the relay itself, as a role of podssh: it serves the relay's forward road, the contract \
      that podssh speaks (version 2026-10-03-r2), on --listen ADDR:PORT. Its TLS is from --cert FILE and --key FILE \
-     (a P-256 key in PEM), or from --acme NAME. So each podssh reaches it with --relay-host and the CA that signed \
+     (a P-256 key in PEM), or from --acme NAME. A missing or unreadable FILE stops the start (78). A key that \
+     others may read is named with its mode in the first line, and served: a secret that a container mounts is \
+     often of mode 0644 and cannot be changed. So each podssh reaches it with --relay-host and the CA that signed \
      its certificate. It serves /health, /v1/mint, /connect/HOST/PORT, /relays.json, /trace and /llms-full.txt, \
      dials a target only once its name resolves to public addresses (--allow-private dials the others too; \
      --routes RANGES, those inside its ranges alone, ADDR/BITS or one address, separated by commas, each address \
@@ -163,7 +165,9 @@ pub const RELAY: &[&str] = &[
      keeps the default relay's limits unless told: 180 s with no payload (--idle SECONDS, 1 to 86400) and 12 hours \
      (--session-hours H, 1 to 168). Also 64 MiB a session (--max-session-mib M, 1 to 4096) and 10 s to dial a \
      target (--connect SECONDS, 1 to 120). Also an empty frame each 25 s (--keepalive SECONDS, 1 to 3600). \
-     /relays.json publishes the first four as they are, never the keepalive. A value above the default moves this \
+     /relays.json publishes the first four as they are, never the keepalive. Each limit ends one connection, a \
+     link. A session of the resumable layer goes on: its client resumes it on a new link, so --idle ends an idle \
+     link, never such a session. A value above the default moves this \
      role's cut only: a client keeps its own lower budgets and its own warning, as it only lowers them to what \
      /relays.json says. --mint anyone mints a token for each client; by default it mints for no one (503), as its \
      tokens are given another way. A token lives until the relay stops. Each mint, upgrade and refusal is a \
@@ -366,8 +370,8 @@ pub const RELAY: &[&str] = &[
      derper serves it to the keys that it verifies: a node of podssh ts in its relay mode takes it in the place of \
      the operator's Tailscale relay. The flag of podssh ts that names a DERP server pins the node to this relay. \
      Two nodes whose keys FILE lists meet here. FILE holds one node key a line, nodekey:HEX (# starts a comment); \
-     it is read at the start, where a line that is no key stops it (64). It is read again at each login, so that a \
-     key added takes no restart. A key that it does not list is closed with 1008 not authorized, which podssh ts \
+     it is read at the start, where a missing file or a line that is no key stops it (78). It is read again at \
+     each login, so that a key added takes no restart. A key that it does not list is closed with 1008 not authorized, which podssh ts \
      reads as the refusal of its node key (77). Each packet goes to the key that it names, 32 of them waiting for \
      a receiver at most; /derp/probe and /derp/latency-check answer an empty 200. The packets are WireGuard's, \
      sealed end to end: the relay sees keys, sizes and times. Each login and each end is a line on stdout, with \

@@ -8,7 +8,7 @@
 pub(super) const NODE: &str = "A node of the pair's road with a TCP TARGET also waits for the pair's operators \
      at smee.io's server. It does so only with the resumable layer and the end-to-end channel (no --plain, no \
      --no-e2e). This is the last fallback after the onion road, for a proxy that refuses the WebSocket upgrade. \
-     Its server is podssh's listed one (none while the list names none), or the one of PODSSH_SMEE \
+     Its server is podssh's listed one (https://smee.io, while the list names it), or the one of PODSSH_SMEE \
      (https://HOST[:PORT][/PREFIX], smee.io's server of your own). It is reached over HTTPS by name on 443 \
      through HTTPS_PROXY, with no account and no upgrade. It reads its door, a channel whose name comes from the \
      pair's name and connect token, as a stream of server-sent events; a client's hello there names a link. Each \

@@ -193,9 +193,25 @@ fn ran(cmd: &mut Command) -> (Option<i32>, String, String) {
 /// The node `lab` with its net at `url` of `owner`, on a carrier whose
 /// stream is at its end: its exit code and stderr, within [`WAIT`].
 fn node(home: &Path, ca: &Path, url: &str, owner: &str) -> (Option<i32>, String) {
+    node_until(home, ca, url, owner, "127.0.0.1:9", &[], "podssh node: lab: the net from")
+}
+
+/// [`node`] in front of `target`, with `extra` flags, until its log holds
+/// `until`; a line past the node's check of its target needs a target that
+/// answers.
+fn node_until(
+    home: &Path,
+    ca: &Path,
+    url: &str,
+    owner: &str,
+    target: &str,
+    extra: &[&str],
+    until: &str,
+) -> (Option<i32>, String) {
     let log = home.join(format!("node-{:08x}.log", rand::random::<u32>()));
     let mut child = podssh(home, ca)
-        .args(["node", "lab", "127.0.0.1:9", "--carrier", "stdio", "--net-url", url, "--net-owner", owner])
+        .args(["node", "lab", target, "--carrier", "stdio", "--net-url", url, "--net-owner", owner])
+        .args(extra)
         .stdout(Stdio::null())
         .stderr(std::fs::File::create(&log).unwrap())
         .spawn()
@@ -207,7 +223,7 @@ fn node(home: &Path, ca: &Path, url: &str, owner: &str) -> (Option<i32>, String)
         }
         let said = std::fs::read_to_string(&log).unwrap_or_default();
         // Past its start the node's road is not this test's: the net is taken.
-        if said.contains("podssh node: lab: the net from") || Instant::now() >= end {
+        if said.contains(until) || Instant::now() >= end {
             std::thread::sleep(Duration::from_millis(200));
             let _ = child.kill();
             break child.wait().unwrap().code();
@@ -283,6 +299,22 @@ fn a_node_takes_its_net_from_a_url_by_its_owner_alone() {
     assert!(said.contains("serial 4, in place of 3"), "{said}");
     let (_, out, _) = ran(podssh(h, &ca_file).args(["net", "ls"]));
     assert!(out.contains("m31\t") && !out.contains("m32\t"), "{out}");
+
+    // The node as m31, with no --allow: the net is its whole door, so it says
+    // the net's line, and never that the pair's token lets each in (T-941).
+    let m31 = h.join("m31.key");
+    std::fs::write(&m31, format!("{}\n", "31".repeat(32))).unwrap();
+    #[cfg(unix)]
+    std::fs::set_permissions(&m31, std::os::unix::fs::PermissionsExt::from_mode(0o600)).unwrap();
+    server.answer(200, &std::fs::read(&doc).unwrap(), None);
+    let key_flag = ["--key", m31.to_str().unwrap()];
+    // A target that answers, as the node dials it before its door's lines.
+    let open = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let target = open.local_addr().unwrap().to_string();
+    let (_, said) = node_until(h, &ca_file, &url, &public, &target, &key_flag, "grants used once");
+    drop(open);
+    assert!(said.contains("podssh node: lab: a member of the net fleet as m31"), "{said}");
+    assert!(!said.contains("each operator with the pair's connect token may come in"), "{said}");
 
     // The server fails: the node starts on its copy, which it says.
     server.answer(503, b"", None);

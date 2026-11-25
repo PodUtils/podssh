@@ -29,7 +29,13 @@ pub(crate) fn utc(ms: i64) -> String {
 
 /// A label that the store takes, or a usage error that says why.
 pub(crate) fn check_label(label: &str) -> Result<(), Refusal> {
-    pair::file_name(label).map(|_| ()).map_err(|e| Refusal::usage(e.to_string()))
+    pair::file_name(label).map(|_| ()).map_err(|e| Refusal::usage(label_words(&e.to_string())))
+}
+
+/// The crate's words of a label, said once (T-949): it puts "the label"
+/// before pod-core's "the pair name is empty".
+fn label_words(said: &str) -> String {
+    said.replacen("the label the pair name ", "the label ", 1)
 }
 
 /// The pair stored under `label`, if it has not expired.
@@ -73,7 +79,10 @@ pub(crate) fn usable(pair: Pair, label: &str) -> Result<Pair, Refusal> {
     Ok(pair)
 }
 
-/// The exit code and the message of a pairing call that failed.
+/// The exit code and the message of a pairing call that failed. A `403` of
+/// a pair's token is said in podssh's words (T-939): the crate's names a
+/// stopped or expired pair alone, and a token of `--once` that took its one
+/// upgrade gets the same `403`.
 pub(crate) fn refusal(e: &PairError) -> Refusal {
     let code = match e {
         PairError::BadLabel(_) => Fault::Usage.code(),
@@ -82,7 +91,36 @@ pub(crate) fn refusal(e: &PairError) -> Refusal {
         PairError::Connect(c) => connect_code(c),
         _ => Fault::RelayUnreachable.code(),
     };
-    Refusal { message: e.to_string(), code }
+    let message = match e {
+        PairError::Forbidden => format!("the relay refused the pair's token (403): {TOKEN_ENDED}"),
+        PairError::BadLabel(_) => label_words(&e.to_string()),
+        other => other.to_string(),
+    };
+    Refusal { message, code }
+}
+
+/// Why a relay refuses a pair's token: each of these gets the same `403`.
+pub(crate) const TOKEN_ENDED: &str =
+    "the pair was stopped or has expired, or it was made with --once and its connect token took its one upgrade";
+
+/// A request for a new pair that failed: a `403` there names no pair, as
+/// none was made (T-939). The relay that mints for a list of keys refuses a
+/// key not on it; the crate keeps none of its words, so the line names this
+/// client's key, which the owner adds.
+pub(crate) fn made_refusal(e: &PairError) -> Refusal {
+    let PairError::Forbidden = e else { return refusal(e) };
+    let key = podssh_relay::identity::file::existing(&podssh_relay::identity::file::client_place())
+        .ok()
+        .flatten()
+        .map(|identity| format!("; this client's key is {}", identity.public().fingerprint()))
+        .unwrap_or_default();
+    Refusal {
+        message: format!(
+            "the relay refused to make a pair (403): a relay of --mint keys:FILE or net makes pairs for the keys of \
+             its list alone{key} (podssh keygen -y prints its line for that list)"
+        ),
+        code: Fault::Auth.code(),
+    }
 }
 
 /// A connection that failed, as `podssh proxy` reads it: a setting (78), a
@@ -234,10 +272,14 @@ pub(crate) fn connect_refusal(e: &ConnectError, label: &str) -> Refusal {
                 podssh_ws::text::one_line(body)
             )
         }
-        ConnectError::Refused { status: 403, .. } => format!(
-            "the relay refused the pair (403): it was stopped, or has expired; make a new one with \
-             `podssh relay pair {label}`"
-        ),
+        // The relay's own words, when it gave more than the contract's.
+        ConnectError::Refused { status: 403, body } => {
+            let said = podssh_ws::text::one_line(body);
+            let said = if said.is_empty() { String::new() } else { format!(": {said}") };
+            format!(
+                "the relay refused the pair (403{said}): {TOKEN_ENDED}; make a new one with `podssh relay pair {label}`"
+            )
+        }
         other => other.to_string(),
     };
     Refusal { message, code: connect_code(e) }
@@ -257,7 +299,37 @@ mod tests {
         assert!(said.contains("the way to the relay refused the WebSocket upgrade"), "{said}");
         let relay = ConnectError::Refused { status: 403, body: "reverse: forbidden".into() };
         let said = super::connect_refusal(&relay, "lab").message;
-        assert!(said.starts_with("the relay refused the pair (403)"), "{said}");
+        assert!(said.starts_with("the relay refused the pair (403: reverse: forbidden)"), "{said}");
+        assert!(said.contains("its connect token took its one upgrade"), "a spent token of --once is named: {said}");
+    }
+
+    /// A label that is no name is said with "the label" once (T-949), and
+    /// stays a usage error.
+    #[test]
+    fn a_bad_label_is_said_once() {
+        for (label, said) in [
+            ("", "the label is empty"),
+            (&"a".repeat(129)[..], "the label is longer than 128 characters"),
+            ("-x", "the label \"-x\" is not a pair name"),
+        ] {
+            let refused = super::check_label(label).unwrap_err();
+            assert_eq!(refused.code, crate::exit_codes::EXIT_USAGE, "{label}");
+            assert_eq!(refused.message, said, "{label}");
+        }
+    }
+
+    /// A refused request for a new pair names no pair; a refused token of a
+    /// pair names each cause of its 403, the token of --once among them (T-939).
+    #[test]
+    fn a_refused_new_pair_is_not_a_stopped_one() {
+        use podssh_relay::pair::PairError;
+        let made = super::made_refusal(&PairError::Forbidden);
+        assert_eq!(made.code, 77);
+        assert!(made.message.starts_with("the relay refused to make a pair (403)"), "{}", made.message);
+        assert!(!made.message.contains("expired"), "{}", made.message);
+        let token = super::refusal(&PairError::Forbidden);
+        assert_eq!(token.code, 77);
+        assert!(token.message.contains("--once"), "{}", token.message);
     }
 
     #[test]

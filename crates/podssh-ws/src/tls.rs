@@ -123,9 +123,10 @@ pub fn handshake_hint(error: &std::io::Error) -> Option<String> {
     pod_tls::handshake_hint(error, context().words())
 }
 
-/// The text of a failed handshake, with its hint when it has one.
+/// The text of a failed handshake, with its hint when it has one, and a
+/// refused certificate in words (T-944).
 pub fn handshake_failure(error: &std::io::Error) -> String {
-    pod_tls::handshake_failure(error, context().words())
+    crate::tls_words::plain(&pod_tls::handshake_failure(error, context().words()))
 }
 
 /// The failure of a TLS road of `pod-tls` as podssh's roads say it: the
@@ -144,7 +145,7 @@ pub(crate) fn connect_error(failure: Failure, limit: Duration) -> ConnectError {
         // rustls's own refusal (a certificate, a name, a protocol) says
         // nothing of the path.
         (_, kind) => ConnectError::Tls(TlsFailure {
-            why: failure.text().to_string(),
+            why: crate::tls_words::plain(failure.text()),
             cut: kind.filter(|k| *k != std::io::ErrorKind::InvalidData).map(Cut::of),
         }),
     }

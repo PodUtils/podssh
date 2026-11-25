@@ -31,7 +31,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             "podssh doctor: a check failed. podssh relay spec: a fact of the relay's document disagrees. \
              podssh relay conform: a check of the relay failed. podssh keygen: a key could not be made or read. podssh health --preflight: after the login, a \
              check failed or the facts did not come. podssh play: the recording cannot be read, or its version is \
-             not one that it plays.",
+             not one that it plays. podssh ping --nodes: some nodes answered and some did not (69 when none did).",
         ),
         row(
             crate::exit_codes::EXIT_USAGE,
@@ -41,12 +41,17 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             sysexits::EX_DATAERR,
             "podssh agent add-passphrase: the passphrase does not open the key file, or the file needs none; \
              nothing is kept. podssh pipe: the bytes of a udp: address are not each datagram after its \
-             length. podssh containers: a tool listed a name that podssh does not take, which is left out.",
+             length. podssh containers: a tool listed a name that podssh does not take, which is left out. \
+             podssh net: a file or a document that cannot be used, nothing kept. Such a file is not UTF-8, not \
+             JSON, too large, a policy or a gateway that is not valid, or a signature that fails; add of a key that another member \
+             has; take of a document that the rule of the store refuses; policy test: a case is false; policy diff \
+             --exit-code: the new policy widens the old.",
         ),
         row(
             sysexits::EX_NOINPUT,
             "podssh cp and mv: a source is missing or cannot be read. podssh mv: a source that changed \
-             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read.",
+             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read. \
+             podssh net: the FILE of take, policy set, test or diff, or gateway set is missing or cannot be read.",
         ),
         row(
             sysexits::EX_UNAVAILABLE,

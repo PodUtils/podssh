@@ -2,7 +2,8 @@
 //! the node keys of FILE, `podssh_relay::serve::derp`'s, so that a node of
 //! `podssh ts --ts-mode relay` pins this relay in the place of the
 //! operator's Tailscale relay. The file is read here once, so that a file
-//! that cannot be read, or a line that is no key, stops the start.
+//! that cannot be read, or a line that is no key, stops the start: a fault
+//! of the host's files (78), as a missing `--cert` is (T-943).
 
 use crate::relay_settings::Refusal;
 
@@ -11,6 +12,6 @@ use crate::relay_settings::Refusal;
 pub(super) fn of(keys: Option<&str>) -> Result<String, Refusal> {
     let Some(file) = keys else { return Ok(String::new()) };
     let listed = podssh_relay::serve::derp::enable(std::path::Path::new(file))
-        .map_err(|why| Refusal::usage(format!("--derp-keys {why}")))?;
+        .map_err(|why| Refusal::config(format!("--derp-keys {why}")))?;
     Ok(format!(", DERP at /derp for the node keys of {file} ({listed} now, read again at each login)"))
 }

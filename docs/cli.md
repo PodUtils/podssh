@@ -4581,7 +4581,9 @@ commands. The rules behind them:
   route only when its line says so, after the key: `SHA256:... routes=web,db
   laptop`, or `routes=*` for each; a line with no `routes=` reaches the
   TARGET with no route alone, as before, and a list that is not one makes
-  its line a bad one. The node checks the route after the key, before it
+  its line a bad one. A line of `routes=web,db` reaches those routes alone,
+  not the TARGET with no route; `routes=*` reaches both, and two lines of
+  one key give it what each gives (T-945). The node checks the route after the key, before it
   dials: a route that it does not have, and one that the key may not use,
   are refused with the same words, so that an operator learns no route
   that it may not use. With no allowlist, each operator with the pair's
@@ -4748,7 +4750,14 @@ commands. The rules behind them:
   (T-087). The node's key is `node-NAME.key` in the cache, or the file of
   `--key`; `--ephemeral-key` keeps none. The node says its fingerprint as it
   starts, and `--allow FILE` lets in only the operator keys of FILE, read
-  again for each session. A client's key is `client.key`, or the file of
+  again for each session. Each place that takes a key (`--allow`,
+  `relay serve --mint keys:FILE`, `--grant-to`, `--temporary`, `--node-key`)
+  reads one grammar (T-938): the line that `podssh keygen -y` prints
+  (`ssh-ed25519 BASE64`, then a comment), 64 hex digits, base32, or a
+  fingerprint `SHA256:...` where a name of a key is enough; a refusal names
+  these forms. `--grant-to FILE` refuses a file of 64 hex digits alone (78):
+  that is podssh's private key file, and its `keygen -y` line is the key to
+  give. A client's key is `client.key`, or the file of
   `--client-key`. The operator pins the node's key at its first sight in
   `known-nodes`, and refuses a changed key with both fingerprints; `--node-key
   KEY` names the key instead, and reads and writes no pin. `--no-e2e`,
@@ -7618,7 +7627,13 @@ nothing did), and why.
 - `podssh ping` gives 69 when no relay host answers, and with a
   destination the codes of `podssh ssh`: 255 for a failure of podssh, and
   the status of the remote program of a measure (127 when the host lacks
-  it).
+  it). `ping --nodes` gives 0 when each node answered, 69 when none did,
+  and 1 when some did (T-946).
+- `podssh net` uses sysexits: 65 a file or a document that cannot be used,
+  a key of another member at `add`, a document that `take` refuses, a false
+  case of `policy test` and a widened policy of `policy diff --exit-code`;
+  66 a FILE of `take`, `policy set`, `test`, `diff` or `gateway set` that is
+  missing or cannot be read (T-946).
 - `podssh each` gives the largest status of its hosts: 0 only when each
   host gave 0, and 255 for a host with no session; 64 and 78 come before
   anything connects, and 73 when a file of `--output-dir` cannot be made.

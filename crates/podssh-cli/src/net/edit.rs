@@ -138,10 +138,10 @@ fn default_key() -> Option<PathBuf> {
 fn add(before: &Doc, args: &NetArgs, issued: i64, expires: i64) -> Result<(Doc, String), Refusal> {
     let (name, word) = (&args.args[0], &args.args[1]);
     doc::check_name(name).map_err(|why| Refusal::usage(format!("the member's name {why}")))?;
-    let key = KeyName::parse(word).ok_or_else(|| {
+    let key = podssh_relay::identity::allow::key_name(word).ok_or_else(|| {
         Refusal::usage(format!(
-            "{word:?} is not a key (64 hex digits, or iroh's base32) nor a fingerprint (SHA256:...): a node says its \
-             key as it starts"
+            "{word:?} is not a key: give {}; a node says its key as it starts",
+            podssh_relay::identity::allow::FORMS
         ))
     })?;
     not_auto(name)?;

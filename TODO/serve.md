@@ -3537,7 +3537,7 @@ connection.
 ## Premise
 
 - `crates/podssh-cli/src/relay_serve.rs` said `mod harden;` before this entry: the drop was private to
-  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:166`
+  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:167`
   (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:137` only reads
   `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
   `harden_tests.rs` (228).
@@ -5822,3 +5822,75 @@ alone, and ssh-key's check of the CA's signature); `cargo test -p podssh-cli --t
 against OpenSSH 9.6p1's sshd with a CA that `ssh-keygen -t ed25519` made, so each login there ran on `Mint`'s
 certificate.
 
+# T-942: A bearer that the node refuses is said to the operator as a grant, and its session as one "by a grant"
+
+**Source:** the black-box pass of 2026-11-25 against a local `podssh relay serve` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+An operator of `--bearer SIGNER` whose bearer the node refuses reads "the node refused: this grant does not let this
+key in: it was used already, its window is not now, or it is not for this key, this node or this route"; it sent no
+grant. A session that a bearer let in is logged at the node "came in, ..., by a grant". The node's own line of the
+refusal names the bearer ("a bearer refused (signer)").
+
+## Premise
+
+- Read: `pod-e2e` sends `GRANT_REFUSED` for each proof that the node's `Redeem` refuses, a grant or a bearer
+  (PodUtils/podcrates:crates/pod-e2e/src/ends.rs, `GRANT_REFUSED` and the node's verdict), and says "by a grant" for
+  each proof let in (`person_of`).
+- Read: podssh's operator said the crate's words as they came (`crates/podssh-cli/src/channel.rs:265`); the bearer
+  is made in `proof_of` (`crates/podssh-cli/src/bearer.rs`), so the run knows that it sent one.
+
+## Approach
+
+1. `bearer.rs` keeps whether this run's channel carried a bearer (`SENT`, set where a bearer is made);
+   `refused_line` (`crates/podssh-cli/src/bearer.rs:225`) says the node's refusal of a bearer in a bearer's words
+   (taken already, its 30 s passed, its signer may not let this key reach what it asked, not for this key or channel;
+   the node's log says which), and a grant's refusal as before.
+2. `judged` takes `refused_line` for `GRANT_REFUSED`; the exit stays 77.
+
+## Decision
+
+- The operator names the bearer from its own knowledge, not from new words on the wire: the wire's refusal is the
+  crate's, and a node of an earlier podssh sends the same words.
+- The node's log "by a grant" is the crate's word: asked of podcrates (a COORD issue): `Redeem` returns the kind of
+  proof that it took (a grant or a bearer), and the node's event says "by a bearer" for a bearer; the operator's
+  refusal of a bearer gets its own words (`BEARER_REFUSED`) on the wire. The node's line before it already says "came
+  with the bearer of SIGNER", so the log names the bearer meanwhile.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib bearer
+cargo test -p podssh-cli --test serve_bearer
+```
+
+`a_refused_bearer_is_named_a_bearer_at_the_operator`: with a bearer sent, the line starts "the node refused this
+run's bearer (--bearer)" and names no grant; with none, a grant's words as before. By hand: `podssh operator lab
+--bearer KEYFILE` of a key that the node does not take: exit 77 and the bearer's line.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/bearer.rs` (`SENT`, `refused_line`, `refused_line_of`),
+  `crates/podssh-cli/src/bearer_tests.rs` (the test), `crates/podssh-cli/src/channel.rs` (`judged`).
+- Not done here: the node's "by a grant" (the crate's, asked above).
+- UNVERIFIED: each Prove line.
+
+Merged by the main session on 2026-11-25 (after `707bc0e`) and run: `cargo test -p podssh-cli --lib` 1356 passed,
+`--test cover_refusal`, `exit`, `exit_routes`, `net`, `net_invite`, `node_net_url`, `node_routes`, `operator`,
+`operator_cut`, `ping`, `ping_nodes`, `proxy`, `proxy_exit`, `proxy_lists`, `relay`, `relay_code`, `relay_code_role`,
+`relay_conform`, `relay_offer_read`, `relay_rank`, `relay_serve`, `relay_serve_node`, `relay_spec`, `serve_bearer`,
+`flag_table`, `man_flag_parity`, `man_json` and `man_page`: each passed; `-p podssh-relay --lib` (with `serve,plain-ws,
+quick,quic`) 275 and `--test identity`, `-p podssh-ws --lib`: passed. Repairs at the merge: `node_routes` expected the
+old refusal of a key of routes alone that asks no route, which T-945 now refuses at the door (both name NAME/ROUTE);
+`node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
+door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
+Windows check clean; `llms.txt` and `llms-full.txt` written again.

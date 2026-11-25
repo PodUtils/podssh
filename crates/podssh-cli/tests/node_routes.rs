@@ -105,7 +105,9 @@ fn routes_reach_their_own_target_as_the_allowlist_grants() {
     for (name, says) in [
         ("lab/db", "may not use the route db"),
         ("lab/nope", "may not use the route nope"),
-        ("lab", "name one, as NAME/ROUTE"),
+        // A line of routes alone reaches no TARGET (T-945): the door says
+        // so, and either refusal names the form NAME/ROUTE.
+        ("lab", "as NAME/ROUTE"),
     ] {
         let (rc, out, err) = operator(name);
         assert_ne!(rc, 0, "{name}: {err}");
