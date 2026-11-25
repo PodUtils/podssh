@@ -414,9 +414,23 @@ that name at any depth.
 
 ## A run of GitHub Actions asked of the owner's agent
 
-Where GitHub Actions start no workflow for the account of a session (a cloud session of 2026-11-06),
-the owner's local agent runs them, and it is a smaller model (the owner's rule of 2026-11-06,
-relayed by the podcrates session). So each run is asked like this:
+Check whether the intended workflow already runs on the commit. When the task
+requires a new manual run, confirm the workflow accepts `workflow_dispatch`
+and attempt it with `gh workflow run` or an available GitHub dispatch tool.
+Give the exact repository, workflow, ref and required inputs.
+
+```sh
+gh run list -R PodUtils/podssh --workflow build.yml --branch main --commit SHA
+gh workflow run build.yml -R PodUtils/podssh --ref main
+```
+
+Use `gh run rerun -R PodUtils/podssh RUN --failed` when the work calls for
+rerunning failed jobs of a known run. Use `gh run watch -R PodUtils/podssh RUN
+--exit-status` for an accepted run. After an ambiguous response, check the
+run list for the commit before retrying or opening an issue. Correct wrong refs and inputs.
+
+If direct access is unavailable or denied, the owner's local agent can run the
+workflow. Include the direct attempt and its error in the request:
 
 - a NEW issue of PodUtils/podssh, titled exactly `[gh action] requested`, for each run;
 - one line of why, then ONE `sh` block: `set -e` first, each `gh` command in full (`-R OWNER/REPO`

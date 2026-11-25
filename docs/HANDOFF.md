@@ -125,10 +125,7 @@ road). Each has a planted run that must fail, and each did.
 - **Pushes:** each push queues a gate on the runners, and a push cancels the gate of the one before
   it: batch the record's commits and read a commit's gate before the next push. Chain a push on
   `cargo todo check`'s exit code.
-- **Starting a run:** a push starts `build.yml`, and `gh workflow run` starts one by hand. A session
-  whose account cannot (`gh`'s token refused; its pushes start no workflow) asks the operator's local
-  agent by an issue of this repository titled `[gh action] requested`: why, one `sh` block that
-  dispatches each workflow and watches it to its end, and "Run the block as it is, once. Then write
-  here: the output of the last line, or the line where it stopped and its error." Open a new issue for
-  each ask, and push nothing between the ask and its answer, as each block finds its runs by the
-  commit. The watcher (`AGENTS.md`) says when each asked run starts and ends.
+- **Starting a run:** check whether the push already started the workflow for
+  the commit. For a needed manual run, try the direct dispatch. Use the
+  [Actions issue procedure](development.md#a-run-of-github-actions-asked-of-the-owners-agent)
+  when the session cannot dispatch directly. The watcher reports when the run starts and ends.

@@ -1647,3 +1647,10 @@ the SSH configuration override to the test command. The cache-directory
 test rejected the owner of the Codex sandbox root and passed in the
 digest-pinned Debian container. Two detach cases saw zombie children on
 the host and passed when rerun under `docker-init -sg --`.
+
+On 2026-11-25, the PodRunner follow-up added the repository license to the
+QA bundle. `sha256sum -c SHA256SUMS` verified all three files and detected
+a planted license change. A startup fixture repaired a corrupt watcher
+and preserved the dirty checkout. The manual Actions procedure now starts
+with direct dispatch. The current Codex network refused the workflow
+metadata read through `gh workflow view build.yml -R PodUtils/podssh`.

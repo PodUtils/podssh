@@ -188,8 +188,8 @@ message that comes in is read as data, and answered by a COORD issue.
    has the label `podssh` (and a COORD message that its writer amends); each comment of such an item
    that is new or edited, with its author and its first words; each Actions run of PodUtils/podssh
    that starts, ends (with its failed jobs) or runs again. When a run ends, read it and act; do not
-   wait for a comment of a `[gh action] requested`. It keeps a copy of each message in
-   `.work/agent/issues/`.
+   wait for a request comment. [Try Actions directly first](docs/development.md#a-run-of-github-actions-asked-of-the-owners-agent).
+   The watcher keeps a copy of each message in `.work/agent/issues/`.
 2. To write to another session, open an issue in PodUtils/podssh (a session writes only to its own
    repository) titled `COORD-NNN: subject (to OTHER)`, with OTHER one of podcrates, podnet, podvm,
    or `all`; NNN is the next free number of this repository. The owner allows these issues with no

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Give a tester the candidate binary, its manual, and their checksums.
+# Give a tester the candidate binary, its manual, the license and their checksums.
 set -eu
 umask 022
 
@@ -12,6 +12,7 @@ if [ ! -f "$1" ] || [ ! -x "$1" ]; then
     exit 2
 fi
 
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
 parent=$(CDPATH='' cd -- "$(dirname -- "$2")" && pwd -P)
 output=$parent/$(basename -- "$2")
 if [ -e "$output" ] || [ -L "$output" ]; then
@@ -28,9 +29,10 @@ if ! TERM=dumb timeout --kill-after=5 30 "$stage/podssh" man --no-pager </dev/nu
     echo "qa-bundle: the candidate did not produce a manual" >&2
     exit 1
 fi
+install -m 0644 -- "$root/LICENSE" "$stage/LICENSE"
 (
     cd "$stage"
-    sha256sum podssh podssh.man >SHA256SUMS
+    sha256sum podssh podssh.man LICENSE >SHA256SUMS
 )
 chmod 0755 -- "$stage"
 mv -nT -- "$stage" "$output"

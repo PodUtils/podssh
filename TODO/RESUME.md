@@ -20,3 +20,4 @@
    [the development guide](../docs/development.md). Run the relevant tests
    and follow [the procedure for a change](../AGENTS.md#6-procedure-for-a-change)
    before pushing.
+   For a manual CI run, [try Actions directly first](../docs/development.md#a-run-of-github-actions-asked-of-the-owners-agent).

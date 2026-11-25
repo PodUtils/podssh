@@ -46,7 +46,8 @@ fetch_watcher() (
     tmp=$(mktemp "$file.XXXXXXXX") || exit 1
     trap 'rm -f -- "$tmp"' EXIT
     url="https://raw.githubusercontent.com/PodUtils/podcrates/$pin/scripts/agent/$file"
-    if ! curl -qfsSL --proto '=https' --proto-redir '=https' --max-time 60 -o "$tmp" "$url" </dev/null; then
+    if ! curl -qfsSL --proto '=https' --proto-redir '=https' --max-time 30 \
+        --retry 2 --retry-max-time 30 -o "$tmp" "$url" </dev/null; then
         printf 'session-start: could not fetch %s from podcrates at %s\n' "$file" "$pin" >&2
         exit 1
     fi
