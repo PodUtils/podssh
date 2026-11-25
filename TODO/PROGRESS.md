@@ -45,7 +45,9 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** None waits (2026-11-25): `d-t877` (T-875 and T-877) is merged. Each `draft/*`, `beta/*` and `release/*`
+8. **Drafts.** One is being written (2026-11-25): T-836's steps 3 to 5 (the gateway's route table, the certificate and
+   the upstream's dial, the forwarding of each channel request), by a drafting agent in a worktree of
+   `.claude/worktrees/`, not built. `d-t877` (T-875 and T-877) is merged. Each `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
    deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
