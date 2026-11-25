@@ -118,7 +118,7 @@ pub async fn copy(mut from: Reader, mut to: Writer, count: &AtomicU64, input: &s
                 };
                 let ended = match &failed {
                     None => "ended".to_owned(),
-                    Some(e) => format!("failed ({e})"),
+                    Some(e) => format!("failed ({})", podssh_ws::text::said(e)),
                 };
                 // A closed stderr is no reason to stop the pipe.
                 let _ = writeln!(
@@ -130,7 +130,7 @@ pub async fn copy(mut from: Reader, mut to: Writer, count: &AtomicU64, input: &s
                 None => Flow::Ended,
                 Some(e) => {
                     let carried = count.load(Ordering::Relaxed);
-                    Flow::Failed(format!("{input}'s input failed after {carried} bytes: {e}"))
+                    Flow::Failed(format!("{input}'s input failed after {carried} bytes: {}", podssh_ws::text::said(&e)))
                 }
             };
         }

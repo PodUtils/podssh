@@ -5164,7 +5164,7 @@ existing connection was forcibly closed by the remote host. (os error 10054)").
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -5189,3 +5189,10 @@ A user line that shows an `std::io::Error` by its `Display` ends with Rust's "(o
 CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib words
 ```
 
+## Done
+
+Partial, 2026-11-25: the helper is shared: `podssh_ws::text::plain` and `said` (`crates/podssh-ws/src/text.rs`, with
+the table test `the_os_error_suffix_leaves_and_the_words_stay`), which the file commands' `cp/words.rs` now calls; the
+pipe's line of a failed read uses it. `cargo test -p podssh-ws --lib text` 7 passed, `-p podssh-cli --lib cp::` 136 and
+`pipe::pump` 4; clippy clean. Each area takes it as the sixth black-box pass's fixes go in (the SSH client, the local
+tools, the commands that run work); the entry stays partial until a scan of the lines finds no suffix.

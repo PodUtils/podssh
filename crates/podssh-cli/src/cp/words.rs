@@ -4,30 +4,15 @@
 
 use std::time::Duration;
 
-/// `text` without each ` (os error N)` that Rust's `io::Error` adds to the
-/// system's words: a line says what happened once, in the system's words.
+/// The system's words of a failure, without Rust's `(os error N)`: the
+/// helper of each crate of podssh (`podssh_ws::text`).
 pub(crate) fn plain(text: &str) -> String {
-    const MARK: &str = " (os error ";
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(at) = rest.find(MARK) {
-        let tail = &rest[at + MARK.len()..];
-        let digits = tail.bytes().take_while(|b| b.is_ascii_digit() || *b == b'-').count();
-        if digits > 0 && tail[digits..].starts_with(')') {
-            out.push_str(&rest[..at]);
-            rest = &tail[digits + 1..];
-        } else {
-            out.push_str(&rest[..at + 1]);
-            rest = &rest[at + 1..];
-        }
-    }
-    out.push_str(rest);
-    out
+    podssh_ws::text::plain(text)
 }
 
 /// [`plain`] of an `io::Error`.
 pub(crate) fn said(e: &std::io::Error) -> String {
-    plain(&e.to_string())
+    podssh_ws::text::said(e)
 }
 
 /// A bound as a line names it: whole seconds as `N s`, else `N ms`, so

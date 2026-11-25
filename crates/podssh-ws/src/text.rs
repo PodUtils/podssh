@@ -56,6 +56,33 @@ fn is_bidi_control(c: char) -> bool {
     matches!(c, '\u{061C}' | '\u{200E}' | '\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
 }
 
+/// `text` without each ` (os error N)` that Rust's `io::Error` adds to the
+/// system's words: a line says what happened once, in the system's words
+/// (one helper for each crate of podssh).
+pub fn plain(text: &str) -> String {
+    const MARK: &str = " (os error ";
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find(MARK) {
+        let tail = &rest[at + MARK.len()..];
+        let digits = tail.bytes().take_while(|b| b.is_ascii_digit() || *b == b'-').count();
+        if digits > 0 && tail[digits..].starts_with(')') {
+            out.push_str(&rest[..at]);
+            rest = &tail[digits + 1..];
+        } else {
+            out.push_str(&rest[..at + 1]);
+            rest = &rest[at + 1..];
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// [`plain`] of an error: what a user line shows of an `io::Error`.
+pub fn said(e: &dyn std::fmt::Display) -> String {
+    plain(&e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,5 +120,22 @@ mod tests {
     #[test]
     fn multi_line_normalises_line_breaks() {
         assert_eq!(multi_line("a\r\nb\rc\nd\te"), "a\nb\nc\nd\te");
+    }
+
+    /// Rust's suffix goes, and only it: the system's words stay.
+    #[test]
+    fn the_os_error_suffix_leaves_and_the_words_stay() {
+        for (given, want) in [
+            ("Connection refused (os error 111)", "Connection refused"),
+            (
+                "a: No such file or directory (os error 2); b: Is a directory (os error 21)",
+                "a: No such file or directory; b: Is a directory",
+            ),
+            ("words (os error x) stay", "words (os error x) stay"),
+            ("no suffix", "no suffix"),
+            ("(os error 5)", "(os error 5)"),
+        ] {
+            assert_eq!(plain(given), want, "{given}");
+        }
     }
 }

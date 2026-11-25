@@ -5012,8 +5012,8 @@ SIGTERM name it). `--timeout 1ms` said "the --timeout of 0 s passed".
 
 ## Approach
 
-`words::kept` (`crates/podssh-cli/src/cp/words.rs:46`) gives the partial copies and their records, for the interruption and for the
-bound alike; `words::limit` (`:35`) names a bound in whole seconds as `N s`, else as `N ms` (at least 1). `cp`, `mv`, `scp`, `sftp`
+`words::kept` (`crates/podssh-cli/src/cp/words.rs:31`) gives the partial copies and their records, for the interruption and for the
+bound alike; `words::limit` (`:20`) names a bound in whole seconds as `N s`, else as `N ms` (at least 1). `cp`, `mv`, `scp`, `sftp`
 and `edit` use it.
 
 ## Decision

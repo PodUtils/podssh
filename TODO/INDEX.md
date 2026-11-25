@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**884 entries: 5 open, 32 partial, 13 blocked, 834 done.**
+**884 entries: 4 open, 33 partial, 13 blocked, 834 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 101 | 110 |
 | P2 | 0 | 20 | 2 | 330 | 352 |
-| P3 | 5 | 6 | 8 | 402 | 421 |
-| **All** | 5 | 32 | 13 | 834 | 884 |
+| P3 | 4 | 7 | 8 | 402 | 421 |
+| **All** | 4 | 33 | 13 | 834 | 884 |
 
 ## Entries
 
@@ -959,4 +959,4 @@ repository and CI).
 | [T-949](reverse.md) | P3 | S | backlog | defect | done | Lines that garble: "the label the pair name is empty", "--sshd goes not with --cover", and ping's ".;" |
 | [T-950](reverse.md) | P3 | S | backlog | defect | done | The manual says croc's bridge and smee.io's server are none in this release, and a default node dials both |
 | [T-951](reverse.md) | P3 | S | backlog | defect | done | `relay serve --idle` reads as the end of a session, and it ends a link that the resumable layer resumes |
-| [T-952](robustness.md) | P3 | M | none | defect | open | `(os error N)` leaves each user line, not only the file commands' |
+| [T-952](robustness.md) | P3 | M | none | defect | partial | `(os error N)` leaves each user line, not only the file commands' |
