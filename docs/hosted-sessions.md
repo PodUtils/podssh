@@ -30,10 +30,12 @@ packages and the container gate, use the [full setup](development.md#a-linux-hos
 In Codex Cloud, use a short, owned temporary directory for Unix socket
 tests. The default suite also runs SSH cases whose input is built into the
 test. Use the documented `PODSSH_SSH_CONFIG=none` override for that run
-when the host ships an SSH include that PodSSH refuses to trust.
+when the host ships an SSH include that PodSSH refuses to trust. The key
+format tests use the same file creation mask as CI.
 
 ```sh
 (
+    umask 022
     . ./scripts/cloud-env.sh
     test_tmp=$(mktemp -d /tmp/ps.XXXXXXXX) || exit 1
     trap 'rm -r -- "$test_tmp"' EXIT

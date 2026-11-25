@@ -1654,3 +1654,12 @@ a planted license change. A startup fixture repaired a corrupt watcher
 and preserved the dirty checkout. The manual Actions procedure now starts
 with direct dispatch. The current Codex network refused the workflow
 metadata read through `gh workflow view build.yml -R PodUtils/podssh`.
+
+The default Cargo test build produced 405 executable targets. On Codex,
+libtest reported 4,252 passes, 8 failures and 87 ignored cases. All eight
+failures passed on targeted reruns. The Debian container supplied standard
+directory ownership, SSH configuration and `/proc` behavior. The terminal
+case passed with the usual short `/tmp` path, and the key generation case
+passed with `umask 022`. `cargo test --locked --offline --doc --no-fail-fast`
+completed with no doctests. The OpenSSH TOTP interop case reported that it
+could not run because `oathtool` was absent.
