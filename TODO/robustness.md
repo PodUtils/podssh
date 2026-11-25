@@ -2346,7 +2346,7 @@ reads a cut channel as a clean end, and the echoes of the tests shut their write
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2379,6 +2379,12 @@ Partial, 2026-11-13: the echo's duplex is 4 MiB, more than a session carries. `-
 30 runs of `two_sessions` with a busy loop on each core: 0 failed, and 0 failed with the old duplex too, so the
 load of a suite (many test binaries, not busy loops) is not reproduced here; the cause is read from the code above.
 The entry stays partial until the gate has run the suite a few times with no recurrence.
+
+2026-11-25, read again: the trigger was the node's own outbound pace (`to_local` counts bytes until written, with a
+bound of 1 MiB, while `from_local` blocks on the node's bounded outbox), so with two sessions on one carrier the
+second's echo waited behind the first's and its 256 KiB duplex filled. The test's 4 MiB duplex removes that coupling
+for a session of 2 MiB and checks no less of the carrier. No recurrence in the 22 failed jobs of macOS and Windows since
+2026-11-14 (the test shows ok in each). Closed.
 
 # T-769: The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes
 
@@ -2556,7 +2562,7 @@ shutdown has 10 s. Its row in `vendor/README.md`; eleven patches in AGENTS.md an
 **Milestone:** M6
 **Priority:** P1
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2866,6 +2872,12 @@ The gate at `55386459` (run 45276783667): each job green, `gate (m6)` the second
 The gate at `f789df28` (run 45309674786, russh 0.65.4 and T-859's pump): each job green, `gate (m6)` the third.
 The gate at `a8397ea9` (run 45315562024): each job green, `gate (m6)` the fourth.
 The gate at `45c17a57` (run 45345487012): each job green, `gate (m6)` the fifth (`84b2f435`'s run failed on macOS alone, T-861's test).
+
+2026-11-25, read again (a read-only review of the gate's runs): since `io/beside.rs` was merged on 2026-11-23, `gate
+(m6)` passed 28 times and hung none; two runs failed on a build error of `noq` (`unresolved import
+proto::StreamAffinity`), not a hang, and 18 were cancelled by newer pushes. The Prove's ten in a row is met: closed.
+The same shape (a write of the session awaited with no read of its channel beside it) is in six other places,
+filed as T-923.
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
@@ -4934,3 +4946,41 @@ alone (COORD-149, PodUtils/podssh#359).
 
 2026-11-25: the variant asked of podcrates by COORD-149 (PodUtils/podssh#359); podssh's part (the carrier's
 `start_again` and the test's check of the line) follows the tag that carries it.
+
+# T-923: Six waits of a session's write with no read of its channel beside it, the shape of T-780's hang
+
+**Source:** the review of T-780 on 2026-11-25 (a read-only advisor).
+**Category:** defect
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+T-780's hang was a wait cycle: podssh awaited a write of the session (`eof`) and read nothing of the channel meanwhile,
+while russh's loop could not take the write until the channel's bounded queue drained. `io/beside.rs` repaired the
+pump. Six other places await a write of the session with no read beside it, and can hang the same way when the far
+end sends while podssh waits.
+
+## Premise
+
+- Read: `crates/podssh-ssh/src/exec.rs:184` awaits `channel.eof()` with no bound after an upload that read nothing.
+- Read: `crates/podssh-ssh/src/elevate.rs:301` and `:346`; `crates/podssh-cli/src/ping/far.rs:122` and `:184`;
+  `crates/podssh-cli/src/ping/load.rs:80`; `crates/podssh-ssh/src/server/gateway/pump.rs:125`.
+- Read: `crates/podssh-ssh/src/io/beside.rs` takes the channel's messages while a write waits, and the test
+  `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` holds the pump's waits to it.
+
+## Approach
+
+1. Route each of the six waits through `io::beside` (or the same shape where the channel is another type), keeping what
+   each does with the messages it takes; bound `exec.rs:184` by its `progress` as its data waits are.
+2. Add the six files to the list of `each_wait_of_a_pump_on_the_session_goes_beside_the_channel`, so a new wait of that
+   shape fails the test.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib beside
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ping
+```

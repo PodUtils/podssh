@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**854 entries: 4 open, 35 partial, 13 blocked, 802 done.**
+**855 entries: 5 open, 33 partial, 13 blocked, 804 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 8 | 3 | 98 | 109 |
-| P2 | 0 | 21 | 2 | 315 | 338 |
+| P1 | 0 | 7 | 3 | 99 | 109 |
+| P2 | 1 | 20 | 2 | 316 | 339 |
 | P3 | 4 | 6 | 8 | 388 | 406 |
-| **All** | 4 | 35 | 13 | 802 | 854 |
+| **All** | 5 | 33 | 13 | 804 | 855 |
 
 ## Entries
 
@@ -786,7 +786,7 @@ repository and CI).
 | [T-753](robustness.md) | P2 | M | M10 | defect | done | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
 | [T-754](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5 |
 | [T-755](ws.md) | P3 | L | none | feature | done | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
-| [T-756](robustness.md) | P2 | S | M10 | defect | partial | `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite |
+| [T-756](robustness.md) | P2 | S | M10 | defect | done | `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite |
 | [T-757](ws.md) | P3 | M | M10 | feature | done | VLESS's first write coalesced to one write of 3,333 bytes, padded when short |
 | [T-758](ws.md) | P3 | M | M10 | feature | done | A replay window for early data: each 0-RTT nonce kept 10 minutes, a repeat refused and the session at 1-RTT |
 | [T-759](ws.md) | P3 | S | M10 | feature | done | XHTTP's split behind a proxy that buffers responses, its two-request shape asserted, and `doctor`'s word on stream-one over HTTP/1.1 |
@@ -810,7 +810,7 @@ repository and CI).
 | [T-777](serve.md) | P3 | M | M5 | feature | done | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
 | [T-778](repo.md) | P2 | S | M5 | chore | done | The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do |
 | [T-779](copy.md) | P2 | S | M5 | defect | partial | A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container |
-| [T-780](robustness.md) | P1 | M | M6 | defect | partial | m6's session with no fault hung past 600 s in the gate |
+| [T-780](robustness.md) | P1 | M | M6 | defect | done | m6's session with no fault hung past 600 s in the gate |
 | [T-781](robustness.md) | P2 | S | M10 | defect | done | A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes |
 | [T-782](multi.md) | P3 | M | M10 | feature | done | `each`, `run` and `job` reach an `iroh:` or a `derp:` destination |
 | [T-783](robustness.md) | P1 | S | M10 | defect | done | `pipe exec:` beside `udp:node:` lost a program's last answer when a send to it failed after its exit |
@@ -930,3 +930,4 @@ repository and CI).
 | [T-920](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the lines that a transfer the near end never took leaves on the screen are documented |
 | [T-921](copy.md) | P3 | S | backlog | defect | done | `podssh tx receive` into a directory that takes no file says that a file could not be created in it |
 | [T-922](copy.md) | P3 | S | backlog | defect | done | `podssh help` is a documented word, as `podssh help COMMAND` is |
+| [T-923](robustness.md) | P2 | S | none | defect | open | Six waits of a session's write with no read of its channel beside it, the shape of T-780's hang |
