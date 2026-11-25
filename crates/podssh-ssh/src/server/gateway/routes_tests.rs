@@ -98,7 +98,7 @@ fn each_file_reads_or_says_its_line_and_why() {
         ("a principal list", base.replace("principal p", "principal a,b"), Err("with no comma")),
         ("a principal as an option", base.replace("principal p", "principal -o"), Err("with no comma")),
         ("a source address that does not read", with("source-address nowhere"), Err("Invalid source-address")),
-        ("a CA that does not read", base.replace("ca-key ca", "ca-key missing"), Err("line 1: ca-key /etc/podssh/")),
+        ("a CA that does not read", base.replace("ca-key ca", "ca-key missing"), Err("line 1: ca-key /etc/podssh")),
         ("a control character", with("key \u{1b}[2J"), Err("line 7: a control character")),
     ];
     for (what, text, expected) in cases {

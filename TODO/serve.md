@@ -4576,7 +4576,9 @@ gate's lints, also for `x86_64-pc-windows-gnu`, and rustfmt: clean. The suites f
 alone, so the scan now allows it in `gateway/upstream.rs` only; and four sentences of the manual's note were over 25
 words. Then `cargo test -p podssh-ssh --no-fail-fast`: 782 passed and the scan's 2; `-p podssh-cli --no-fail-fast`:
 257 suites, 2593 passed, the three of `job_far` (this container's stand-in of `rm`) failed, and `--lib man` 119
-passed after the note was cut. Step 3's route in the net's policy is
+passed after the note was cut. The gate at `2fb3bf2` (run 45548590253) failed the `windows` job alone, on
+`routes_tests.rs`'s case of a CA that does not read: its expected words held a `/` where Windows joins with `\`. The
+words now stop before the separator; `--lib server::gateway`: 3 passed. Step 3's route in the net's policy is
 T-902; the certificate by `Mint` is T-903. The entry is done.
 
 # T-837: A live shell shared by name: a read-only name, and one writer at a time
