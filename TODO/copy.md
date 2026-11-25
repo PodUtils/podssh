@@ -4196,6 +4196,10 @@ full disk, not on the fault of this entry: `write at 195317760: ... No space lef
 found no file (66). A black-box tester's files of 200 MiB beside it had filled the disk. The run does not count; the
 entry still waits for a run that fails with free space, whose logs the script keeps.
 
+2026-11-25, with free space: `sh scripts/m5-in-sandbox.sh target/debug/podssh` from this cloud container passed
+(each key step ok; 200 MiB up in 115 s and down in 121 s through the live relay, SHA-256 equal). Five runs from a cloud
+container have passed since the one failure; it waits for a failure with its logs, or five more.
+
 # T-831: A 7-bit transfer envelope for a session whose pty damages ZMODEM
 
 **Source:** the donor study of 2026-11-18, report 01 (trzsz/trzsz at f73b234); the tracker issue is PodUtils/podssh#317.

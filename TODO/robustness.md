@@ -2381,6 +2381,9 @@ as a clean end before this entry. The echo of `crates/podssh-cli/tests/exit/clie
 half shut after the last byte, then the node's close awaited, 5 s at most), as T-465's server does; `--test exit` 7
 passed here, and a repeat on Windows follows.
 
+The repeat: `suite-repeat.yml` with `runner=windows-2025`, `package=podssh-cli`, `test=exit`, 20 runs at `f32c190`
+(run 45678053375): 0 of 20 failed.
+
 # T-756: `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite
 
 **Source:** the main session's run of `cargo test --workspace --no-fail-fast` at the take of podcrates v0.35.0,
