@@ -1379,7 +1379,7 @@ run the same day.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1536,8 +1536,10 @@ server closed its AF_UNIX socket with no shutdown, and Windows' AF_UNIX gives th
 taking the reset as an end then, exited 0 with nothing). The macOS and Windows failures of "no end within 10 s"
 before are the same lost end seen from the other side. Repaired in the test's server
 (`crates/podssh-cli/tests/pipe_seen/mod.rs`, `answer`): a graceful close, its write half shut down after the answer,
-then a wait of 5 s at most for podssh's close. `cargo test -p podssh-cli --test pipe`: 10 passed here; the gate's
-`windows` job and a repeat there follow.
+then a wait of 5 s at most for podssh's close. `cargo test -p podssh-cli --test pipe`: 10 passed here. At `1d39c43`:
+`suite-repeat.yml` with `runner=windows-2025`, `package=podssh-cli`, `test=pipe` (the whole suite), 50 runs (run
+45626681291): 50 of 50 passed; the gate (run 45626673455) passed each job, `windows` and `macos` among them. Closed.
+The planted runs (the server's shutdown removed, podssh's reset taken as an end again) wait for T-251.
 
 # T-564: podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE`
 

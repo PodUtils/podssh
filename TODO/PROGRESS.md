@@ -8,9 +8,9 @@ this page keeps no history (git does).
 
 Read on 2026-11-25.
 
-1. **The gate.** Green at `6cef237` (2026-11-25, run 45566736621, each job). Red at `13623b3` and `c6fa76a` on the
-   job `windows` alone (T-465's test; repaired at `1d39c43`); read the gate of `1d39c43` first (a push cancels the
-   gate of the one before it). Earlier green runs are in `docs/STATUS.md`.
+1. **The gate.** Green at `1d39c43` (2026-11-25, run 45626673455, each job), after red runs at `13623b3` and
+   `c6fa76a` on the job `windows` alone (T-465's test, closed). Read the gate of the last push first (a push cancels
+   the gate of the one before it). Earlier green runs are in `docs/STATUS.md`.
 2. **Releases.** The newest beta is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is `v1.0.1`
    (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete and the black-box pass of T-809 is
    clean (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the
@@ -19,7 +19,7 @@ Read on 2026-11-25.
    T-738 is partial and T-740 blocked. M5's `podssh serve` is on `main` (Q92): commands, shells, a pty, direct-tcpip,
    SFTP, the options of a key line, `--listen`, kept shells, `--audit-log` and `--totp`.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
-   failure: T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
+   failure: T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
    none. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
@@ -68,9 +68,9 @@ The session of 2026-11-25 (afternoon), after the one of 2026-11-24 and 2026-11-2
 with no shutdown (`1d39c43`, a graceful close in the test's server); `draft/d-t831` merged and T-831 closed
 (`97cebe6`: the far end paces a frame by half its pane, as tmux skips what scrolls off; `pty.envelope.*` 3 of 3
 against OpenSSH through tmux), COORD-148 (#358) to podcrates for the pane's rows of the codec; T-900 done (the DNS
-road over DNS over HTTPS through `HTTPS_PROXY`; a carrier of `operator` reads the pins); T-905 filed. The next
-session, in order: the gate of `1d39c43` and the Windows repeat of `pipe` (`suite-repeat.yml`, dispatched at
-`1d39c43`), then T-465 closed if both pass; T-834 (the bearer, open on `v0.84.0`: who mints a bearer at connect time,
+road over DNS over HTTPS through `HTTPS_PROXY`; a carrier of `operator` reads the pins); T-905 filed. The gate is
+green at `1d39c43` and T-465 is closed (50 of 50 on Windows). The next session, in order: the gate of the last push;
+T-834 (the bearer, open on `v0.84.0`: who mints a bearer at connect time,
 as its binding exists only in the handshake); T-905; podcrates' answers to COORD-147 (#357), COORD-148 (#358) and
 COORD-139 (#349); T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
 clean**).
@@ -83,7 +83,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 838 entries: 6 open, 39 partial, 12 blocked, 781 done.
+`TODO/INDEX.md` holds 838 entries: 6 open, 38 partial, 12 blocked, 782 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -95,7 +95,7 @@ operator interrupts it.
 
 **The rules of the order**, first to last:
 
-1. A red gate, then a test that fails at random (T-465, T-627, T-753, T-756, T-780, T-796), before any other work.
+1. A red gate, then a test that fails at random (T-627, T-753, T-756, T-780, T-796), before any other work.
 2. A `partial` entry before a new one, and a draft's merge in the order of "Drafts" (State, item 8). Each partial
    entry's `## Done` says what it waits for (State, item 4).
 3. The migration's takes (T-684), as the podcrates session hands each crate over (Rule Q3 of `docs/decisions.md`:

@@ -7,9 +7,9 @@ This page keeps no history: git does.
 
 ## The state of `main`
 
-- **The gate** was green at `6cef237` (2026-11-25, run 45566736621, each job), and red at `13623b3`
-  and `c6fa76a` on the job `windows` alone: T-465's `pipe` test, repaired at `1d39c43` (the test
-  server's graceful close). Read the gate of the last push first.
+- **The gate** is green at `1d39c43` (2026-11-25, run 45626673455, each job), after red runs at
+  `13623b3` and `c6fa76a` on the job `windows` alone (T-465's `pipe` test, now closed). Read the
+  gate of the last push first.
 - **The record agrees** (`cargo todo check`), and `python scripts/check-repo.py` passes.
 - **The last whole suite** (2026-11-24, a cloud container, Rust 1.99.1, `cargo test --workspace
   --no-fail-fast`): 427 suites, 4272 passed, 3 failed. The 3 are `job_far`, at this container's
