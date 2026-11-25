@@ -1285,7 +1285,7 @@ session starts with the size of its start
 (`crates/podssh-ssh/src/io.rs:125-196`). The flag at
 `crates/podssh-cli/src/flags.rs:229-230`, its check and its file in
 `crates/podssh-cli/src/ssh/recording.rs:1-42`; the verb in
-`crates/podssh-cli/src/play.rs:1-86`, its flags in
+`crates/podssh-cli/src/play.rs:1-92`, its flags in
 `crates/podssh-cli/src/flags/play.rs:1-14`.
 - `cargo test -p podssh-ssh -- asciicast`: 4 passed: the header and both
   events, the escapes of quotes and control bytes, a character split across

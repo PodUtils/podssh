@@ -241,7 +241,7 @@ async fn serve(args: &SessionArgs, plan: Plan, out: &mut dyn Write, err: &mut dy
                     tokio::spawn(client(end, shared.clone()));
                 }
                 Err(e) => {
-                    log.error(&format!("{path}: {e}"));
+                    log.error(&format!("{path}: {}", podssh_ws::text::said(&e)));
                     tokio::time::sleep(Duration::from_millis(100)).await;
                 }
             },

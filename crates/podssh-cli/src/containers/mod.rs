@@ -154,7 +154,7 @@ pub fn run_containers(args: &ContainersArgs, out: &mut dyn Write, err: &mut dyn 
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            log.error(&format!("could not start the async runtime: {e}"));
+            log.error(&format!("could not start the async runtime: {}", podssh_ws::text::said(&e)));
             return EXIT_FAILURE;
         }
     };
@@ -249,7 +249,7 @@ async fn listed(handles: &[Connection], tools: &[Tool], host: &str, log: &Log) -
     let out = match exec::capture(handle, &list::command(tools), LIST_LIMIT, CAP).await {
         Ok(out) => out,
         Err(e) => {
-            log.error(&format!("{host}: the list of containers: {e}"));
+            log.error(&format!("{host}: the list of containers: {}", podssh_ws::text::said(&e)));
             return Err(EXIT_FAILURE);
         }
     };

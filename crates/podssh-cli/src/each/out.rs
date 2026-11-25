@@ -92,7 +92,7 @@ pub(crate) fn prepare(labels: &[String], dir: Option<&str>) -> Result<Vec<Option
         stems.push((stem, label));
     }
     let cant = |path: &Path, e: std::io::Error| Refusal {
-        message: format!("--output-dir: {}: {e}", path.display()),
+        message: format!("--output-dir: {}: {}", path.display(), podssh_ws::text::said(&e)),
         code: sysexits::EX_CANTCREAT,
     };
     let dir = Path::new(dir);
@@ -181,6 +181,7 @@ pub(crate) async fn drain(mut pieces: mpsc::Receiver<(Vec<u8>, bool)>, place: Pl
             while let Some((bytes, stderr)) = pieces.recv().await {
                 if failed.is_none() {
                     if let Err(e) = write(&mut out[usize::from(stderr)], &bytes).await {
+                        let e = podssh_ws::text::said(&e);
                         failed = Some(format!("its output could not be written: {e}; the rest is dropped"));
                     }
                 }
@@ -219,7 +220,7 @@ fn labelled(label: &str, line: &[u8]) -> Vec<u8> {
 pub(crate) async fn status(path: &Path, code: i32) -> Result<(), String> {
     tokio::fs::write(path, format!("{code}\n"))
         .await
-        .map_err(|e| format!("{}: its status could not be written: {e}", path.display()))
+        .map_err(|e| format!("{}: its status could not be written: {}", path.display(), podssh_ws::text::said(&e)))
 }
 
 #[cfg(test)]

@@ -146,7 +146,7 @@ fn schema(fields: &Map<String, Value>) -> Result<(), String> {
 fn sent(fields: &Map<String, Value>) -> Result<Vec<u8>, String> {
     match (fields.get("text").and_then(Value::as_str), fields.get("bytes").and_then(Value::as_str)) {
         (Some(text), None) => Ok(text.as_bytes().to_vec()),
-        (None, Some(bytes)) => B64.decode(bytes).map_err(|e| format!("bytes that are not base64: {e}")),
+        (None, Some(bytes)) => B64.decode(bytes).map_err(|e| format!("bytes that are {}", not_base64(&e))),
         _ => Err("a send has a text or bytes, one of them".into()),
     }
 }
@@ -244,7 +244,7 @@ pub fn raw(bytes: &[u8]) -> Map<String, Value> {
 /// The bytes of a raw capture, as the client reads them.
 pub fn raw_bytes(fields: &Map<String, Value>) -> Result<Vec<u8>, String> {
     let text = fields.get("bytes").and_then(Value::as_str).ok_or("a raw capture with no bytes")?;
-    B64.decode(text).map_err(|e| format!("bytes that are not base64: {e}"))
+    B64.decode(text).map_err(|e| format!("bytes that are {}", not_base64(&e)))
 }
 
 /// The fields of a wait that ended: what ended it.
@@ -252,4 +252,15 @@ pub fn by(what: &str) -> Map<String, Value> {
     let mut fields = Map::new();
     fields.insert("by".into(), json!(what));
     fields
+}
+
+/// Why text is not base64, in podssh's words: the byte where it stops,
+/// counted from 1, not the crate's "Invalid symbol N, offset M." (T-981).
+pub(crate) fn not_base64(e: &base64::DecodeError) -> String {
+    use base64::DecodeError::{InvalidByte, InvalidLastSymbol, InvalidLength, InvalidPadding};
+    match e {
+        InvalidByte(at, _) | InvalidLastSymbol { offset: at, .. } => format!("not base64 at byte {}", at + 1),
+        InvalidLength(n) => format!("not base64: its length, {n} symbols, is not one that base64 gives"),
+        InvalidPadding => "not base64: its padding is wrong".to_string(),
+    }
 }

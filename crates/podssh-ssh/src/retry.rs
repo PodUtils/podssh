@@ -34,9 +34,26 @@ pub(crate) fn begin() {
     crate::outcome::here().with(|r| r.phase.store(Phase::Handshake as u8, Ordering::SeqCst));
 }
 
+/// What runs once, in the task that sends the process's first request,
+/// before the request goes: a detached run leaves the caller's stdout there,
+/// so that no byte of the command's output reaches it (T-979).
+static ON_REQUEST: std::sync::OnceLock<fn()> = std::sync::OnceLock::new();
+
+/// Run `hook` when the run first reaches [`Phase::Requested`], before its
+/// request goes out; the first hook set holds.
+pub fn on_request(hook: fn()) {
+    let _ = ON_REQUEST.set(hook);
+}
+
 /// The run got as far as `phase`; it never goes back.
 pub(crate) fn reached(phase: Phase) {
-    crate::outcome::here().with(|r| r.phase.fetch_max(phase as u8, Ordering::SeqCst));
+    let before = crate::outcome::here().with(|r| r.phase.fetch_max(phase as u8, Ordering::SeqCst));
+    if phase >= Phase::Requested
+        && before < Phase::Requested as u8
+        && let Some(hook) = ON_REQUEST.get()
+    {
+        hook();
+    }
 }
 
 /// How far the run of this session got, or of this process.

@@ -346,3 +346,35 @@ fn an_unknown_host_key_refuses_its_host_and_names_accept_new() {
     assert!(err.contains("SHA256:") && err.contains("StrictHostKeyChecking=accept-new"), "{err}");
     assert!(!home.join("known_hosts").exists(), "a key was recorded with no question");
 }
+
+/// `-p` is for each host that names no port (T-976): a host's own port
+/// wins, and one that names none takes `-p`.
+#[test]
+fn a_host_s_own_port_wins_over_p() {
+    let home = scratch("port");
+    let (_runtime, port, closed) = server(&home);
+    for (p, host) in [(closed, format!("a@127.0.0.1:{port}")), (port, "a@127.0.0.1".to_string())] {
+        let mut flags = direct(&home, true);
+        flags.extend(["-p".to_string(), p.to_string()]);
+        let (code, _, err) = run(&home, &flags, std::slice::from_ref(&host), "exit 0");
+        assert_eq!(code, 0, "-p {p} {host}: {err}");
+        assert_eq!(said_of(&err, &host), Some("0"), "-p {p} {host}: {err}");
+    }
+}
+
+/// A failure of several lines keeps one line for its host in the summary,
+/// and each of its lines has the prefix (T-981).
+#[test]
+fn a_failure_of_several_lines_keeps_the_prefix_on_each() {
+    let home = scratch("host-key-lines");
+    let (_runtime, port, _) = server(&home);
+    let host = format!("a@127.0.0.1:{port}");
+    let (code, _, err) = run(&home, &direct(&home, false), std::slice::from_ref(&host), "exit 0");
+    assert_eq!(code, 255, "{err}");
+    for line in err.lines() {
+        assert!(line.starts_with("podssh"), "a line with no prefix: {line:?} in {err}");
+    }
+    let said = said_of(&err, &host).unwrap_or_default();
+    assert!(said.starts_with("255, no session: host key verification failed"), "{err}");
+    assert!(!err.contains(&format!("{host}: {host}")), "the host twice: {err}");
+}

@@ -112,7 +112,7 @@ pub fn run_job(args: &JobArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            log.error(&format!("could not start the async runtime: {e}"));
+            log.error(&format!("could not start the async runtime: {}", podssh_ws::text::said(&e)));
             return EXIT_FAILURE;
         }
     };
@@ -298,30 +298,51 @@ async fn act(action: &Action, host: &str, handle: &Connection, log: &Log, out: &
         Action::Stop(id) => {
             let lines = far::lines(handle, host, &["stop", id.as_str()]).await?;
             let first = first_line(host, &lines)?;
-            if first == format!("stopped {id}") {
-                log.info(&format!("job {id} on {host} stopped, and removed with its output"));
-            } else if first == format!("removed {id}") {
-                log.info(&format!("job {id} on {host} removed with its output; it did not run"));
-            } else if first == format!("lost {id}") {
-                // A job of --no-tmux whose runner is gone (T-481).
-                log.info(&format!(
-                    "job {id} on {host} removed with its output; its runner was gone, so nothing could end its \
-                     command, which may still run there"
-                ));
-            } else if first == format!("stuck {id}") {
-                return Err(format!(
-                    "job {id} on {host} was asked to stop, and runs on after 15 s; it keeps its output, and podssh \
-                     job stop {host} {id} asks again"
-                ));
-            } else {
-                return Err(unexpected(host, first));
-            }
+            log.info(&stop_said(id, host, first)?);
             Ok(())
         }
         Action::Submit { .. } | Action::Wait { .. } | Action::Fetch { .. } | Action::Follow { .. } => {
             unreachable!("perform runs them with connections of their own")
         }
     }
+}
+
+/// The line of `job stop` for the far script's answer `first`: what the
+/// job was when the stop came, as the far script saw it (T-978); `Err` for
+/// a job that runs on, and for an answer that this binary does not know.
+/// The MCP tool `job_stop` returns the same line, from this binary.
+pub(crate) fn stop_said(id: &str, host: &str, first: &str) -> Result<String, String> {
+    let Some((word, rest)) = first.split_once(' ') else { return Err(unexpected(host, first)) };
+    let (named, status) = match rest.split_once(' ') {
+        Some((named, status)) => (named, Some(status)),
+        None => (rest, None),
+    };
+    if named != id {
+        return Err(unexpected(host, first));
+    }
+    let said = match (word, status) {
+        ("stopped", None) => format!("job {id} on {host} stopped, and removed with its output"),
+        ("removed", None) => format!("job {id} on {host} removed with its output; it was queued, and never ran"),
+        ("ended", Some(status)) if status.parse::<i32>().is_ok() => {
+            format!("job {id} on {host} had ended (status {status}); removed with its output")
+        }
+        ("gone", None) => {
+            format!("job {id} on {host} was lost (no status, and nothing ran it); removed with what output it had")
+        }
+        // A job of --no-tmux whose runner is gone (T-481).
+        ("lost", None) => format!(
+            "job {id} on {host} removed with its output; its runner was gone, so nothing could end its command, \
+             which may still run there"
+        ),
+        ("stuck", None) => {
+            return Err(format!(
+                "job {id} on {host} was asked to stop, and runs on after 15 s; it keeps its output, and podssh job \
+                 stop {host} {id} asks again"
+            ))
+        }
+        _ => return Err(unexpected(host, first)),
+    };
+    Ok(said)
 }
 
 #[cfg(test)]

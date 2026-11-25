@@ -88,7 +88,7 @@ impl Write for Sink<'_> {
             if self.jsonl { self.lines(data) } else { self.out.write_all(data).and_then(|()| self.out.flush()) };
         if let Err(e) = given {
             self.gone = true;
-            self.failed = Some((e.kind(), e.to_string()));
+            self.failed = Some((e.kind(), podssh_ws::text::said(&e)));
             return Err(e);
         }
         Ok(data.len())

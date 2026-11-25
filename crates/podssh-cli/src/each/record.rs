@@ -19,13 +19,16 @@ pub const SCHEMA: u32 = 1;
 
 /// The record of one host: `label` as the list names it, its login
 /// `destination`, how it `ended`, what its session did (none when it did
-/// not start), and its files of `--output-dir`.
+/// not start), and its files of `--output-dir`. With `streams` (`--json`
+/// and no `--output-dir`), its streams: those kept, or empty for a host
+/// that kept none, as a record of `--json` always has them (T-982).
 pub(crate) fn host(
     label: &str,
     destination: &str,
     ended: &Ended,
     ran: Option<&Ran>,
     files: Option<&[PathBuf; 3]>,
+    streams: bool,
 ) -> Value {
     let facts = ran.map(|r| r.record.facts.clone()).unwrap_or_default();
     // A host with no session failed to connect, unless its session said
@@ -60,7 +63,9 @@ pub(crate) fn host(
     });
     // With --json and no --output-dir, the streams, as `ssh_exec` gives
     // them: UTF-8 when they are, else base64, and whether more came.
-    if let Some(kept) = ran.and_then(|r| r.kept.as_ref()) {
+    let none = crate::each::out::Kept::default();
+    let kept = ran.and_then(|r| r.kept.as_ref()).or(streams.then_some(&none));
+    if let Some(kept) = kept {
         let (stdout, stdout_encoding) = text(&kept.stdout);
         let (stderr, stderr_encoding) = text(&kept.stderr);
         let streams = json!({
@@ -113,7 +118,7 @@ mod tests {
     #[test]
     fn a_host_with_a_status_has_its_session_s_facts() {
         let facts = Facts { status: Some(3), end: Some("status"), ..Facts::default() };
-        let r = host("web1", "u@web1:22", &Ended::Status(3), Some(&ran(facts, None)), None);
+        let r = host("web1", "u@web1:22", &Ended::Status(3), Some(&ran(facts, None)), None, false);
         assert_eq!(
             (&r["exit"], &r["status"], &r["end"], &r["failure"]),
             (&json!(3), &json!(3), &json!("status"), &Value::Null)
@@ -126,18 +131,28 @@ mod tests {
     #[test]
     fn a_host_with_no_session_failed_with_its_words_and_class() {
         let refused = Facts { failure: Some("auth"), ..Facts::default() };
-        let r = host("k", "k@h:22", &Ended::Failed("Permission denied".into()), Some(&ran(refused, None)), None);
+        let r = host("k", "k@h:22", &Ended::Failed("Permission denied".into()), Some(&ran(refused, None)), None, false);
         assert_eq!((&r["exit"], &r["end"], &r["failure"]), (&json!(255), &json!("failed"), &json!("auth")));
         assert_eq!(r["error"], json!("Permission denied"));
         // No class said: no connection.
-        let r = host("c", "c@h:22", &Ended::Failed("refused".into()), Some(&ran(Facts::default(), None)), None);
+        let r = host("c", "c@h:22", &Ended::Failed("refused".into()), Some(&ran(Facts::default(), None)), None, false);
         assert_eq!(r["failure"], json!("connect"));
         // Not started: no part of the exit, and nothing else.
-        let r = host("n", "n@h:22", &Ended::NotStarted, None, None);
+        let r = host("n", "n@h:22", &Ended::NotStarted, None, None, false);
         assert_eq!(
             (&r["exit"], &r["end"], &r["bytes"], &r["duration_ms"]),
             (&Value::Null, &Value::Null, &Value::Null, &Value::Null)
         );
+        assert!(r.get("stdout").is_none(), "no streams without --json");
+        // With --json, a host that did not start has its streams, empty.
+        for ended in [Ended::NotStarted, Ended::Failed("refused".into())] {
+            let r = host("n", "n@h:22", &ended, None, None, true);
+            assert_eq!(
+                (&r["stdout"], &r["stderr"], &r["stdout_encoding"], &r["stderr_encoding"], &r["truncated"]),
+                (&json!(""), &json!(""), &json!("utf-8"), &json!("utf-8"), &json!(false)),
+                "{ended:?}"
+            );
+        }
     }
 
     #[test]
@@ -146,7 +161,7 @@ mod tests {
             stdout: Captured { bytes: b"out\n".to_vec(), truncated: false },
             stderr: Captured { bytes: vec![0xff, 0x00], truncated: true },
         };
-        let r = host("a", "a@h:22", &Ended::Status(0), Some(&ran(Facts::default(), Some(kept))), None);
+        let r = host("a", "a@h:22", &Ended::Status(0), Some(&ran(Facts::default(), Some(kept))), None, true);
         assert_eq!((&r["stdout"], &r["stdout_encoding"]), (&json!("out\n"), &json!("utf-8")));
         assert_eq!(
             (&r["stderr"], &r["stderr_encoding"], &r["truncated"]),
@@ -164,7 +179,7 @@ mod tests {
         assert_eq!((&o["schema"], &o["exit"]), (&json!(1), &json!(255)));
         assert_eq!(o["counts"], json!({ "hosts": 4, "ok": 1, "failed": 2, "not_started": 1 }));
         let files = crate::each::out::paths(std::path::Path::new("d"), "u@h:22");
-        let r = host("u@h:22", "u@h:22", &Ended::Status(0), None, Some(&files));
+        let r = host("u@h:22", "u@h:22", &Ended::Status(0), None, Some(&files), false);
         assert!(r["files"]["status"].as_str().is_some_and(|p| p.ends_with("u@h%3A22.status")), "{r}");
     }
 }

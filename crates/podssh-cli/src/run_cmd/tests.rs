@@ -120,3 +120,29 @@ fn a_dry_run_says_the_parents_the_actions_then_the_command() {
     assert_eq!(dry::left_out(2).as_deref(), Some("2 paths left out by the excludes; -v names each"));
     let _ = std::fs::remove_dir_all(dir.parent().unwrap());
 }
+
+/// A plan that cannot be written is 74, as each output that cannot be
+/// written (T-983, T-965): a full disk, or Windows' stdout with no handle.
+/// On Unix, Rust's runtime puts /dev/null on a closed stdout before `main`,
+/// so `>&-` cannot be told from an output thrown away on purpose.
+#[test]
+fn a_plan_that_cannot_be_written_is_74() {
+    struct Full;
+    impl std::io::Write for Full {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::from(std::io::ErrorKind::StorageFull))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let dir = project("full");
+    let got = plan(&args("build1", &dir, &["make"])).unwrap();
+    let synced = crate::cp::sync::Synced { counts: Default::default(), failed: None, plan: vec![] };
+    let log = podssh_ssh::Log::new(podssh_ssh::LogLevel::Quiet);
+    assert_eq!(dry::answer(&got, &[], &synced, &log, &mut Full), 74);
+    let mut text = Vec::new();
+    assert_eq!(dry::answer(&got, &[], &synced, &log, &mut text), 0);
+    assert_eq!(String::from_utf8(text).unwrap(), "run cd '.podssh/run/full' && make\n");
+    let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+}

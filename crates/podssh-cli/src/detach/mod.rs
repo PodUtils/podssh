@@ -80,12 +80,24 @@ fn split_flag(mut args: Vec<OsString>, flag: &str) -> (bool, Vec<OsString>) {
     (found, args)
 }
 
-/// In a detached child of `podssh ssh`: ready once the run's request went
+/// The verb of [`when_requested`], for its hook.
+static REQUESTED_VERB: OnceLock<&'static str> = OnceLock::new();
+
+/// In a detached child of `podssh ssh`: ready as the run's request goes
 /// (`Phase::Requested`: after the login, `-L` and `-D` bound before it).
+/// The step runs in the task that sends the request, before it goes, so
+/// that the command's first output goes to the log, never to the caller's
+/// stdout (T-979); a thread that reads the phase stays as a second path.
 pub fn when_requested(verb: &'static str) {
     if !is_child() {
         return;
     }
+    let _ = REQUESTED_VERB.set(verb);
+    podssh_ssh::retry::on_request(|| {
+        if let Some(verb) = REQUESTED_VERB.get() {
+            ready(verb);
+        }
+    });
     let _ = std::thread::Builder::new().name("detach-ready".into()).spawn(move || loop {
         if podssh_ssh::retry::phase() >= podssh_ssh::retry::Phase::Requested {
             ready(verb);
@@ -169,7 +181,7 @@ pub fn start(verb: &str, restart: bool, name: Option<&str>, err: &mut dyn Write)
             let _ = writeln!(err, "podssh {verb}: --detach: note: {line}");
         }) {
             Ok(started) => return wait_ready(started, verb, err),
-            Err(e) => tried.push(format!("{}: {e}", program.display())),
+            Err(e) => tried.push(format!("{}: {}", program.display(), podssh_ws::text::said(&e))),
         }
     }
     if tried.is_empty() {
@@ -196,7 +208,7 @@ fn wait_ready(mut started: std::process::Child, verb: &str, err: &mut dyn Write)
     match started.wait() {
         Ok(status) => code_of(status),
         Err(e) => {
-            let _ = writeln!(err, "podssh {verb}: --detach: the background run: {e}");
+            let _ = writeln!(err, "podssh {verb}: --detach: the background run: {}", podssh_ws::text::said(&e));
             crate::exitmap::sysexits::EX_SOFTWARE
         }
     }

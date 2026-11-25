@@ -2267,7 +2267,7 @@ a command.
 ## Premise
 
 - Read: `run` leaves out the default excludes, and reads `.podsshignore` at the project's root
-  when it is there (`crates/podssh-cli/src/run_cmd/mod.rs:42-46`, `:161-169`; lines 141-149 at
+  when it is there (`crates/podssh-cli/src/run_cmd/mod.rs:43-47`, `:162-171`; lines 141-149 at
   `b02d8c4`), as the manual's note says (`crates/podssh-cli/src/man/notes_run.rs:12-21`). So the
   issue's first ask, a `.podsshignore` read by default, is met, as its comment found.
 - Read, at `b02d8c4`: the rows of `run`, which `--help` shows, name neither the defaults nor the
@@ -3032,7 +3032,7 @@ failure's words, no signal and no time. The other surfaces give one object (`ssh
 
 - Read: the rows of `each` have no `--json` and no `--result-file`
   (`crates/podssh-cli/src/flags/each.rs`); its summary is lines for people on stderr, above the
-  level quiet only (`crates/podssh-cli/src/each/mod.rs:186-190`,
+  level quiet only (`crates/podssh-cli/src/each/mod.rs:192-196`,
   `crates/podssh-cli/src/each/fan.rs:75-93`).
 - Read: a host ends with its status, the first line of its failure, or not started
   (`crates/podssh-cli/src/each/fan.rs:10-20`); its signal, its end, the class of its failure, its
@@ -3350,7 +3350,7 @@ host runs nothing anywhere.
 - Read: `podssh ssh` takes a word that is no pattern as one host
   (`crates/podssh-cli/src/hosts.rs:29-33`), so `a b` goes to the name check of the road (T-503).
 - Read: the hosts are expanded, then each is resolved, before anything connects
-  (`crates/podssh-cli/src/each/mod.rs:143-153`); the resolve of the direct road takes `a`, and the
+  (`crates/podssh-cli/src/each/mod.rs:149-159`); the resolve of the direct road takes `a`, and the
   relay road takes it too, so the blank is the only fault, and it is lost.
 
 ## Approach
@@ -3431,8 +3431,8 @@ read.
 ## Premise
 
 - Read, at `582b1bf` (before this entry's change, as at `01e371e`): `session list` returns 0 at
-  once with no session (`crates/podssh-cli/src/session/client.rs:102-104`), and skips a session
-  whose server does not answer within its wait (`crates/podssh-cli/src/session/client.rs:108`);
+  once with no session (`crates/podssh-cli/src/session/client.rs:104-106`), and skips a session
+  whose server does not answer within its wait (`crates/podssh-cli/src/session/client.rs:110`);
   the sockets are found in the directories that it can read, and one that it cannot is skipped
   (`crates/podssh-cli/src/session/place.rs:70-84`, `:73`).
 - Read, at `582b1bf`: `detached list` writes a line for each run of its directory, and none for
@@ -3621,8 +3621,8 @@ with no result file, no `--json`, no `--parallel` and no job record.
 
 - Read: each of the three resolves its host as `podssh ssh` does, so a net name already becomes
   `Transport::Node` (`crates/podssh-cli/src/net/lookup.rs:2`, `crates/podssh-cli/src/ssh/transport_kind.rs:23`),
-  and then refuses it (`crates/podssh-cli/src/each/host.rs:62`, `crates/podssh-cli/src/job/mod.rs:59`,
-  `crates/podssh-cli/src/run_cmd/mod.rs:223`).
+  and then refuses it (`crates/podssh-cli/src/each/host.rs:66`, `crates/podssh-cli/src/job/mod.rs:59`,
+  `crates/podssh-cli/src/run_cmd/mod.rs:242`).
 - Read: `transport::reach` cannot reach a node, an `iroh:` or a `derp:` destination
   (`crates/podssh-cli/src/ssh/transport.rs:268-278`). `ssh/node.rs:160` runs the whole session of a node
   and gives no stream, so the sink of `each` (`each/host.rs:140`) has nothing to take.
@@ -3874,3 +3874,354 @@ Draft, 2026-11-23: items 1 to 5 written; item 6 stays as its text says.
   sentences of the notes were cut to 25 words or fewer (`pod_model`'s rule)
   and `llms-full.txt` was written again. clippy of podssh-cli, all targets,
   `-D warnings`: clean.
+
+# T-976: `podssh each -p PORT` takes the place of a port that the host names
+
+**Source:** the sixth black-box pass (2026-11-25), against OpenSSH's sshd and `podssh serve`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh each -p 1 'podtest@127.0.0.1:2201' -- true` dialed port 1, and `-p 2201 'podtest@127.0.0.1:1'` dialed 2201
+while the summary still named port 1. The manual and the help say that `-p` is "for each host that names none".
+
+## Premise
+
+- Read, at `07d7d9b`: `each` gives each host to the resolver of `podssh ssh` as its destination, with the command
+  line's `-p` kept (line 51 of `crates/podssh-cli/src/each/host.rs`), and the resolver takes `-p` before the
+  destination's own port (`crates/podssh-cli/src/ssh/resolve.rs:164`).
+- Read: the help row says "port to connect to, for each host that names none" (`crates/podssh-cli/src/flags/each.rs`),
+  and so does the manual's note of `each` (`crates/podssh-cli/src/man/notes_each.rs`).
+
+## Approach
+
+1. `each::host::names_port(label)`: whether a host names its own port (`host:PORT`, `[v6]:PORT`, a URI's `:PORT`,
+   with or without a user; a bare IPv6 address names none). When it does, the host's plan drops `-p`.
+2. A table-driven unit test of `names_port`, and a test of the binary against the test's server: `-p` of a closed
+   port with a host that names the server's port gives 0, and a host that names none takes `-p`.
+
+## Decision
+
+The host's own port wins, as the help and the manual say; `ssh`'s own rule (a `-p` over a destination's port) is not
+changed, as `ssh` takes one destination and the user typed both. Lost: a way to send every host of a list to one
+port; a list whose hosts name none, with `-p`, does that.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib each::host
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test each a_host_s_own_port_wins_over_p
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `names_port` and its use in `planned`
+(`crates/podssh-cli/src/each/host.rs`), the unit table `a_host_names_its_port_or_takes_p`, the binary test
+`a_host_s_own_port_wins_over_p` (`crates/podssh-cli/tests/each.rs`), and `docs/cli.md` ("`podssh each`", the
+options).
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's sshd: `each -p 1 'podtest@127.0.0.1:2201' -- echo` reached port 2201 and the summary names it. The planted run waits for T-251.
+
+
+# T-977: `each` and `run` do their work, then cannot write `--result-file`, and exit 0
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh each --result-file /no/such/dir/r.json HOST -- true` and the same of `run` ran the command, then said that
+the file could not be written, and exited 0. A script that reads the record finds none, and the exit says that all
+went well. `cp` checks the file's directory before anything connects (T-928); `ssh`'s `--result-file` is another
+worker's (the SSH client's area).
+
+## Premise
+
+- Read, at `07d7d9b`: `each` and `run` wrote the record at the end and ignored the result of the write (line 206
+  of `crates/podssh-cli/src/each/mod.rs`, line 194 of `crates/podssh-cli/src/run_cmd/mod.rs`).
+- Read: the check of `cp` is `crate::ssh::result::no_place` (`crates/podssh-cli/src/ssh/result.rs:168`), which
+  `cp` calls before it connects and whose refusal is 73.
+
+## Approach
+
+1. `each` and `run` call `no_place` before anything connects: one line, "Nothing has been attempted.", and 73, as
+   `cp` says it.
+2. A record that could not be written at the end turns an exit of 0 into 73, as `cp` does; another exit stays.
+3. A table-driven test of the binary for both verbs, offline: 73 before anything connects (a run that went on would
+   end 255).
+
+## Decision
+
+The check is `cp`'s own function, called, not copied. The exit 73 (`EX_CANTCREAT`) is the code of `cp` for the same
+fault. Lost: nothing; a FIFO or a device still takes the record, as `write` keeps them.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test run a_result_file_with_no_directory_is_73_before_anything_connects
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): the check and the exit in `run_each`
+(`crates/podssh-cli/src/each/mod.rs`) and `run_run` (`crates/podssh-cli/src/run_cmd/mod.rs`), the binary test in
+`crates/podssh-cli/tests/run.rs`, and the exit codes of `docs/cli.md`. `ssh --result-file` is the SSH client worker's.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live: `each --result-file /nonexistent-dir/r.json` is refused "no such directory" with "Nothing has been attempted." (73). The planted run waits for T-251.
+
+
+# T-978: `job stop` says "it did not run" of a job that ran to its end
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh job stop HOST ID` of a job that had ended said "removed with its output; it did not run", and so did a stop
+of a lost job. The tool `job_stop` of `podssh mcp` returned the same sentence, as it runs this binary.
+
+## Premise
+
+- Read, at `07d7d9b`: the far script answers `removed ID` for each job whose tmux session it did not end: one
+  queued, one that had ended, one lost (line 373 of `crates/podssh-cli/src/job/far.sh`); the client reads `removed`
+  as "it did not run" (line 304 of `crates/podssh-cli/src/job/mod.rs`).
+- Read: `job_stop` returns the stderr of `podssh job stop` (`crates/podssh-cli/src/mcp/verbs.rs`).
+
+## Approach
+
+1. The far script reads the job's state before the stop and answers `ended ID STATUS` for a job that had ended,
+   `gone ID` for a lost one, and `removed ID` only for one that was queued.
+2. One function of the client, `job::stop_said`, makes the line of each answer; `job_stop` gets it through the
+   binary, so both are fixed from one place. A table-driven test of each answer.
+3. The manual and `docs/cli.md` say what the line names.
+
+## Decision
+
+The far script is sent with each call, so the new answers need no version. A session left by a job that ended is
+"ended", not "stopped". Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib job::tests
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test job_far
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): the stop of `crates/podssh-cli/src/job/far.sh`, `stop_said` in
+`crates/podssh-cli/src/job/mod.rs`, the table `a_stop_says_what_the_job_was` in `crates/podssh-cli/src/job/tests.rs`,
+the manual's note (`crates/podssh-cli/src/man/notes_job.rs`) and `docs/cli.md` ("`podssh job`"). A test of the binary
+against the test's server, a stop of a job that ended, waits for the lead.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's sshd: `job start ... -- 'exit 3'`, then `job stop` says the job "had ended (status 3); removed with its output" (0). The planted run waits for T-251.
+
+
+# T-981: Lines of `each`, `run`, `session`, `containers`, `play` and `mcp` that are not one true line
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- `each` with a user in the host printed "podssh: nobody@127.0.0.1: nobody@127.0.0.1: Permission denied": the host
+  twice, as OpenSSH's line names it too.
+- An unknown host key of one host made three lines of the summary, two of them with no prefix.
+- Lines of `each`, `run`, `session`, `containers` and `play` ended with Rust's "(os error N)" (T-952).
+- `mcp`'s `cp_put` with content that is not base64 returned the crate's "Invalid symbol 33, offset 0.".
+
+## Premise
+
+- Read, at `07d7d9b`: each line of a host's failure was logged as it came, and the summary took the first whole
+  failure, lines and all (lines 142 to 166 of `crates/podssh-cli/src/each/host.rs`, line 87 of
+  `crates/podssh-cli/src/each/fan.rs`); the login's refusal reads `{user}@{host}: Permission denied`
+  (`crates/podssh-ssh/src/auth.rs:163`), and a host key's refusal has three lines (`crates/podssh-ssh/src/hostkey.rs`).
+- Read, at `07d7d9b`: the base64 errors are shown by their `Display` (line 129 of `crates/podssh-cli/src/mcp/copy.rs`,
+  line 149 of `crates/podssh-cli/src/session/wire.rs`).
+
+## Approach
+
+1. `each`: a line that starts with the host that the prefix names already loses it (`unlabeled`); each line of a
+   failure of several lines is a line of its own with the prefix; the summary takes the first line only.
+2. Each I/O error of these commands is shown with `podssh_ws::text::said` (T-952's helper).
+3. `session::wire::not_base64`: "not base64 at byte N", counted from 1, for `cp_put` and the session's protocol.
+4. Table-driven tests of `unlabeled`, `first_line` and `not_base64`; a binary test that each line of a host key's
+   refusal has the prefix.
+
+## Decision
+
+The byte of base64 is counted from 1, as `cmp` counts. A line of OpenSSH's that names another host than the label
+(`-l` with a bare host) keeps it, as it says who logged in. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- each::host session::tests mcp::copy
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test each a_failure_of_several_lines_keeps_the_prefix_on_each
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `unlabeled`, `first_line` and `say_error` in
+`crates/podssh-cli/src/each/host.rs`; `said` in `each`, `run_cmd`, `session`, `containers`, `play`, `job`, `detach`
+and `mcp/child.rs`; `not_base64` in `crates/podssh-cli/src/session/wire.rs`, used by `crates/podssh-cli/src/mcp/copy.rs`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-982: `each --json`: a host that did not start has no streams in its record
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With `--json`, a host that did not start (`--fail-fast`, or no session) had no `stdout`, `stderr`,
+`stdout_encoding`, `stderr_encoding` or `truncated` in its record, though the manual says that each record has them.
+
+## Premise
+
+- Read, at `07d7d9b`: the record adds the streams only when the session kept some (line 63 of
+  `crates/podssh-cli/src/each/record.rs`).
+
+## Approach
+
+`record::host` takes whether the run keeps streams (`--json` and no `--output-dir`); a host that kept none has them
+empty, UTF-8, and not truncated. The unit test of a host that did not start asks for them.
+
+## Decision
+
+Empty, not null: a reader that concatenates or decodes them needs no case of its own. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib each::record
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test each each_json
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `crates/podssh-cli/src/each/record.rs` and its tests, the call in
+`crates/podssh-cli/src/each/mod.rs`, the manual's note (`crates/podssh-cli/src/man/notes_each.rs`) and `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-983: `run --dry-run` with stdout closed exits 0, and the plan is lost
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh run --dry-run HOST -- make >&-` exited 0 with no plan anywhere.
+
+## Premise
+
+- Read, at `07d7d9b`: the plan's write is checked (line 26 of `crates/podssh-cli/src/run_cmd/dry.rs`), but Rust's
+  stdout takes a write to a closed descriptor (EBADF) for done, so no error comes.
+
+## Approach
+
+1. `dry::stdout_closed`: the descriptor asked (`fcntl(F_GETFD)` on Unix, the standard handle on Windows), before
+   anything connects and again after the plan's write: one line, and 255, the exit of `ssh --list-hosts` when its
+   stdout cannot take the list.
+2. A test of the binary on Unix: `sh -c 'exec >&-; ...'`, one line and 255.
+
+## Decision
+
+255 is podssh's own failure in the codes of `podssh ssh`, which `run` uses; 74 (`EX_IOERR`) is no code of `run`.
+The check is local to `run`: another worker adds a shared helper for the output failures of the local tools, which
+was not on `main` at `07d7d9b`; when it is, this check takes it. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test run a_dry_run_with_stdout_closed_fails_with_one_line
+```
+
+## Correction
+
+At the merge (2026-11-25): the exit is 74, not 255, as T-965 (merged first) gives 74 for each output that cannot be
+written; `docs/cli.md` says so. And `>&-` cannot be told on Unix: Rust's runtime puts /dev/null on a closed stdout
+before `main`, so `stdout_closed`'s `F_GETFD` finds a descriptor, and the draft's test of the binary under `sh -c
+'exec >&-; ...'` got 255 from the offline run instead. The check stays for Windows, whose stdout with no handle takes
+each write for done; the proof is a unit test of a plan whose write fails (`run_cmd::tests::a_plan_that_cannot_be_written_is_74`).
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `stdout_closed` and the two checks in
+`crates/podssh-cli/src/run_cmd/dry.rs` and `crates/podssh-cli/src/run_cmd/mod.rs`, the test in
+`crates/podssh-cli/tests/run.rs`, and the exit codes of `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The exit is 74 (see the Correction); `run_cmd::tests::a_plan_that_cannot_be_written_is_74` passes. The planted run waits for T-251.
+
+
+# T-986: `job fetch` of a lost job exits 0 and says nothing
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh job fetch HOST ID` of a lost job copied its output and exited 0 with no word, while `job wait` and `job log
+--follow` of the same job exit 255.
+
+## Premise
+
+- Read, at `07d7d9b`: `fetch` refuses a queued or running job (75) and treats every other state as ended (line 92
+  of `crates/podssh-cli/src/job/fetch.rs`).
+
+## Approach
+
+A lost job's output is fetched as it is; then one line says that the job is lost and that `DIR/out` holds what it
+wrote before, and the exit is 255. The manual and `docs/cli.md` say it.
+
+## Decision
+
+Fetch, then 255: what the job wrote is still worth having, and the exit matches `wait` and `log --follow`, so that a
+script that fetches after a wait sees the same verdict. Lost: an exit of 0 for a fetch that copied each byte there
+was; the line says that it did.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib job::fetch
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `lost_line` and the end of `fetch` in
+`crates/podssh-cli/src/job/fetch.rs`, the unit test `a_lost_job_is_named_with_what_was_fetched`, the manual's note
+(`crates/podssh-cli/src/man/notes_job.rs`) and `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.

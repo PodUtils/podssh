@@ -26,9 +26,49 @@ pub const CLIENTS: &[(&str, &str)] = &[
     ("gemini", "~/.gemini/settings.json, under mcpServers"),
 ];
 
-/// The arguments of the entry: `mcp`, then the flags in a fixed order, with
-/// the directories as resolved and `-F`'s file made absolute.
+/// The arguments of the entry: `mcp`, then the flags in the order typed
+/// (T-985), with the directories as resolved and `-F`'s file made
+/// absolute. With no order kept, the order of the fields.
 pub fn arguments(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Path>) -> Vec<String> {
+    if args.typed.is_empty() {
+        return fixed(args, dirs, config);
+    }
+    let pair = |flag: &str, value: String| vec![flag.to_string(), value];
+    let mut out = vec!["mcp".to_string()];
+    let (mut hosts, mut dirs, mut commands) = (args.allow_host.iter(), dirs.iter(), args.allow_command.iter());
+    let mut config = config;
+    for id in &args.typed {
+        let words = match *id {
+            "allow-host" => hosts.next().map(|p| pair("--allow-host", p.clone())),
+            "allow-dir" => dirs.next().map(|d| pair("--allow-dir", d.display().to_string())),
+            "allow-command" => commands.next().map(|p| pair("--allow-command", p.clone())),
+            "config" => config.take().map(|f| pair("-F", f.display().to_string())),
+            "allow-session" => args.allow_session.then(|| vec!["--allow-session".to_string()]),
+            "read-only" => args.read_only.then(|| vec!["--read-only".to_string()]),
+            "direct" => args.direct.then(|| vec!["--direct".to_string()]),
+            _ => None,
+        };
+        out.extend(words.into_iter().flatten());
+    }
+    // What the order did not name still goes, so that no flag is lost.
+    out.extend(hosts.flat_map(|p| pair("--allow-host", p.clone())));
+    out.extend(dirs.flat_map(|d| pair("--allow-dir", d.display().to_string())));
+    out.extend(commands.flat_map(|p| pair("--allow-command", p.clone())));
+    out.extend(config.into_iter().flat_map(|f| pair("-F", f.display().to_string())));
+    for (on, id, flag) in [
+        (args.allow_session, "allow-session", "--allow-session"),
+        (args.read_only, "read-only", "--read-only"),
+        (args.direct, "direct", "--direct"),
+    ] {
+        if on && !args.typed.contains(&id) {
+            out.push(flag.into());
+        }
+    }
+    out
+}
+
+/// The arguments in the order of the fields: a caller that kept no order.
+fn fixed(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Path>) -> Vec<String> {
     let mut out = vec!["mcp".to_string()];
     for pattern in &args.allow_host {
         out.extend(["--allow-host".to_string(), pattern.clone()]);
@@ -149,6 +189,40 @@ mod tests {
             assert_eq!(doc["mcpServers"]["podssh"]["command"], "/bin/podssh", "{client}");
         }
         assert!(document("emacs", "/bin/podssh", &arguments).is_none());
+    }
+
+    /// The flags in the order typed (T-985): each kind where it stood, the
+    /// values of one kind in their own order.
+    #[test]
+    fn the_flags_keep_the_order_typed() {
+        let args = McpArgs {
+            allow_host: vec!["b*".into(), "a*".into()],
+            allow_command: vec!["uptime".into()],
+            direct: true,
+            read_only: true,
+            typed: vec!["direct", "allow-host", "config", "allow-command", "allow-dir", "read-only", "allow-host"],
+            ..McpArgs::default()
+        };
+        let got = arguments(&args, &[std::path::PathBuf::from("/srv/out")], Some(Path::new("/etc/c")));
+        let want = [
+            "mcp",
+            "--direct",
+            "--allow-host",
+            "b*",
+            "-F",
+            "/etc/c",
+            "--allow-command",
+            "uptime",
+            "--allow-dir",
+            "/srv/out",
+            "--read-only",
+            "--allow-host",
+            "a*",
+        ];
+        assert_eq!(got, want);
+        // A flag that the order did not name is not lost.
+        let missed = McpArgs { allow_session: true, typed: vec!["direct"], direct: true, ..McpArgs::default() };
+        assert_eq!(arguments(&missed, &[], None), ["mcp", "--direct", "--allow-session"]);
     }
 
     #[test]

@@ -139,3 +139,32 @@ fn an_id_is_eight_hex_digits_and_new_ones_differ() {
     assert_ne!(a, new_id(), "two IDs in a row are one in 2^32");
     assert!(now_ms() > 1_700_000_000_000, "milliseconds since 1970");
 }
+
+/// Each answer of the far script's stop, and its line (T-978): a job that
+/// ended is never said to have not run.
+#[test]
+fn a_stop_says_what_the_job_was() {
+    let id = "0123abcd";
+    for (answer, says) in [
+        ("stopped 0123abcd", Ok("stopped, and removed with its output")),
+        ("removed 0123abcd", Ok("it was queued, and never ran")),
+        ("ended 0123abcd 0", Ok("had ended (status 0); removed with its output")),
+        ("ended 0123abcd 130", Ok("had ended (status 130)")),
+        ("gone 0123abcd", Ok("was lost (no status, and nothing ran it)")),
+        ("lost 0123abcd", Ok("its runner was gone")),
+        ("stuck 0123abcd", Err("runs on after 15 s")),
+        ("ended 0123abcd", Err("does not know")),
+        ("ended 0123abcd x", Err("does not know")),
+        ("stopped 99999999", Err("does not know")),
+        ("stopped", Err("does not know")),
+    ] {
+        let got = stop_said(id, "web1", answer);
+        match (says, &got) {
+            (Ok(part), Ok(line)) | (Err(part), Err(line)) => {
+                assert!(line.contains(part), "{answer}: {line}");
+                assert!(!line.contains("did not run"), "{answer}: {line}");
+            }
+            _ => panic!("{answer}: {got:?}"),
+        }
+    }
+}

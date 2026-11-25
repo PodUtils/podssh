@@ -30,7 +30,8 @@ pub const JOB: &[&str] = &[
      running; done; or lost, when neither the job's session nor its status is there, as after a restart of the \
      host). Then the exit status (a dash while there is none) and the command. podssh job log HOST ID writes the \
      job's output to stdout, also after its end. podssh job stop HOST ID ends the tmux session of that exact name, \
-     never another, and removes the job's directory with its output.",
+     never another, and removes the job's directory with its output. Its line says what the job was: stopped, \
+     ended with its status, queued and never run, or lost.",
     "podssh job log --follow HOST ID writes the job's output as it comes, on one connection, and exits with the \
      job's status once it ended: 255 for a job that is lost, and 75 at --timeout DURATION, the job running on. Each \
      call of the far script gives the new bytes each second, from the count of the bytes that came, for 20 s at \
@@ -51,7 +52,8 @@ pub const JOB: &[&str] = &[
      75 when the job has not ended within DURATION, and the job runs on. podssh job fetch HOST ID [DIR] copies the \
      job's output to DIR/out, as podssh cp copies a file. With --files GLOB it also copies each file of that pattern \
      of sh in the host's home directory to DIR/files, by its path; DIR is ./podssh-job-ID by default. A job that is \
-     queued or running is not fetched, as its output is not whole yet (75). podssh job list HOST --json gives one \
+     queued or running is not fetched, as its output is not whole yet (75). A lost job's output is fetched as it \
+     is; then a line names it lost, and the exit is 255. podssh job list HOST --json gives one \
      JSON object: the host, and each job with its id, state, status, started_ms and command.",
     "The exit status is that of podssh ssh: 0; 64 for a usage error and 78 for a setting, before anything connects; \
      255 when the host cannot be reached or logged in to, has no tmux, has no such job, or gives no answer. 255 also \

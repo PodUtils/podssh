@@ -115,6 +115,12 @@ pub fn run_each(args: &EachArgs, out: &mut dyn Write, err: &mut dyn Write) -> i3
     if args.ssh.result_file.as_deref() == Some("-") {
         return usage(err, "--result-file -: stdout carries the hosts' lines; name a file, or give --json".into());
     }
+    // A record that could not be written at the end: refused before
+    // anything connects, as a copy refuses it (T-928, T-977).
+    if let Some(why) = args.ssh.result_file.as_deref().and_then(crate::ssh::result::no_place) {
+        let _ = writeln!(err, "podssh each: {why}.\n  Nothing has been attempted.");
+        return crate::exitmap::Fault::CantCreate.code();
+    }
     let Some(word) = args.hosts.as_deref() else {
         return usage(err, "give the hosts and the command: podssh each HOSTS -- COMMAND".into());
     };
@@ -171,7 +177,7 @@ pub fn run_each(args: &EachArgs, out: &mut dyn Write, err: &mut dyn Write) -> i3
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh each: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh each: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return podssh_ssh::EXIT_FAILURE;
         }
     };
@@ -193,17 +199,25 @@ pub fn run_each(args: &EachArgs, out: &mut dyn Write, err: &mut dyn Write) -> i3
     if !ends.iter().any(|end| matches!(end, Ended::Failed(_))) {
         crate::error_program::not_a_failure();
     }
-    let code = fan::exit_status(&ends);
+    let mut code = fan::exit_status(&ends);
     if args.json || args.ssh.result_file.is_some() {
         let dir = args.output_dir.as_deref().map(Path::new);
+        // With --json and no --output-dir, each record has its streams, a
+        // host that did not start too (empty: T-982).
+        let streams = args.json && dir.is_none();
         let hosts = plans.iter().zip(&ends).zip(&ran).map(|((plan, ended), ran)| {
             let ran = ran.lock().unwrap_or_else(|e| e.into_inner()).take();
             let files = dir.map(|dir| out::paths(dir, &plan.label));
-            record::host(&plan.label, &host::destination(plan), ended, ran.as_ref(), files.as_ref())
+            record::host(&plan.label, &host::destination(plan), ended, ran.as_ref(), files.as_ref(), streams)
         });
         let object = record::object(code, hosts.collect(), &ends);
-        if let Some(path) = &args.ssh.result_file {
-            crate::ssh::result::write("each", path, &object, err);
+        // A run whose hosts each gave 0, and whose record is missing, does
+        // not end 0 (T-928, T-977).
+        if let Some(path) = &args.ssh.result_file
+            && !crate::ssh::result::write("each", path, &object, err)
+            && code == 0
+        {
+            code = crate::exitmap::Fault::CantCreate.code();
         }
         if args.json {
             let _ = writeln!(out, "{object}");

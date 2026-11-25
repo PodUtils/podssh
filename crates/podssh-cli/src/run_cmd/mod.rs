@@ -30,6 +30,7 @@ use std::sync::Arc;
 use clap::ArgMatches;
 use podssh_ssh::outcome::Scope;
 use podssh_ssh::{Connection, Log, Request, EXIT_FAILURE};
+use podssh_ws::text::said;
 
 use crate::cp::operand::{self, Operand, Remote};
 use crate::cp::result::{class, Copied};
@@ -129,7 +130,7 @@ pub fn target(text: &str) -> Result<Remote, String> {
 fn local_dir(from: Option<&str>) -> Result<(PathBuf, String), String> {
     let dir = match from {
         Some(dir) => PathBuf::from(dir),
-        None => std::env::current_dir().map_err(|e| format!("the working directory: {e}"))?,
+        None => std::env::current_dir().map_err(|e| format!("the working directory: {}", said(&e)))?,
     };
     if !dir.is_dir() {
         return Err(format!("{} is no directory here; --from names the project to copy", dir.display()));
@@ -164,11 +165,13 @@ pub fn plan(args: &RunArgs) -> Result<Plan, String> {
         excludes.extend(DEFAULT_EXCLUDES.iter().map(|s| s.to_string()));
         let ignore = local.join(IGNORE_FILE);
         if ignore.is_file() {
-            excludes.extend(tree::read_excludes(&ignore).map_err(|e| format!("{}: {e}", ignore.display()))?);
+            let read = tree::read_excludes(&ignore).map_err(|e| format!("{}: {}", ignore.display(), said(&e)))?;
+            excludes.extend(read);
         }
     }
     if let Some(file) = &args.exclude_from {
-        excludes.extend(tree::read_excludes(Path::new(file)).map_err(|e| format!("--exclude-from {file}: {e}"))?);
+        let read = tree::read_excludes(Path::new(file)).map_err(|e| format!("--exclude-from {file}: {}", said(&e)))?;
+        excludes.extend(read);
     }
     excludes.extend(args.excludes.iter().cloned());
     let dir = podssh_ssh::exec::shell_word(&far.path)
@@ -187,11 +190,27 @@ pub fn run_run(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
     if crate::ssh::result::dash("run", file, err) {
         return crate::exitmap::Fault::Usage.code();
     }
+    // A record that could not be written at the end: refused before
+    // anything connects, as a copy refuses it (T-928, T-977).
+    if let Some(why) = file.and_then(crate::ssh::result::no_place) {
+        let _ = writeln!(err, "podssh run: {why}.\n  Nothing has been attempted.");
+        return crate::exitmap::Fault::CantCreate.code();
+    }
+    // A dry run whose stdout is closed would lose its plan: said before
+    // anything connects (T-983).
+    if args.dry_run && dry::stdout_closed() {
+        let _ = writeln!(err, "podssh run: --dry-run: stdout is closed, so the plan has nowhere to go");
+        return crate::exitmap::sysexits::EX_IOERR;
+    }
     let (started, scope, mut ran) = (std::time::Instant::now(), Scope::new(), Ran::default());
-    let code = run_planned(args, out, err, &scope, &mut ran);
+    let mut code = run_planned(args, out, err, &scope, &mut ran);
     if let Some(path) = file {
         let object = result::object(code, started.elapsed(), &scope.record(), &ran);
-        crate::ssh::result::write("run", path, &object, err);
+        // A run that did its work, and whose record is missing, does not
+        // end 0 (T-928, T-977).
+        if !crate::ssh::result::write("run", path, &object, err) && code == 0 {
+            code = crate::exitmap::Fault::CantCreate.code();
+        }
     }
     code
 }
@@ -239,7 +258,7 @@ fn run_planned(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write, scope: 
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let why = format!("could not start the async runtime: {e}");
+            let why = format!("could not start the async runtime: {}", said(&e));
             log.error(&why);
             (ran.did.failure, ran.did.error) = (Some("session"), Some(why));
             return EXIT_FAILURE;

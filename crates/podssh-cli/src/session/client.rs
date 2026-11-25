@@ -62,7 +62,9 @@ pub(super) fn text<'a>(fields: &'a Map<String, Value>, key: &str) -> &'a str {
 
 /// One request on the socket at `path`, and its answer, within `limit`.
 pub(super) async fn ask(path: &str, line: &str, limit: Duration) -> Result<Map<String, Value>, Failure> {
-    let end = crate::pipe::unix::connect(path).await.map_err(|e| (code_of(&e), format!("{path}: {e}")))?;
+    let end = crate::pipe::unix::connect(path)
+        .await
+        .map_err(|e| (code_of(&e), format!("{path}: {}", podssh_ws::text::said(&e))))?;
     exchange(path, end, line, limit).await
 }
 
@@ -81,7 +83,7 @@ pub(super) async fn exchange(path: &str, end: End, line: &str, limit: Duration) 
     };
     let answer = match tokio::time::timeout(limit, exchange).await {
         Err(_) => return Err((EX_TEMPFAIL, format!("no answer within {} s", limit.as_secs()))),
-        Ok(Err(e)) => return Err((EX_UNAVAILABLE, format!("{path}: {e}"))),
+        Ok(Err(e)) => return Err((EX_UNAVAILABLE, format!("{path}: {}", podssh_ws::text::said(&e)))),
         Ok(Ok(answer)) => answer,
     };
     if answer.is_empty() {
@@ -119,6 +121,6 @@ pub fn stdin_text() -> Result<Vec<u8>, Refusal> {
     match read {
         Ok(_) if text.len() > SEND_MAX => Err(Refusal::usage(format!("send types {SEND_MAX} bytes at most at once"))),
         Ok(_) => Ok(text),
-        Err(e) => Err(Refusal::usage(format!("stdin: {e}"))),
+        Err(e) => Err(Refusal::usage(format!("stdin: {}", podssh_ws::text::said(&e)))),
     }
 }

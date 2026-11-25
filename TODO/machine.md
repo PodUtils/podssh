@@ -766,14 +766,14 @@ session path; the test that parses each stdout line fails.
 
 ## Done
 
-2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:102-187`, its
-lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:194-280`,
-the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:284-310`, a
-call at `crates/podssh-cli/src/mcp/mod.rs:313-345`. The messages in
-`crates/podssh-cli/src/mcp/protocol.rs:70-103`, the two eras at
-`crates/podssh-cli/src/mcp/protocol.rs:113-168` and
-`crates/podssh-cli/src/mcp/protocol.rs:188-220`, the answers at
-`crates/podssh-cli/src/mcp/protocol.rs:232-245`. The tools at
+2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:125-210`, its
+lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:217-303`,
+the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:307-333`, a
+call at `crates/podssh-cli/src/mcp/mod.rs:336-368`. The messages in
+`crates/podssh-cli/src/mcp/protocol.rs:70-108`, the two eras at
+`crates/podssh-cli/src/mcp/protocol.rs:118-173` and
+`crates/podssh-cli/src/mcp/protocol.rs:193-225`, the answers at
+`crates/podssh-cli/src/mcp/protocol.rs:237-250`. The tools at
 `crates/podssh-cli/src/mcp/tools.rs:55-156`, the command line of a call at
 `crates/podssh-cli/src/mcp/tools.rs:215-285`, with the options of each
 session at `crates/podssh-cli/src/mcp/tools.rs:185-203`, and its result at
@@ -782,7 +782,7 @@ session at `crates/podssh-cli/src/mcp/tools.rs:185-203`, and its result at
 `crates/podssh-cli/src/mcp/child.rs:125-157`. The patterns of
 `--allow-host` at `crates/podssh-cli/src/mcp/allow.rs:42-152`. The flags in
 `crates/podssh-cli/src/flags/mcp.rs`, the risk and the rest in the manual
-(`crates/podssh-cli/src/man/notes_mcp.rs:4-58`), and `docs/cli.md`.
+(`crates/podssh-cli/src/man/notes_mcp.rs:4-59`), and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/mcp.rs`, 4 tests, over the stdin and the
 stdout of `podssh mcp`, reads each line of stdout as one JSON-RPC answer:
@@ -1052,7 +1052,7 @@ fails.
 
 - The Prove's `cp -r` of a tree with one file changed and `files.unchanged` 2: `cp -r` sends each
   file of a tree; only `podssh run` leaves a file that it finds as it is
-  (`crates/podssh-cli/src/run_cmd/mod.rs:162`, `changed_only`), and the outcome counts it as
+  (`crates/podssh-cli/src/run_cmd/mod.rs:163`, `changed_only`), and the outcome counts it as
   unchanged for `run` alone (`crates/podssh-cli/src/cp/outcome.rs:41`). A copy that leaves the
   unchanged files is `cp -r -u` (`crates/podssh-cli/src/flags/copy.rs:35`), which counts them as
   skipped (T-473). The test measures both: `cp -r -u` with one file newer gives `files.sent` 1 and

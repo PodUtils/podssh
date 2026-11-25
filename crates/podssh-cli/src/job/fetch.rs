@@ -59,7 +59,9 @@ pub fn local_place(dir: &Path, far: &str) -> Option<PathBuf> {
 }
 
 /// Fetch the job `id` into `dir`: 0, or 255 when a copy failed; 75 when the
-/// job has not ended, so that its output is not whole yet.
+/// job has not ended, so that its output is not whole yet. A lost job (no
+/// status, and nothing runs it) gives what it wrote, then 255 with a line,
+/// as `wait` and `log --follow` end for it (T-986).
 pub(crate) async fn fetch(
     resolved: &Resolved,
     host: &str,
@@ -113,7 +115,7 @@ pub(crate) async fn fetch(
         if let Some(parent) = place.parent() {
             if let Err(e) = std::fs::create_dir_all(parent) {
                 failed = true;
-                log.error(&format!("{}: {e}", parent.display()));
+                log.error(&format!("{}: {}", parent.display(), podssh_ws::text::said(&e)));
                 continue;
             }
         }
@@ -135,11 +137,24 @@ pub(crate) async fn fetch(
     if let Some(link) = link {
         link.close().await;
     }
+    if found.state == "lost" {
+        log.error(&lost_line(id, host, dir));
+        return EXIT_FAILURE;
+    }
     if failed {
         EXIT_FAILURE
     } else {
         0
     }
+}
+
+/// The line of a fetch of a lost job: what was copied is what it wrote
+/// before it was lost, and it has no status (T-986).
+pub fn lost_line(id: &str, host: &str, dir: &Path) -> String {
+    format!(
+        "job {id} on {host} is lost (no status, and nothing runs it): {} holds what it wrote before",
+        dir.join("out").display()
+    )
 }
 
 #[cfg(test)]
@@ -157,6 +172,13 @@ mod tests {
         assert_eq!(found.files, ["build/a.log", "b c.txt"]);
         assert_eq!(parse_found(&lines[..3]), None, "no end: the answer was cut");
         assert_eq!(parse_found(&["no-job abcd1234".to_string()]), None);
+    }
+
+    #[test]
+    fn a_lost_job_is_named_with_what_was_fetched() {
+        let line = lost_line("abcd1234", "web1", Path::new("podssh-job-abcd1234"));
+        assert!(line.starts_with("job abcd1234 on web1 is lost"), "{line}");
+        assert!(line.contains(&Path::new("podssh-job-abcd1234").join("out").display().to_string()), "{line}");
     }
 
     #[test]

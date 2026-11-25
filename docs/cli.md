@@ -1873,7 +1873,8 @@ host, and a list of hosts changes both.
   for each host stay in the `Host` blocks of `ssh_config` (T-043): a group
   is a list of names, never their settings.
 - **The options** are those of `ssh` that make sense for many hosts: `-p`
-  and `-l` (for each host that names none), `-i`, `-o`, `-F`, `-J`, `-v`,
+  and `-l` (for each host that names none: a host's own `:port` wins over
+  `-p`, T-976), `-i`, `-o`, `-F`, `-J`, `-v`,
   `-q`, `--direct` and the relay's. `--parallel N` runs at most N hosts at
   once (8 by default, 64 at most), each on a connection of its own, in one
   process and one runtime, on the road and the SSH client of `ssh`: no
@@ -1923,7 +1924,8 @@ host, and a list of hosts changes both.
   place of the lines, as `ssh_exec` of `podssh mcp` gives them (`stdout`,
   `stdout_encoding`, `stderr`, `stderr_encoding`: 1 MiB of each at most, as
   text when it is UTF-8 and else as base64, so that no byte changes;
-  `truncated` when more came), and podssh's own lines stay on stderr. With
+  `truncated` when more came; empty, and not `truncated`, for a host that
+  did not start, T-982), and podssh's own lines stay on stderr. With
   `--output-dir` the bytes go to the files, and each host's record names
   them in `files` (`stdout`, `stderr`, `status`), for output past the cap.
   The object: `schema` (1), `podssh` (the version), `exit` (the run's),
@@ -2365,7 +2367,9 @@ them (T-197; `crates/podssh-cli/src/job/`).
   writes the job's output to stdout as it comes, also after the job's end.
   `stop HOST ID` ends the tmux session of that exact name,
   `-t =podssh-job-ID`, never one whose name only starts so, and removes the
-  job's directory with its output.
+  job's directory with its output. Its line says what the job was when the
+  stop came (T-978): stopped; ended, with its status; queued, and never run;
+  or lost. The tool `job_stop` of `podssh mcp` returns the same line.
 - **The queue lives on the far host** (T-197), so that the client can stop
   at any time and needs no listener to wait (`docs/decisions.md`, Q7: no
   logic of GPUs and no list of devices; the slots are the only limit).
@@ -2420,7 +2424,9 @@ them (T-197; `crates/podssh-cli/src/job/`).
   `DIR/files` by its path. DIR is `./podssh-job-ID` by default. A pattern
   with an absolute path or a `..` is refused (64), and so is each path that
   has no place under `DIR/files`. A job that is queued or running is not
-  fetched, as its output is not whole until it ends (75). `list --json` gives one
+  fetched, as its output is not whole until it ends (75). A lost job is
+  fetched as it is, then a line names it lost, and the exit is 255, as
+  `wait` and `log --follow` end for it (T-986). `list --json` gives one
   JSON object: `host`, and `jobs`, each with `id`, `state`, `status` (null
   while there is none), `started_ms` and `command`.
 - **The exit status** is that of `podssh ssh`: 0; 64 for a usage error and
@@ -6232,7 +6238,10 @@ asciicast v2 file. `--speed FACTOR` plays it faster or slower, and
 `--idle-limit SECONDS` cuts each wait to that many seconds, as the file's
 `idle_time_limit` does when it has one. An event of another kind than
 output (`r`, `i`, `m`) is passed over. A file of another version, and a
-line that is no event, are refused (exit 1, the line named); a missing
+line that is no event, are refused (exit 1, the line named), and so is an
+event whose time is below 0 (T-984). An event whose time is before the
+latest one's plays at once, as asciinema's player plays it, and the clock
+goes on from the latest; a missing
 FILE and a bad value are usage errors (64). The name is not `replay`, which
 is one edit from `relay` and would confuse the suggestion of a mistyped
 command. A recording sends its control sequences to the terminal again:
@@ -6335,7 +6344,9 @@ with `initialize` (the revisions 2025-11-25, 2025-06-18, 2025-03-26 and
 2024-11-05; `ping` too). It ends at the end of stdin: the calls then in
 flight have 2 s to end, and end with their children after it; SIGTERM,
 SIGINT and SIGHUP, or Ctrl-C and the close of the console on Windows, end
-them at once.
+them at once. A response of the client (`result` or `error`) gets no
+answer; a message with neither and no `method` gets -32600, Invalid
+Request, with its id (T-980).
 
 The tools:
 
@@ -6444,8 +6455,8 @@ PodUtils/podnet#438) prints the entry that CLIENT reads to start the server,
 and starts none: `claude-desktop`, `cursor` and `gemini` as `{"mcpServers":
 {"podssh": {"command", "args"}}}`, `vscode` as `{"servers": {"podssh":
 {"type": "stdio", "command", "args"}}}`. The command is this binary's
-absolute path; the args are `mcp` and the other flags typed, in a fixed
-order, checked as a run checks them, with each directory and `-F` file made
+absolute path; the args are `mcp` and the other flags typed, in the order
+typed (T-985), checked as a run checks them, with each directory and `-F` file made
 absolute. A line on stderr names where the client's documents say it reads
 the entry; nothing is written into a client's file. Another CLIENT is 64.
 `tests/mcp_client_config.rs` starts each printed entry and reads its
@@ -7704,21 +7715,24 @@ nothing did), and why.
   missing or cannot be read (T-946).
 - `podssh each` gives the largest status of its hosts: 0 only when each
   host gave 0, and 255 for a host with no session; 64 and 78 come before
-  anything connects, and 73 when a file of `--output-dir` cannot be made.
+  anything connects, and 73 when a file of `--output-dir` cannot be made,
+  or the directory of `--result-file` is not there (T-977).
 - `podssh session` uses sysexits: 69 no session of that name, or one that
   ended; 75 a `--timeout` that passed; 77 a bind that the host refuses; 78
   `PODSSH_LISTEN=no`; and `start` gives 255 for a connection or a login
   that failed, as `podssh ssh` does.
 - `podssh run` gives the status of its command, as `podssh ssh` gives it,
-  and 255 when the copy failed, which runs nothing.
+  and 255 when the copy failed, which runs nothing. 73 is a `--result-file`
+  whose directory is not there, before anything connects (T-977); a
+  `--dry-run` whose plan cannot be written is 74 (T-983).
 - An output that could not be written is 74 (`EX_IOERR`, T-965), for each
   command whose answer is its stdout: `keygen`, `doctor`, `man`, `status`,
   `config`, `agent` and `update`. One line says so ("the output could not
   be written: No space left on device"), where the command would exit 0;
   a command that failed first keeps its own code. A stdout closed at the
-  start counts, which Rust's runtime fills with `/dev/null` before `main`:
-  podssh finds it by `/dev/null` opened for reading and writing on
-  descriptor 1. A reader that went away (`| head`) is no failure.
+  start (`>&-`) is not told apart: Rust's runtime puts `/dev/null` there,
+  as a daemon and `--detach` do for an output meant to be thrown away. A
+  reader that went away (`| head`) is no failure.
 - `podssh agent` uses sysexits: 65, 66, 69, 77 and 78, as its section says
   (T-969).
 - `podssh tx` uses sysexits: 0 the file kept, 64, 65 a size or a SHA-256
@@ -7726,7 +7740,8 @@ nothing did), and why.
 - `podssh job` uses the codes of `podssh ssh`: 255 for a failure of podssh,
   a host with no tmux or no such job among them. `job wait` gives the job's
   status, and 75 when its `--timeout` passed; `job fetch` gives 75 for a
-  job that has not ended.
+  job that has not ended, and 255 for a lost one, after it copied what the
+  job wrote (T-986).
 - A command that is not implemented exits 70. It never exits 0.
 - A drop of the relay before any request reached the destination is tried
   again (T-025): during the SSH handshake or the login, before the

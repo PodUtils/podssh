@@ -126,7 +126,7 @@ fn content_file(content: &str, far: &str, file: &str) -> Result<PathBuf, String>
     use base64::Engine as _;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(content.trim())
-        .map_err(|e| format!("content: not base64: {e}"))?;
+        .map_err(|e| format!("content: {}", crate::session::wire::not_base64(&e)))?;
     if bytes.len() > CONTENT_MAX {
         return Err(format!("content: {} bytes; a call carries {CONTENT_MAX} at most", bytes.len()));
     }

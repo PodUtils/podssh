@@ -199,3 +199,19 @@ fn a_second_daemon_of_a_socket_is_refused_while_the_first_holds_it() {
     assert!(daemon::socket_lock("@w").unwrap().is_none());
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Text that is not base64 is said in podssh's words, with the byte where
+/// it stops, never the crate's "Invalid symbol N, offset M." (T-981).
+#[test]
+fn text_that_is_not_base64_names_its_byte() {
+    use base64::Engine as _;
+    let b64 = base64::engine::general_purpose::STANDARD;
+    for (text, says) in
+        [("!AAA", "not base64 at byte 1"), ("AA!A", "not base64 at byte 3"), ("AB==", "not base64 at byte 2")]
+    {
+        let e = b64.decode(text).expect_err(text);
+        let said = wire::not_base64(&e);
+        assert!(said.starts_with(says), "{text}: {said}");
+        assert!(!said.contains("Invalid") && !said.contains("offset"), "{text}: {said}");
+    }
+}

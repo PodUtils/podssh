@@ -159,7 +159,7 @@ fn start_with(
                 lock::ran(started.id());
                 return Ok(started);
             }
-            Err(e) => tried.push(format!("{}: {e}", program.display())),
+            Err(e) => tried.push(format!("{}: {}", program.display(), podssh_ws::text::said(&e))),
         }
     }
     if tried.is_empty() {

@@ -89,3 +89,20 @@ fn the_help_names_the_ignores_and_the_new_flags_parse() {
         assert!(!home.join("ran").exists());
     }
 }
+
+/// `--result-file` in a directory that is not there (T-977): `run` and
+/// `each` refuse it with 73 before anything connects, as a copy does
+/// (T-928); offline, a run that went on would end 255.
+#[test]
+fn a_result_file_with_no_directory_is_73_before_anything_connects() {
+    let home = scratch("result-dir");
+    let missing = home.join("no-such-dir").join("r.json").display().to_string();
+    let host = "u@build1.example.org";
+    for verb in ["run", "each"] {
+        let args = [verb, "--result-file", missing.as_str(), host, "--", "true"];
+        let (code, out, err) = podssh(&home, &args);
+        assert_eq!(code, 73, "{verb}: {err}");
+        assert!(err.contains("no such directory") && err.contains("Nothing has been attempted"), "{verb}: {err}");
+        assert!(out.is_empty(), "{verb}: {out}");
+    }
+}

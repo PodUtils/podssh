@@ -61,7 +61,7 @@ async fn start(args: &SessionArgs, timeout: Duration, out: &mut dyn Write, err: 
                 started = Some(child);
                 break;
             }
-            Err(e) => tried.push(format!("{}: {e}", binary.display())),
+            Err(e) => tried.push(format!("{}: {}", binary.display(), podssh_ws::text::said(&e))),
         }
     }
     let Some(mut child) = started else {

@@ -6,7 +6,8 @@ pub const MCP: &[&str] = &[
      of stdin is one JSON-RPC message and each line of stdout one answer, and podssh's own words go to stderr. It \
      answers a client of the revision 2026-07-28, whose requests name their version in _meta. It also answers one \
      that opens with initialize (2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05). It ends at the end of stdin, \
-     and each call then in flight ends with it.",
+     and each call then in flight ends with it. A message that is neither a request nor a response gets JSON-RPC's \
+     error Invalid Request (code minus 32600).",
     "The tools: ssh_exec runs one command on a host (destination [user@]host, command, and stdin, timeout_seconds \
      and host_key_fingerprint at will); its result has podssh's exit code, the command's status or signal, how the \
      session ended and why it failed, stdout, stderr and timed_out. stdout and stderr are at most 1 MiB each, \
@@ -51,8 +52,8 @@ pub const MCP: &[&str] = &[
      goes on the child's stdin, never on a command line.",
     "--client-config CLIENT (claude-desktop, cursor, vscode or gemini) prints the JSON entry that the client reads \
      to start this server, and starts none: its command is this binary's absolute path, as a client started from a \
-     launcher may not have the shell's PATH. Its args are mcp and the other flags typed, checked as a run checks \
-     them (64, 78), each path made absolute. VS Code's entry is under servers with type stdio, the others' under \
-     mcpServers. A line on stderr says where the client's documents say that it reads the entry; the command writes \
+     launcher may not have the shell's PATH. Its args are mcp and the other flags in the order typed, checked as a \
+     run checks them (64, 78), each path made absolute. VS Code's entry is under servers with type stdio, the \
+     others' under mcpServers. A line on stderr says where the client's documents say that it reads the entry; the command writes \
      no file of the client's. Another CLIENT is 64.",
 ];

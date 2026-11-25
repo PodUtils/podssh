@@ -75,14 +75,37 @@ pub struct McpArgs {
     pub direct: bool,
     /// `--client-config CLIENT`: print the client's entry, start no server.
     pub client_config: Option<String>,
+    /// The id of each flag of a server, once for each time, in the order
+    /// typed: `--client-config` keeps that order (T-985). Empty: the order of
+    /// the fields.
+    pub typed: Vec<&'static str>,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
+
+/// The flags of a server whose order `--client-config` keeps: those with a
+/// value, then the switches.
+pub const SERVER_VALUES: &[&str] = &["allow-host", "allow-dir", "allow-command", "config"];
+pub const SERVER_SWITCHES: &[&str] = &["allow-session", "read-only", "direct"];
 
 impl McpArgs {
     /// The command line that clap read.
     pub fn from_matches(matches: &clap::ArgMatches, refused: Vec<(String, &'static str, &'static str)>) -> McpArgs {
         let each = |id: &str| matches.get_many::<String>(id).map(|v| v.cloned().collect()).unwrap_or_default();
+        let mut typed: Vec<(usize, &'static str)> = Vec::new();
+        for id in SERVER_VALUES {
+            if let Some(at) = matches.indices_of(id) {
+                typed.extend(at.map(|i| (i, *id)));
+            }
+        }
+        // A switch's default has no place on the line: only one typed.
+        for id in SERVER_SWITCHES {
+            if let (true, Some(at)) = (matches.get_flag(id), matches.index_of(id)) {
+                typed.push((at, *id));
+            }
+        }
+        typed.sort_unstable();
         McpArgs {
+            typed: typed.into_iter().map(|(_, id)| id).collect(),
             allow_host: each("allow-host"),
             allow_dir: each("allow-dir"),
             allow_session: matches.get_flag("allow-session"),

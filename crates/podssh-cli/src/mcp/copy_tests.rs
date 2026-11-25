@@ -129,6 +129,10 @@ fn content_goes_through_a_private_file_of_the_far_name() {
     assert!(argv(&s.settings(), "cp_put", to_dir, &file).unwrap_err().contains("name the file"));
     let both = json!({ "destination": "web1", "path": "x", "content": encoded, "local_path": "y" });
     assert!(argv(&s.settings(), "cp_put", both, &file).unwrap_err().contains("give one"));
+    // Not base64: podssh's words and the byte, not the crate's (T-981).
+    let bad = json!({ "destination": "web1", "path": "x", "content": "!GVsbG8K" });
+    let why = argv(&s.settings(), "cp_put", bad, &file).unwrap_err();
+    assert!(why.contains("content: not base64 at byte 1") && !why.contains("Invalid symbol"), "{why}");
 }
 
 #[test]

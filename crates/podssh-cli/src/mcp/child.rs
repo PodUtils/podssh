@@ -69,7 +69,7 @@ pub async fn run(binary: &Path, plan: &Plan, mut stop: oneshot::Receiver<()>) ->
     command.creation_flags(0x0800_0000);
     let mut child = match command.spawn() {
         Ok(child) => child,
-        Err(e) => return Outcome::NotStarted(format!("{}: {e}", binary.display())),
+        Err(e) => return Outcome::NotStarted(format!("{}: {}", binary.display(), podssh_ws::text::said(&e))),
     };
     let (out, err) = (Arc::new(Mutex::new(Captured::default())), Arc::new(Mutex::new(Captured::default())));
     let mut readers = Vec::new();

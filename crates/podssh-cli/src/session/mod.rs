@@ -25,7 +25,7 @@ mod list;
 mod model;
 mod place;
 mod start;
-mod wire;
+pub(crate) mod wire;
 
 #[cfg(test)]
 mod tests;
@@ -138,7 +138,7 @@ fn runtime(err: &mut dyn Write) -> Option<tokio::runtime::Runtime> {
     match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => Some(runtime),
         Err(e) => {
-            let _ = writeln!(err, "podssh session: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh session: could not start the async runtime: {}", podssh_ws::text::said(&e));
             None
         }
     }

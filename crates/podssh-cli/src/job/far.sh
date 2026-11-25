@@ -369,7 +369,10 @@ stop)
         exit 0
     }
     # The session of this job only: = asks tmux for that exact name, where
-    # a bare name would also match a longer one.
+    # a bare name would also match a longer one. What the job was before
+    # the stop is said: one that had ended gives its status (T-978).
+    was=$(state_of "$d")
+    st=$(cat "$d/status" 2>/dev/null)
     w=removed
     if [ "$(kind_of "$d")" = plain ]; then
         # With no tmux (T-481), no signal from here: the file stop asks the
@@ -389,11 +392,21 @@ stop)
     elif command -v tmux >/dev/null 2>&1 && tmux kill-session -t "=$(sess "$d")" 2>/dev/null; then
         w=stopped
     fi
+    # A session that a job which ended left is no job that was stopped.
+    if [ "$was" = done ]; then
+        w=ended
+    elif [ "$w" = removed ] && [ "$was" = lost ]; then
+        w=gone
+    fi
     rm -rf "$d" || {
         say "failed to remove $q/$d"
         exit 0
     }
-    say "$w $1"
+    if [ "$w" = ended ]; then
+        say "ended $1 $st"
+    else
+        say "$w $1"
+    fi
     ;;
 *)
     say "unknown $a"

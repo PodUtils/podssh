@@ -165,7 +165,12 @@ fn list(dir: &Path, args: &DetachedArgs, out: &mut dyn Write, err: &mut dyn Writ
         Ok(names) => names,
         Err(e) => {
             if !args.quiet {
-                let _ = writeln!(err, "podssh detached: {}: {e}; no run of it is listed", dir.display());
+                let _ = writeln!(
+                    err,
+                    "podssh detached: {}: {}; no run of it is listed",
+                    dir.display(),
+                    podssh_ws::text::said(&e)
+                );
             }
             BTreeSet::new()
         }

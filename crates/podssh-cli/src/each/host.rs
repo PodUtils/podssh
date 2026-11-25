@@ -49,6 +49,10 @@ pub(crate) fn shell_plan(label: &str, args: &SshArgs, env: &Env) -> Result<Plan,
 fn planned(label: &str, args: &SshArgs, env: &Env, shell: bool) -> Result<Plan, Refusal> {
     let mut ssh = args.clone();
     ssh.destination = Some(label.to_string());
+    // `-p` is for each host that names no port: a host's own port wins.
+    if names_port(label) {
+        ssh.port = None;
+    }
     // Many sessions cannot share one terminal or one stdin.
     ssh.no_tty = true;
     ssh.stdin_null = true;
@@ -77,6 +81,48 @@ fn planned(label: &str, args: &SshArgs, env: &Env, shell: bool) -> Result<Plan, 
     }
     let log = Arc::new(Log::new(resolved.options.log_level).with_prefix(format!("{label}: ")));
     Ok(Plan { label: label.to_string(), resolved, log, batch_mode })
+}
+
+/// Whether the host `label` names its own port: `host:PORT`,
+/// `[v6]:PORT`, or a URI's `:PORT`, with or without a user. A bare IPv6
+/// address names none.
+pub(crate) fn names_port(label: &str) -> bool {
+    let rest = ["ssh+tls://", "ssh://"].iter().find_map(|s| label.strip_prefix(s)).unwrap_or(label);
+    let rest = rest.trim_end_matches('/');
+    let rest = rest.rsplit_once('@').map_or(rest, |(_, host)| host);
+    match rest.strip_prefix('[') {
+        Some(inner) => inner.split_once(']').is_some_and(|(_, after)| after.len() > 1 && after.starts_with(':')),
+        None => rest.matches(':').count() == 1 && !rest.ends_with(':'),
+    }
+}
+
+/// A line of a host's session without the host that each's own prefix
+/// names already: OpenSSH's `user@host: Permission denied` would read
+/// `HOST: HOST: ...` (T-981).
+pub(crate) fn unlabeled<'a>(label: &str, line: &'a str) -> &'a str {
+    let Some((head, rest)) = line.split_once(": ") else { return line };
+    let ours = label.strip_prefix(head).is_some_and(|after| after.is_empty() || after.starts_with(':'));
+    if ours && !head.is_empty() && !rest.is_empty() {
+        rest
+    } else {
+        line
+    }
+}
+
+/// Each line of `text`, without the host that the prefix names, as one
+/// error line of its own: a message of several lines keeps the prefix on
+/// each.
+fn say_error(log: &Log, label: &str, text: &str) {
+    for line in text.lines().map(str::trim_end).filter(|l| !l.trim().is_empty()) {
+        log.error(unlabeled(label, line.trim_start()));
+    }
+}
+
+/// The one line of the summary for a failure of several lines: its first,
+/// without the host (T-981).
+pub(crate) fn first_line(label: &str, text: &str) -> String {
+    let first = text.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("no connection");
+    unlabeled(label, first).to_string()
 }
 
 /// The broadcast's shell (T-185): a `RemoteCommand` of ssh_config is not
@@ -139,13 +185,13 @@ pub(crate) async fn ran(plan: &Plan, place: Place) -> (Ended, Ran) {
             Ok(reached) => reached,
             Err(failure) => {
                 for line in &failure.lines {
-                    log.error(line);
+                    say_error(&log, &plan.label, line);
                 }
                 // The class of the road that failed, as `podssh ssh` gives it.
                 let leg = if matches!(plan.resolved.transport, Transport::Relay { .. }) { "relay" } else { "connect" };
                 podssh_ssh::outcome::failure_is(leg);
-                let why = failure.lines.first().cloned().unwrap_or_else(|| "no connection".to_string());
-                return Ended::Failed(why);
+                let why = failure.lines.first().map_or("no connection", String::as_str);
+                return Ended::Failed(first_line(&plan.label, why));
             }
         };
         let relay = reached.relay.clone();
@@ -160,10 +206,10 @@ pub(crate) async fn ran(plan: &Plan, place: Place) -> (Ended, Ran) {
             podssh_ssh::outcome::relay_end(&end);
         }
         for line in &outcome.lines {
-            log.error(line);
+            say_error(&log, &plan.label, line);
         }
         match outcome.lines.first() {
-            Some(why) => Ended::Failed(why.clone()),
+            Some(why) => Ended::Failed(first_line(&plan.label, why)),
             None => Ended::Status(outcome.code),
         }
     };
@@ -208,6 +254,50 @@ pub(crate) async fn first_token(resolved: &Resolved, log: &Log) {
             };
             log.verbose(&format!("one relay token for each host, from {from}"));
         }
-        Err(e) => log.verbose(&format!("no relay token before the hosts ({e}); each host gets its own")),
+        Err(e) => {
+            let e = podssh_ws::text::said(&e);
+            log.verbose(&format!("no relay token before the hosts ({e}); each host gets its own"));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_host_names_its_port_or_takes_p() {
+        for (label, names) in [
+            ("web1", false),
+            ("u@web1", false),
+            ("u@127.0.0.1:2201", true),
+            ("127.0.0.1:1", true),
+            ("[::1]:2201", true),
+            ("u@[fe80::1]:22", true),
+            ("[::1]", false),
+            ("fe80::1", false),
+            ("ssh://u@web1:2222/", true),
+            ("ssh://web1", false),
+            ("ssh+tls://web1:8443", true),
+            ("u:x@web1", false),
+        ] {
+            assert_eq!(names_port(label), names, "{label}");
+        }
+    }
+
+    #[test]
+    fn a_line_names_its_host_once_and_the_summary_has_one_line() {
+        for (label, line, want) in [
+            ("nobody@127.0.0.1", "nobody@127.0.0.1: Permission denied (publickey).", "Permission denied (publickey)."),
+            ("u@h:2201", "u@h: Permission denied (publickey).", "Permission denied (publickey)."),
+            ("127.0.0.1", "nobody@127.0.0.1: Permission denied", "nobody@127.0.0.1: Permission denied"),
+            ("web1", "connection refused", "connection refused"),
+            ("web1", "web10: x", "web10: x"),
+        ] {
+            assert_eq!(unlabeled(label, line), want, "{label} {line}");
+        }
+        let three = "host key verification failed: 'h' is not a known host.\n  Its key is SHA256:x;\n  accept-new.";
+        assert_eq!(first_line("h", three), "host key verification failed: 'h' is not a known host.");
+        assert_eq!(first_line("h", "\n"), "no connection");
     }
 }

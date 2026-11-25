@@ -36,11 +36,17 @@ fn a_line_that_is_not_one_request_gets_its_error() {
         ("{\"jsonrpc\":\"2.0\",\"id\":null,\"method\":\"ping\"}", -32600),
         ("{\"jsonrpc\":\"2.0\",\"id\":1.5,\"method\":\"ping\"}", -32600),
         ("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":7}", -32600),
+        // Neither a request nor a response (T-980).
+        ("{\"jsonrpc\":\"2.0\",\"id\":1}", -32600),
+        ("{\"jsonrpc\":\"2.0\",\"id\":1,\"params\":{}}", -32600),
+        ("{\"jsonrpc\":\"2.0\"}", -32600),
     ] {
         let r = reply(line, &mut era);
         assert_eq!(r["error"]["code"], code, "{line}: {r}");
         assert_eq!(r["jsonrpc"], "2.0");
     }
+    // Its id, when it has one that may be an id.
+    assert_eq!(reply("{\"jsonrpc\":\"2.0\",\"id\":4}", &mut era)["id"], 4);
     let invalid = [0xff_u8, b'{', b'}'];
     assert!(matches!(handle(&invalid, &mut era, &tools()), Action::Reply(r) if r["error"]["code"] == -32700));
 }

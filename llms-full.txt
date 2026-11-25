@@ -2649,15 +2649,16 @@ podssh each
   host's stdout and stderr in its record in place of the lines: 1 MiB of each
   at most, and truncated when more came. Each is text when it is UTF-8 and else
   base64, as stdout_encoding and stderr_encoding say; podssh's own lines stay
-  on stderr. With --output-dir the bytes go to the files, and the record names
-  them (files). The object has schema, podssh (the version), exit, counts
-  (hosts, ok, failed and not_started) and hosts, in the order of the list. Each
-  host has host, destination (user@host:port) and exit (its part, null when it
-  did not start). It has status, signal, end, failure, bytes and relay as
-  podssh ssh --result-file gives them. It also has error (the words of its
-  failure), duration_ms and files. Each host's facts are its own session's,
-  also when hosts fail at once. With --interactive, --json and --result-file
-  are refused (64).
+  on stderr. A host that did not start has them too, empty. With --output-dir
+  the bytes go to the files, and the record names them (files). The object has
+  schema, podssh (the version), exit, counts (hosts, ok, failed and
+  not_started) and hosts, in the order of the list. Each host has host,
+  destination (user@host:port) and exit (its part, null when it did not start).
+  It has status, signal, end, failure, bytes and relay as podssh ssh
+  --result-file gives them. It also has error (the words of its failure),
+  duration_ms and files. Each host's facts are its own session's, also when
+  hosts fail at once. With --interactive, --json and --result-file are refused
+  (64).
 
   podssh each --interactive HOSTS opens a shell with no pty on each host, 64
   hosts at most. Each line typed goes to the hosts of the selection, at first
@@ -3275,7 +3276,8 @@ podssh job
   the exit status (a dash while there is none) and the command. podssh job log
   HOST ID writes the job's output to stdout, also after its end. podssh job
   stop HOST ID ends the tmux session of that exact name, never another, and
-  removes the job's directory with its output.
+  removes the job's directory with its output. Its line says what the job was:
+  stopped, ended with its status, queued and never run, or lost.
 
   podssh job log --follow HOST ID writes the job's output as it comes, on one
   connection, and exits with the job's status once it ended: 255 for a job that
@@ -3308,8 +3310,9 @@ podssh job
   With --files GLOB it also copies each file of that pattern of sh in the
   host's home directory to DIR/files, by its path; DIR is ./podssh-job-ID by
   default. A job that is queued or running is not fetched, as its output is not
-  whole yet (75). podssh job list HOST --json gives one JSON object: the host,
-  and each job with its id, state, status, started_ms and command.
+  whole yet (75). A lost job's output is fetched as it is; then a line names it
+  lost, and the exit is 255. podssh job list HOST --json gives one JSON object:
+  the host, and each job with its id, state, status, started_ms and command.
 
   The exit status is that of podssh ssh: 0; 64 for a usage error and 78 for a
   setting, before anything connects; 255 when the host cannot be reached or
@@ -10702,7 +10705,9 @@ podssh play
   timing: a file of podssh ssh --record, or another asciicast v2 file. --speed
   plays it faster or slower, and --idle-limit cuts each wait to its seconds, as
   the file's idle_time_limit does when it has one. A file of another version is
-  refused (exit 1), and an event of another kind than output is passed over.
+  refused (exit 1), and an event of another kind than output is passed over. A
+  time below 0 is refused as a bad line (exit 1); an event earlier than the one
+  before it plays at once.
 
   A recording holds what the session showed, its secrets too (a key that was
   printed, a password that a program echoed). It never holds what was typed.
@@ -10813,7 +10818,8 @@ podssh mcp
   client of the revision 2026-07-28, whose requests name their version in
   _meta. It also answers one that opens with initialize (2025-11-25,
   2025-06-18, 2025-03-26 and 2024-11-05). It ends at the end of stdin, and each
-  call then in flight ends with it.
+  call then in flight ends with it. A message that is neither a request nor a
+  response gets JSON-RPC's error Invalid Request (code minus 32600).
 
   The tools: ssh_exec runs one command on a host (destination [user@]host,
   command, and stdin, timeout_seconds and host_key_fingerprint at will); its
@@ -10882,11 +10888,12 @@ podssh mcp
   --client-config CLIENT (claude-desktop, cursor, vscode or gemini) prints the
   JSON entry that the client reads to start this server, and starts none: its
   command is this binary's absolute path, as a client started from a launcher
-  may not have the shell's PATH. Its args are mcp and the other flags typed,
-  checked as a run checks them (64, 78), each path made absolute. VS Code's
-  entry is under servers with type stdio, the others' under mcpServers. A line
-  on stderr says where the client's documents say that it reads the entry; the
-  command writes no file of the client's. Another CLIENT is 64.
+  may not have the shell's PATH. Its args are mcp and the other flags in the
+  order typed, checked as a run checks them (64, 78), each path made absolute.
+  VS Code's entry is under servers with type stdio, the others' under
+  mcpServers. A line on stderr says where the client's documents say that it
+  reads the entry; the command writes no file of the client's. Another CLIENT
+  is 64.
 
   Usage: podssh mcp [OPTIONS]
 

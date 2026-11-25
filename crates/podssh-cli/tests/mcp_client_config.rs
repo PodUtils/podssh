@@ -90,3 +90,16 @@ fn another_client_and_a_bad_pattern_are_refused_with_nothing_printed() {
     let (code, _, said) = print(&dir, "cursor", &["-F", dir.join("none").to_str().unwrap()]);
     assert_eq!(code, 78, "{said}");
 }
+
+/// The entry keeps the flags in the order typed, from the real command line
+/// (T-985).
+#[test]
+fn the_entry_keeps_the_flags_in_the_order_typed() {
+    let dir = scratch("client-config-order");
+    let typed = ["--direct", "--allow-host", "b*", "--read-only", "--allow-host", "a*", "--allow-command", "uptime"];
+    let (code, printed, said) = print(&dir, "cursor", &typed);
+    assert_eq!(code, 0, "{said}");
+    let (_, args) = entry("cursor", &printed);
+    assert_eq!(args[0], "mcp");
+    assert_eq!(args[1..], typed, "{printed}");
+}

@@ -59,7 +59,7 @@ pub(super) fn new_in(dirs: &[PathBuf], name: &str) -> Result<String, String> {
         }
         match podssh_relay::cache::private_dir(dir) {
             Ok(()) => return Ok(shown(&path)),
-            Err(e) => why.push(format!("{}: {e}", dir.display())),
+            Err(e) => why.push(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
         }
     }
     Err(format!("{}; give --socket PATH", why.join("; ")))
@@ -93,7 +93,7 @@ pub(super) fn all_in(dirs: &[PathBuf]) -> Found {
             Ok(entries) => entries,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
             Err(e) => {
-                found.unreadable.push((shown(dir), e.to_string()));
+                found.unreadable.push((shown(dir), podssh_ws::text::said(&e)));
                 continue;
             }
         };

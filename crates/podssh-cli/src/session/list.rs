@@ -97,7 +97,7 @@ async fn ask(socket: &str, line: &str) -> Asked {
     let end = match crate::pipe::unix::connect(socket).await {
         Ok(end) => end,
         Err(e) if client::unserved(&e) => return Asked::Unserved,
-        Err(e) => return Asked::Failed(format!("{socket}: {e}")),
+        Err(e) => return Asked::Failed(format!("{socket}: {}", podssh_ws::text::said(&e))),
     };
     match client::exchange(socket, end, line, LIST_WAIT).await {
         Ok(fields) => Asked::Answer(fields),

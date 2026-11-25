@@ -83,8 +83,13 @@ pub fn handle(line: &[u8], era: &mut Era, tools: &[Value]) -> Action {
         return Action::Reply(error(&reply_id, INVALID_REQUEST, "Invalid Request: jsonrpc must be \"2.0\""));
     }
     let Some(method) = object.get("method") else {
-        // A response of the client: this server sends no request.
-        return Action::Nothing;
+        // A response of the client (this server sends no request) gets no
+        // answer; a message that is neither a request nor a response is an
+        // Invalid Request, as JSON-RPC 2.0 says (T-980).
+        if object.contains_key("result") || object.contains_key("error") {
+            return Action::Nothing;
+        }
+        return Action::Reply(error(&reply_id, INVALID_REQUEST, "Invalid Request: no method, result or error"));
     };
     let Some(method) = method.as_str() else {
         return Action::Reply(error(&reply_id, INVALID_REQUEST, "Invalid Request: the method is not a string"));

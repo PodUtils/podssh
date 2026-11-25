@@ -43,8 +43,8 @@ pub const EACH: &[&str] = &[
      and the lines stay as they are; - is refused (64). --json writes the same object on stdout once each host \
      ended, with each host's stdout and stderr in its record in place of the lines: 1 MiB of each at most, and \
      truncated when more came. Each is text when it is UTF-8 and else base64, as stdout_encoding and stderr_encoding \
-     say; podssh's own lines stay on stderr. With --output-dir the bytes go to the files, and the record names them \
-     (files). The object has schema, podssh (the version), exit, counts (hosts, ok, failed and not_started) and \
+     say; podssh's own lines stay on stderr. A host that did not start has them too, empty. With --output-dir the \
+     bytes go to the files, and the record names them (files). The object has schema, podssh (the version), exit, counts (hosts, ok, failed and not_started) and \
      hosts, in the order of the list. Each host has host, destination (user@host:port) and exit (its part, null when \
      it did not start). It has status, signal, end, failure, bytes and relay as podssh ssh --result-file gives them. \
      It also has error (the words of its failure), duration_ms and files. Each host's facts are its own session's, \

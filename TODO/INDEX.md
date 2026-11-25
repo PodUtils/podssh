@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**907 entries: 4 open, 33 partial, 15 blocked, 855 done.**
+**918 entries: 4 open, 33 partial, 15 blocked, 866 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
-| P2 | 0 | 20 | 3 | 337 | 360 |
-| P3 | 4 | 7 | 9 | 415 | 435 |
-| **All** | 4 | 33 | 15 | 855 | 907 |
+| P2 | 0 | 20 | 3 | 341 | 364 |
+| P3 | 4 | 7 | 9 | 422 | 442 |
+| **All** | 4 | 33 | 15 | 866 | 918 |
 
 ## Entries
 
@@ -983,3 +983,14 @@ repository and CI).
 | [T-973](cli.md) | P3 | S | backlog | defect | done | `config import`'s formats: the help names one, and MobaXterm's reader takes any file |
 | [T-974](cli.md) | P3 | S | backlog | defect | done | A library's words in a line of `keygen`, `agent` and `status` |
 | [T-975](cli.md) | P3 | S | backlog | defect | blocked | A pager that fails leaves `podssh man` with no output and exit 0 |
+| [T-976](multi.md) | P2 | S | backlog | defect | done | `podssh each -p PORT` takes the place of a port that the host names |
+| [T-977](multi.md) | P2 | S | backlog | defect | done | `each` and `run` do their work, then cannot write `--result-file`, and exit 0 |
+| [T-978](multi.md) | P2 | S | backlog | defect | done | `job stop` says "it did not run" of a job that ran to its end |
+| [T-979](cli.md) | P2 | S | backlog | defect | done | `ssh -f`: a command's first output reaches the caller's stdout, not the log |
+| [T-980](cli.md) | P3 | S | backlog | defect | done | `podssh mcp` gives no answer to a message with an id and no method |
+| [T-981](multi.md) | P3 | S | backlog | defect | done | Lines of `each`, `run`, `session`, `containers`, `play` and `mcp` that are not one true line |
+| [T-982](multi.md) | P3 | S | backlog | defect | done | `each --json`: a host that did not start has no streams in its record |
+| [T-983](multi.md) | P3 | S | backlog | defect | done | `run --dry-run` with stdout closed exits 0, and the plan is lost |
+| [T-984](cli.md) | P3 | S | backlog | defect | done | `podssh play` takes a time below 0, and says nothing of a time that goes back |
+| [T-985](cli.md) | P3 | S | backlog | defect | done | `mcp --client-config` does not keep the flags in the order typed |
+| [T-986](multi.md) | P3 | S | backlog | defect | done | `job fetch` of a lost job exits 0 and says nothing |

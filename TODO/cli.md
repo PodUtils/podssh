@@ -3156,7 +3156,7 @@ not a run of `ssh -f`.
 ## Premise
 
 - Read: T-380's parent returns once the child said ready, and nothing watches the child after that
-  (`crates/podssh-cli/src/detach/mod.rs:184`).
+  (`crates/podssh-cli/src/detach/mod.rs:196`).
 - Read: the node retries its relay for ever within its process (`PodUtils/podssh:crates/podssh-relay/src/open.rs:429`,
   its backoff); what ends the process ends the tunnel.
 - Read in d-mon's code: a supervisor of one `poll` loop that restarts its program, with a cap that
@@ -3646,7 +3646,7 @@ Read at `38f424c` (2026-11-03): the notes of `proxy` are in `crates/podssh-cli/s
 since T-431, and the premise's line of `crates/podssh-cli/src/man/notes.rs` holds the notes of
 `mv`; the about of `job` is at `crates/podssh-cli/src/flags.rs:398-399`. The manual's notes of
 `job` already gave the 8 hex digits and the 75 of `fetch` (`crates/podssh-cli/src/man/notes_job.rs:6`,
-`:57`): the gap was `job --help` alone. `crates/podssh-cli/src/help.rs` had 496 lines, so the
+`:59`): the gap was `job --help` alone. `crates/podssh-cli/src/help.rs` had 496 lines, so the
 notes under a verb's options went to a file of their own, `crates/podssh-cli/src/help/notes.rs`.
 Inferred: where `/dev/fd/63` is no link (macOS's `/dev/fd`), the file that opens is the pipe,
 refused as no regular file; that refusal names the same way out.
@@ -4948,3 +4948,190 @@ podcrates: pod-manual's `run_program` returns the pager's status and `show_with`
 Drafted 2026-11-25 by a drafting agent; no code: the change is pod-manual's (the ask above), asked as COORD-153 (#363).
 
 Blocked on pod-manual's answer to COORD-153 (#363); podssh's part is the take of that tag and a test of `PAGER=false`.
+
+# T-979: `ssh -f`: a command's first output reaches the caller's stdout, not the log
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh -f HOST 'echo out-to-log; sleep 120'` wrote `out-to-log` on the caller's stdout, and the run's log stayed
+empty; later output went to the log. The manual says that a detached run's output goes to the log.
+
+## Premise
+
+- Read, at `07d7d9b`: the detached child leaves the caller's streams at ready, which a thread found by reading the
+  run's phase each 50 ms (line 85 of `crates/podssh-cli/src/detach/mod.rs`); the parent copies each line that comes
+  before the line of ready to its own stdout (line 193 of the same file). So a command's output that came in those
+  50 ms went to the caller.
+- Read: the phase reaches `Requested` in the task that sends the request, before it goes
+  (`crates/podssh-ssh/src/session.rs:128`).
+
+## Approach
+
+1. `podssh_ssh::retry::on_request(hook)`: a hook that runs once, in that task, when the run first reaches
+   `Requested`, before the request goes.
+2. `detach::when_requested` sets the hook to the child's ready step, so the streams go to the log before any byte of
+   the command can come; the thread that reads the phase stays as a second path, and the step runs once.
+
+## Decision
+
+The step moves to the one place that comes before the request, not a shorter poll: any wait leaves a window. The
+hook is a plain `fn()` set once, so `podssh-ssh` keeps no state of the detached run. The code is in the detach
+module (and one hook of `podssh-ssh`), not in the SSH client's own flags, so it is this area's. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test detach
+```
+
+A live check: `podssh ssh -f HOST 'echo out; sleep 30'` writes nothing on stdout, and the log holds `out`.
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `on_request` in `crates/podssh-ssh/src/retry.rs`, the hook in
+`when_requested` (`crates/podssh-cli/src/detach/mod.rs`). A test of the binary that reads the log of a detached run
+against the test's server waits for the lead.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's sshd: `ssh -f 'echo out-to-log; sleep 3'` printed nothing on the caller's stdout, and its log held `out-to-log`. The planted run waits for T-251.
+
+
+# T-980: `podssh mcp` gives no answer to a message with an id and no method
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A line `{"jsonrpc":"2.0","id":1}` got no reply: the client waits for an answer that never comes. JSON-RPC 2.0 answers
+a message that is neither a request nor a response with -32600, Invalid Request.
+
+## Premise
+
+- Read, at `07d7d9b`: each message with no `method` was taken for a response of the client and got nothing (line 87
+  of `crates/podssh-cli/src/mcp/protocol.rs`).
+
+## Approach
+
+A message with no `method` and neither `result` nor `error` gets -32600 with its id when it has a valid one; a
+response still gets nothing. Rows of the table test of bad lines.
+
+## Decision
+
+Lost: nothing; this server sends no request, so no response of the client is awaited.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib mcp::protocol
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `crates/podssh-cli/src/mcp/protocol.rs`, the rows in
+`crates/podssh-cli/src/mcp/protocol_tests.rs`, the manual's note (`crates/podssh-cli/src/man/notes_mcp.rs`) and
+`docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-984: `podssh play` takes a time below 0, and says nothing of a time that goes back
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+An event of a time below 0 played as if it were 0, and an event earlier than the one before it played with a wait
+counted from it, which the manual did not say.
+
+## Premise
+
+- Read, at `07d7d9b`: the gap of each event is `(at - last).max(0.0)`, and `last` takes each event's time (line 69 of
+  `crates/podssh-cli/src/play.rs`).
+
+## Approach
+
+1. A time below 0 is a bad line: `FILE:LINE: a time below 0 (T)`, exit 1, as a line that is no event.
+2. An event before the latest plays at once, and the clock goes on from the latest, as asciinema's player waits only
+   for a later time; the manual and `docs/cli.md` say so.
+3. A table-driven test of the three cases.
+
+## Decision
+
+asciinema 2's player sleeps only while an event's time is ahead of the clock, so an earlier event plays at once; podssh
+does the same and documents it, rather than refuse files that other tools play. A time below 0 has no meaning in
+asciicast v2 and is refused. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib play
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `crates/podssh-cli/src/play.rs` and its test
+`a_time_below_0_is_refused_and_one_out_of_order_plays_at_once`, the manual's note
+(`crates/podssh-cli/src/man/notes_play.rs`) and `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-985: `mcp --client-config` does not keep the flags in the order typed
+
+**Source:** the sixth black-box pass (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The printed entry's `args` gave the flags in a fixed order of their kinds, not the order the user typed them, so
+the entry did not read as the command line that made it.
+
+## Premise
+
+- Read, at `07d7d9b`: `arguments` writes each kind in turn (line 29 of `crates/podssh-cli/src/mcp/client_config.rs`).
+
+## Approach
+
+1. `McpArgs::typed`: the id of each flag of a server, once for each time, in the order of clap's indices.
+2. `arguments` follows it, each value of a kind in its own order, and appends what the order did not name, so that no
+   flag is lost; with no order (a caller that builds `McpArgs` by hand) it keeps the fixed order.
+3. A unit table and a test of the binary that reads the entry back.
+
+## Decision
+
+Lost: nothing; the server reads the flags in any order.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib mcp::client_config
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test mcp_client_config
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `typed` and `from_matches` in `crates/podssh-cli/src/mcp/mod.rs`,
+`arguments` in `crates/podssh-cli/src/mcp/client_config.rs` and its test, the binary test
+`the_entry_keeps_the_flags_in_the_order_typed`, the manual's note and `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
