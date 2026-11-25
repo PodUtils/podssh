@@ -8,9 +8,9 @@ this page keeps no history (git does).
 
 Read on 2026-11-25.
 
-1. **The gate.** Green at `6cef237` (2026-11-25, run 45566736621, each job). The take of `v0.84.0` (`806e0a4`) and the
-   record after it were pushed at the end of the session; read their gate first (a push cancels the gate of the one
-   before it). Earlier green runs are in `docs/STATUS.md`.
+1. **The gate.** Green at `6cef237` (2026-11-25, run 45566736621, each job). Red at `13623b3` and `c6fa76a` on the
+   job `windows` alone (T-465's test; repaired at `1d39c43`); read the gate of `1d39c43` first (a push cancels the
+   gate of the one before it). Earlier green runs are in `docs/STATUS.md`.
 2. **Releases.** The newest beta is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is `v1.0.1`
    (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete and the black-box pass of T-809 is
    clean (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the
@@ -62,14 +62,18 @@ Read on 2026-11-25.
 
 ## Tonight
 
-The session of 2026-11-24 and 2026-11-25 ended here; the next one starts fresh. Done on 2026-11-25: T-839 (TPM keys),
-T-896, T-875 and T-877 (the DNS road), T-123 (`serve --remote-listen`), T-161 and T-901 (a new client's screen; GitHub
-#20 closed), T-836, T-902 and T-903 (`serve --gateway`, its routes in the net's document, its certificate by `Mint`),
-T-837, T-904; podcrates `v0.83.0` and then `v0.84.0` taken (`806e0a4`: `pod-tpm`, `pod-h2`, `Class::Data`). The next
-session, in order: the gate of the last push; the merge of `draft/d-t831` (item 8), then podcrates' COORD-153 told its
-commit; T-834 (the bearer) and T-900 (the DNS road over DoH and bare), both open on `v0.84.0`; podcrates' answers to
-COORD-147 (#357) and COORD-139 (#349); T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the
-black-box pass is clean**).
+The session of 2026-11-25 (afternoon), after the one of 2026-11-24 and 2026-11-25. Done: the red gate of `13623b3`
+(T-465's test on Windows) read and repaired in two steps: a failed read of `podssh pipe` is no clean end any more
+(`c6fa76a`, one line and 69), and its words named the cause, a reset of Windows' AF_UNIX at the test server's close
+with no shutdown (`1d39c43`, a graceful close in the test's server); `draft/d-t831` merged and T-831 closed
+(`97cebe6`: the far end paces a frame by half its pane, as tmux skips what scrolls off; `pty.envelope.*` 3 of 3
+against OpenSSH through tmux), COORD-148 (#358) to podcrates for the pane's rows of the codec; T-900 done (the DNS
+road over DNS over HTTPS through `HTTPS_PROXY`; a carrier of `operator` reads the pins); T-905 filed. The next
+session, in order: the gate of `1d39c43` and the Windows repeat of `pipe` (`suite-repeat.yml`, dispatched at
+`1d39c43`), then T-465 closed if both pass; T-834 (the bearer, open on `v0.84.0`: who mints a bearer at connect time,
+as its binding exists only in the handshake); T-905; podcrates' answers to COORD-147 (#357), COORD-148 (#358) and
+COORD-139 (#349); T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
+clean**).
 
 ## Baseline
 

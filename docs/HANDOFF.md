@@ -1,15 +1,15 @@
 # Hand-off
 
-The facts that change from day to day, as of 2026-11-24, for a session with no memory of the last
+The facts that change from day to day, as of 2026-11-25, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 This page keeps no history: git does.
 
 ## The state of `main`
 
-- **The gate** is green at `dd1f9a9` (2026-11-24, run 45413276289, each job). Commits after it:
-  `1d5070b` (T-839's offline update), `59778bd` and `96a8897` (record and decisions). Read the gate of
-  the last push first.
+- **The gate** was green at `6cef237` (2026-11-25, run 45566736621, each job), and red at `13623b3`
+  and `c6fa76a` on the job `windows` alone: T-465's `pipe` test, repaired at `1d39c43` (the test
+  server's graceful close). Read the gate of the last push first.
 - **The record agrees** (`cargo todo check`), and `python scripts/check-repo.py` passes.
 - **The last whole suite** (2026-11-24, a cloud container, Rust 1.99.1, `cargo test --workspace
   --no-fail-fast`): 427 suites, 4272 passed, 3 failed. The 3 are `job_far`, at this container's
