@@ -1,5 +1,5 @@
 //! What a run of `cp`, `mv` or `scp` prints at its end: each action of a dry
-//! run (T-143, T-144), each file done, each delete, each item skipped and
+//! run (T-143, T-144, `dry.rs`), each file done, each delete, each item skipped and
 //! each failure, as text or as `--jsonl` objects; the summary of `cp` and
 //! `mv` (T-472); and its exit code. A failure said when it came is not said
 //! again (T-476).
@@ -15,12 +15,13 @@ use super::{digest, Outcome};
 /// Print each action of a dry run, each file done and the failure; the exit
 /// code. `took` is how long the run took, when it gives a summary.
 pub(super) fn report(outcome: &Outcome, jsonl: bool, out: &mut dyn Write, log: &Log, took: Option<Duration>) -> i32 {
-    for (action, from, to) in &outcome.planned {
+    // A dry run's plan: one line, or one object with its own keys, for
+    // each action (T-934).
+    for planned in &outcome.planned {
         if jsonl {
-            let line = serde_json::json!({ "event": "plan", "action": action, "source": from, "destination": to });
-            let _ = writeln!(out, "{line}");
+            let _ = writeln!(out, "{}", planned.json());
         } else {
-            let _ = writeln!(out, "{}", planned_line(action, from, to));
+            let _ = writeln!(out, "{}", planned.line());
         }
     }
     for path in &outcome.deleted {
@@ -105,19 +106,4 @@ pub(super) fn report(outcome: &Outcome, jsonl: bool, out: &mut dyn Write, log: &
         log.error(&failed.message);
     }
     failed.fault.code()
-}
-
-/// One action of a dry run as text, the line of `cp -r --dry-run` and of
-/// `podssh run --dry-run` (T-475).
-pub(super) fn planned_line(action: &str, from: &str, to: &str) -> String {
-    match action {
-        "mkdir" => format!("mkdir {to}"),
-        "copy" => format!("copy {from} -> {to}"),
-        "link" => format!("link {from} -> {to}"),
-        "hardlink" => format!("hardlink {from} -> {to}"),
-        // --backup (T-473): the old file and the name that keeps it.
-        "backup" => format!("backup {from} -> {to}"),
-        "delete" => format!("delete {to}"),
-        _ => format!("skip {from}: {to}"),
-    }
 }

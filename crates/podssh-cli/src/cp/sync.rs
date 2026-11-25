@@ -19,7 +19,7 @@ use super::summary::Counts;
 use super::transfer::{self, Failed, Side};
 use super::tree::Tree;
 use super::tree_conn::Conn;
-use super::{report, tree_copy, Outcome};
+use super::{tree_copy, Outcome};
 use crate::exitmap::Fault;
 use crate::ssh::resolve::Resolved;
 
@@ -97,6 +97,6 @@ pub(crate) async fn up(
             outcome.fail(log, far.path.clone(), Failed::new(Fault::SessionFault, why));
         }
     }
-    let plan = outcome.planned.iter().map(|(action, from, to)| report::planned_line(action, from, to)).collect();
+    let plan = outcome.planned.iter().map(|planned| planned.line()).collect();
     Synced { counts: Counts::of(&outcome), failed: outcome.failed.map(|(_, failed)| failed), plan }
 }

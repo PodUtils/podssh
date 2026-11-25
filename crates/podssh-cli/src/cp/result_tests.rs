@@ -27,6 +27,11 @@ fn the_files_go_each_way_by_the_copy_s_direction() {
     let up = Copied::of(&outcome, Direction::Up);
     assert_eq!((up.sent, up.unchanged, up.deleted, up.up, up.down), (2, 2, 1, 7, 0));
     assert_eq!(up.removed, ["b"]);
+    // mv -r: each file of the tree, then its links and directories (T-925).
+    outcome.removed_in_tree(vec!["a".into(), "dir".into()]);
+    assert_eq!(Copied::of(&outcome, Direction::Up).removed, ["a", "b", "dir"]);
+    outcome.removed.clear();
+    outcome.done[0].removed = None;
     assert_eq!((Copied::of(&outcome, Direction::Down).up, Copied::of(&outcome, Direction::Down).down), (0, 7));
     // Within one server, no byte came through this host; through it, both ways.
     assert_eq!(Copied::of(&outcome, Direction::Across).up, 0);

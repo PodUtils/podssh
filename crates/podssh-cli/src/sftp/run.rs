@@ -91,12 +91,40 @@ impl<'a> State<'a> {
         let listed = self.sftp.read_dir(dir).await.map_err(|e| transfer::from_sftp(e, Side::Source))?;
         let mut found: Vec<String> = listed
             .into_iter()
-            .filter(|e| e.name != "." && e.name != ".." && commands::matches(pattern, &e.name))
+            // A name that starts with . only by a pattern that does, as
+            // glob(3) of OpenSSH's sftp reads it (T-937).
+            .filter(|e| e.name != "." && e.name != "..")
+            .filter(|e| (!e.name.starts_with('.') || pattern.starts_with('.')) && commands::matches(pattern, &e.name))
             .map(|e| format!("{dir}{}", e.name))
             .collect();
         found.sort();
         if found.is_empty() {
             return Err(failed(Fault::NoInput, format!("{full}: no file matches")));
+        }
+        Ok(found)
+    }
+
+    /// The paths here that `path` names: itself, or the names of its
+    /// directory that its last name matches, in order, as OpenSSH's sftp
+    /// expands a local pattern of `put` (T-937); a name that starts with `.`
+    /// only by a pattern that does.
+    fn expand_here(&self, path: &str) -> Result<Vec<PathBuf>, Failed> {
+        if !commands::is_pattern(path) {
+            return Ok(vec![self.here(path)]);
+        }
+        let (dir, pattern) = transfer::split_remote(path);
+        let base = self.here(if dir.is_empty() { "." } else { dir });
+        let read = std::fs::read_dir(&base)
+            .map_err(|e| failed(Fault::NoInput, format!("{}: {}", base.display(), crate::cp::words::said(&e))))?;
+        let mut found: Vec<PathBuf> = read
+            .flatten()
+            .filter_map(|entry| entry.file_name().to_str().map(str::to_string))
+            .filter(|name| (!name.starts_with('.') || pattern.starts_with('.')) && commands::matches(pattern, name))
+            .map(|name| base.join(name))
+            .collect();
+        found.sort();
+        if found.is_empty() {
+            return Err(failed(Fault::NoInput, format!("{path}: no file matches")));
         }
         Ok(found)
     }
@@ -136,21 +164,25 @@ impl<'a> State<'a> {
             Command::Put { local, remote, preserve, recursive } => {
                 // Each command's line counts its own files (T-828).
                 crate::cp::gauge::new_run();
-                let source = self.here(local);
+                // A local pattern, as the files that it matches (T-937).
+                let sources = self.expand_here(local)?;
+                let many = sources.len() > 1;
                 let dest = match remote {
                     Some(r) => self.there(r),
                     None => format!("{}/", self.cwd.trim_end_matches('/')),
                 };
-                let _ = writeln!(out, "Uploading {} to {dest}", source.display());
-                let shown = source.display().to_string();
-                let mut shape = self.shape;
-                shape.keep.times |= *preserve;
-                if (*recursive || self.recursive) && source.is_dir() {
-                    tree_conn::over_session(self.link, true, &shown, &dest, false, self.log, shape).await?;
-                } else {
-                    let mut progress = Progress::default();
-                    let (handle, meter) = (self.link.handle(), &self.link.meter);
-                    bysftp::up(sftp, handle, &shown, &dest, false, self.log, &mut progress, meter, shape).await?;
+                for source in &sources {
+                    let _ = writeln!(out, "Uploading {} to {dest}", source.display());
+                    let shown = source.display().to_string();
+                    let mut shape = self.shape;
+                    shape.keep.times |= *preserve;
+                    if (*recursive || self.recursive) && source.is_dir() {
+                        tree_conn::over_session(self.link, true, &shown, &dest, many, self.log, shape).await?;
+                    } else {
+                        let mut progress = Progress::default();
+                        let (handle, meter) = (self.link.handle(), &self.link.meter);
+                        bysftp::up(sftp, handle, &shown, &dest, many, self.log, &mut progress, meter, shape).await?;
+                    }
                 }
             }
             Command::Rename { from, to } => {
@@ -182,8 +214,18 @@ impl<'a> State<'a> {
                     Some(p) => self.here(p),
                     None => home_dir().ok_or_else(|| failed(Fault::Config, "lcd: this host has no home".into()))?,
                 };
-                if !target.is_dir() {
-                    return Err(failed(Fault::NoInput, format!("{}: not a directory", target.display())));
+                // A missing directory says so, and a file is no directory
+                // (T-937).
+                match std::fs::metadata(&target) {
+                    Ok(meta) if meta.is_dir() => {}
+                    Ok(_) => return Err(failed(Fault::NoInput, format!("{}: not a directory", target.display()))),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                        return Err(failed(Fault::NoInput, format!("{}: no such directory", target.display())))
+                    }
+                    Err(e) => {
+                        let why = format!("{}: {}", target.display(), crate::cp::words::said(&e));
+                        return Err(failed(Fault::NoInput, why));
+                    }
                 }
                 self.lcwd = std::fs::canonicalize(&target).unwrap_or(target);
             }
@@ -237,6 +279,12 @@ impl<'a> State<'a> {
     }
 
     async fn df(&self, path: Option<&str>, human: bool, inodes: bool, out: &mut dyn Write) -> Result<(), Failed> {
+        // A server with no statvfs@openssh.com lacks what df needs: 69, as
+        // a copy that the server cannot serve, never 66 (T-936).
+        if !self.sftp.has("statvfs@openssh.com") {
+            let why = "df: the server has no statvfs@openssh.com, so it tells no space".to_string();
+            return Err(failed(Fault::RelayUnreachable, why));
+        }
         let full = path.map_or_else(|| self.cwd.clone(), |p| self.there(p));
         let fs = self.sftp.statvfs(&full).await.map_err(|e| transfer::from_sftp(e, Side::Source))?;
         if inodes {

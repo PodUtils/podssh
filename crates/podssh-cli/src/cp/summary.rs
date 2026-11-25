@@ -16,6 +16,9 @@ pub struct Counts {
     /// The files copied, and their bytes.
     pub copied: usize,
     pub bytes: u64,
+    /// The files that `mv` within one server renamed there: no byte went
+    /// (T-933).
+    pub renamed: usize,
     /// The files that `podssh run` found as they are here.
     pub unchanged: usize,
     /// The items skipped by design: a device, a FIFO or a socket (T-476);
@@ -32,9 +35,11 @@ pub struct Counts {
 
 impl Counts {
     pub(super) fn of(outcome: &Outcome) -> Counts {
+        let renamed = |done: &&super::transfer::Done| done.verified_by == "rename";
         Counts {
-            copied: outcome.done.len(),
-            bytes: outcome.done.iter().map(|done| done.bytes).sum(),
+            copied: outcome.done.iter().filter(|done| !renamed(done)).count(),
+            bytes: outcome.done.iter().filter(|done| !renamed(done)).map(|done| done.bytes).sum(),
+            renamed: outcome.done.iter().filter(renamed).count(),
             unchanged: outcome.unchanged,
             skipped: outcome.skipped.len(),
             left_out: outcome.left_out,
@@ -45,11 +50,20 @@ impl Counts {
 
 /// The line: `3 copied (3.1 MiB), 2 unchanged, 1 skipped, 2 left out, 1
 /// failed, in 12.0 s (264.5 KiB/s)`. Each count of zero is left out but the
-/// first, and so are the bytes and the rate when no byte went.
+/// first, and so are the bytes and the rate when no byte went; a move that
+/// the server renamed is `1 renamed`, and its first count when nothing was
+/// copied (T-933).
 pub fn line(counts: &Counts, took: Duration) -> String {
-    let mut text = format!("{} copied", counts.copied);
+    let mut text = String::new();
+    if counts.copied > 0 || counts.renamed == 0 {
+        text = format!("{} copied", counts.copied);
+    }
     if counts.copied > 0 {
         text.push_str(&format!(" ({})", bytes(counts.bytes)));
+    }
+    if counts.renamed > 0 {
+        let sep = if text.is_empty() { "" } else { ", " };
+        text.push_str(&format!("{sep}{} renamed", counts.renamed));
     }
     let rest = [
         (counts.unchanged, "unchanged"),
@@ -76,6 +90,7 @@ pub fn json(counts: &Counts, took: Duration) -> serde_json::Value {
         "event": "summary",
         "copied": counts.copied,
         "bytes": counts.bytes,
+        "renamed": counts.renamed,
         "unchanged": counts.unchanged,
         "skipped": counts.skipped,
         "left_out": counts.left_out,
@@ -90,7 +105,7 @@ mod tests {
 
     #[test]
     fn the_line_leaves_out_each_count_of_zero_but_the_first() {
-        let all = Counts { copied: 3, bytes: 3_250_586, unchanged: 2, skipped: 1, left_out: 2, failed: 1 };
+        let all = Counts { copied: 3, bytes: 3_250_586, unchanged: 2, skipped: 1, left_out: 2, failed: 1, renamed: 0 };
         assert_eq!(
             line(&all, Duration::from_secs(12)),
             "3 copied (3.1 MiB), 2 unchanged, 1 skipped, 2 left out, 1 failed, in 12.0 s (264.5 KiB/s)"
@@ -104,6 +119,26 @@ mod tests {
         assert_eq!(line(&one, Duration::from_secs(2)), "1 copied (34 B), in 2.0 s (17 B/s)");
         let failed = Counts { failed: 1, ..Counts::default() };
         assert_eq!(line(&failed, Duration::ZERO), "0 copied, 1 failed, in 0.0 s");
+        // A rename on the server moves no byte (T-933).
+        let renamed = Counts { renamed: 1, ..Counts::default() };
+        assert_eq!(line(&renamed, Duration::from_millis(100)), "1 renamed, in 0.1 s");
+        let both = Counts { copied: 1, bytes: 4, renamed: 2, ..Counts::default() };
+        assert_eq!(line(&both, Duration::from_secs(1)), "1 copied (4 B), 2 renamed, in 1.0 s (4 B/s)");
+    }
+
+    #[test]
+    fn a_rename_counts_apart_with_no_bytes() {
+        let mut outcome = Outcome::default();
+        let done = |source: &str, how: &str| super::super::transfer::Done {
+            source: source.into(),
+            bytes: 4,
+            verified_by: how.into(),
+            ..Default::default()
+        };
+        outcome.add(done("a", "rename"));
+        outcome.add(done("b", "sha256sum"));
+        let counts = Counts::of(&outcome);
+        assert_eq!((counts.copied, counts.bytes, counts.renamed), (1, 4, 1));
     }
 
     #[test]

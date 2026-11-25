@@ -106,18 +106,28 @@ const CP: &[&str] = &[
      With --jsonl each file gives one JSON object: done, with the bytes, the SHA-256 and how the far \
      side was checked, or error, with the exit code.",
     "At its end a run of podssh cp or mv says on one line what it did: the files copied and their bytes; those that \
-     podssh run left as they were; those skipped; the paths that an exclude left out (each named at -v with its \
+     the server renamed, with no byte moved; those that podssh run left as they were; those skipped; the paths that an exclude left out (each named at -v with its \
      pattern); those that failed; how long it took and its rate; also after a failure, before its error. -q silences \
      it, and --jsonl gives a summary object in its place. On a terminal one line shows the progress of the run: the \
      file in flight, and with several files their count. Where stderr is no terminal, a plain line comes each 10 s \
      once the run has passed 10 s, with no carriage return; PODSSH_PROGRESS=off and -q silence it.",
-    "Several sources go into a directory. A copy from server to server goes through a temporary file on \
+    "Several sources go into a directory that is there. A destination that is a file, or is missing, is said once, \
+     before any source goes (exit 73). A copy from server to server goes through a temporary file on \
      this host, one connection at a time. -r copies a directory and what it holds, each link as a link \
      (scp -r follows links); it has no default excludes and reads no .podsshignore, where podssh run \
      leaves out target/, node_modules/, .git/ and what the project's .podsshignore names. A device, a \
      FIFO or a socket is not copied: one line says so, with --jsonl \
      a skipped object, and it is no failure, as OpenSSH's scp and sftp skip one. Each failure is said \
      once, when it comes; the rest goes on, and the exit code is the first failure's.",
+    "A source DIR/. copies what DIR holds into the destination, as GNU cp -r does. A tree onto a name that is a file \
+     is refused once (exit 73), and nothing of it is copied. When scp -r follows links, a directory reached on two \
+     paths is copied twice, as OpenSSH's scp copies it. A link back to a directory that holds it is a loop: it is \
+     said, not followed, and the exit is 66. A directory goes over SFTP: a server with none copies no tree (exit \
+     69).",
+    "--dry-run says each action and changes nothing, for a source that is one file too. It names only what would \
+     change: a directory or a link that is there already is no action. With --jsonl each action is a plan object: \
+     action, source and destination, with target for a link and reason for a skip. A key that does not apply is \
+     null.",
     "Several files go at once, each over an SFTP session of its own in the one connection. So do the files of a tree \
      with -r: as many as the row of --parallel says, or K with --parallel K, and one at a time with --parallel 1. \
      Through the relay each small file waits for its own round trips, so one at a time takes their sum. A file of \
@@ -139,8 +149,9 @@ const CP: &[&str] = &[
      2106, and no inode, extended attribute or ACL: those, and a far source's hard links, are not kept.",
     "--inplace writes into the destination itself, with no temporary name and no rename: it keeps its \
      inode and hard links, and needs no room for a second copy. podssh says first that a copy that \
-     fails leaves its destination damaged, and a failure says so. A destination that is a link or a \
-     directory is refused (exit 64).",
+     fails leaves its destination damaged, and a failure says so. The file that it would write is refused \
+     when it is a link or a directory (exit 64). A destination directory takes the file under the source's name, \
+     as a copy without --inplace does.",
     "-n (--no-clobber) leaves a destination that is there as it is: the copy looks before any byte goes, says DST: \
      there, so not replaced, and counts a skip, with exit 0. A name that comes during the copy stays too: the \
      verified file takes its name by a hard link (hardlink@openssh.com, or ln by exec), which never takes a name \
@@ -160,7 +171,8 @@ const CP: &[&str] = &[
      and chown set what a copy keeps, where the server has them. With no POSIX sh, or a needed tool missing, the \
      copy exits 69 and names it.",
     "Each SFTP reply that carries no file data is waited for 30 s at most, and each read or write 60 s. --timeout \
-     bounds the whole copy, the login included (exit 75). With no terminal it is required, or PODSSH_TIMEOUT in its \
+     bounds the whole copy, the login included (exit 75). Its line names the bound as it was given, and each \
+     partial copy that stays, with its record. With no terminal it is required, or PODSSH_TIMEOUT in its \
      place (exit 64 with neither): nobody may be there to stop a run that waits. podssh scp and podssh sftp take it \
      as a bound and need none, as OpenSSH's run in pipes with no such flag. ConnectTimeout bounds their login. The \
      exit codes are the sysexits of EXIT STATUS, as for podssh proxy.",
@@ -168,9 +180,12 @@ const CP: &[&str] = &[
      offset below which each byte is in it. It tries 5 times in a row at most with no new byte, with a backoff \
      between them. A refused login, or a host key other than the first connection's, ends it. The same command run \
      again goes on too while the source is as it was: a private side file in the cache directories, \
-     podssh-cp-*.resume (see FILES), keeps the offset, never a byte of the file. The digest covers the whole file.",
+     podssh-cp-*.resume (see FILES), keeps the offset, never a byte of the file. The digest covers the whole file. \
+     A copy that fails before its first byte keeps no side file, and its line names no partial copy.",
     "--result-file FILE writes one JSON object to FILE at the end of each run, also of one refused before it \
-     connected. It is a new file for its owner alone; - is refused (exit 64). Its keys are those of podssh ssh \
+     connected. It is a new file for its owner alone, which replaces a file that was there; - is refused (exit \
+     64). A directory of FILE that is missing is refused before anything connects (exit 73). A run that succeeded \
+     but could not write FILE exits 73. Its keys are those of podssh ssh \
      --result-file in their meaning, with verb and error: schema, verb, exit, failure (connect, relay, host-key or \
      auth where the connection failed; copy for a source, a destination or a step that the server refused; verify \
      for digests that differ; session, timeout, interrupted, usage or config; or null), error (its words), \
@@ -218,6 +233,10 @@ const SFTP: &[&str] = &[
      cp -r does, each link as a link; an item that fails is said, the rest goes on, and the command fails at its \
      end. The exit code is that of the first command that ends the batch, as for podssh cp; a usage error is 64 \
      where OpenSSH gives 1.",
+    "get takes * and ? in the last name of the server's path, and put in the last name of a local path: each file \
+     that matches goes, in order, into the directory named. A name that starts with . matches only a pattern that \
+     does. A pattern that matches nothing fails with 66. df needs statvfs@openssh.com: a server with none, as \
+     podssh serve, fails it with 69. lcd says whether the directory is missing or is not a directory.",
     "ls lists as OpenSSH's sftp does, with its switches [-1afhlnrSt]. With neither l nor 1 the names go in columns \
      of the terminal's width, else 80; 1 puts one name a line. l gives OpenSSH's long form: the mode, ? for the link \
      count, the owner and the group, and the size. Then the time of change in the local zone (the hour within half a \
@@ -235,6 +254,10 @@ const MV: &[&str] = &[
      --timeout, as podssh cp does. Within one server the server \
      renames, with posix-rename or by exec with mv -f, and no byte moves; a rename that the server fails \
      for a reason of its own, such as two file systems, becomes a copy and a delete, said first.",
+    "With -r the server renames a directory too, into a directory that is there under its own name. A name that is \
+     there already is never replaced: the move fails (exit 73), and with -n or -u the source stays. A directory \
+     never moves into itself (exit 64). The summary counts each rename as renamed, with no bytes. With --dry-run \
+     nothing moves and nothing is removed.",
     "Between hosts a move is not atomic, and podssh says so on stderr before any byte moves: the copy of \
      podssh cp, its digest check, then a delete of the source; between two servers a third connection \
      removes it. The source goes last, and only while it is still the file that was copied: the same \
@@ -247,7 +270,8 @@ const MV: &[&str] = &[
      the source's name, so a name that came since the look stays; -b keeps the old destination as for \
      podssh cp.",
     "--result-file FILE writes the object of podssh cp at the end, its verb mv, with removed: the sources \
-     that the move removed once their copy was verified.",
+     that the move removed once their copy was verified. With -r they are each file, link and directory of the \
+     tree that went.",
 ];
 
 const DOCTOR: &[&str] = &[

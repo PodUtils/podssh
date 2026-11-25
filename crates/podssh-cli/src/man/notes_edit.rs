@@ -29,5 +29,5 @@ pub const EDIT: &[&str] = &[
      podssh edit exits with that status. A symbolic link stays a link: over SFTP podssh edits the file that it \
      names; by exec, where no portable command names that file, a link is refused (66). The first SIGINT or \
      SIGTERM while a file moves ends the run with 130: during the fetch nothing stays here; during the send \
-     the copy here stays, named.",
+     the copy here stays, named. A failed send names the server's partial copy only when the server made one.",
 ];

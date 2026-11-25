@@ -34,7 +34,7 @@ pub const SCP_FLAGS: &[FlagRow] = &[
     row(Some('R'), "remote-copy", None, FlagKind::Refused,
         "a copy that the first host makes with its own scp", Some("no flag: the copy goes through this host")),
     row(Some('r'), "recursive", None, FlagKind::Supported,
-        "copy a directory and what it holds; links are followed, as OpenSSH's scp does, and a loop is refused", None),
+        "copy a directory and what it holds; links are followed, as OpenSSH's scp does: a directory reached twice goes twice, and a link back to a directory that holds it is refused as a loop", None),
     row(Some('s'), "sftp-protocol", None, FlagKind::Accepted, "the SFTP protocol; podssh uses it already", None),
     row(Some('T'), "no-name-check", None, FlagKind::Accepted,
         "no check of the names that a server sends; podssh names each file itself", None),

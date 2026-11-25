@@ -361,7 +361,14 @@ async fn attempt(lane: &Lane<'_>, slot: &mut Slot, run: &Run<'_>, shape: Shape) 
                 slot.restarted = true;
                 slot.continued = false;
             }
-            Err(f) => return Step::Answer(Err(f)),
+            Err(f) => {
+                // A copy that failed before its first byte keeps no record
+                // (T-930).
+                if let Some(temp) = p.drop_unstarted() {
+                    drop_temp(lane.sftp, source, &temp).await;
+                }
+                return Step::Answer(Err(f));
+            }
         }
     }
 }

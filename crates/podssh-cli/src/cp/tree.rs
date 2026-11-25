@@ -251,17 +251,42 @@ fn join(rel: &str, name: &str) -> String {
 /// not go into it (T-475).
 pub fn walk_local(root: &Path, tree: &Tree) -> (Vec<Item>, Vec<String>) {
     let (mut items, mut left) = (Vec::new(), Vec::new());
-    let mut seen = HashSet::new();
-    walk_local_in(root, "", tree, 0, &mut seen, &mut items, &mut left);
+    let mut above = Vec::new();
+    walk_local_in(root, "", tree, 0, &mut above, &mut items, &mut left);
     (items, left)
 }
+
+/// Which directory a path is: its device and inode, or its canonical path
+/// where the system gives no inode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum DirId {
+    #[cfg_attr(not(unix), allow(dead_code))]
+    Inode(u64, u64),
+    Path(std::path::PathBuf),
+}
+
+fn dir_id(dir: &Path) -> Option<DirId> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if let Ok(meta) = std::fs::metadata(dir) {
+            return Some(DirId::Inode(meta.dev(), meta.ino()));
+        }
+    }
+    std::fs::canonicalize(dir).ok().map(DirId::Path)
+}
+
+/// The words of a loop: a link that a walk follows leads back to a
+/// directory that holds it. A directory met twice on two paths is no loop,
+/// and goes twice, as OpenSSH's scp copies it (T-926).
+pub const LOOP: &str = "a loop: a link leads back to a directory that holds it";
 
 fn walk_local_in(
     dir: &Path,
     rel: &str,
     tree: &Tree,
     depth: usize,
-    seen: &mut HashSet<std::path::PathBuf>,
+    above: &mut Vec<DirId>,
     items: &mut Vec<Item>,
     left: &mut Vec<String>,
 ) {
@@ -269,13 +294,35 @@ fn walk_local_in(
         items.push(Item::Skip { rel: rel.into(), why: format!("deeper than {MOST_DEPTH} levels") });
         return;
     }
-    // A directory met twice is a loop (a link that a walk follows).
-    if let Ok(real) = std::fs::canonicalize(dir) {
-        if !seen.insert(real) {
-            items.push(Item::Skip { rel: rel.into(), why: "a loop: this directory is met again".into() });
-            return;
-        }
+    // A directory that is its own ancestor on this path is a loop.
+    let id = dir_id(dir);
+    if id.as_ref().is_some_and(|id| above.contains(id)) {
+        items.push(Item::Skip { rel: rel.into(), why: LOOP.into() });
+        return;
     }
+    let pushed = match id {
+        Some(id) => {
+            above.push(id);
+            true
+        }
+        None => false,
+    };
+    walk_local_listed(dir, rel, tree, depth, above, items, left);
+    if pushed {
+        above.pop();
+    }
+}
+
+/// [`walk_local_in`] past its checks: the directory, then what it holds.
+fn walk_local_listed(
+    dir: &Path,
+    rel: &str,
+    tree: &Tree,
+    depth: usize,
+    above: &mut Vec<DirId>,
+    items: &mut Vec<Item>,
+    left: &mut Vec<String>,
+) {
     items.push(Item::Dir {
         rel: rel.into(),
         stamp: std::fs::metadata(dir).map(|m| Stamp::of_local(&m)).unwrap_or_default(),
@@ -315,7 +362,7 @@ fn walk_local_in(
         // A link that a walk follows is what it names.
         let meta = if kind.is_symlink() { std::fs::metadata(&path) } else { Ok(meta) };
         match meta {
-            Ok(m) if m.is_dir() => walk_local_in(&path, &child, tree, depth + 1, seen, items, left),
+            Ok(m) if m.is_dir() => walk_local_in(&path, &child, tree, depth + 1, above, items, left),
             Ok(m) if m.is_file() => items.push(Item::File { rel: child }),
             Ok(m) => items.push(Item::Special { rel: child, kind: Special::of_local(m.file_type()) }),
             Err(e) => items.push(Item::Skip { rel: child, why: format!("the link names nothing here: {e}") }),
@@ -329,20 +376,21 @@ fn walk_local_in(
 /// pattern left out, as [`walk_local`]'s.
 pub async fn walk_far(sftp: &Sftp, root: &str, tree: &Tree, windows: bool) -> (Vec<Item>, Vec<String>) {
     let (mut items, mut left) = (Vec::new(), Vec::new());
-    let mut seen = HashSet::new();
     // Depth first, without recursion in an async fn: each directory waits on
-    // a stack, its listing in the order of its names.
-    let mut stack: Vec<(String, String, usize)> = vec![(root.to_string(), String::new(), 0)];
-    while let Some((dir, rel, depth)) = stack.pop() {
+    // a stack, its listing in the order of its names, with the real paths
+    // of the directories above it: one of them again is a loop (T-926).
+    let mut stack: Vec<(String, String, usize, Vec<String>)> = vec![(root.to_string(), String::new(), 0, Vec::new())];
+    while let Some((dir, rel, depth, mut above)) = stack.pop() {
         if depth > MOST_DEPTH {
             items.push(Item::Skip { rel, why: format!("deeper than {MOST_DEPTH} levels") });
             continue;
         }
         if let Ok(real) = sftp.realpath(&dir).await {
-            if !seen.insert(real) {
-                items.push(Item::Skip { rel, why: "a loop: this directory is met again".into() });
+            if above.contains(&real) {
+                items.push(Item::Skip { rel, why: LOOP.into() });
                 continue;
             }
+            above.push(real);
         }
         let stamp = sftp.stat(&dir).await.map(|a| Stamp::of_far(&a, 0o7777)).unwrap_or_default();
         items.push(Item::Dir { rel: rel.clone(), stamp });
@@ -385,7 +433,7 @@ pub async fn walk_far(sftp: &Sftp, root: &str, tree: &Tree, windows: bool) -> (V
             }
             let attrs = if attrs.is_symlink() { sftp.stat(&path).await } else { Ok(attrs) };
             match attrs {
-                Ok(a) if a.is_dir() => below.push((path, child, depth + 1)),
+                Ok(a) if a.is_dir() => below.push((path, child, depth + 1, above.clone())),
                 Ok(a) if a.is_regular() => items.push(Item::File { rel: child }),
                 Ok(a) => items.push(Item::Special { rel: child, kind: Special::of_mode(a.permissions.unwrap_or(0)) }),
                 Err(e) => items.push(Item::Skip { rel: child, why: format!("the link names nothing there: {e}") }),

@@ -2483,7 +2483,9 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   the next of these, which names a failure that is real.
   The size and the MAC of SSH alone miss a wrong offset, a short write, and
   a source that changed while it was read.
-- Several sources go into a directory. A copy from server to server goes
+- Several sources go into a directory that is there: a destination that
+  is a file, or is missing, is looked at once before any source goes and
+  said once, with its true reason (73, T-935). A copy from server to server goes
   through a temporary file on this host, one connection at a time.
 - **Requests in flight** (T-140): on the SFTP road, the reads and the
   writes of a copy go with up to 64 requests in flight, each of the
@@ -2558,8 +2560,16 @@ SFTP, through the relay or with `--direct`, with the connection flags of
 - **`-r`** (T-143) copies a directory and what it holds, depth first with
   `lstat`, 64 levels at most: each file as one copy goes (a temporary name,
   the digest, the rename), each symbolic link as a link; a directory gets
-  its mode after its files. `scp -r` follows links, as OpenSSH's does, and
-  refuses a loop. A device, a FIFO or a socket is not copied, and is no
+  its mode after its files. `scp -r` follows links, as OpenSSH's does: a
+  directory reached on two paths (a link `alias -> real` beside `real/`)
+  is copied twice, as OpenSSH's `scp` copies it, and a loop is a directory
+  that is its own ancestor on the walk's path (by device and inode here,
+  by `realpath` on the server), which is said and not followed (T-926). A
+  source `DIR/.` copies what DIR holds into the destination, as GNU `cp -r`
+  and rsync read it (T-937). A tree onto a name that is a file is refused
+  once (73), with nothing of it tried (T-935). A directory goes over SFTP:
+  a server with none copies no tree (69, as for a server with neither SFTP
+  nor the tools of a copy by exec, T-936). A device, a FIFO or a socket is not copied, and is no
   failure (T-476), as OpenSSH's `scp` and `sftp` skip one: one line at the
   default level names its kind (`SRC: not copied: a FIFO`), `--jsonl` gives
   a `skipped` object, and the exit stays 0 when nothing else failed; the
@@ -2578,8 +2588,15 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   line; `#` starts a comment) leave paths out, and nothing else does: `cp
   -r` has no default excludes and reads no `.podsshignore`, which `podssh
   run` reads (T-475); `--dry-run` says each action
-  (`mkdir`, `copy`, `link`, `skip`; with `--jsonl` an object each) and
-  changes nothing. `mv -r` removes the source once each item of it is
+  (`mkdir`, `copy`, `link`, `hardlink`, `backup`, `delete`, `skip`) and
+  changes nothing, also for a source that is one file, and for `mv`
+  (T-924, `crates/podssh-cli/src/cp/dry.rs`). The plan names only what
+  would change: a directory or a link that is there as the copy would make
+  it is no action (T-934). With `--jsonl` each action is
+  `{"event":"plan", "action", "source", "destination"}`, with `"target"`
+  for a `link` or a `hardlink` (what it names) and `"reason"` for a `skip`;
+  a key that does not apply is null (`source` of a `delete`, `destination`
+  of a `skip`). `mv -r` removes the source once each item of it is
   copied, and leaves a special file and the directories that hold it, and
   says so. `--delete` goes on past a special file, and never deletes its
   name. A directory goes up or down, over SFTP, not between two servers.
@@ -2611,9 +2628,12 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   cut to the source's size; the digests are compared as for each copy.
   podssh says first, on stderr, that a copy that fails leaves its
   destination damaged, and each failure after the first write names the
-  destination as damaged (a mismatch exits 70). A destination that is a
-  symbolic link or a directory is refused (64), here before anything
-  connects. A copy that broke goes on at its offset in the destination;
+  destination as damaged (a mismatch exits 70). The file that it would
+  write is refused when it is a symbolic link or a directory (64), here
+  before anything connects; a destination that is a directory takes the
+  file under the source's name, as a copy without `--inplace` does (T-932:
+  the refusal is of the name written, never of the directory that holds
+  it). A copy that broke goes on at its offset in the destination;
   with `--delta` only the changed blocks are written into it, and no
   `copy-data` is needed; `mv` removes the source only after the check. By
   exec, the first attempt writes with `cat >` (a truncation keeps the
@@ -2681,8 +2701,10 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   pattern (T-475), and failed each failure, said when it came. It comes also after a
   failure, before an error that no line said before it, so that the error
   stays the last line. `-q` silences it; with `--jsonl` a `summary` object on
-  stdout takes its place (`copied`, `bytes`, `unchanged`, `skipped`,
-  `left_out`, `failed` and `seconds`). `run` says it before the command starts, so
+  stdout takes its place (`copied`, `bytes`, `renamed`, `unchanged`,
+  `skipped`, `left_out`, `failed` and `seconds`). A move that the server
+  renamed counts as `renamed`, with no bytes, not as copied (T-933):
+  `1 renamed, in 0.1 s`. `run` says it before the command starts, so
   that the command's stdout stays its own. A dry run gives none, nor a run
   that the `--timeout` ended, whose records went with it, nor `scp` and
   `sftp`, which keep the output of OpenSSH's.
@@ -2690,7 +2712,8 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   (Ctrl-C on Windows) ends the copy in
   flight, keeps the temporary file and its side file, names them, and
   exits 130; the same command then goes on from them; a second signal ends
-  podssh at once. `-l LIMIT` (`cp`, `mv`, `scp`, `sftp`) is OpenSSH's, in
+  podssh at once. The line of `--timeout` (75) names them too, and the
+  bound as it was given (`1 ms`, `2 s`, T-931). `-l LIMIT` (`cp`, `mv`, `scp`, `sftp`) is OpenSSH's, in
   Kbit/s: a token bucket before each request, requests of 10 s of bytes at
   most, and about one second of them in flight.
 - **`--delete`** (T-144), with `-r`, makes the copy's root a mirror: what
@@ -2747,7 +2770,18 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   command, run again, goes on while the source is as it was; else it
   starts over and says so. The digest covers the whole file: a continued
   copy whose digests differ starts once more from the first byte, then
-  fails.
+  fails. A copy that fails for good before its first byte (a destination
+  that cannot be written) keeps no side file and no lock file, and its
+  temporary file, if the server made one, goes (T-930). The state of the
+  source in the side file has a form of its own (`local LEN NANOS DEV:INO`,
+  `sftp SIZE MTIME`, `exec LINE`, `-` for what is not known), and a side
+  file in the earlier form, Rust's `Debug`, is still read (T-929).
+- **Each failure is one line in the system's words** (T-929,
+  `crates/podssh-cli/src/cp/words.rs`): Rust's `(os error N)` is left out
+  of each line of `cp`, `mv`, `scp`, `sftp` and `edit`, and a connection
+  that failed for one cause says that cause alone, not a second line. A
+  note of `-p` or `--owner` names the destination, never the temporary
+  name (T-937).
 - **Before the relay's limits** (64 MiB both ways, 12 h for each session),
   a copy opens a new session and goes on at its offset, with no wait: it
   counts each session's payload bytes and age against a budget of 60 MiB
@@ -2783,6 +2817,18 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   by exec).
 - `--jsonl` adds `"source_removed"` to each `done` object; a rename has no
   digest (`"sha256": null`) and `"verified_by": "rename"`.
+- **A directory within one server** (`mv -r`, T-933,
+  `crates/podssh-cli/src/cp/moving_dir.rs`): the server renames it, as a
+  file, into a directory that is there under its own name; a name that is
+  there already is never replaced (73; with `-n` or `-u` the source stays,
+  exit 0), and a directory never moves into itself (64). Without `-r` a
+  directory source says `mv -r moves it` (66).
+- **`-r --dry-run`** moves nothing and removes nothing (T-924): a rename
+  within one server is planned as `rename SRC -> DST`, a move between
+  servers as a `copy` and a `delete`.
+- **The record** (`--result-file`): `removed` names each source that went;
+  with `-r`, each file, link and directory of the tree, the files first
+  (T-925).
 - **`-n`, `-u` and `-b`** (T-473) are `cp`'s: a source whose destination
   stays is not moved and stays, and `mv -r` leaves it with the directories
   that hold it. Within one server, `-n` moves by a hard link
@@ -2838,8 +2884,14 @@ renamed.
   that broke goes on by itself; `-p` keeps the times, as `sftp -p` does
   for each), `rename`, `rm` (with `*` and `?` in the
   last name), `mkdir [-p]`, `rmdir`, `ls [-1afhlnrSt]`, `cd`, `lcd`, `pwd`,
-  `lpwd`, `chmod`, `df [-hi]` (`statvfs@openssh.com`), `help`, `version`,
-  and `bye`. The local commands (`lls`, `lmkdir`, `!command`) and `ln`,
+  `lpwd`, `chmod`, `df [-hi]` (`statvfs@openssh.com`; a server with none,
+  as `podssh serve`, fails it with 69, T-936), `help`, `version`,
+  and `bye`. `put` takes `*` and `?` in the last name of a local path, as
+  OpenSSH's `sftp` expands one: each file that matches goes, in order, and
+  a pattern that matches nothing is 66 (T-937); `get` and `rm` take them in
+  the last name of the server's path; with either, a name that starts
+  with a dot matches only a pattern that does. `lcd` says `no such
+  directory` for one that is missing, and `not a directory` for a file. The local commands (`lls`, `lmkdir`, `!command`) and `ln`,
   `chown`, `chgrp` are refused by name.
 - **`ls` lists as OpenSSH's sftp does** (T-471,
   `crates/podssh-cli/src/sftp/listing.rs`; `do_ls_dir`, `do_globbed_ls` and
@@ -2919,9 +2971,15 @@ events of `--jsonl`, which stay as they are.
 - The facts are the run's own: its outcome, and the record of its own
   scope (`podssh_ssh::outcome::Scope`, T-484), which its connections and
   the command's session write, never the process's. A new file is made for
-  its owner alone (mode 0600 on Unix), by the one writer of `ssh`'s; `-` is
-  refused (64), as stdout is the run's. A file that cannot be written is a
-  line on stderr, and the exit code stays the run's.
+  its owner alone (mode 0600 on Unix), by the one writer of `ssh`'s: it is
+  written under a private name beside FILE, then renamed onto it, so a
+  file that was there, with its mode, is replaced (T-928); a FIFO or a
+  device takes the object as it is. `-` is refused (64), as stdout is the
+  run's. A FILE whose directory is missing, or is not a directory, is
+  refused by `cp`, `mv`, `scp` and `sftp` before anything connects (73);
+  a FILE that still cannot be written at the end is a line on stderr, and
+  a run of theirs that succeeded then exits 73, as its record is missing
+  (T-928). `ssh`, `run` and `each` keep their exit code.
 
 ## `podssh edit`
 
@@ -2991,7 +3049,10 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   ends with a status other than 0 sends nothing, and `edit` exits with that
   status (128 + N for signal N). The first SIGINT or SIGTERM while a file
   moves ends the run with 130: during the fetch nothing stays here; during
-  the send the copy stays, named, with the far side's partial copy.
+  the send the copy stays, named, with the far side's partial copy. A
+  failed send names a partial copy only when the server made one: a
+  temporary file that could not be opened (a directory that refuses it)
+  is no partial copy, and its record goes (T-927).
 
 ## `podssh tx`
 

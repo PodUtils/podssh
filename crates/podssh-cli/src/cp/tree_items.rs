@@ -1,6 +1,7 @@
 //! The steps of a tree's copy (`tree_copy.rs`) that act on one name each: a
-//! far file, directory or link that a copy of `podssh run` leaves as it is,
-//! which its dry run plans no more (T-475), a link made there or
+//! far file that a copy of `podssh run` leaves as it is, or a directory that
+//! a copy makes no more, which a dry run plans no more (T-475; a link's
+//! look is in `dry.rs`), a link made there or
 //! here, another name of a file copied up, and the removal of the source of
 //! `mv -r`, which leaves each device, FIFO or socket, with the directories
 //! that hold it, as it copied none (T-476), and each file that
@@ -18,6 +19,7 @@ use super::meta;
 use super::transfer::{Done, Failed};
 use super::tree::{rel_of, Item};
 use super::tree_copy::{local_join, remote_join};
+use super::words::said;
 
 /// Whether the far regular file `target` has the size of the local file
 /// `from`, and its time of change to the second: a copy of `podssh run`
@@ -29,20 +31,11 @@ pub(super) async fn same_far(sftp: Option<&Sftp>, from: &str, target: &str) -> b
     far.is_regular() && !far.is_symlink() && far.size == Some(local.len()) && time.is_some() && far.mtime == time
 }
 
-/// Whether the far `target` is a directory already, which the copy of
-/// `podssh run` makes no more, so its dry run plans no `mkdir` (T-475).
+/// Whether the far `target` is a directory already, which a copy makes no
+/// more, so a dry run plans no `mkdir` (T-475, T-934).
 pub(super) async fn far_dir(sftp: Option<&Sftp>, target: &str) -> bool {
     let Some(sftp) = sftp else { return false };
     sftp.lstat(target).await.is_ok_and(|attrs| attrs.is_dir())
-}
-
-/// Whether the far `target` is a link that names `names` already, which
-/// [`far_link`] leaves as it is, so a dry run of `podssh run` plans no
-/// `link` (T-475).
-pub(super) async fn same_link(sftp: Option<&Sftp>, target: &str, names: &str) -> bool {
-    let Some(sftp) = sftp else { return false };
-    let is_link = sftp.lstat(target).await.is_ok_and(|attrs| attrs.is_symlink());
-    is_link && sftp.readlink(target).await.is_ok_and(|now| now == names)
 }
 
 /// A symbolic link at `target` on the server that names `names`: one that a
@@ -174,51 +167,65 @@ fn said_kept(src: &str, specials: bool, left: bool, log: &Log) {
 /// mv -r up: the local source, each file and link, then each directory, the
 /// deepest first; a special file, each file or link of `left` (the sources
 /// that the run left out, by their names) and the directories that hold
-/// them stay.
-pub(super) fn remove_local(src: &str, items: &[Item], left: &HashSet<&str>, log: &Log) {
+/// them stay. Gives each path that it removed, for the record (T-925).
+pub(super) fn remove_local(src: &str, items: &[Item], left: &HashSet<&str>, log: &Log) -> Vec<String> {
     let named = |rel: &str| local_join(Path::new(src), rel).display().to_string();
     let not_copied = |item: &Item| match item {
         Item::File { rel } | Item::Link { rel, .. } => left.contains(named(rel).as_str()),
         _ => false,
     };
     let kept = holding(items, |item| matches!(item, Item::Special { .. }) || not_copied(item));
+    let mut removed = Vec::new();
     for item in items.iter().rev() {
         let gone = match item {
-            _ if not_copied(item) => Ok(()),
-            Item::File { rel } | Item::Link { rel, .. } => std::fs::remove_file(local_join(Path::new(src), rel)),
-            Item::Dir { rel, .. } if kept.contains(rel.as_str()) => Ok(()),
-            Item::Dir { rel, .. } => std::fs::remove_dir(local_join(Path::new(src), rel)),
-            Item::Special { .. } | Item::Skip { .. } => Ok(()),
+            _ if not_copied(item) => Ok(false),
+            Item::File { rel } | Item::Link { rel, .. } => {
+                std::fs::remove_file(local_join(Path::new(src), rel)).map(|()| true)
+            }
+            Item::Dir { rel, .. } if kept.contains(rel.as_str()) => Ok(false),
+            Item::Dir { rel, .. } => std::fs::remove_dir(local_join(Path::new(src), rel)).map(|()| true),
+            Item::Special { .. } | Item::Skip { .. } => Ok(false),
         };
-        if let Err(e) = gone {
-            log.info(&format!("{src}: a part of the source stays: {e}"));
-            return;
+        match gone {
+            Ok(true) => removed.push(named(rel_of(item))),
+            Ok(false) => {}
+            Err(e) => {
+                log.info(&format!("{src}: a part of the source stays: {}", said(&e)));
+                return removed;
+            }
         }
     }
     said_kept(src, !holding_specials(items).is_empty(), items.iter().any(not_copied), log);
+    removed
 }
 
 /// mv -r down: the far source, as [`remove_local`] does here.
-pub(super) async fn remove_far(sftp: &Sftp, src: &str, items: &[Item], left: &HashSet<&str>, log: &Log) {
+pub(super) async fn remove_far(sftp: &Sftp, src: &str, items: &[Item], left: &HashSet<&str>, log: &Log) -> Vec<String> {
     let not_copied = |item: &Item| match item {
         Item::File { rel } | Item::Link { rel, .. } => left.contains(remote_join(src, rel).as_str()),
         _ => false,
     };
     let kept = holding(items, |item| matches!(item, Item::Special { .. }) || not_copied(item));
+    let mut removed = Vec::new();
     for item in items.iter().rev() {
         let gone = match item {
-            _ if not_copied(item) => Ok(()),
-            Item::File { rel } | Item::Link { rel, .. } => sftp.remove(&remote_join(src, rel)).await,
-            Item::Dir { rel, .. } if kept.contains(rel.as_str()) => Ok(()),
-            Item::Dir { rel, .. } => sftp.rmdir(&remote_join(src, rel)).await,
-            Item::Special { .. } | Item::Skip { .. } => Ok(()),
+            _ if not_copied(item) => Ok(false),
+            Item::File { rel } | Item::Link { rel, .. } => sftp.remove(&remote_join(src, rel)).await.map(|()| true),
+            Item::Dir { rel, .. } if kept.contains(rel.as_str()) => Ok(false),
+            Item::Dir { rel, .. } => sftp.rmdir(&remote_join(src, rel)).await.map(|()| true),
+            Item::Special { .. } | Item::Skip { .. } => Ok(false),
         };
-        if let Err(e) = gone {
-            log.info(&format!("{src}: a part of the source stays: {e}"));
-            return;
+        match gone {
+            Ok(true) => removed.push(remote_join(src, rel_of(item))),
+            Ok(false) => {}
+            Err(e) => {
+                log.info(&format!("{src}: a part of the source stays: {e}"));
+                return removed;
+            }
         }
     }
     said_kept(src, !holding_specials(items).is_empty(), items.iter().any(not_copied), log);
+    removed
 }
 
 #[cfg(test)]
@@ -263,8 +270,11 @@ mod tests {
             Item::File { rel: "c/g".into() },
         ];
         let shown = src.display().to_string();
-        remove_local(&shown, &items, &HashSet::new(), &Log::new(podssh_ssh::LogLevel::Quiet));
+        let gone = remove_local(&shown, &items, &HashSet::new(), &Log::new(podssh_ssh::LogLevel::Quiet));
         assert!(!src.join("a/b/f").exists() && !src.join("c").exists(), "what was copied went");
+        // Each path that went, for the record of mv (T-925); what stays is not named.
+        let named = |rel: &str| local_join(&src, rel).display().to_string();
+        assert_eq!(gone, [named("c/g"), named("c"), named("a/b/f")]);
         assert!(src.join("a/b/fifo").exists(), "the special file stays, and what holds it");
         let _ = std::fs::remove_dir_all(&src);
     }

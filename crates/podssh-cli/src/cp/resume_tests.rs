@@ -152,3 +152,68 @@ fn a_copy_that_another_runs_now_keeps_no_side_file() {
     assert_eq!(again.offset, SAVE_EVERY, "the side file is the next run's once the lock is free; {why}");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The state of a source is in a form of its own (T-929), and a side file
+/// that an earlier podssh wrote in Rust's `Debug` form is still read.
+#[test]
+fn a_state_has_a_stable_form_and_the_old_one_is_still_read() {
+    let at = UNIX_EPOCH + std::time::Duration::from_nanos(1_700_000_000_123_456_789);
+    let local = Before::Local { len: 3, modified: Some(at), id: Some((65024, 819359)) };
+    let cases = [
+        (local, "local 3 1700000000123456789 65024:819359"),
+        (Before::Local { len: 0, modified: None, id: None }, "local 0 - -"),
+        (Before::Sftp { size: Some(7), mtime: Some(9) }, "sftp 7 9"),
+        (Before::Sftp { size: None, mtime: Some(9) }, "sftp - 9"),
+        (Before::Exec("123 -rw-r--r-- 1 0 0 3 Jan 1 f".into()), "exec 123 -rw-r--r-- 1 0 0 3 Jan 1 f"),
+    ];
+    for (before, want) in &cases {
+        assert_eq!(before.key(), *want);
+        // The new form reads as itself.
+        assert_eq!(upgraded(want), *want);
+    }
+    for (old, new) in [
+        ("local 3 Some(1700000000123456789) Some((65024, 819359))", "local 3 1700000000123456789 65024:819359"),
+        ("local 0 None None", "local 0 - -"),
+        ("sftp Some(7) Some(9)", "sftp 7 9"),
+        ("sftp None Some(9)", "sftp - 9"),
+        ("exec 1 Some(x) None", "exec 1 Some(x) None"),
+    ] {
+        assert_eq!(upgraded(old), new, "{old}");
+    }
+    // A side file in the old form goes on where it was.
+    let dir = scratch();
+    std::fs::create_dir_all(&dir).unwrap();
+    let temp = format!("srv/{}", transfer::temp_name("f"));
+    let body = serde_json::json!({"state": "sftp Some(7) Some(9)", "target": "f", "temp": temp, "offset": 5});
+    // As podssh writes a side file: private, so that it is read back.
+    podssh_relay::cache::store_file_in_first(std::slice::from_ref(&dir), "o.resume", body.to_string().as_bytes())
+        .unwrap();
+    let (kept, stale) = Progress::load_in(vec![dir.clone()], "o.resume".into(), "sftp 7 9".into());
+    assert_eq!((kept.offset, kept.temp.as_deref(), stale), (5, Some(temp.as_str()), None));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A copy that failed before its first byte leaves no record and no lock
+/// (T-930); one with bytes in its file keeps both.
+#[test]
+fn a_copy_that_never_started_keeps_no_record() {
+    let dir = scratch();
+    std::fs::create_dir_all(&dir).unwrap();
+    let load = |side: &str| Progress::load_in(vec![dir.clone()], side.into(), "state".into()).0;
+    let mut none = load("n.resume");
+    let temp = transfer::temp_name("f");
+    none.begin("f", &temp);
+    assert!(dir.join("n.resume").exists() && dir.join("n.resume.lock").exists());
+    assert_eq!(none.drop_unstarted().as_deref(), Some(temp.as_str()), "its temporary file, to remove");
+    assert!(!dir.join("n.resume").exists(), "no record");
+    // Windows removes no file that its lock holds open.
+    #[cfg(unix)]
+    assert!(!dir.join("n.resume.lock").exists(), "no lock file left in the cache");
+    assert!(each_current().iter().all(|(t, _)| t != &temp), "an interruption names no partial copy");
+    let mut some = load("s.resume");
+    some.begin("f", &transfer::temp_name("f"));
+    some.advance(SAVE_EVERY);
+    assert_eq!(some.drop_unstarted(), None);
+    assert!(dir.join("s.resume").exists(), "a record with bytes stays");
+    let _ = std::fs::remove_dir_all(&dir);
+}

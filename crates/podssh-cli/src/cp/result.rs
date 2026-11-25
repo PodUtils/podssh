@@ -40,7 +40,8 @@ pub(crate) struct Copied {
     pub failed: usize,
     pub up: u64,
     pub down: u64,
-    /// The sources that `mv` removed once their copy was verified.
+    /// The sources that `mv` removed once their copy was verified: with
+    /// `-r`, each file, link and directory of a tree.
     pub removed: Vec<String>,
 }
 
@@ -64,7 +65,15 @@ impl Copied {
             failed: outcome.failures().count(),
             up,
             down,
-            removed: outcome.done.iter().filter(|d| d.removed == Some(true)).map(|d| d.source.clone()).collect(),
+            // Each file that went, then each link and directory of a tree
+            // that `mv -r` removed (T-925).
+            removed: outcome
+                .done
+                .iter()
+                .filter(|d| d.removed == Some(true))
+                .map(|d| d.source.clone())
+                .chain(outcome.removed.iter().cloned())
+                .collect(),
         }
     }
 

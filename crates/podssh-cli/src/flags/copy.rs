@@ -54,7 +54,7 @@ pub const CP_FLAGS: &[FlagRow] = &[
     row(None, "delete", None, FlagKind::Supported,
         "with -r, delete what the target has and the source lacks, once each copy succeeded; never an excluded name, the file that a link names, the root or the home directory", None),
     row(None, "dry-run", None, FlagKind::Supported,
-        "with -r, say each action (mkdir, copy, link, skip) on stdout, and change nothing", None),
+        "with -r, say each action that would change something (mkdir, copy, link, backup, delete, skip) on stdout, for a single file too, and change nothing", None),
     row(Some('F'), "config", Some("CONFIG"), FlagKind::Supported,
         "read this ssh_config file in place of ~/.ssh/config; none reads no file", None),
     row(None, "jsonl", None, FlagKind::Supported,

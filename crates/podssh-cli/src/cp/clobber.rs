@@ -15,11 +15,11 @@ use podssh_ssh::sftp::{FileAttributes, Sftp};
 use podssh_ssh::Log;
 
 use super::digest::Sum;
+use super::dry::Planned;
 use super::meta;
 use super::pipe::Shape;
 use super::transfer::{self, Done, Failed, Side};
 use super::tree::{self, Item};
-use super::tree_copy::Planned;
 use crate::exitmap::Fault;
 
 /// What a copy does with a destination that is there.
@@ -411,20 +411,20 @@ pub(super) fn planned(
     clobber: Clobber,
 ) -> Vec<Planned> {
     if let Some(skip) = source.and_then(|s| decide(clobber.mode, s, dest)) {
-        return vec![("skip", from, skip.why().to_string())];
+        return vec![Planned::skip(from, skip.why())];
     }
     let mut out = Vec::new();
     if let (Some(suffix), true) = (clobber.backup, dest.is_some()) {
-        out.push(("backup", target.clone(), format!("{target}{suffix}")));
+        out.push(Planned::step("backup", target.clone(), format!("{target}{suffix}")));
     }
-    out.push(("copy", from, target));
+    out.push(Planned::step("copy", from, target));
     out
 }
 
 /// [`planned`] for a file of a tree up: the local source, the far target.
 pub(super) async fn dry_up(sftp: Option<&Sftp>, from: String, target: String, clobber: Clobber) -> Vec<Planned> {
     if clobber == Clobber::default() {
-        return vec![("copy", from, target)];
+        return vec![Planned::step("copy", from, target)];
     }
     let source = std::fs::metadata(&from).ok().map(|m| Seen::of_local(&m));
     let dest = match sftp {
@@ -437,7 +437,7 @@ pub(super) async fn dry_up(sftp: Option<&Sftp>, from: String, target: String, cl
 /// [`planned`] for a file of a tree down: the far source, the local target.
 pub(super) async fn dry_down(sftp: Option<&Sftp>, from: String, target: String, clobber: Clobber) -> Vec<Planned> {
     if clobber == Clobber::default() {
-        return vec![("copy", from, target)];
+        return vec![Planned::step("copy", from, target)];
     }
     let source = match sftp {
         Some(sftp) => sftp.stat(&from).await.ok().map(|a| Seen::of_far(&a)),

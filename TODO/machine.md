@@ -48,7 +48,7 @@ failed (lines 156-168). The sections are "this host", "egress" and "relay" (line
    keep the additions small, or split first.
 5. The JSON carries the same detail strings as the text, which hide proxy credentials and
    tokens today (`crates/podssh-cli/tests/doctor.rs:142-167`).
-6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:252-340`) and
+6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:276-364`) and
    `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
@@ -335,7 +335,7 @@ and `crates/podssh-ssh/src/keys.rs:124-156` offers a key to the server.
 5. The line joins the JSON of T-049. The script can call `doctor --full` and keep its OpenSSH
    step.
 6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:210-281`), the `doctor` notes
-   (`crates/podssh-cli/src/man/notes.rs:252-340`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
+   (`crates/podssh-cli/src/man/notes.rs:276-364`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
 
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7362-7392`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7423-7453`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:90-107`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -959,7 +959,7 @@ itself. `ssh --result-file` gives one object at the end; the verbs that copy giv
   the mode 0600 (`crates/podssh-cli/src/ssh/result.rs:165-179`).
 - Read: `cp`, `mv` and `scp` share one run and one report (`crates/podssh-cli/src/cp/report.rs:1-5`);
   its outcome holds the files done, the failure, the deletes, the actions of a dry run and the
-  files that `run` did not send again (`crates/podssh-cli/src/cp/outcome.rs:15-46`, where T-476
+  files that `run` did not send again (`crates/podssh-cli/src/cp/outcome.rs:15-49`, where T-476
   moved it from `cp/mod.rs`); `--jsonl`
   gives an event for each (`crates/podssh-cli/src/flags/copy.rs:60-61`).
 - Read: `run` copies, then runs the command as `ssh` does (`crates/podssh-cli/src/run_cmd/mod.rs:1-18`),
@@ -1053,7 +1053,7 @@ fails.
 - The Prove's `cp -r` of a tree with one file changed and `files.unchanged` 2: `cp -r` sends each
   file of a tree; only `podssh run` leaves a file that it finds as it is
   (`crates/podssh-cli/src/run_cmd/mod.rs:162`, `changed_only`), and the outcome counts it as
-  unchanged for `run` alone (`crates/podssh-cli/src/cp/outcome.rs:38`). A copy that leaves the
+  unchanged for `run` alone (`crates/podssh-cli/src/cp/outcome.rs:41`). A copy that leaves the
   unchanged files is `cp -r -u` (`crates/podssh-cli/src/flags/copy.rs:35`), which counts them as
   skipped (T-473). The test measures both: `cp -r -u` with one file newer gives `files.sent` 1 and
   `files.skipped` 2, and a second `run` gives `files.unchanged` 3.

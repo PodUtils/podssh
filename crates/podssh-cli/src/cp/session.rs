@@ -15,7 +15,7 @@ use super::plan::{Direction, Plan};
 use super::resume::{self, Before, Progress, TRIES};
 use super::transfer::{self, Cause, Done, Failed};
 use super::tree_conn::Conn;
-use super::{bysftp, gauge, lanes, mirror, tree_copy, Outcome};
+use super::{bysftp, dry, gauge, lanes, mirror, tree_copy, Outcome};
 use crate::exitmap::Fault;
 use crate::ssh::resolve::Resolved;
 
@@ -60,6 +60,17 @@ pub(super) async fn session(
         }
     };
     let many = sources.len() > 1;
+    // Several sources into a destination that cannot take them: said once,
+    // before any of them goes (T-935).
+    if many {
+        if let Some(failed) = super::into::several(link.as_ref(), &plan.destination).await {
+            if let Some(link) = link.take() {
+                link.close().await;
+            }
+            outcome.failed = Some((shown(&plan.destination), failed));
+            return Some(outcome);
+        }
+    }
     // Several files: they wait, then go K at once over the connection
     // (T-297), K of --parallel K or the default (T-474).
     let pooled = lanes::fit(sources.len(), plan.shape, link.as_ref());
@@ -78,6 +89,14 @@ pub(super) async fn session(
                 if link.is_none() {
                     break;
                 }
+                continue;
+            }
+            // A single file under -r --dry-run: its plan, and no change
+            // (T-924).
+            if tree.dry_run {
+                // A move would then remove its source: the plan says so too.
+                let moving = after == After::Remove;
+                dry::file(&link, source, &plan.destination, many, plan.shape.clobber, moving, log, &mut outcome).await;
                 continue;
             }
         }
@@ -301,6 +320,11 @@ pub(crate) async fn attempts(
                 *link = Some(current);
             }
             Err(f) => {
+                // A copy that failed before its first byte keeps no record
+                // that names a file which holds nothing (T-930).
+                if let Some(temp) = p.drop_unstarted() {
+                    drop_temp(&current, source, dest, &temp).await;
+                }
                 *link = Some(current);
                 return Err(f);
             }

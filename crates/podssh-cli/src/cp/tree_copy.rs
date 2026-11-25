@@ -23,6 +23,7 @@ use podssh_ssh::sftp::{FileAttributes, Sftp};
 use podssh_ssh::Log;
 
 use super::clobber::{self, Skip};
+use super::dry::{self, Planned};
 use super::gauge;
 use super::link::{Link, Road};
 use super::meta;
@@ -33,12 +34,9 @@ use super::session::shown;
 use super::transfer::{self, Failed, Side};
 use super::tree::{self, Item, Special, Tree};
 use super::tree_conn::{flush, Conn, Linked, Waiting};
-use super::tree_items::{far_dir, far_link, make_link, remove_far, remove_local, same_far, same_link, second_name};
+use super::tree_items::{far_dir, far_link, remove_local, same_far, second_name};
 use super::Outcome;
 use crate::exitmap::Fault;
-
-/// One action of a dry run, as `report` prints it: what, from, and to.
-pub type Planned = (&'static str, String, String);
 
 pub(super) fn remote_join(root: &str, rel: &str) -> String {
     match (root, rel) {
@@ -81,9 +79,9 @@ pub(super) fn failed(outcome: &mut Outcome, log: &Log, name: String, failed: Fai
 /// A device, a FIFO or a socket of the tree, `from`: not copied, and no
 /// failure (T-476). One line at the default level, and with `--jsonl` a
 /// `skipped` object; a dry run says `skip`.
-fn skipped(outcome: &mut Outcome, log: &Log, from: String, kind: Special, dry_run: bool) {
+pub(super) fn skipped(outcome: &mut Outcome, log: &Log, from: String, kind: Special, dry_run: bool) {
     if dry_run {
-        outcome.planned.push(("skip", from, kind.noun().to_string()));
+        outcome.planned.push(Planned::skip(from, kind.noun()));
         return;
     }
     log.info(&format!("{from}: not copied: {}", kind.noun()));
@@ -92,14 +90,14 @@ fn skipped(outcome: &mut Outcome, log: &Log, from: String, kind: Special, dry_ru
 
 /// A link of the tree whose name the run left as it was (T-473): said once,
 /// and a skip.
-fn kept(outcome: &mut Outcome, log: &Log, from: String, target: &str, skip: Skip) {
+pub(super) fn kept(outcome: &mut Outcome, log: &Log, from: String, target: &str, skip: Skip) {
     log.info(&clobber::there(target));
     outcome.skipped.push((from, skip.why()));
 }
 
 /// The files of a tree once walked, into the run's count, which its
 /// progress line shows (T-472); a dry run copies none.
-fn count_files(items: &[Item], tree: &Tree) {
+pub(super) fn count_files(items: &[Item], tree: &Tree) {
     if !tree.dry_run {
         gauge::more_files(items.iter().filter(|item| matches!(item, Item::File { .. })).count());
     }
@@ -109,7 +107,7 @@ fn count_files(items: &[Item], tree: &Tree) {
 /// at `-v` with the pattern that left it out, shown as `shown` gives its
 /// path, and counted for the summary, so that an exclude does not read as a
 /// file that the copy lost.
-fn left_out(outcome: &mut Outcome, log: &Log, tree: &Tree, left: &[String], shown: impl Fn(&str) -> String) {
+pub(super) fn left_out(outcome: &mut Outcome, log: &Log, tree: &Tree, left: &[String], shown: impl Fn(&str) -> String) {
     for rel in left {
         let by = tree.excluded_by(rel).unwrap_or("an exclude");
         log.verbose(&format!("{}: left out by {by}", shown(rel)));
@@ -131,16 +129,18 @@ pub async fn copy(
     outcome: &mut Outcome,
 ) {
     let name = shown(source);
+    // No server to copy a directory with: 69, as for a server with neither
+    // SFTP nor the tools of a copy by exec (T-936).
     if conn.sftp().is_none() {
         let why = format!("{name}: a directory goes over SFTP, and this server has none");
-        return failed(outcome, log, name, Failed::new(Fault::Capability, why));
+        return failed(outcome, log, name, Failed::new(Fault::RelayUnreachable, why));
     }
     match (source, dest) {
         (Operand::Local(src), Operand::Remote(dst)) => {
             up(conn, src, dst, many, tree, log, shape, moving, outcome).await
         }
         (Operand::Remote(src), Operand::Local(dst)) => {
-            down(conn, src, dst, many, tree, log, shape, moving, outcome).await
+            super::tree_down::down(conn, src, dst, many, tree, log, shape, moving, outcome).await
         }
         _ => {
             let why = format!("{name}: a directory goes up or down, not from one server to another");
@@ -161,12 +161,24 @@ async fn up(
     moving: bool,
     outcome: &mut Outcome,
 ) {
-    let leaf = Path::new(src).file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
+    // `DIR/.` copies what DIR holds into the destination, as GNU cp -r and
+    // rsync read it (T-937); `.` has no name of its own either.
+    let contents = src.ends_with("/.") || (cfg!(windows) && src.ends_with("\\."));
+    let leaf = match contents {
+        true => String::new(),
+        false => Path::new(src).file_name().and_then(|n| n.to_str()).unwrap_or("").to_string(),
+    };
     let Some(sftp) = conn.sftp() else { return };
     // `podssh run` copies onto its directory, also the second time.
     let is_dir = !tree.onto && sftp.stat(&dst.path).await.is_ok_and(|a| a.is_dir());
     let into = !tree.onto && (many || dst.path.is_empty() || dst.path.ends_with('/') || is_dir);
     let root = if into { remote_join(&dst.path, &leaf) } else { dst.path.clone() };
+    // A root that is there and is no directory takes no tree: said once,
+    // and nothing else is tried (T-935).
+    if !tree.onto && !root.is_empty() && sftp.stat(&root).await.is_ok_and(|a| !a.is_dir()) {
+        let why = format!("{root}: not a directory, so {src} cannot be copied into it");
+        return failed(outcome, log, root.clone(), Failed::new(Fault::CantCreate, why));
+    }
     if tree.delete {
         let real = sftp.realpath(if root.is_empty() { "." } else { &root }).await.unwrap_or_else(|_| root.clone());
         let home = sftp.realpath(".").await.ok();
@@ -189,9 +201,11 @@ async fn up(
             Item::Dir { rel, stamp } => {
                 let target = remote_join(&root, rel);
                 if tree.dry_run {
-                    // `podssh run` plans only what its copy would change.
-                    if !(tree.changed_only && far_dir(conn.sftp(), &target).await) {
-                        outcome.planned.push(("mkdir", local_join(Path::new(src), rel).display().to_string(), target));
+                    // A plan says only what would change: a directory that
+                    // is there is no action (T-934).
+                    if !far_dir(conn.sftp(), &target).await {
+                        let from = local_join(Path::new(src), rel).display().to_string();
+                        outcome.planned.push(Planned::step("mkdir", from, target));
                     }
                     continue;
                 }
@@ -227,7 +241,7 @@ async fn up(
                 }
                 if let Some((first, bytes, sum)) = id.and_then(|id| linked.get(&id)).cloned() {
                     if tree.dry_run {
-                        outcome.planned.push(("hardlink", target, first));
+                        outcome.planned.push(Planned::linked("hardlink", from, target, first));
                         continue;
                     }
                     let Some(sftp) = conn.sftp() else { return };
@@ -278,9 +292,9 @@ async fn up(
             Item::Link { rel, target: names } => {
                 let target = remote_join(&root, rel);
                 if tree.dry_run {
-                    if !(tree.changed_only && same_link(conn.sftp(), &target, names).await) {
-                        outcome.planned.push(("link", target, names.clone()));
-                    }
+                    let there = dry::far_there(conn.sftp(), &target, names).await;
+                    let from = local_join(Path::new(src), rel).display().to_string();
+                    outcome.planned.extend(dry::link_plan(from, target, names.clone(), there, shape.clobber));
                     continue;
                 }
                 let Some(sftp) = conn.sftp() else { return };
@@ -302,7 +316,7 @@ async fn up(
             Item::Skip { rel, why } => {
                 let from = local_join(Path::new(src), rel).display().to_string();
                 if tree.dry_run {
-                    outcome.planned.push(("skip", from, why.clone()));
+                    outcome.planned.push(Planned::skip(from, why.clone()));
                     continue;
                 }
                 clean = false;
@@ -331,7 +345,7 @@ async fn up(
             for item in tree::to_delete(&items, &target) {
                 let path = remote_join(&root, tree::rel_of(&item));
                 if tree.dry_run {
-                    outcome.planned.push(("delete", String::new(), path));
+                    outcome.planned.push(Planned::delete(path));
                 } else {
                     outcome.pending.push(Pending { far: true, dir: matches!(item, Item::Dir { .. }), path });
                 }
@@ -340,145 +354,9 @@ async fn up(
     }
     // mv -r: the source goes once each item of it is copied; what the run
     // left out stays (T-473).
+    // mv -r: each path that the move removed, for the record (T-925).
     if moving && clean && !tree.dry_run {
-        remove_local(src, &items, &outcome.left(), log);
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-async fn down(
-    conn: &mut Conn<'_>,
-    src: &Remote,
-    dst: &str,
-    many: bool,
-    tree: &Tree,
-    log: &Arc<Log>,
-    shape: Shape,
-    moving: bool,
-    outcome: &mut Outcome,
-) {
-    let leaf = src.path.trim_end_matches('/').rsplit('/').next().unwrap_or("").to_string();
-    if let Err(why) = tree::check_name(&leaf, cfg!(windows)) {
-        return failed(outcome, log, src.path.clone(), Failed::new(Fault::Usage, format!("{}: {why}", src.path)));
-    }
-    let into = many || Path::new(dst).is_dir();
-    let root = if into { Path::new(dst).join(&leaf) } else { PathBuf::from(dst) };
-    if tree.delete {
-        let real = std::fs::canonicalize(&root)
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|_| root.display().to_string());
-        let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).ok();
-        let home = home.and_then(|h| std::fs::canonicalize(h).ok()).map(|p| p.display().to_string());
-        let shown_root = root.display().to_string();
-        if let Some(why) = refused_root(&real, home.as_deref()).or_else(|| refused_root(&shown_root, None)) {
-            return failed(outcome, log, shown_root, Failed::new(Fault::Usage, why));
-        }
-    }
-    let Some(sftp) = conn.sftp() else { return };
-    let (items, left) = tree::walk_far(sftp, &src.path, tree, cfg!(windows)).await;
-    left_out(outcome, log, tree, &left, |rel| remote_join(&src.path, rel));
-    count_files(&items, tree);
-    let mut dirs = Vec::new();
-    let mut clean = true;
-    // The files wait, then go K at once (T-297, T-474).
-    let (batching, mut batch) = (conn.batches(shape), Waiting::new());
-    for item in &items {
-        match item {
-            Item::Dir { rel, stamp } => {
-                let target = local_join(&root, rel);
-                if tree.dry_run {
-                    outcome.planned.push(("mkdir", remote_join(&src.path, rel), target.display().to_string()));
-                    continue;
-                }
-                if let Err(e) = std::fs::create_dir_all(&target) {
-                    clean = false;
-                    let shown = target.display().to_string();
-                    failed(outcome, log, shown.clone(), Failed::new(Fault::CantCreate, format!("{shown}: {e}")));
-                    continue;
-                }
-                dirs.push((target, *stamp));
-            }
-            Item::File { rel } => {
-                let from = remote_join(&src.path, rel);
-                let target = local_join(&root, rel).display().to_string();
-                if tree.dry_run {
-                    outcome.planned.extend(clobber::dry_down(conn.sftp(), from, target, shape.clobber).await);
-                    continue;
-                }
-                let source = Operand::Remote(Remote { path: from.clone(), ..src.clone() });
-                if batching {
-                    batch.push((source, Operand::Local(target), None));
-                    continue;
-                }
-                match conn.file(&source, &Operand::Local(target), log, shape).await {
-                    Ok(done) => outcome.add(done),
-                    Err(f) => {
-                        clean = false;
-                        failed(outcome, log, from, f);
-                        if conn.gone() {
-                            return;
-                        }
-                    }
-                }
-            }
-            Item::Link { rel, target: names } => {
-                let target = local_join(&root, rel);
-                if tree.dry_run {
-                    outcome.planned.push(("link", target.display().to_string(), names.clone()));
-                    continue;
-                }
-                match make_link(&target, names, shape.clobber) {
-                    Ok(None) => {}
-                    Ok(Some(skip)) => {
-                        kept(outcome, log, remote_join(&src.path, rel), &target.display().to_string(), skip)
-                    }
-                    Err(e) => {
-                        clean = false;
-                        let shown = target.display().to_string();
-                        let why = format!("{shown}: the link to {names} is not made: {e}");
-                        failed(outcome, log, shown, Failed::new(Fault::CantCreate, why));
-                    }
-                }
-            }
-            Item::Special { rel, kind } => skipped(outcome, log, remote_join(&src.path, rel), *kind, tree.dry_run),
-            Item::Skip { rel, why } => {
-                let from = remote_join(&src.path, rel);
-                if tree.dry_run {
-                    outcome.planned.push(("skip", from, why.clone()));
-                    continue;
-                }
-                clean = false;
-                let fault = if why.starts_with("refused") { Fault::SessionFault } else { Fault::NoInput };
-                failed(outcome, log, from.clone(), Failed::new(fault, format!("{from}: not copied: {why}")));
-            }
-        }
-    }
-    if !flush(conn, &mut batch, &mut Linked::new(), log, shape, outcome, &mut clean).await {
-        return;
-    }
-    for (dir, stamp) in dirs.iter().rev() {
-        if let Err(f) = meta::set_local(dir, stamp, shape.keep, log) {
-            log.info(&f.message);
-        }
-    }
-    // --delete: what the target has and the source lacks; it goes at the end
-    // of the run (T-144).
-    if tree.delete && root.is_dir() {
-        let (mut target, _) = tree::walk_local(&root, &Tree { follow: false, ..tree.clone() });
-        target.retain(|i| !tree::not_copied(i));
-        clobber::protect(&mut target, shape.clobber);
-        for item in tree::to_delete(&items, &target) {
-            let path = local_join(&root, tree::rel_of(&item)).display().to_string();
-            if tree.dry_run {
-                outcome.planned.push(("delete", String::new(), path));
-            } else {
-                outcome.pending.push(Pending { far: false, dir: matches!(item, Item::Dir { .. }), path });
-            }
-        }
-    }
-    if moving && clean && !tree.dry_run {
-        if let Some(sftp) = conn.sftp() {
-            remove_far(sftp, &src.path, &items, &outcome.left(), log).await;
-        }
+        let gone = remove_local(src, &items, &outcome.left(), log);
+        outcome.removed_in_tree(gone);
     }
 }

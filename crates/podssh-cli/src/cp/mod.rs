@@ -26,14 +26,20 @@ pub(crate) mod chunks;
 pub mod clobber;
 pub mod delta;
 pub(crate) mod digest;
+// A dry run's plan (T-924, T-934).
+pub mod dry;
 mod finish;
 pub mod gauge;
 pub mod in_place;
+// Where several sources go (T-935).
+mod into;
 mod lanes;
 pub(crate) mod link;
 pub mod meta;
 mod mirror;
 mod moving;
+// mv -r of a directory within one server (T-933).
+mod moving_dir;
 pub mod operand;
 mod outcome;
 pub(crate) mod pipe;
@@ -52,7 +58,11 @@ pub(crate) mod transfer;
 pub mod tree;
 pub(crate) mod tree_conn;
 mod tree_copy;
+mod tree_down;
 mod tree_items;
+// The words of the lines: the system's, a bound, the partial copies (T-929,
+// T-931).
+pub(crate) mod words;
 
 use std::io::Write;
 use std::sync::Arc;
@@ -219,11 +229,21 @@ pub fn run_cp(args: &CpArgs, deadline: Option<Duration>, jsonl: bool, out: &mut 
     if crate::ssh::result::dash(args.verb, file, err) {
         return Fault::Usage.code();
     }
+    // A record that could not be written at the end: refused before
+    // anything connects (T-928).
+    if let Some(why) = file.and_then(crate::ssh::result::no_place) {
+        let _ = writeln!(err, "podssh {}: {why}.\n  Nothing has been attempted.", args.verb);
+        return Fault::CantCreate.code();
+    }
     let (started, scope, mut did) = (std::time::Instant::now(), Scope::new(), Did::default());
     let code = run_copy(args, deadline, jsonl, out, err, &scope, &mut did);
     if let Some(path) = file {
         let object = result::copy_object(args.verb, code, started.elapsed(), &scope.record(), &did);
-        crate::ssh::result::write(args.verb, path, &object, err);
+        // A run that did its work, and whose record is missing, does not
+        // end 0 (T-928).
+        if !crate::ssh::result::write(args.verb, path, &object, err) && code == 0 {
+            return Fault::CantCreate.code();
+        }
     }
     code
 }
@@ -360,7 +380,10 @@ fn run_copy(
             match deadline {
                 Some(limit) => tokio::time::timeout(limit, run).await.unwrap_or_else(|_| {
                     timed_out = true;
-                    let why = format!("the --timeout of {} s passed", limit.as_secs());
+                    // The partial copy that it keeps, as an interruption
+                    // names it (T-931).
+                    let kept = words::kept(&resume::each_current());
+                    let why = format!("the --timeout of {} passed{kept}", words::limit(limit));
                     Outcome { failed: Some((String::new(), Failed::new(Fault::TimedOut, why))), ..Outcome::default() }
                 }),
                 None => run.await,
@@ -381,21 +404,7 @@ fn run_copy(
     }));
     let Some(outcome) = outcome else {
         // Several files at once leave a partial copy each (T-297).
-        let kept = match resume::each_current().as_slice() {
-            [] => String::new(),
-            [(temp, side)] => {
-                format!("; the partial copy stays at {temp}, and the same command goes on from it (its record: {side})")
-            }
-            many => {
-                let (temps, sides): (Vec<&str>, Vec<&str>) =
-                    many.iter().map(|(temp, side)| (temp.as_str(), side.as_str())).unzip();
-                format!(
-                    "; the partial copies stay at {}, and the same command goes on from each (their records: {})",
-                    temps.join(", "),
-                    sides.join(", ")
-                )
-            }
-        };
+        let kept = words::kept(&resume::each_current());
         let _ = writeln!(err, "podssh {verb}: interrupted{kept}");
         (did.failure, did.error) = (Some("interrupted"), Some(format!("interrupted{kept}")));
         runtime.shutdown_background();

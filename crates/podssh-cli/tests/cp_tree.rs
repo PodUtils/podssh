@@ -103,6 +103,9 @@ macro_rules! need_server {
 // `-n`, `-u` and `-b` (T-473), with this file's server and helpers; after
 // the macro, which it takes.
 mod cp_tree_clobber;
+// The black-box pass of 2026-11-25: a dry run of one file, the record of mv
+// -r, the loop rule, and a failure said once (T-924 to T-935).
+mod cp_tree_dry;
 
 #[test]
 fn a_tree_goes_up_and_down_and_a_dry_run_changes_nothing() {

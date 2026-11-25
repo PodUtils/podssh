@@ -122,20 +122,24 @@ pub async fn remove_far(link: &Link, path: &str, before: &Before, done: &Done) -
 /// byte moves. `None` when the server fails the rename for a reason of its
 /// own (two file systems), for a copy and a delete instead. `clobber` looks
 /// first and places as a copy does (T-473); a source that does not move
-/// stays.
+/// stays. With `dirs` (`mv -r`) a directory is renamed too (T-933).
 pub async fn rename(
     link: &Link,
     source: &str,
     dest: &str,
     clobber: Clobber,
+    dirs: bool,
     log: &Log,
 ) -> Result<Option<Done>, Failed> {
     let (_, name) = transfer::split_remote(source.trim_end_matches('/'));
     match &link.road {
         Road::Sftp(sftp) => {
             let attrs = sftp.stat(source).await.map_err(|e| transfer::from_sftp(e, Side::Source))?;
+            if attrs.is_dir() && dirs {
+                return super::moving_dir::rename(link, source, dest, clobber, log).await.map(Some);
+            }
             if !attrs.is_regular() {
-                return Err(not_a_file(source));
+                return Err(not_a_file(source, attrs.is_dir()));
             }
             let target = transfer::remote_target(sftp, dest, name, false).await?;
             if let (Ok(a), Ok(b)) = (sftp.realpath(source).await, sftp.realpath(&target).await) {
@@ -181,7 +185,11 @@ pub async fn rename(
                 Kind::Missing => {
                     return Err(Failed::new(Fault::NoInput, format!("{source}: no such file or directory")))
                 }
-                Kind::Dir | Kind::Other => return Err(not_a_file(source)),
+                Kind::Dir if dirs => {
+                    return super::moving_dir::rename(link, source, dest, clobber, log).await.map(Some)
+                }
+                Kind::Dir => return Err(not_a_file(source, true)),
+                Kind::Other => return Err(not_a_file(source, false)),
             };
             let target = far.target(handle, dest, name, false).await?;
             if far.same_file(handle, source, &target).await? {
@@ -208,7 +216,7 @@ pub async fn rename(
 }
 
 /// A move that the server made by a rename.
-fn renamed(source: &str, target: &str, bytes: u64, not_atomic: bool) -> Done {
+pub(super) fn renamed(source: &str, target: &str, bytes: u64, not_atomic: bool) -> Done {
     Done {
         source: source.into(),
         destination: target.into(),
@@ -222,15 +230,18 @@ fn renamed(source: &str, target: &str, bytes: u64, not_atomic: bool) -> Done {
 
 /// A source that did not move, as `--no-clobber` or `--update` asks: it
 /// stays where it is.
-fn stays(kept: Done) -> Done {
+pub(super) fn stays(kept: Done) -> Done {
     Done { removed: Some(false), ..kept }
 }
 
-fn not_a_file(source: &str) -> Failed {
-    Failed::new(Fault::NoInput, format!("{source}: not a regular file; podssh mv moves files"))
+fn not_a_file(source: &str, dir: bool) -> Failed {
+    match dir {
+        true => Failed::new(Fault::NoInput, format!("{source}: a directory; mv -r moves it")),
+        false => Failed::new(Fault::NoInput, format!("{source}: not a regular file; podssh mv moves files")),
+    }
 }
 
-fn one_file(source: &str, target: &str) -> Failed {
+pub(super) fn one_file(source: &str, target: &str) -> Failed {
     Failed::new(Fault::Usage, format!("{source} and {target} name one file; nothing was done"))
 }
 

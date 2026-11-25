@@ -11,6 +11,7 @@ use std::sync::Arc;
 use podssh_ssh::Log;
 
 use super::clobber::{Clobber, Mode};
+use super::dry::Planned;
 use super::link;
 use super::meta::Keep;
 use super::moving::{self, After};
@@ -30,9 +31,26 @@ pub(super) async fn across(plan: &Plan, resolved: &[Resolved], log: &Arc<Log>, a
         unreachable!("a copy across has a remote source and a remote destination")
     };
     let moving = after == After::Remove;
+    // -r --dry-run: the plan of the copy or the move, and nothing changed:
+    // no rename, no copy and no delete (T-924).
+    if plan.tree.as_ref().is_some_and(|tree| tree.dry_run) {
+        let mut outcome = Outcome::default();
+        let (a, b) = (from.path.clone(), to.path.clone());
+        match (moving, from.same_server(to)) {
+            (true, true) => outcome.planned.push(Planned::step("rename", a, b)),
+            (true, false) => {
+                outcome.planned.push(Planned::step("copy", a.clone(), b));
+                outcome.planned.push(Planned::delete(a));
+            }
+            (false, _) => outcome.planned.push(Planned::step("copy", a, b)),
+        }
+        return outcome;
+    }
     if from.same_server(to) {
         if moving {
-            if let Some(outcome) = rename_session(from, to, &resolved[0], plan.shape.clobber, log).await {
+            // mv -r renames a directory too (T-933).
+            let dirs = plan.tree.is_some();
+            if let Some(outcome) = rename_session(from, to, &resolved[0], plan.shape.clobber, dirs, log).await {
                 return outcome;
             }
             log.info(&format!(
@@ -103,6 +121,7 @@ async fn rename_session(
     to: &Remote,
     resolved: &Resolved,
     clobber: Clobber,
+    dirs: bool,
     log: &Arc<Log>,
 ) -> Option<Outcome> {
     let mut outcome = Outcome::default();
@@ -113,7 +132,7 @@ async fn rename_session(
             return Some(outcome);
         }
     };
-    let result = moving::rename(&link, &from.path, &to.path, clobber, log).await;
+    let result = moving::rename(&link, &from.path, &to.path, clobber, dirs, log).await;
     link.close().await;
     match result {
         Ok(Some(done)) => outcome.add(done),

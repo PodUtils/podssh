@@ -292,9 +292,8 @@ impl Far {
         }
         match self.kind(handle, dest).await? {
             Kind::Dir => Ok(format!("{dest}/{name}")),
-            _ if many => {
-                Err(failed(Fault::CantCreate, format!("{dest} is not a directory, and there are several sources")))
-            }
+            Kind::Missing if many => Err(super::into::not_into(dest, true)),
+            _ if many => Err(super::into::not_into(dest, false)),
             Kind::Other => Err(failed(Fault::CantCreate, format!("{dest}: not a regular file"))),
             Kind::File(_) | Kind::Unreadable | Kind::Missing => Ok(dest.to_string()),
         }

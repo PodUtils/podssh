@@ -124,17 +124,18 @@ pub fn plan(stamp: &Stamp, keep: Keep) -> (Option<FileAttributes>, FileAttribute
 /// bits: the owner first, while the writer may still change the rest.
 pub async fn set_far(sftp: &Sftp, path: &str, stamp: &Stamp, keep: Keep, log: &Log) -> Result<(), Failed> {
     let (owner, rest) = plan(stamp, keep);
+    let shown = named(path);
     if keep.owner && owner.is_none() {
-        note(log, "owner-none", &format!("{path}: the owner was not kept: this system has no owner by number"));
+        note(log, "owner-none", &format!("{shown}: the owner was not kept: this system has no owner by number"));
     }
     if keep.times && rest.mtime.is_none() {
-        note(log, "times-range", &format!("{path}: the times were not kept: SFTP carries 1970 to 2106 only"));
+        note(log, "times-range", &format!("{shown}: the times were not kept: SFTP carries 1970 to 2106 only"));
     }
     if let Some(owner) = owner {
         match sftp.setstat(path, owner).await {
             Ok(()) => {}
             Err(SftpError::Status { code: PERMISSION_DENIED, .. }) => {
-                note(log, "owner-far", &format!("{path}: the owner was not kept: only root may give a file away"));
+                note(log, "owner-far", &format!("{shown}: the owner was not kept: only root may give a file away"));
             }
             Err(e) => return Err(transfer::from_sftp(e, Side::Destination)),
         }
@@ -163,19 +164,20 @@ pub async fn times_after_rename(sftp: &Sftp, path: &str, stamp: &Stamp, keep: Ke
 /// bits: the owner, the times, then the bits, which may take away the right
 /// to write.
 pub fn set_local(path: &Path, stamp: &Stamp, keep: Keep, log: &Log) -> Result<(), Failed> {
+    let shown = named(&path.display().to_string());
     if keep.owner {
-        own_local(path, stamp, log);
+        own_local(path, &shown, stamp, log);
     }
     if keep.times {
         match (stamp.atime, stamp.mtime) {
             (Some(atime), Some(mtime)) => {
                 let at = |s: u32| UNIX_EPOCH + Duration::from_secs(u64::from(s));
                 let times = std::fs::FileTimes::new().set_accessed(at(atime)).set_modified(at(mtime));
-                open_for_times(path).and_then(|file| file.set_times(times)).map_err(|e| {
-                    Failed::new(Fault::CantCreate, format!("{}: the times were not set: {e}", path.display()))
-                })?;
+                open_for_times(path)
+                    .and_then(|file| file.set_times(times))
+                    .map_err(|e| Failed::new(Fault::CantCreate, format!("{shown}: the times were not set: {e}")))?;
             }
-            _ => note(log, "times-none", &format!("{}: the times were not kept: the server gave none", path.display())),
+            _ => note(log, "times-none", &format!("{shown}: the times were not kept: the server gave none")),
         }
     }
     #[cfg(unix)]
@@ -199,23 +201,39 @@ fn open_for_times(path: &Path) -> std::io::Result<File> {
     std::fs::OpenOptions::new().access_mode(0x100).custom_flags(0x0200_0000).open(path)
 }
 
-fn own_local(path: &Path, stamp: &Stamp, log: &Log) {
+/// The owner of `path` here, said by the name `shown`.
+fn own_local(path: &Path, shown: &str, stamp: &Stamp, log: &Log) {
     #[cfg(unix)]
     match (stamp.uid, stamp.gid) {
         (Some(uid), Some(gid)) => {
             if let Err(e) = std::os::unix::fs::chown(path, Some(uid), Some(gid)) {
-                let why = format!("{}: the owner was not kept: {e}; only root gives a file away", path.display());
+                let e = super::words::said(&e);
+                let why = format!("{shown}: the owner was not kept: {e}; only root gives a file away");
                 note(log, "owner-here", &why);
             }
         }
-        _ => note(log, "owner-gone", &format!("{}: the owner was not kept: the server gave none", path.display())),
+        _ => note(log, "owner-gone", &format!("{shown}: the owner was not kept: the server gave none")),
     }
     #[cfg(not(unix))]
     {
-        let _ = stamp;
-        let why = format!("{}: the owner was not kept: this system has no owner by number", path.display());
+        let _ = (path, stamp);
+        let why = format!("{shown}: the owner was not kept: this system has no owner by number");
         note(log, "owner-none", &why);
     }
+}
+
+/// The name that a note gives a file: the destination's, not the temporary
+/// name that a copy sets the owner and the times on before its rename
+/// (T-937); any other path as it is.
+pub(crate) fn named(path: &str) -> String {
+    let at = path.rfind(['/', '\\']).map_or(0, |i| i + 1);
+    let (dir, leaf) = path.split_at(at);
+    if !super::resume::is_temp(leaf) {
+        return path.to_string();
+    }
+    let inner = &leaf[1..leaf.len() - ".part".len()];
+    let name = inner.rsplit_once(".podssh-").map_or(inner, |(name, _)| name);
+    format!("{dir}{name}")
 }
 
 /// Whether a local file has holes: fewer blocks than its size needs (Unix),
@@ -398,6 +416,20 @@ pub async fn hard_link(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A note names the destination, never the temporary name (T-937).
+    #[test]
+    fn a_note_names_the_destination() {
+        for (path, want) in [
+            ("dir/.f.txt.podssh-0123456789abcdef.part", "dir/f.txt"),
+            (".f.podssh-0123456789abcdef.part", "f"),
+            (r"C:\d\.f.podssh-0123456789abcdef.part", r"C:\d\f"),
+            ("dir/f.txt", "dir/f.txt"),
+            ("dir/.f.podssh-xyz.part", "dir/.f.podssh-xyz.part"),
+        ] {
+            assert_eq!(named(path), want, "{path}");
+        }
+    }
 
     #[test]
     fn a_time_fits_sftp_from_1970_to_2106() {

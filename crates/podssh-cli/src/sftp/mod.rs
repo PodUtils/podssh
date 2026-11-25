@@ -136,11 +136,20 @@ pub fn run_sftp(
     if crate::ssh::result::dash("sftp", file, err) {
         return Fault::Usage.code();
     }
+    // A record that could not be written at the end: refused first (T-928).
+    if let Some(why) = file.and_then(crate::ssh::result::no_place) {
+        let _ = writeln!(err, "podssh sftp: {why}.\n  Nothing has been attempted.");
+        return Fault::CantCreate.code();
+    }
     let (started, scope, mut tally) = (std::time::Instant::now(), Scope::new(), Tally::default());
     let code = sftp_run(args, deadline, tty, out, err, &scope, &mut tally);
     if let Some(path) = file {
         let object = result::object(code, started.elapsed(), &scope.record(), &tally);
-        crate::ssh::result::write("sftp", path, &object, err);
+        // A run that did its work, and whose record is missing, does not
+        // end 0 (T-928).
+        if !crate::ssh::result::write("sftp", path, &object, err) && code == 0 {
+            return Fault::CantCreate.code();
+        }
     }
     code
 }
@@ -195,7 +204,8 @@ fn sftp_run(
     let script = match args.batch.as_deref().map(read_batch).transpose() {
         Ok(script) => script,
         Err(e) => {
-            let why = format!("the batch file {}: {e}", args.batch.as_deref().unwrap_or("-"));
+            let why =
+                format!("the batch file {}: {}", args.batch.as_deref().unwrap_or("-"), crate::cp::words::said(&e));
             let _ = writeln!(err, "podssh sftp: {why}");
             // The command line named a batch that cannot be read.
             (tally.did.failure, tally.did.error) = (Some("usage"), Some(why));
@@ -253,7 +263,7 @@ fn sftp_run(
     }));
     runtime.shutdown_background();
     ended.unwrap_or_else(|limit| {
-        let why = format!("the --timeout of {} s passed", limit.as_secs());
+        let why = format!("the --timeout of {} passed", crate::cp::words::limit(limit));
         log.error(&why);
         (tally.did.failure, tally.did.error) = (Some("timeout"), Some(why));
         Fault::TimedOut.code()

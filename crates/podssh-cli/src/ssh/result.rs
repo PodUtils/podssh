@@ -162,18 +162,101 @@ pub fn channel_failed(fault: &crate::exitmap::Fault) {
     });
 }
 
-/// Write `object` to `path`, made readable by its owner alone; a failure is
-/// a line on stderr of `verb`, and the exit code stays the run's.
-pub fn write(verb: &str, path: &str, object: &Value, err: &mut dyn Write) {
+/// Why `path` could not take the record at the end of a run: its
+/// directory is missing, or is no directory. A copy says so before it
+/// connects (T-928); `None` when it can be tried.
+pub(crate) fn no_place(path: &str) -> Option<String> {
+    let dir = std::path::Path::new(path).parent().filter(|d| !d.as_os_str().is_empty());
+    let dir = dir.unwrap_or(std::path::Path::new("."));
+    match std::fs::metadata(dir) {
+        Ok(meta) if meta.is_dir() => None,
+        Ok(_) => Some(format!("--result-file {path}: {} is not a directory", dir.display())),
+        Err(_) => Some(format!("--result-file {path}: no such directory: {}", dir.display())),
+    }
+}
+
+/// Write `object` to `path` as a new file for its owner alone: a private
+/// file beside it, then renamed onto it, so that a file that was there,
+/// with its mode, is replaced and never written through (T-928). A failure
+/// is a line on stderr of `verb`; whether the record was written, for a
+/// verb whose exit says so.
+pub fn write(verb: &str, path: &str, object: &Value, err: &mut dyn Write) -> bool {
+    let target = std::path::Path::new(path);
+    let body = format!("{object}\n");
+    // A FIFO or a device (`/dev/stderr`) takes the record as it is: no file
+    // can be renamed onto it.
+    let special = std::fs::metadata(target).is_ok_and(|m| !m.is_file() && !m.is_dir());
+    let placed = match special {
+        true => std::fs::OpenOptions::new().write(true).open(target).and_then(|mut f| f.write_all(body.as_bytes())),
+        false => replace(target, body.as_bytes()),
+    };
+    if let Err(e) = placed {
+        let _ = writeln!(err, "podssh {verb}: --result-file {path}: {}", crate::cp::words::said(&e));
+        return false;
+    }
+    true
+}
+
+/// `body` at `target` as a new file of mode 0600: written beside it under a
+/// private name, then renamed onto it.
+fn replace(target: &std::path::Path, body: &[u8]) -> std::io::Result<()> {
+    let leaf = target.file_name().and_then(|n| n.to_str()).unwrap_or("result");
+    let temp = target.with_file_name(format!(".{leaf}.podssh-{:016x}.part", rand::random::<u64>()));
     let mut options = std::fs::OpenOptions::new();
-    options.write(true).create(true).truncate(true);
+    options.write(true).create_new(true);
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-    let written = options.open(path).and_then(|mut file| {
-        file.write_all(object.to_string().as_bytes())?;
-        file.write_all(b"\n")
+    let written = options.open(&temp).and_then(|mut file| {
+        file.write_all(body)?;
+        file.sync_all()
     });
-    if let Err(e) = written {
-        let _ = writeln!(err, "podssh {verb}: --result-file {path}: {e}");
+    let placed = written.and_then(|()| std::fs::rename(&temp, target));
+    if placed.is_err() {
+        let _ = std::fs::remove_file(&temp);
+    }
+    placed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The record is a new file for its owner alone, also over a file that
+    /// was there with another mode, and a missing directory is found before
+    /// the run (T-928).
+    #[test]
+    fn the_record_is_a_new_private_file_and_its_directory_is_looked_at_first() {
+        let dir = std::env::temp_dir().join(format!("podssh-result-{:016x}", rand::random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("r.json");
+        std::fs::write(&path, b"old").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        let shown = path.display().to_string();
+        let mut err = Vec::new();
+        assert!(write("cp", &shown, &json!({"exit": 0}), &mut err), "{}", String::from_utf8_lossy(&err));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{\"exit\":0}\n");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600, "{mode:o}");
+        }
+        let left: Vec<_> = std::fs::read_dir(&dir).unwrap().flatten().map(|e| e.file_name()).collect();
+        assert_eq!(left.len(), 1, "no temporary name stays: {left:?}");
+        assert_eq!(no_place(&shown), None);
+        assert_eq!(no_place("r.json"), None, "the current directory");
+        let missing = dir.join("no/r.json").display().to_string();
+        assert!(no_place(&missing).is_some_and(|why| why.contains("no such directory")), "{missing}");
+        let under_file = path.join("r.json").display().to_string();
+        assert!(no_place(&under_file).is_some_and(|why| why.contains("is not a directory")));
+        let mut err = Vec::new();
+        assert!(!write("cp", &missing, &json!({}), &mut err), "a missing directory fails");
+        let said = String::from_utf8_lossy(&err);
+        assert!(said.starts_with("podssh cp: --result-file ") && !said.contains("os error"), "{said}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -74,16 +74,16 @@ fn a_dry_run_says_the_skip_or_the_backup_then_the_copy() {
     let update = Clobber { mode: Mode::Update, backup: None };
     let backup = Clobber { backup: Some("~"), ..Clobber::default() };
     let at = Some(seen(100, 1));
-    let shown = |p: Vec<Planned>| p.into_iter().map(|(a, f, t)| format!("{a} {f} {t}")).collect::<Vec<_>>();
-    assert_eq!(shown(planned(from.clone(), to.clone(), at, at, keep)), ["skip src/f exists"]);
-    assert_eq!(shown(planned(from.clone(), to.clone(), at, None, keep)), ["copy src/f dest/f"]);
-    assert_eq!(shown(planned(from.clone(), to.clone(), at, Some(seen(200, 1)), update)), ["skip src/f not newer"]);
-    assert_eq!(shown(planned(from.clone(), to.clone(), at, Some(seen(50, 1)), update)), ["copy src/f dest/f"]);
+    let shown = |p: Vec<Planned>| p.into_iter().map(|p| p.line()).collect::<Vec<_>>();
+    assert_eq!(shown(planned(from.clone(), to.clone(), at, at, keep)), ["skip src/f: exists"]);
+    assert_eq!(shown(planned(from.clone(), to.clone(), at, None, keep)), ["copy src/f -> dest/f"]);
+    assert_eq!(shown(planned(from.clone(), to.clone(), at, Some(seen(200, 1)), update)), ["skip src/f: not newer"]);
+    assert_eq!(shown(planned(from.clone(), to.clone(), at, Some(seen(50, 1)), update)), ["copy src/f -> dest/f"]);
     assert_eq!(
         shown(planned(from.clone(), to.clone(), at, at, backup)),
-        ["backup dest/f dest/f~", "copy src/f dest/f"]
+        ["backup dest/f -> dest/f~", "copy src/f -> dest/f"]
     );
-    assert_eq!(shown(planned(from, to, at, None, backup)), ["copy src/f dest/f"], "nothing there to keep");
+    assert_eq!(shown(planned(from, to, at, None, backup)), ["copy src/f -> dest/f"], "nothing there to keep");
 }
 
 #[test]

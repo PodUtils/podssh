@@ -51,17 +51,35 @@ pub enum Before {
 }
 
 impl Before {
-    /// The state on one line, for the side file.
+    /// The state on one line, for the side file, in a form of its own that
+    /// no change of Rust's `Debug` moves (T-929): `local LEN NANOS DEV:INO`,
+    /// `sftp SIZE MTIME`, `exec LINE`, `-` for what is not known.
     pub fn key(&self) -> String {
+        let or = |v: Option<String>| v.unwrap_or_else(|| "-".into());
         match self {
             Before::Local { len, modified, id } => {
-                let nanos = modified.and_then(|m| m.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_nanos());
-                format!("local {len} {nanos:?} {id:?}")
+                let nanos = modified.and_then(|m| m.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_nanos().to_string());
+                format!("local {len} {} {}", or(nanos), or(id.map(|(a, b)| format!("{a}:{b}"))))
             }
-            Before::Sftp { size, mtime } => format!("sftp {size:?} {mtime:?}"),
+            Before::Sftp { size, mtime } => {
+                format!("sftp {} {}", or(size.map(|n| n.to_string())), or(mtime.map(|n| n.to_string())))
+            }
             Before::Exec(line) => format!("exec {line}"),
         }
     }
+}
+
+/// A state that an earlier podssh wrote in Rust's `Debug` form
+/// (`local 3 Some(5) Some((1, 2))`, `sftp Some(3) None`), in the form of
+/// [`Before::key`], so that its side file is still read; any other state as
+/// it is.
+pub(crate) fn upgraded(state: &str) -> String {
+    let Some((kind, rest)) = state.split_once(' ') else { return state.to_string() };
+    if !matches!(kind, "local" | "sftp") || (!rest.contains("Some(") && !rest.contains("None")) {
+        return state.to_string();
+    }
+    let rest = rest.replace("Some((", "").replace("))", "").replace(", ", ":").replace("Some(", "").replace(')', "");
+    format!("{kind} {}", rest.replace("None", "-"))
 }
 
 /// What a local source is now.
@@ -204,7 +222,7 @@ impl Progress {
             .and_then(|v| v.as_array())
             .map(|a| a.iter().filter_map(|v| v.as_u64()).collect())
             .unwrap_or_default();
-        match (field("state"), temp, field("target"), offset) {
+        match (field("state").map(|was| upgraded(&was)), temp, field("target"), offset) {
             (Some(was), Some(temp), Some(target), Some(offset)) if was == state => {
                 let target = Some(target);
                 let (temp, saved) = (Some(temp), offset);
@@ -300,6 +318,20 @@ impl Progress {
         self.saved = 0;
         self.chunk = 0;
         self.chunks.clear();
+    }
+
+    /// A copy that failed for good with no byte in its temporary file
+    /// (T-930): its record and its lock go, as nothing can go on from it,
+    /// and an interruption names no partial copy for it. Gives its temporary
+    /// file, when one is named, for the caller to remove; `None` when bytes
+    /// are kept, and the record stays.
+    pub fn drop_unstarted(&mut self) -> Option<String> {
+        if self.offset > 0 || !self.chunks.is_empty() {
+            return None;
+        }
+        let temp = self.temp.clone();
+        self.clear();
+        temp
     }
 
     /// Write the side file. Without a cache directory the copy continues

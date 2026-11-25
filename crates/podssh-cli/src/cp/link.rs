@@ -170,14 +170,21 @@ async fn hops(resolved: &Resolved, log: &Arc<Log>) -> Result<Hops, Failed> {
     let reached = match reached {
         Ok(reached) => reached,
         Err(not) => {
-            for line in &not.lines {
-                log.error(line);
-            }
             // The class of the road that failed, as `ssh --result-file`
             // gives it, for the record of the copy (T-486).
             let leg = if matches!(resolved.transport, Transport::Relay { .. }) { "relay" } else { "connect" };
             podssh_ssh::outcome::failure_is(leg);
-            let message = format!("{}: no connection to the server", resolved.options.destination.host);
+            // One cause is the failure's own line, in the system's words;
+            // several are each said, then the failure (T-929).
+            let message = match not.lines.as_slice() {
+                [one] => super::words::plain(one),
+                lines => {
+                    for line in lines {
+                        log.error(&super::words::plain(line));
+                    }
+                    format!("{}: no connection to the server", resolved.options.destination.host)
+                }
+            };
             return Err(Failed::new(fault_of(not.code), message));
         }
     };

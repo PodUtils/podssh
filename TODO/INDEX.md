@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**855 entries: 4 open, 32 partial, 13 blocked, 806 done.**
+**869 entries: 4 open, 32 partial, 13 blocked, 820 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 6 | 3 | 100 | 109 |
-| P2 | 0 | 20 | 2 | 317 | 339 |
-| P3 | 4 | 6 | 8 | 388 | 406 |
-| **All** | 4 | 32 | 13 | 806 | 855 |
+| P1 | 0 | 6 | 3 | 101 | 110 |
+| P2 | 0 | 20 | 2 | 325 | 347 |
+| P3 | 4 | 6 | 8 | 393 | 411 |
+| **All** | 4 | 32 | 13 | 820 | 869 |
 
 ## Entries
 
@@ -931,3 +931,17 @@ repository and CI).
 | [T-921](copy.md) | P3 | S | backlog | defect | done | `podssh tx receive` into a directory that takes no file says that a file could not be created in it |
 | [T-922](copy.md) | P3 | S | backlog | defect | done | `podssh help` is a documented word, as `podssh help COMMAND` is |
 | [T-923](robustness.md) | P2 | S | none | defect | done | Six waits of a session's write with no read of its channel beside it, the shape of T-780's hang |
+| [T-924](copy.md) | P1 | S | backlog | defect | done | `cp -r --dry-run` and `mv -r --dry-run` with a source that is one file change nothing |
+| [T-925](copy.md) | P2 | S | backlog | defect | done | `mv -r DIR host:x --result-file R` names what it removed in `removed` |
+| [T-926](copy.md) | P2 | S | backlog | defect | done | `scp -r` copies a directory reached twice, and a loop is only a directory that is its own ancestor |
+| [T-927](copy.md) | P2 | S | backlog | defect | done | `podssh edit` names the server's partial copy only when the server made one |
+| [T-928](copy.md) | P2 | S | backlog | defect | done | `--result-file` in a missing directory is refused first, and the record is a new private file |
+| [T-929](copy.md) | P2 | S | backlog | defect | done | The lines of the file commands give the system's words without `(os error N)`, and a side file has a stable form |
+| [T-930](copy.md) | P2 | S | backlog | defect | done | A copy that failed before its first byte leaves no `.resume` record and no lock file |
+| [T-931](copy.md) | P2 | S | backlog | defect | done | The line of `--timeout` names the partial copy that stays, and a bound under a second in ms |
+| [T-932](copy.md) | P2 | S | backlog | defect | done | `cp --inplace FILE host:DIR` copies into DIR, and the manual says what `--inplace` refuses |
+| [T-933](copy.md) | P3 | S | backlog | defect | done | `mv -r` renames a directory within one server, and a rename says renamed |
+| [T-934](copy.md) | P3 | S | backlog | defect | done | A dry run plans only what would change, with one key for each meaning |
+| [T-935](copy.md) | P3 | S | backlog | defect | done | A destination that cannot take several sources, or a tree, is said once with its true reason |
+| [T-936](copy.md) | P3 | S | backlog | defect | done | `cp -r` to a server with no SFTP, and `sftp df` with no `statvfs@openssh.com`, exit 69 |
+| [T-937](copy.md) | P3 | S | backlog | defect | done | `sftp put` expands a local pattern, `DIR/.` copies what DIR holds, and the small words of the pass |

@@ -7,10 +7,10 @@
 
 use podssh_ssh::Log;
 
+use super::dry;
 use super::mirror;
 use super::resume::Before;
 use super::transfer::{Done, Failed};
-use super::tree_copy;
 
 /// What a run ended with: each file done, and the first failure.
 #[derive(Default)]
@@ -30,7 +30,10 @@ pub(super) struct Outcome {
     /// The first leg of a move between servers: each source as it was.
     pub(super) recorded: Vec<Before>,
     /// The actions of a dry run (T-143), in their order.
-    pub(super) planned: Vec<tree_copy::Planned>,
+    pub(super) planned: Vec<dry::Planned>,
+    /// `mv -r`: each link and directory of a tree that the move removed; a
+    /// file says it in its own `done` (T-925).
+    pub(super) removed: Vec<String>,
     /// What `--delete` removed (T-144), and what waits for the end of the
     /// run.
     pub(super) deleted: Vec<String>,
@@ -48,7 +51,10 @@ pub(super) struct Outcome {
 impl Outcome {
     /// A failure of `name`, said now: the first is kept for the exit code,
     /// each later one for `--jsonl`.
-    pub(super) fn fail(&mut self, log: &Log, name: String, failed: Failed) {
+    pub(super) fn fail(&mut self, log: &Log, name: String, mut failed: Failed) {
+        // One sentence in the system's words, however the failure was made
+        // (T-929).
+        failed.message = super::words::plain(&failed.message);
         log.error(&failed.message);
         if self.failed.is_none() {
             self.failed = Some((name, failed));
@@ -69,6 +75,18 @@ impl Outcome {
         match done.skipped {
             Some(skip) => self.skipped.push((done.source, skip.why())),
             None => self.done.push(done),
+        }
+    }
+
+    /// `mv -r`: the paths of a tree that its move removed (T-925). A file
+    /// that the run copied says so in its `done`; each other path (a link, a
+    /// directory) is kept apart for the record.
+    pub(super) fn removed_in_tree(&mut self, gone: Vec<String>) {
+        for path in gone {
+            match self.done.iter_mut().find(|done| done.source == path) {
+                Some(done) => done.removed = Some(true),
+                None => self.removed.push(path),
+            }
         }
     }
 
@@ -93,6 +111,27 @@ mod tests {
         assert_eq!(outcome.failed.as_ref().map(|(_, f)| f.fault), Some(Fault::NoInput));
         let names: Vec<&str> = outcome.failures().map(|(n, _)| n.as_str()).collect();
         assert_eq!(names, ["a", "b"]);
+    }
+
+    #[test]
+    fn a_tree_s_move_names_each_path_that_it_removed() {
+        let mut outcome = Outcome::default();
+        outcome.add(Done { source: "t/a".into(), bytes: 1, ..Done::default() });
+        outcome.add(Done { source: "t/b".into(), bytes: 1, ..Done::default() });
+        outcome.removed_in_tree(vec!["t/a".into(), "t/l".into(), "t".into()]);
+        let flags: Vec<Option<bool>> = outcome.done.iter().map(|d| d.removed).collect();
+        assert_eq!(flags, [Some(true), None], "the file removed says so, the other stays");
+        assert_eq!(outcome.removed, ["t/l", "t"], "a link and a directory, apart");
+    }
+
+    #[test]
+    fn a_failure_is_said_in_the_system_s_words() {
+        let log = Log::new(podssh_ssh::LogLevel::Quiet);
+        let mut outcome = Outcome::default();
+        let raw =
+            Failed { fault: Fault::NoInput, message: "f: No such file (os error 2)".into(), cause: Default::default() };
+        outcome.fail(&log, "f".into(), raw);
+        assert_eq!(outcome.failed.map(|(_, f)| f.message), Some("f: No such file".to_string()));
     }
 
     #[test]

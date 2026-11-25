@@ -106,3 +106,34 @@ fn the_kind_of_a_special_file_is_read_from_its_mode() {
     assert_eq!(Special::of_mode(0), Special::Other);
     assert_eq!(Special::Fifo.noun(), "a FIFO");
 }
+
+/// A loop is a directory that is its own ancestor on the walk's path; one
+/// reached twice on two paths goes twice, as OpenSSH's scp copies it
+/// (T-926).
+#[cfg(unix)]
+#[test]
+fn a_loop_is_an_ancestor_met_again_and_a_directory_reached_twice_goes_twice() {
+    let dir = std::env::temp_dir().join(format!("podssh-loop-{:016x}", rand::random::<u64>()));
+    std::fs::create_dir_all(dir.join("dm/real")).unwrap();
+    std::fs::write(dir.join("dm/real/f"), b"1").unwrap();
+    std::os::unix::fs::symlink("real", dir.join("dm/alias")).unwrap();
+    std::fs::create_dir_all(dir.join("lp/a")).unwrap();
+    std::os::unix::fs::symlink("..", dir.join("lp/a/up")).unwrap();
+    let follow = Tree { follow: true, ..Tree::default() };
+    let shown = |items: Vec<Item>| {
+        items
+            .into_iter()
+            .map(|i| match i {
+                Item::Dir { rel, .. } => format!("d:{rel}"),
+                Item::File { rel } => format!("f:{rel}"),
+                Item::Skip { rel, why } => format!("s:{rel}:{why}"),
+                other => format!("?:{}", rel_of(&other)),
+            })
+            .collect::<Vec<_>>()
+    };
+    let (items, _) = walk_local(&dir.join("dm"), &follow);
+    assert_eq!(shown(items), ["d:", "d:alias", "f:alias/f", "d:real", "f:real/f"]);
+    let (items, _) = walk_local(&dir.join("lp"), &follow);
+    assert_eq!(shown(items), ["d:", "d:a", format!("s:a/up:{LOOP}").as_str()]);
+    let _ = std::fs::remove_dir_all(&dir);
+}

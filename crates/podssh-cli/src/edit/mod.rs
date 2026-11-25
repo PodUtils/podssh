@@ -227,7 +227,7 @@ fn edit(
     };
     if let Err(e) = local::private_file(&local.file) {
         local.remove();
-        log.error(&format!("{}: {e}", local.file.display()));
+        log.error(&format!("{}: {}", local.file.display(), crate::cp::words::said(&e)));
         return Fault::CantCreate.code();
     }
     log.verbose(&format!("the editor: {} (from {})", editor.shown(), editor.from));
@@ -235,6 +235,7 @@ fn edit(
         Ok(ended) => ended,
         Err(e) => {
             local.remove();
+            let e = crate::cp::words::said(&e);
             log.error(&format!("{} names {}, which did not start: {e}; nothing was sent", editor.from, editor.shown()));
             return Fault::Config.code();
         }
@@ -242,6 +243,7 @@ fn edit(
     let changed = match digest::of_file(&local.file) {
         Ok(sum) => sum != record.sum,
         Err(e) => {
+            let e = crate::cp::words::said(&e);
             log.error(&format!("{}: {e}; nothing was sent, and {} stays", local.file.display(), local.dir.display()));
             return Fault::NoInput.code();
         }
@@ -255,7 +257,7 @@ fn edit(
             let (code, why) = match stopped {
                 editor::Ended::TimedOut(limit) => (
                     Fault::TimedOut.code(),
-                    format!("the --timeout of {} s passed while the editor ran", limit.as_secs()),
+                    format!("the --timeout of {} passed while the editor ran", crate::cp::words::limit(limit)),
                 ),
                 _ => (130, "interrupted while the editor ran".to_string()),
             };

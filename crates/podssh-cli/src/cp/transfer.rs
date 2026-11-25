@@ -80,9 +80,10 @@ pub struct Failed {
 }
 
 impl Failed {
-    /// A failure that is an answer.
+    /// A failure that is an answer, in the system's words without Rust's
+    /// `(os error N)` (T-929).
     pub fn new(fault: Fault, message: String) -> Failed {
-        Failed { fault, message, cause: Cause::Answer }
+        Failed { fault, message: super::words::plain(&message), cause: Cause::Answer }
     }
 }
 
@@ -120,7 +121,7 @@ pub(crate) fn from_sftp(e: SftpError, side: Side) -> Failed {
         SftpError::Closed(_) | SftpError::Timeout { .. } => Cause::Broke,
         _ => Cause::Answer,
     };
-    Failed { fault, message: e.to_string(), cause }
+    Failed { fault, message: super::words::plain(&e.to_string()), cause }
 }
 
 /// The line of a destination `target` whose temporary file in `dir` could
@@ -192,11 +193,10 @@ pub(super) async fn remote_target(sftp: &Sftp, dest: &str, name: &str, many: boo
     }
     match sftp.stat(dest).await {
         Ok(attrs) if attrs.is_dir() => Ok(format!("{dest}/{name}")),
-        Ok(_) if many => {
-            Err(failed(Fault::CantCreate, format!("{dest} is not a directory, and there are several sources")))
-        }
+        Ok(_) if many => Err(super::into::not_into(dest, false)),
         Ok(_) => Ok(dest.to_string()),
         Err(e) if e.is_missing() && !many => Ok(dest.to_string()),
+        Err(e) if e.is_missing() => Err(super::into::not_into(dest, true)),
         Err(e) => Err(from_sftp(e, Side::Destination)),
     }
 }
@@ -354,7 +354,7 @@ pub(super) fn local_target(dest: &str, name: &str, many: bool) -> Result<PathBuf
         return Ok(path.join(name));
     }
     if many {
-        return Err(failed(Fault::CantCreate, format!("{dest} is not a directory, and there are several sources")));
+        return Err(super::into::not_into(dest, !path.exists()));
     }
     Ok(path)
 }

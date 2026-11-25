@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:390-411` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7238-7241`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7299-7302`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -2279,9 +2279,9 @@ ends. The copy up by exec reads the same way
 (`crates/podssh-cli/src/cp/byexec/files.rs:139-165`); the copies down read
 the far file until it ends, over SFTP
 (`crates/podssh-cli/src/cp/bysftp.rs:365-404`) and with `cat`
-(`crates/podssh-cli/src/cp/byexec.rs:332-369`); and so do the far digests
+(`crates/podssh-cli/src/cp/byexec.rs:331-368`); and so do the far digests
 that read the file again (`crates/podssh-cli/src/cp/digest.rs:78-109`,
-`crates/podssh-cli/src/cp/byexec.rs:303-330`).
+`crates/podssh-cli/src/cp/byexec.rs:302-329`).
 
 ## Approach
 
@@ -3033,7 +3033,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2770-2776` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2804-2810` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3169,8 +3169,8 @@ with no word, which reads as a hang.
 ## Premise
 
 - Read: at its end, a run of `cp` or `mv` says each file done at `-v` alone
-  (`crates/podssh-cli/src/cp/report.rs:36-73`, `:71`), and at the default level only the number of
-  deletes (`:33-35`) and a failure. `run` says "files sent N, unchanged M" at `-v` alone
+  (`crates/podssh-cli/src/cp/report.rs:37-74`, `:72`), and at the default level only the number of
+  deletes (`:34-36`) and a failure. `run` says "files sent N, unchanged M" at `-v` alone
   (`crates/podssh-cli/src/run_cmd/mod.rs`, line 226 at `010abe1`), the line that its test reads
   (`crates/podssh-cli/tests/run_far.rs`, lines 17-20 there).
 - Read: the progress line is drawn only when stderr is a terminal and `-q` is not given, unless
@@ -3182,7 +3182,7 @@ with no word, which reads as a hang.
   draw none, and each file of a tree draws a line of its own, with no count of the run's files.
 - Read: the counts that a summary needs are in the run's `Outcome` already: the files done with
   their bytes, the files left as they were, and the deletes
-  (`crates/podssh-cli/src/cp/outcome.rs:15-46`, where T-476 moved it from `cp/mod.rs`).
+  (`crates/podssh-cli/src/cp/outcome.rs:15-49`, where T-476 moved it from `cp/mod.rs`).
 
 ## Approach
 
@@ -3202,7 +3202,7 @@ with no word, which reads as a hang.
 4. `run` says its summary before the command starts, on stderr, so that the command's stdout stays
    its own; with T-475, the paths that the ignores left out.
 5. `scp` and `sftp` keep the output of OpenSSH's, with no summary. The manual,
-   `docs/cli.md:2588-2628`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
+   `docs/cli.md:2605-2648`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
    the summary in place of the line of `-v`.
 
 ## Decision
@@ -3324,7 +3324,7 @@ destination too.
   (`crates/podssh-ssh/src/sftp/mod.rs:414-423`).
 - Read: `hardlink@openssh.com` gives a file a second name
   (`crates/podssh-ssh/src/sftp/mod.rs:341-351`, which T-146 uses in
-  `crates/podssh-cli/src/cp/meta.rs:373-396`). A hard link is never made over a name that is there
+  `crates/podssh-cli/src/cp/meta.rs:391-414`). A hard link is never made over a name that is there
   (POSIX `link()`; Inferred for each server), so it can put a verified file at a name that must
   not be replaced, also when that name came during the copy. Not read here: what each server does
   with SFTP's own rename onto a name that is there.
@@ -3334,7 +3334,7 @@ destination too.
   with the suffix `~` (`--suffix`), and with `--delete` protects the names with that suffix from
   deletion.
 - Read: `run`'s check of a file that did not change compares the size and the time of change in
-  whole seconds, as SFTP version 3 carries them (`crates/podssh-cli/src/cp/tree_items.rs:22-30`,
+  whole seconds, as SFTP version 3 carries them (`crates/podssh-cli/src/cp/tree_items.rs:24-32`,
   where T-476 moved it from `tree_copy.rs`).
 
 ## Approach
@@ -3705,7 +3705,7 @@ step reads as a failure, and each `podssh run`, which then runs no command.
    link that cannot be read, a name that is not UTF-8, and a refused name (70).
 4. The comments that say that a skip makes the exit not zero
    (`crates/podssh-cli/src/cp/tree.rs:57-58`, and the module comment of
-   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2491-2507`,
+   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2493-2509`,
    `docs/STATUS.md`, and `scripts/interop-cp.sh`: `cp.tree.up` asks for 0 and the note once, and
    `cp.delete.failed` takes its failed copy from a far directory at the name of a source file (the
    rename onto it fails, 73, as T-297's test makes one fail).
@@ -3873,7 +3873,7 @@ Planted: the new field read as required: the test of `scp` with no terminal fail
 (EXIT STATUS), and a handshake that ConnectTimeout ends is a hop that could not be reached
 (`crates/podssh-ssh/src/run.rs:393` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
 which a copy takes as a server that cannot be reached, 69
-(`crates/podssh-cli/src/cp/link.rs:245`). Read, not measured; the test asks for 69 within 10 s.
+(`crates/podssh-cli/src/cp/link.rs:252`). Read, not measured; the test asks for 69 within 10 s.
 The field of the row is `FlagRow::optional` (`crates/podssh-cli/src/flags.rs`), set by
 `optional(row(...))` on the row of `--timeout` of `scp` and `sftp`, and false on each other row.
 
@@ -4058,7 +4058,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 - Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/tries.rs:55`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
-- Read: `crates/podssh-cli/src/sftp/run.rs:132` hands `self.link.meter` to `bysftp::down` and `up`;
+- Read: `crates/podssh-cli/src/sftp/run.rs:160` hands `self.link.meter` to `bysftp::down` and `up`;
   `crates/podssh-cli/src/cp/link.rs:92-100` stops the transfer with the failure
   "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:79`.
 - The issue says the transfer is "cut mid-way". That is not right: the meter stops it before the cap.
@@ -4593,3 +4593,787 @@ Merged by the main session on 2026-11-25 (after `08abb98`) and run: `cargo test 
 `--test flag_table`, `man_flag_parity`, `man_json` and `man_page` passed, `-p podssh-ssh --lib` 556, `--test
 pty_envelope` 11, `--test zmodem` 23; `scripts/interop-pty.py` against OpenSSH 9.6p1 through tmux 3.4,
 `pty.envelope.*` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`) and rustfmt clean.
+
+# T-924: `cp -r --dry-run` and `mv -r --dry-run` with a source that is one file change nothing
+
+**Source:** the black-box pass of 2026-11-25 on the file commands (binary and documents only, against OpenSSH's sshd and
+`podssh serve`), findings 1 and 2.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh cp --direct ... -r --dry-run src/f host:dd/f` exited 0, printed nothing and overwrote `dd/f`; with `-b` it made `dd/f~`;
+with `--jsonl` it printed a real `done` event. The same with no destination there, and down. `podssh mv -r --dry-run FILE host:x`
+moved the file and removed the local source. A dry run must change nothing on any path.
+
+## Premise
+
+- The session took the tree's road only for a source that is a directory (`crates/podssh-cli/src/cp/session.rs:96` is where the
+  plan of a file now goes); a file under `-r` fell through to the copy of one file, which knows no dry run.
+- A move within one server renamed before any copy (`crates/podssh-cli/src/cp/across.rs:36` is where the dry run now ends it).
+
+## Approach
+
+Under `-r --dry-run`, a source that is no directory is planned by `dry::file` (`crates/podssh-cli/src/cp/dry.rs:152`): the source is
+looked at (missing: 66; no regular file: 66), the destination is placed as the copy would place it (`remote_target`, the exec road's
+`target`, or `local_target`), and the plan is that of a file of a tree: `skip`, `backup` then `copy`, as `-n`, `-u` and `-b` say.
+Nothing is written, moved or removed, and no `done` object is printed. Between servers and within one, the dry run plans `copy`,
+`rename` (a move within one server) or `copy` and `delete` (a move between two), and nothing connects for the rename. The help of
+`--dry-run` and the manual say that a single file is planned too.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::dry
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_tree -- a_dry_run_of_one_file_changes_nothing_and_plans_it
+```
+
+The planted defect: the `continue` after `dry::file` in `session.rs` removed; the test then finds `dd/f~` and a changed `dd/f`.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/dry.rs` (new),
+`crates/podssh-cli/src/cp/session.rs`, `crates/podssh-cli/src/cp/across.rs`, `crates/podssh-cli/src/flags/copy.rs` (the row of
+`--dry-run`), `crates/podssh-cli/src/man/notes.rs`, `docs/cli.md`. Tests: `cp::dry::tests` (unit), and
+`a_dry_run_of_one_file_changes_nothing_and_plans_it` in `crates/podssh-cli/tests/cp_tree_dry/mod.rs`, a module of `cp_tree`.
+UNVERIFIED: that it compiles (`far.target` of the exec road reached from `dry.rs`), and `llms-full.txt` written again.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-925: `mv -r DIR host:x --result-file R` names what it removed in `removed`
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 3.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh mv -r DIR host:x --result-file R.json` removed the sources, and the record said `"removed":[]`. A move of single files was
+right.
+
+## Premise
+
+- `removed` was the `done` files with `removed == Some(true)` alone (`crates/podssh-cli/src/cp/result.rs:75` now chains the rest);
+  the removal of a tree's source (`crates/podssh-cli/src/cp/tree_items.rs:171`, `remove_local`, and `:203`, `remove_far`) set
+  no `done` of its files and gave nothing back.
+
+## Approach
+
+`remove_local` and `remove_far` give each path that they removed. `Outcome::removed_in_tree` (`crates/podssh-cli/src/cp/outcome.rs:84`)
+marks each file of them in its `done` (so `--jsonl` gives `source_removed` too) and keeps each link and directory apart; `removed`
+is each file, then each link and directory, the root of the tree last. The manual of `mv` and `docs/cli.md` say so.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- cp::result cp::outcome cp::tree_items
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_tree -- mv_r_names_each_path_that_it_removed
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/tree_items.rs`,
+`crates/podssh-cli/src/cp/tree_copy.rs`, `crates/podssh-cli/src/cp/tree_down.rs` (new: the copy down, moved out of
+`tree_copy.rs` for its length), `crates/podssh-cli/src/cp/outcome.rs`, `crates/podssh-cli/src/cp/result.rs`, the manual of `mv`,
+`docs/cli.md`. Tests: `a_tree_s_move_names_each_path_that_it_removed` (outcome), the extended
+`the_files_go_each_way_by_the_copy_s_direction` and `mv_r_leaves_a_fifo_and_what_holds_it_and_removes_the_rest`, and
+`mv_r_names_each_path_that_it_removed` (`cp_tree_dry`). UNVERIFIED: each.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-926: `scp -r` copies a directory reached twice, and a loop is only a directory that is its own ancestor
+
+**Source:** the black-box pass of 2026-11-25 on the file commands (binary and documents only, against OpenSSH's sshd and
+`podssh serve`), finding 4.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh scp -r dm host:out`, where `dm` holds `real/` and a link `alias -> real`, ended with "dm/real: not copied: a loop: this
+directory is met again" and exit 66, and `real` was never copied. OpenSSH's scp copies the directory twice, once under each name.
+
+## Premise
+
+- The walk that follows links kept a set of each directory seen anywhere in the walk, so the second path to one directory read as a
+  loop: here (`crates/podssh-cli/src/cp/tree.rs:284`, `walk_local_in`) by its canonical path, and on the server
+  (`crates/podssh-cli/src/cp/tree.rs:389`, `walk_far`) by its `realpath`.
+
+## Approach
+
+A loop is a directory that is its own ancestor on the walk's current path. The local walk keeps a stack of the directories above,
+each by its device and inode (its canonical path where the system gives no inode), pushed before its listing and popped after it;
+the far walk carries the real paths of the directories above with each directory that waits on its stack. A directory met on two
+paths goes twice; `lp/a/up -> ..` is still refused, with the words of `tree::LOOP` ("a loop: a link leads back to a directory that
+holds it"). The help of `scp -r` says both.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::tree
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_tree -- scp_r_copies_a_directory_reached_twice
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_page
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/tree.rs`,
+`crates/podssh-cli/src/cp/tree_tests.rs` (`a_loop_is_an_ancestor_met_again_and_a_directory_reached_twice_goes_twice`, Unix),
+`crates/podssh-cli/src/flags/scp.rs` (the row of `-r`); the end-to-end test
+`scp_r_copies_a_directory_reached_twice_and_refuses_a_loop` and the words of the manual and `docs/cli.md` came with the draft of
+T-924 to T-937 (the next commit). UNVERIFIED: that `DirId::Inode` is unused on Windows only (it carries `allow(dead_code)` there),
+and `llms-full.txt` written again for the new help of `scp -r`.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-927: `podssh edit` names the server's partial copy only when the server made one
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 5.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+An edit of a file in a read-only directory ended with "cannot be written in ro/: open ro/.f.podssh-RANDOM.part: permission denied
+(...); the partial copy on the server is ro/.f.podssh-RANDOM.part; ...", though no partial copy exists: the open was refused.
+
+## Premise
+
+- The copy up names its temporary file in its record before the server makes it (`crates/podssh-cli/src/cp/bysftp.rs:138`), so
+  that a break between the two leaves no file that no record names; the open's failure returned with `?` and left that record,
+  which `partial()` of `crates/podssh-cli/src/edit/mod.rs:323` read as a partial copy.
+
+## Approach
+
+T-930's change: a copy that fails for good with no byte in its temporary file drops its record (`Progress::drop_unstarted`), which
+also takes it out of the list of copies in progress, so `partial()` names nothing. A failed send still names a partial copy where one
+stays: after a break, with bytes in it. The manual of `edit` and `docs/cli.md` say that a partial copy is named only when the server
+made one.
+
+## Decision
+
+- **The fix is the record's, not a look at the server.** A stat of the temporary file after the failure would need the connection,
+  which a failed send may have lost; the record knows whether any byte went. The alternative, to name the temporary file only after
+  its open succeeded, would leave a file that no record names after a break during the open, which T-136 rules out.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::resume::tests::a_copy_that_never_started_keeps_no_record
+```
+
+By hand on Linux: `podssh edit --no-terminal --timeout 30s host:ro/f` with `ro/` of mode 0555 and an editor that changes the file
+says that the file cannot be written in `ro/`, names the copy here, and names no partial copy.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). With T-930's files, and
+`crates/podssh-cli/src/man/notes_edit.rs`, `docs/cli.md`. UNVERIFIED: the run by hand.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-928: `--result-file` in a missing directory is refused first, and the record is a new private file
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 6.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+(a) `podssh cp ... --result-file nodir/R.json`: the copy succeeded, a line said that the result file could not be written, and the
+exit was 0, though the documents say that the file is written at the end of each run. (b) An existing result file of mode 0644 was
+overwritten in place and stayed 0644, though the manual says "a new file for its owner alone".
+
+## Premise
+
+- The one writer (`crates/podssh-cli/src/ssh/result.rs:183`, `write`) opened FILE with `create` and `truncate`: an existing file
+  kept its mode, and a failure was a line with the run's exit code. Nothing looked at FILE's directory first.
+
+## Approach
+
+`no_place` (`crates/podssh-cli/src/ssh/result.rs:168`) says why FILE's directory cannot take it (missing, or no directory). `cp`,
+`mv`, `scp` (`crates/podssh-cli/src/cp/mod.rs:234`) and `sftp` refuse such a FILE before anything connects, with 73 and "Nothing has
+been attempted". `write` makes a new file of mode 0600 under a private name beside FILE and renames it onto FILE; a FIFO or a device
+(`/dev/stderr`) takes the object as before. It says whether it wrote: a run of `cp`, `mv`, `scp` or `sftp` that succeeded and whose
+record could not be written at the end exits 73 (`crates/podssh-cli/src/cp/mod.rs:244`). `ssh`, `run` and `each` keep their exit
+code, as their record is no part of their work.
+
+## Decision
+
+- **Refuse before connecting (73), and a missing record is no success.** A harness that reads FILE learns nothing from a run that
+  wrote none; 73 is the sysexits code of an output that cannot be made. The alternative, a line and exit 0, is what the tester
+  found misleading; 64 would call a path that is well formed a usage error.
+- **Replace by rename.** It makes "a new file for its owner alone" true, and never writes through a link that was there. The
+  alternative, to document that an existing file keeps its mode, leaves a record readable by others where the user asked for none.
+- **`ssh`, `run` and `each` keep their code.** Their exit is the remote command's status; turning a 0 of the command into 73
+  would mix podssh's fault into it. They share the new private file.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib ssh::result
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test result_file --test ssh_result
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/ssh/result.rs` (with
+its first unit test, `the_record_is_a_new_private_file_and_its_directory_is_looked_at_first`), `crates/podssh-cli/src/cp/mod.rs`,
+`crates/podssh-cli/src/sftp/mod.rs`, the manual of `cp`, `docs/cli.md`. UNVERIFIED: that `result_file` and `ssh_result` still pass
+(a write into a FIFO or a device keeps the old path; each other FILE is replaced).
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-929: The lines of the file commands give the system's words without `(os error N)`, and a side file has a stable form
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 7.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The lines kept Rust's suffix: `src/nope: No such file or directory (os error 2)`; `Connection refused (os error 111)` followed by a
+second line `no connection to the server`; the same for a broken link, a batch file of `sftp`, a permission refused and a full disk.
+The `.resume` side file held Rust's `Debug` text: `"state":"local 3 Some(...) Some((65024, 819359))"`.
+
+## Premise
+
+- Each failure of a copy is `Failed::new(fault, format!("{path}: {e}"))` with an `io::Error` (as in
+  `crates/podssh-cli/src/cp/bysftp.rs:63`), and `Display` of `io::Error` adds the suffix. podssh had one helper for it, private
+  to the SFTP server (`crates/podssh-ssh/src/server/sftp/fs.rs:53`).
+- A connection that failed logged each line of the road, then said its own (`crates/podssh-cli/src/cp/link.rs:180` is the fold
+  now).
+- `Before::key` (`crates/podssh-cli/src/cp/resume.rs:57`) formatted the state with `{:?}`.
+
+## Approach
+
+`crates/podssh-cli/src/cp/words.rs:9` (`plain`, `said`) drops each `(os error N)`. `Failed::new`, `transfer::from_sftp` and
+`Outcome::fail` apply it, so each failure of the copies is in the system's words however it was made; the lines of `edit`, `sftp`'s
+batch file, the removal of `mv -r`, the links and directories of a tree, and the record's writer use `said`. A connection that failed
+for one cause gives that cause as its one line; several are each said, then the failure. The state of a source is
+`local LEN NANOS DEV:INO`, `sftp SIZE MTIME` or `exec LINE` (`-` for what is not known); `resume::upgraded` reads a side file of the
+earlier form, so a copy that an older podssh left goes on.
+
+## Decision
+
+- **One helper of the copies, not a change of `podssh-ssh`.** The server's helper is private to its module, and the worker of this
+  area does not touch `podssh-ssh`; a move of it into a shared place is for podcrates' error crate (`pod-core`), named here for the
+  lead. The alternative, one `.replace` at each call, would miss the next call.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- cp::words cp::outcome cp::resume
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_tree -- a_dry_run_of_one_file_changes_nothing_and_plans_it
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/words.rs` (new),
+`crates/podssh-cli/src/cp/transfer.rs`, `crates/podssh-cli/src/cp/outcome.rs`, `crates/podssh-cli/src/cp/link.rs`,
+`crates/podssh-cli/src/cp/resume.rs`, `crates/podssh-cli/src/cp/tree_items.rs`, `crates/podssh-cli/src/cp/tree_down.rs`,
+`crates/podssh-cli/src/cp/meta.rs`, `crates/podssh-cli/src/edit/mod.rs`, `crates/podssh-cli/src/sftp/mod.rs`,
+`crates/podssh-cli/src/ssh/result.rs`, `docs/cli.md`. Tests: `the_rust_suffix_goes_and_the_system_s_words_stay` (one table),
+`a_failure_is_said_in_the_system_s_words`, `a_state_has_a_stable_form_and_the_old_one_is_still_read`. UNVERIFIED: that no test
+asserts a line with `(os error`, and that the fold of one road's line keeps each test of a refused connection (`cp_args`).
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-930: A copy that failed before its first byte leaves no `.resume` record and no lock file
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 8.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A copy that never started (exit 73 into `/nonexistent/dir/x` or `/etc/x`) left a `.resume` record at offset 0, and empty
+`.resume.lock` files gathered in the cache, one for each such run.
+
+## Premise
+
+- The record is written before the server makes the temporary file (`crates/podssh-cli/src/cp/bysftp.rs:138`), and the lock file at
+  the load of the record; only `Progress::clear` removes both, and a failure that returned early with `?` (the open refused, a
+  local directory missing) never reached it.
+
+## Approach
+
+`Progress::drop_unstarted` (`crates/podssh-cli/src/cp/resume.rs:328`): a copy that failed for good with no byte below its offset and
+no chunk done clears its record and its lock, and gives its temporary file to remove, if the server made one. `session::attempts`
+(`crates/podssh-cli/src/cp/session.rs:323`) and the files at once (`lanes::attempt`) call it on each final failure; a copy with bytes
+keeps its record, so the same command goes on from it. The manual says that such a copy keeps no side file.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::resume
+```
+
+By hand: `podssh cp f host:/etc/x` (73), then no `podssh-cp-*.resume` nor `.lock` is new in the cache.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/resume.rs`,
+`crates/podssh-cli/src/cp/session.rs`, `crates/podssh-cli/src/cp/lanes.rs`, the manual of `cp`, `docs/cli.md`. Test:
+`a_copy_that_never_started_keeps_no_record` (`crates/podssh-cli/src/cp/resume_tests.rs`; the lock file's removal is asserted on
+Unix, as Windows removes no file that its lock holds open). UNVERIFIED: each.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-931: The line of `--timeout` names the partial copy that stays, and a bound under a second in ms
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 9.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A `--timeout` that passed during a copy left `.NAME.podssh-RANDOM.part` on the server, and its line did not say so (SIGINT and
+SIGTERM name it). `--timeout 1ms` said "the --timeout of 0 s passed".
+
+## Premise
+
+- The line of the bound (`crates/podssh-cli/src/cp/mod.rs:386`) was built from `limit.as_secs()`, and named no partial copy; the
+  words of an interruption, a few lines below, did. `sftp` and `edit` built theirs the same way.
+
+## Approach
+
+`words::kept` (`crates/podssh-cli/src/cp/words.rs:46`) gives the partial copies and their records, for the interruption and for the
+bound alike; `words::limit` (`:35`) names a bound in whole seconds as `N s`, else as `N ms` (at least 1). `cp`, `mv`, `scp`, `sftp`
+and `edit` use it.
+
+## Decision
+
+- **Say ms; refuse nothing.** A bound under a second is a test's or a script's choice, and refusing it would break a command
+  line that works. The alternative, a refusal of a bound under 1 s (64), was the tester's other proposal.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::words
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test scp_args --test edit_args
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/words.rs`,
+`crates/podssh-cli/src/cp/mod.rs`, `crates/podssh-cli/src/sftp/mod.rs`, `crates/podssh-cli/src/edit/mod.rs`, the manual of `cp`,
+`docs/cli.md`. Tests: `a_bound_is_named_as_it_was_given`, `the_partial_copies_are_named_with_their_records`. UNVERIFIED: each;
+`scp_args` and `edit_args` assert "the --timeout of 2 s passed", which stays.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-932: `cp --inplace FILE host:DIR` copies into DIR, and the manual says what `--inplace` refuses
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 10.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh cp --inplace FILE host:DIR`, where DIR is a directory or a link to one, copied into the directory and exited 0, though the
+manual said "A destination that is a link or a directory is refused (exit 64)".
+
+## Premise
+
+- The copy places the file first, as every copy does (`crates/podssh-cli/src/cp/bysftp.rs:75`: into DIR under its own name), and
+  `in_place::check_far` (`crates/podssh-cli/src/cp/in_place.rs:43`) then refuses the name that it would write when that name is a
+  link or a directory; down, `check_before` (`:95`) does the same before anything connects. The code was right by its own rule;
+  the manual named the operand where it meant the file written.
+
+## Approach
+
+The manual and `docs/cli.md` say it as the code does: the file that `--inplace` would write is refused when it is a link or a
+directory (64); a destination directory takes the file under the source's name, as without `--inplace`.
+
+## Decision
+
+- **Keep the placement into a directory; correct the words.** Each copy of `cp`, GNU `cp` and rsync's `--inplace` put a file into a
+  directory operand; `--inplace` changes how the bytes are written, not where. The danger that the refusal guards is a write through
+  a link into another file, or into a directory's name; DIR/FILE, reached through a link to DIR, is a regular file of that
+  directory. The alternative, a refusal of DIR (the tester's proposal), would make `cp --inplace f host:dir/` fail where `cp f
+  host:dir/` works.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_inplace
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man::
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/man/notes.rs`,
+`docs/cli.md`; no code changed. UNVERIFIED: `llms-full.txt` written again.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-933: `mv -r` renames a directory within one server, and a rename says renamed
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 11.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh mv -r host:m/d host:m/d2` failed with "m/d: not a regular file; podssh mv moves files" and exit 66, though `mv --help`
+takes `-r` and the manual says "Within one server the server renames". A rename within one server reported "1 copied (4 B)",
+though no byte moved.
+
+## Premise
+
+- `moving::rename` (`crates/podssh-cli/src/cp/moving.rs:126`) refused each source that is no regular file, `-r` or not.
+- The summary counted each `done` as copied, with its bytes (`crates/podssh-cli/src/cp/summary.rs:42` now counts a rename apart).
+
+## Approach
+
+With `-r`, a directory source within one server goes to `moving_dir::rename` (`crates/podssh-cli/src/cp/moving_dir.rs:41`): into a
+directory that is there under its own name, by `rename` over SFTP or `mv -f` by exec. A name that is there already is never replaced
+(73; with `-n` or `-u` the source stays, exit 0), and a directory never moves into itself (64, by the real paths over SFTP). Without
+`-r` a directory says "a directory; mv -r moves it". The summary has a count `renamed` (and the key in `--jsonl`): `1 renamed, in
+0.1 s`, its bytes not counted as copied.
+
+## Decision
+
+- **A name that is there is refused, not merged.** POSIX `rename` replaces an empty directory and fails on one that holds files;
+  podssh's rule is the same for both, so the result does not depend on what the target holds. The alternative, a copy and a delete
+  into the existing directory, would turn a rename into a move of each byte.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- cp::summary cp::moving_dir
+sh scripts/interop-mv.sh
+```
+
+By hand: `podssh mv -r host:m/d host:m/d2` renames the directory, says `1 renamed`, and `host:m/d2` holds what `m/d` held.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/moving.rs`,
+`crates/podssh-cli/src/cp/moving_dir.rs` (new), `crates/podssh-cli/src/cp/across.rs`, `crates/podssh-cli/src/cp/summary.rs`, the
+manual of `mv`, `docs/cli.md`. Tests: `a_directory_never_moves_into_itself`, `a_rename_counts_apart_with_no_bytes`, and the line
+of `the_line_leaves_out_each_count_of_zero_but_the_first`. UNVERIFIED: each; no end-to-end test of a directory's rename (the
+test's server is OpenSSH's sftp-server, so one belongs in `cp_tree_dry`).
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-934: A dry run plans only what would change, with one key for each meaning
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 12.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh cp -r --dry-run -n tree host:mir/` listed `mkdir` for directories that were there and `link` for links that were there and
+matched. The `--jsonl` plan put a link's target in `destination`, and a skip's reason in `destination` too.
+
+## Premise
+
+- An action was a tuple of three strings (`action`, `from`, `to`), whose meaning changed with the action; only `podssh run` left out
+  a directory or a link that was there (`changed_only`).
+
+## Approach
+
+`dry::Planned` (`crates/podssh-cli/src/cp/dry.rs:27`) has `action`, `source`, `destination`, and `target` for a `link` or a
+`hardlink`, `reason` for a `skip`; a key that does not apply is null. Its text line is the one of before. Each dry run leaves out a
+directory that is there (`crates/podssh-cli/src/cp/tree_copy.rs:206`, and here for a copy down) and plans a link as the copy would
+act (`dry::link_plan`, `crates/podssh-cli/src/cp/dry.rs:133`): nothing for a link that names the same, a skip under `-n` or `-u`,
+the backup first under `-b`. The manual and `docs/cli.md` give the keys.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- cp::dry cp::clobber
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_tree --test cp_meta --test run_far
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/dry.rs`,
+`crates/podssh-cli/src/cp/tree_copy.rs`, `crates/podssh-cli/src/cp/tree_down.rs`, `crates/podssh-cli/src/cp/tree_items.rs`
+(`same_link` went into `dry::far_there`), `crates/podssh-cli/src/cp/clobber.rs`, `crates/podssh-cli/src/cp/clobber_tests.rs` (the
+lines of the plan), `crates/podssh-cli/src/cp/report.rs`, `crates/podssh-cli/src/cp/sync.rs`, `crates/podssh-cli/src/cp/outcome.rs`,
+the manual of `cp`, `docs/cli.md`. Tests: `each_action_has_its_line_and_its_keys` (one table), `a_link_is_planned_only_where_it_would_change`,
+`a_plan_names_only_what_would_change_with_a_key_for_each_meaning` (`cp_tree_dry`). UNVERIFIED: each, and that `run_far`'s dry runs
+plan as before.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-935: A destination that cannot take several sources, or a tree, is said once with its true reason
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 13.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh cp a1.log a2.log host:gl/a1.log` (a file as the target of several sources) printed "gl/a1.log is not a directory, and
+there are several sources" twice, once for each source, with exit 73. A missing directory as that target said "is not a
+directory", which is not true. `podssh cp -r tree host:b.txt` (b.txt a file) printed ten lines after the first, one for each item.
+
+## Premise
+
+- Each source looked at the destination for itself (`transfer::remote_target`, `local_target`, the exec road's `target`), and said
+  its failure; the tree up made its root with `mkdir` and went on with each item after that failed.
+
+## Approach
+
+`into::several` (`crates/podssh-cli/src/cp/into.rs:21`) looks at the destination once, before any of several sources goes
+(`crates/podssh-cli/src/cp/session.rs:66`): a file is "DST: not a directory, and there are several sources", a missing one "DST: no
+such directory, and there are several sources" (73), said once. The same words come of `remote_target`, `local_target` and the exec
+road's `target` (`into::not_into`, `crates/podssh-cli/src/cp/into.rs:14`). A tree whose root is there and is no directory is refused once (73) before its walk, up
+(`crates/podssh-cli/src/cp/tree_copy.rs:178`) and down.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::into
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_tree -- several_sources_and_a_tree_onto_a_file_are_said_once
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/into.rs` (new),
+`crates/podssh-cli/src/cp/session.rs`, `crates/podssh-cli/src/cp/transfer.rs`, `crates/podssh-cli/src/cp/byexec.rs`,
+`crates/podssh-cli/src/cp/tree_copy.rs`, `crates/podssh-cli/src/cp/tree_down.rs`, the manual of `cp`, `docs/cli.md`. Tests:
+`a_local_destination_for_several_sources_says_its_true_reason`, `several_sources_and_a_tree_onto_a_file_are_said_once`.
+UNVERIFIED: each.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-936: `cp -r` to a server with no SFTP, and `sftp df` with no `statvfs@openssh.com`, exit 69
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 14 (its exit codes).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh cp -r DIR host:x` to a server with no SFTP exited 78, though EXIT STATUS gives 69 for a server with neither SFTP nor the sh
+and tools of a copy by exec. `podssh sftp` with `df` on `podssh serve`, which has no `statvfs@openssh.com`, exited 66, the code of a
+missing source.
+
+## Premise
+
+- The tree's copy gave `Fault::Capability` (78) for a server with no SFTP (`crates/podssh-cli/src/cp/tree_copy.rs:136` is the line
+  now), and `df` read the client's refusal of the missing extension as a status of the source (`transfer::from_sftp` with
+  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:284` is the look now).
+
+## Approach
+
+Both are 69 (`Fault::RelayUnreachable`, EX_UNAVAILABLE): the server lacks what the command needs, as with neither SFTP nor a copy by
+exec. `df` looks at the server's extensions first and says "df: the server has no statvfs@openssh.com, so it tells no space". The
+manual and `docs/cli.md` say both. `podssh run`'s copy keeps its 78 (`crates/podssh-cli/src/cp/sync.rs`), which its own manual
+gives.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test cp_exec --test serve_sftp_openssh
+```
+
+By hand: `podssh sftp -b - host` with `df` against `podssh serve` exits 69.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/cp/tree_copy.rs`,
+`crates/podssh-cli/src/sftp/run.rs`, the manual of `cp` and `sftp`, `docs/cli.md`. UNVERIFIED: that no test asserts 78 for `cp -r`
+by exec, and that `result::class` gives `copy` for it after the login, as for a server with no tools.
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+# T-937: `sftp put` expands a local pattern, `DIR/.` copies what DIR holds, and the small words of the pass
+
+**Source:** the black-box pass of 2026-11-25 on the file commands, finding 14 (the rest).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh sftp` with `put src/*.txt` failed with 66: the local pattern was read as a name. `podssh cp -r tree/. host:existingdir/`
+copied into `existingdir/tree`, where GNU `cp -r`, rsync and the shell's reader of `/.` copy the contents. The note of `--owner`
+named the temporary `.part` file, not the destination. `lcd nodir` said "not a directory" for a directory that is missing.
+
+## Premise
+
+- `put` took its operand as one path (`crates/podssh-cli/src/sftp/run.rs:111` is the expansion now); `get` and `rm` expanded a
+  pattern on the server, with no rule for a name that starts with a dot.
+- The tree up named its root by `Path::file_name`, which reads `tree/.` as `tree` (`crates/podssh-cli/src/cp/tree_copy.rs:166`); down,
+  a `.` failed the check of one component.
+- The notes of `-p` and `--owner` named the path that they set, the temporary file before its rename
+  (`crates/podssh-cli/src/cp/meta.rs:228`, `named`, gives the destination now).
+- `lcd` looked at `is_dir` alone (`crates/podssh-cli/src/sftp/run.rs:223` is its missing case now).
+
+## Approach
+
+`put` expands `*` and `?` of the last name of its local path in order, each file into the directory named, as OpenSSH's `sftp` does;
+nothing matched is 66. `get`, `rm` and `put` match a name that starts with a dot only with a pattern that does, as glob(3). A source
+`DIR/.` copies what DIR holds into the destination, up and down. `meta::named` gives the destination's name for each note of the
+owner and the times. `lcd` says "no such directory" for a missing one.
+
+## Decision
+
+- **`DIR/.` is the contents.** GNU `cp -r`, rsync and OpenSSH's `scp` over SFTP read it so; a user who types `/.` asks for it. The
+  alternative, to document that `/.` is the directory itself, keeps a reading that no other tool has.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- cp::meta sftp::
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_sftp_openssh --test sftp_near_cap
+```
+
+By hand: `put src/*.txt` in a batch sends each `.txt` file of `src`; `podssh cp -r tree/. host:dir/` puts the files of `tree` in
+`dir`.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/sftp/run.rs`,
+`crates/podssh-cli/src/cp/tree_copy.rs`, `crates/podssh-cli/src/cp/tree_down.rs`, `crates/podssh-cli/src/cp/meta.rs`, the
+manual of `cp` and `sftp`, `docs/cli.md`. Test: `a_note_names_the_destination` (one table). UNVERIFIED: each; no end-to-end test of
+`put` with a pattern or of `DIR/.` (both by hand above).
+
+Merged by the main session on 2026-11-25 (after `e201cb0`) and run: `cargo test -p podssh-cli --lib` 1347 passed (two
+repairs: a test of the side file's old form wrote it with mode 0644, which podssh does not read back, so it now writes
+it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete` of its source), `--test cp_args`,
+`cp_delta`, `cp_exec`, `cp_inplace`, `cp_meta`, `cp_parallel`, `cp_progress`, `cp_tree`, `each`, `each_layer`,
+`each_node`, `edit_args`, `result_file`, `result_relay`, `scp_args`, `sftp_near_cap` and `ssh_result`: each passed. By
+hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
+`dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
+stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
