@@ -5633,7 +5633,8 @@ Draft, 2026-11-25 (a drafting agent's worktree, not built; each result below is 
   `Routes::of` make the routes whose CA was found apart. `crates/podssh-ssh/src/server/gateway/mod.rs`: a table reads
   a `Source` (the file of T-836, or another), `reload` gives the count and a line for each route left out, `closed`
   refuses each login while the source says so (`handler.rs`, both callbacks), and `read_ca` is public for
-  `--gateway-ca`. Unit tests: `routes_tests.rs` unchanged, UNVERIFIED.
+  `--gateway-ca`. Unit tests: `routes_tests.rs`, the table of T-836 unchanged and one test of `plan`
+  (the `ca-key` word kept whole, no CA read, `with_ca` and `Routes::of`), UNVERIFIED.
 - The section, `crates/podssh-cli/src/net/gateway.rs`: `section`, `check` (the owner's), `routes_of` (the
   gateway's). Its commands, `crates/podssh-cli/src/net/gateway_cmd.rs`: `podssh net gateway set NAME FILE`, `show
   NAME`, `rm NAME`, signed as each change of the owner (`net/edit.rs`, `net/mod.rs`; the flag rows of `--owner-key`
