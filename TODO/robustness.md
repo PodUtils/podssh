@@ -2338,6 +2338,13 @@ clean; the Windows check clean. The manual's operator note and `docs/cli.md` say
 for its target's failure are asked of podcrates (COORD-150, PodUtils/podssh#360, ask 5). Closed: an operator no longer
 reads a cut channel as a clean end, and the echoes of the tests shut their write half.
 
+2026-11-25, after the close: the gate's `windows` job at `3c7ace2` (run 45672041244) failed two tests of `exit`
+(`proxy_carries_its_pipe_from_the_exit_at_the_other_end_of_a_carrier`, `pipe_s_relay_side_starts_...`) with 69 and
+"the channel was cut before its end": the node's read of the tests' echo server got 10054 at its end, which podssh took
+as a clean end before this entry. The echo of `crates/podssh-cli/tests/exit/clients.rs` now ends gracefully (its write
+half shut after the last byte, then the node's close awaited, 5 s at most), as T-465's server does; `--test exit` 7
+passed here, and a repeat on Windows follows.
+
 # T-756: `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite
 
 **Source:** the main session's run of `cargo test --workspace --no-fail-fast` at the take of podcrates v0.35.0,

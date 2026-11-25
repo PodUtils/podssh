@@ -146,6 +146,12 @@ fn echo() -> (u16, Arc<AtomicUsize>) {
                 let mut reader = stream.try_clone().unwrap();
                 let mut writer = stream;
                 let _ = std::io::copy(&mut reader, &mut writer);
+                // A graceful end: the FIN after the last byte, then the
+                // node's close, as Windows gives a close with no shutdown
+                // to its peer as a reset (T-465, T-753).
+                let _ = writer.shutdown(std::net::Shutdown::Write);
+                let _ = reader.set_read_timeout(Some(std::time::Duration::from_secs(5)));
+                let _ = std::io::copy(&mut reader, &mut std::io::sink());
             });
         }
     });
