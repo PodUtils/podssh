@@ -79,6 +79,9 @@ pub struct ServeArgs {
     pub shell_integration: bool,
     /// `--publish-remote`: a client's -R as a pair of the relay (T-123, Q108).
     pub publish_remote: bool,
+    /// `--remote-listen`: a client's -R as a listener on this host's
+    /// loopback, which the user asks for (T-123, step 4).
+    pub remote_listen: bool,
     /// `--print-unit`, `--system` and `--run-as USER`: a unit of systemd
     /// that runs serve NAME, printed (T-709).
     pub print_unit: bool,
@@ -117,6 +120,7 @@ impl ServeArgs {
             motd: matches.get_one::<String>("motd").cloned(),
             shell_integration: matches.get_flag("shell-integration"),
             publish_remote: matches.get_flag("publish-remote"),
+            remote_listen: matches.get_flag("remote-listen"),
             print_unit: matches.get_flag("print-unit"),
             system: matches.get_flag("system"),
             run_as: matches.get_one::<String>("run-as").cloned(),
@@ -240,12 +244,23 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         shell_integration: args.shell_integration,
         scope: None,
         // A client's -R: a pair of the relay for each, with no bind (T-123),
-        // only where serve's user asks: each pair is a connection out (Q108).
-        remote: args.publish_remote.then(crate::serve_forward::publisher),
+        // only where serve's user asks: each pair is a connection out (Q108);
+        // or a listener on the loopback, which the user asks for, with the
+        // pair behind it where both are on.
+        remote: match (args.remote_listen, args.publish_remote.then(crate::serve_forward::publisher)) {
+            (true, relay) => Some(crate::serve_listen_forward::publisher(relay)),
+            (false, relay) => relay,
+        },
         keep_lease,
         audit: audit.clone(),
         totp,
     };
+    // A listener for -R that PODSSH_LISTEN refuses: 78 before any client.
+    if args.remote_listen
+        && let Err(refusal) = crate::pipe::listen::allowed()
+    {
+        return refused(err, Refusal { message: format!("--remote-listen: {}", refusal.message), ..refusal });
+    }
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
         return refused(err, refusal);

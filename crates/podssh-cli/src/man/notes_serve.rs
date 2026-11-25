@@ -182,7 +182,12 @@ pub const SERVE: &[&str] = &[
      --no-forwarding, a key's no-port-forwarding, the same address and port twice, PODSSH_OFFLINE, and a relay that \
      takes no node within 20 s. serve's stderr says why; OpenSSH says remote port forwarding failed. A cancel, the \
      connection's end and serve's stop each stop the node, then the pair (POST /v1/stop), and forget its copy; where \
-     the relay did not answer, serve's line names podssh relay revoke LABEL.",
+     the relay did not answer, serve's line names podssh relay revoke LABEL. \
+     With --remote-listen, serve listens for each -R on this host's 127.0.0.1 instead, whatever address the client \
+     named. It takes the port asked, or one that the system picks for port 0, and the client is told that port. \
+     PODSSH_LISTEN=no refuses the flag at the start (78). Each connection opens a forwarded-tcpip channel to the \
+     client, 32 at once for a forward at most. Where the bind fails, the forward is refused with its reason, or \
+     made a pair of the relay where --publish-remote is on too. The forward's end closes the listener.",
     "The environment of a child is serve's own, as the cage gave it (PATH, HTTPS_PROXY and the rest stay). It goes \
      without podssh's credentials: PODSSH_RELAY_TOKEN, the secrets of Cloudflare Access, and each variable of podssh \
      whose name holds TOKEN, SECRET, PASSWORD or PASSPHRASE. Of those, the ones that name a file stay. It adds USER \

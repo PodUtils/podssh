@@ -11230,6 +11230,14 @@ podssh serve
   remote port forwarding failed. A cancel, the connection's end and serve's
   stop each stop the node, then the pair (POST /v1/stop), and forget its copy;
   where the relay did not answer, serve's line names podssh relay revoke LABEL.
+  With --remote-listen, serve listens for each -R on this host's 127.0.0.1
+  instead, whatever address the client named. It takes the port asked, or one
+  that the system picks for port 0, and the client is told that port.
+  PODSSH_LISTEN=no refuses the flag at the start (78). Each connection opens a
+  forwarded-tcpip channel to the client, 32 at once for a forward at most.
+  Where the bind fails, the forward is refused with its reason, or made a pair
+  of the relay where --publish-remote is on too. The forward's end closes the
+  listener.
 
   The environment of a child is serve's own, as the cage gave it (PATH,
   HTTPS_PROXY and the rest stay). It goes without podssh's credentials:
@@ -11497,6 +11505,10 @@ podssh serve
         answer a client's -R (tcpip-forward) with a pair of the relay for each,
         at most 8 a connection, with no bind here (default: each -R is
         refused).
+    --remote-listen
+        answer a client's -R with a listener on this host's 127.0.0.1, at the
+        port asked or one the system picks; where the bind fails,
+        --publish-remote's pair if it is on (default: no listener).
     --no-forwarding
         open no forward: each direct-tcpip channel that a client opens is
         refused (default: each forward dials its host and port from this host).

@@ -2516,7 +2516,7 @@ Drafted 2026-11-24 on the branch `d-serve-start`; merged, built and tested by th
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2751,6 +2751,24 @@ behind T-124's bind (a flag, its rows in the flag table, the manual and the pari
 live run above.
 
 Q108 was settled by the owner on 2026-11-24, as recommended (`docs/decisions.md`, exception 10 of rule 2).
+
+2026-11-25, step 4 in the main session: `podssh serve --remote-listen` answers a client's `-R` with a listener on
+this host's `127.0.0.1` (`crates/podssh-cli/src/serve_listen_forward.rs`, a second `Publish` beside the relay's): the
+port asked, or one that the system picks for port 0, whatever address the client named (sshd's `GatewayPorts no`);
+each connection opens a `forwarded-tcpip` channel naming its own address and port, 32 at once for a forward at most;
+a bind that fails refuses the forward with its reason, or gives it to `--publish-remote`'s pair where both are on;
+`PODSSH_LISTEN=no` refuses the flag at serve's start (78); the forward's end aborts the listener. The flag's row
+(`crates/podssh-cli/src/flags/serve.rs`), `--print-unit`'s switch, the manual's note of serve, `docs/cli.md`, and
+`scripts/repo_listeners.py` (exception 1 of rule 2: a listener that the user asks for, the bind its probe).
+
+Results (2026-11-25, OpenSSH 9.6p1): `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward`: 6
+passed, 1 ignored (the live relay); the new cases: OpenSSH's `ssh -R 0:...` through `serve --stdio --remote-listen`
+is told the bound port, a connection to `127.0.0.1:PORT` reads the banner of the client's service, serve holds that
+one listening socket and makes no pair, and the client's end closes it; `PODSSH_LISTEN=no` ends serve with 78 and its
+line. Planted: a listener that never accepts fails the first (no banner); the check of `PODSSH_LISTEN` removed fails
+the second. What waits: the live run of the relay's pair (`-- --ignored`; this container's proxy intercepts the
+relay's TLS), with the release checks (T-251).
+
 
 # T-124: `podssh serve --listen`: SSH on a TCP port on a host that allows it
 

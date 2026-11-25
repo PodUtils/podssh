@@ -123,6 +123,7 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
         ("--share", args.share),
         ("--shell-integration", args.shell_integration),
         ("--publish-remote", args.publish_remote),
+        ("--remote-listen", args.remote_listen),
         ("--audit-commands", args.audit_commands),
     ];
     for (flag, on) in switches {

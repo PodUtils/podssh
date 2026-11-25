@@ -6690,8 +6690,21 @@ gives up each capability of the process (T-698), before it reads a file.
   10 s), and forget the stored copy; a relay that did not answer leaves
   the copy, and serve's line names `podssh relay revoke LABEL`. A node that
   ends on its own (the pair expired, 72 h at most; stopped; `409`) says so
-  in serve's log; the client's next `-R` makes a new pair. Not yet: a
-  listener on the node where serve's user asks for one (T-123, step 4).
+  in serve's log; the client's next `-R` makes a new pair.
+- **A client's `-R` on a listener (T-123, step 4).** With `--remote-listen`,
+  serve's user asks for a listener for each `-R` (exception 1 of rule 2):
+  serve binds `127.0.0.1` at the port asked, or one that the system picks
+  for port 0, whatever address the client named, as sshd does with
+  `GatewayPorts no` (`crates/podssh-cli/src/serve_listen_forward.rs`). The
+  client is told that port, and the name `127.0.0.1:PORT`. Each connection
+  that the listener takes opens a `forwarded-tcpip` channel to the client,
+  naming the connection's own address and port; 32 are open at once for a
+  forward at most, and one more is closed at once. `PODSSH_LISTEN=no`
+  refuses the flag at serve's start (78). A bind that fails (a port in
+  use, a port under 1024) refuses the forward with its reason, or, with
+  `--publish-remote` too, makes it a pair of the relay as above. A
+  `cancel-tcpip-forward`, the connection's end and serve's stop close the
+  listener; a connection that it took ends with its channel.
 - **The environment (T-108).** A child gets serve's own environment, as the
   cage gave it: `PATH`, `HTTPS_PROXY` and a library path are what no login
   database gives again, and a fresh environment, as sshd builds one, would

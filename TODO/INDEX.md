@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**833 entries: 4 open, 45 partial, 13 blocked, 771 done.**
+**833 entries: 4 open, 44 partial, 13 blocked, 772 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 4 | 12 | 8 | 367 | 391 |
-| **All** | 4 | 45 | 13 | 771 | 833 |
+| P3 | 4 | 11 | 8 | 368 | 391 |
+| **All** | 4 | 44 | 13 | 772 | 833 |
 
 ## Entries
 
@@ -197,7 +197,7 @@ repository and CI).
 | [T-120](serve.md) | P3 | M | backlog | feature | done | `podssh serve`: shell integration marks, when asked |
 | [T-121](serve.md) | P3 | M | backlog | feature | done | Install `podssh serve` or `podssh node` as a service with no privileges |
 | [T-122](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: each pty child in its own transient scope when systemd is there |
-| [T-123](serve.md) | P3 | M | backlog | feature | partial | `podssh serve` accepts `tcpip-forward` from a standard `ssh -R` |
+| [T-123](serve.md) | P3 | M | backlog | feature | done | `podssh serve` accepts `tcpip-forward` from a standard `ssh -R` |
 | [T-124](serve.md) | P3 | M | backlog | feature | done | `podssh serve --listen`: SSH on a TCP port on a host that allows it |
 | [T-125](terminal.md) | P2 | S | M5 | defect | done | L1: the mode selection of the line discipline is the wrong way round |
 | [T-126](terminal.md) | P2 | M | M5 | defect | done | L2: the line discipline has no raw mode and no window size |

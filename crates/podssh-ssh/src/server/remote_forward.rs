@@ -158,7 +158,7 @@ impl Forwards {
             return refused("that address and port are forwarded already on this connection");
         }
         let Some(Publisher(publish)) = settings.remote.as_ref() else {
-            return refused("serve binds no socket for -R; serve --publish-remote publishes it at the relay");
+            return refused("serve binds no socket for -R; serve --publish-remote publishes it at the relay, and serve --remote-listen listens for it");
         };
         let asked = Asked { address: address.to_string(), port: *port, who: who.to_string() };
         let at = Arc::new(AtomicU32::new(*port));

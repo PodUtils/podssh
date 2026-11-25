@@ -356,6 +356,7 @@ mod serve_totp;
 mod node_serve;
 // A client's `-R` under `podssh serve`, published as a pair's node (T-123).
 mod serve_forward;
+mod serve_listen_forward;
 // `podssh session`: a session that outlives each call of an agent (T-186).
 pub mod session;
 // `podssh run`: copy a project, then run a command in it (T-192).

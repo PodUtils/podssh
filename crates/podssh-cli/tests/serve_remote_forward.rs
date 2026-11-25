@@ -9,7 +9,9 @@
 //! pair at the relay and forgets its stored copy. With `PODSSH_OFFLINE`, the
 //! forward is refused and OpenSSH's `ExitOnForwardFailure` ends it. The
 //! same steps against the live relay: `-- --ignored`. A host with no OpenSSH
-//! client, Python or openssl says that the test did not run. Unix's.
+//! client, Python or openssl says that the test did not run. With
+//! `--remote-listen` (step 4) the forward is a listener on serve's loopback
+//! instead, and `PODSSH_LISTEN=no` refuses the flag at the start. Unix's.
 
 #![cfg(unix)]
 
@@ -117,11 +119,20 @@ fn first_line(child: &mut Child) -> String {
 /// SSH server, with `env` on ssh and so on serve, its ProxyCommand; serve
 /// takes `--publish-remote` where `publish` holds (Q108).
 fn ssh_r(s: &Session, env: &[(&str, &str)], clean: bool, publish: bool) -> Command {
+    ssh_r_flags(s, env, clean, if publish { " --publish-remote" } else { "" })
+}
+
+/// [`ssh_r`] with serve's `flags`, the way out of the test's host taken off.
+fn ssh_r_with(s: &Session, env: &[(&str, &str)], flags: &str) -> Command {
+    ssh_r_flags(s, env, true, flags)
+}
+
+fn ssh_r_flags(s: &Session, env: &[(&str, &str)], clean: bool, flags: &str) -> Command {
     let home = &s.home;
     keygen(home, &home.join("id"));
     let spec = format!("0:127.0.0.1:{}", s.port);
     let options = ["-v", "-N", "-o", "ExitOnForwardFailure=yes", "-R", &spec];
-    let serve = wrapped_serve_with(home, if publish { " --publish-remote" } else { "" });
+    let serve = wrapped_serve_with(home, flags);
     let cmd = openssh_proxy(home, &home.join("id"), "accept-new", &serve, &options, &[]);
     let mut cmd = if clean { without_proxy(cmd) } else { cmd };
     cmd.envs(env.iter().copied());
@@ -255,4 +266,56 @@ fn a_stock_r_through_the_live_relay() {
     }
     let s = Session::start("serve-rfwd-live");
     forward_reaches_the_client(&s, &[], false);
+}
+
+/// `--remote-listen` (step 4): the forward is a listener on serve's
+/// loopback at the port that OpenSSH was told; a connection there reads the
+/// banner of the client's service; serve holds that one listening socket,
+/// and the client's end closes it. No pair is made.
+#[test]
+fn with_remote_listen_a_stock_r_is_a_loopback_listener() {
+    if !have_openssh() {
+        return eprintln!("did not run: no OpenSSH client here");
+    }
+    let s = Session::start("serve-rfwd-listen");
+    let home = s.home.clone();
+    let mut ssh = Running(ssh_r_with(&s, &[], " --remote-listen").spawn().expect("ssh runs"));
+    let lines = lines_of(&mut ssh.0);
+    let mut seen = Vec::new();
+    let allocated = until(&lines, "Allocated port ", &mut seen);
+    let port: u16 = between(&allocated, "Allocated port ", " ").parse().expect("a port");
+    // serve's SSH_MSG_DEBUG comes before OpenSSH's own line.
+    let told = seen.iter().find(|l| l.contains("Remote: podssh serve: -R ")).cloned().unwrap_or_default();
+    assert!(told.contains(&format!("-R localhost:{port} is published as 127.0.0.1:{port}")), "{}", seen.join("\n"));
+    let pid = number_in(&home.join("serve.pid"));
+    if let Some(count) = listening(pid) {
+        assert_eq!(count, 1, "serve holds the forward's listener alone");
+    }
+    let mut stream = std::net::TcpStream::connect(("127.0.0.1", port)).expect("the forward's listener takes it");
+    stream.set_read_timeout(Some(LIMIT)).unwrap();
+    let mut banner = String::new();
+    let _ = BufReader::new(&mut stream).read_line(&mut banner);
+    assert!(banner.starts_with("SSH-2.0-"), "the client's service answered: {banner:?}");
+    drop(stream);
+    assert!(found(&home, "pair-").is_none(), "no pair was made");
+
+    // The client's end ends serve, and its listener with it.
+    drop(ssh);
+    let _ = number_in(&home.join("serve.status"));
+    let gone = std::net::TcpStream::connect_timeout(&([127, 0, 0, 1], port).into(), Duration::from_secs(2));
+    assert!(gone.is_err(), "the listener is closed with the forward");
+}
+
+/// `PODSSH_LISTEN=no` refuses `--remote-listen` at serve's start (78),
+/// with its line, before any forward.
+#[test]
+fn podssh_listen_no_refuses_remote_listen_at_the_start() {
+    if !have_openssh() {
+        return eprintln!("did not run: no OpenSSH client here");
+    }
+    let s = Session::start("serve-rfwd-nolisten");
+    let (code, err) = finish(ssh_r_with(&s, &[("PODSSH_LISTEN", "no")], " --remote-listen"));
+    assert_eq!(code, Some(255), "{err}");
+    assert!(err.contains("PODSSH_LISTEN=no turns listening off"), "serve's: {err}");
+    assert_eq!(number_in(&s.home.join("serve.status")), 78, "{err}");
 }

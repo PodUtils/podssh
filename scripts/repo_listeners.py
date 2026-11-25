@@ -31,8 +31,12 @@ LISTENERS = {
     # on the loopback, as the node's real dial reaches it. And `podssh serve
     # --listen ADDR` (T-124), which the user asks for: the bind is the probe,
     # before the capability drop, and PODSSH_LISTEN turns it off; its tests
-    # bind port 0 on the loopback and a socket in a scratch directory.
+    # bind port 0 on the loopback and a socket in a scratch directory. And
+    # `podssh serve --remote-listen` (T-123, step 4), which the user asks
+    # for: a listener on 127.0.0.1 for each -R, the bind its probe, after
+    # PODSSH_LISTEN at serve's start.
     "TcpListener": [
+        "crates/podssh-cli/src/serve_listen_forward.rs",
         "crates/podssh-cli/src/serve_listen.rs",
         "crates/podssh-cli/src/serve_listen_tests.rs",
         "crates/podssh-cli/src/exit/tunnel_tests.rs",
@@ -145,8 +149,10 @@ LISTENERS = {
     # road's probe, its connection's socket and the tests of Salamander's
     # wrapper (T-580), as above. And the stand-in bucket (T-725), as above.
     # And the DNS road's lines in doctor and their tests (T-875), and the
-    # road's node and its tests (T-877), as above.
+    # road's node and its tests (T-877), as above. And serve's listener of
+    # -R (T-123, step 4), as above.
     "bind(": [
+        "crates/podssh-cli/src/serve_listen_forward.rs",
         "crates/podssh-cli/src/carrier_dns.rs",
         "crates/podssh-cli/src/carrier_dns_tests.rs",
         "crates/podssh-cli/src/dns_road.rs",

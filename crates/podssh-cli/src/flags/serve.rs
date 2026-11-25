@@ -47,6 +47,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
     // A client's -R published at the relay, a pair for each (T-123, Q108).
     row(None, "publish-remote", None, FlagKind::Supported,
         "answer a client's -R (tcpip-forward) with a pair of the relay for each, at most 8 a connection, with no bind here (default: each -R is refused)", None),
+    // A client's -R on a listener of the loopback, which the user asks for (T-123).
+    row(None, "remote-listen", None, FlagKind::Supported,
+        "answer a client's -R with a listener on this host's 127.0.0.1, at the port asked or one the system picks; where the bind fails, --publish-remote's pair if it is on (default: no listener)", None),
     row(None, "no-forwarding", None, FlagKind::Supported,
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
     row(None, "revoke-ends-sessions", None, FlagKind::Supported,

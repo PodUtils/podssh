@@ -9859,7 +9859,7 @@ Read at `2042200`:
 - No code of podssh speaks STUN (searched); the TURN road would bring a STUN codec (T-621, its step 2).
 - The measured sandbox refuses UDP: `docs/target-environment.md:23` says "EPERM", so there the line is
   unknown.
-- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:93` for `UdpSocket`),
+- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:97` for `UdpSocket`),
   which `scripts/check-repo.py:289` reads.
 
 ## Approach
