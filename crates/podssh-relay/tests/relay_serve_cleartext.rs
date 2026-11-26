@@ -81,9 +81,10 @@ impl Role {
         self.events.lock().unwrap().clone()
     }
 
-    /// Whether the role said `line`.
+    /// Whether the role said `line`: its words, whole, before its fields
+    /// (T-1016).
     fn said(&self, line: &str) -> bool {
-        self.events().iter().any(|l| l == line)
+        self.events().iter().any(|l| serve::said::words(l) == line)
     }
 }
 
@@ -240,6 +241,10 @@ async fn after_the_tls_road_failed_the_session_opens_in_cleartext() {
         assert!(role.said(line), "the role said no {line:?}: {:?}", role.events());
     }
     assert!(!role.said("mint"), "no token of 72 h was minted: {:?}", role.events());
+    // The session's line names the client, the proxy here, and its target.
+    let upgrade = role.events().into_iter().find(|l| serve::said::words(l) == "upgrade").unwrap_or_default();
+    let fields = (serve::said::field(&upgrade, "client"), serve::said::field(&upgrade, "target"));
+    assert_eq!(fields, (Some("127.0.0.1"), Some(&*shown)), "{upgrade}");
     assert!(notes.iter().any(|n| n.contains("carries the session in cleartext")), "{notes:?}");
 }
 

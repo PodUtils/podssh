@@ -32,9 +32,10 @@ fn events(s: &Session) -> String {
     std::fs::read_to_string(s.home.join("fake-relay-normal-events.log")).unwrap_or_default()
 }
 
-/// How many lines of `events` are `line`.
+/// How many lines of `events` are `line`: its words, whole, before its
+/// fields (T-1016).
 fn count(events: &str, line: &str) -> usize {
-    events.lines().filter(|l| l.trim() == line).count()
+    events.lines().filter(|l| podssh_relay::serve::said::words(l) == line).count()
 }
 
 #[test]
@@ -54,6 +55,11 @@ fn unasked_the_layer_is_taken_where_the_role_offered_it_with_one_read_of_its_off
     assert_eq!(count(&seen, "upgrade layer"), 2, "each run took the layer: {seen}");
     assert_eq!(count(&seen, "upgrade"), 0, "no run took the contract's road: {seen}");
     assert_eq!(count(&seen, "relays.json"), 1, "the offer was read once, then kept: {seen}");
+    // Each link's line names the client and the target (T-1016).
+    let to = format!("127.0.0.1:{target}");
+    let mut links = seen.lines().filter(|l| podssh_relay::serve::said::words(l) == "upgrade layer");
+    let field = podssh_relay::serve::said::field;
+    assert!(links.all(|l| field(l, "client") == Some("127.0.0.1") && field(l, "target") == Some(&*to)), "{seen}");
     // `no`: the contract's road, with the offer kept.
     let out = proxy(&s, &flags, target, Some("no"));
     assert!(out.status.success() && said(&out).contains("SSH-2.0-unasked"), "{}", said(&out));

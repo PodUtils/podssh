@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**965 entries: 4 open, 33 partial, 16 blocked, 912 done.**
+**966 entries: 4 open, 33 partial, 16 blocked, 913 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
 | P2 | 0 | 20 | 4 | 347 | 371 |
-| P3 | 4 | 7 | 9 | 462 | 482 |
-| **All** | 4 | 33 | 16 | 912 | 965 |
+| P3 | 4 | 7 | 9 | 463 | 483 |
+| **All** | 4 | 33 | 16 | 913 | 966 |
 
 ## Entries
 
@@ -1023,7 +1023,7 @@ repository and CI).
 | [T-1013](cli.md) | P3 | S | backlog | defect | done | `proxy node://NAME` and `proxy --exit NAME` drop `PODSSH_RELAY` with no word, where the manual says they refuse it |
 | [T-1014](relay.md) | P2 | S | backlog | defect | done | `relay serve` starts with a `--pairs` file that it cannot write, names no file of a missing certificate, and refuses offline in a client's words |
 | [T-1015](relay.md) | P3 | S | backlog | defect | done | `relay serve` says a name that does not resolve in the words of the resolver's library |
-| [T-1016](relay.md) | P3 | M | backlog | defect | open | The event lines of `relay serve` name no client, no target and no time |
+| [T-1016](relay.md) | P3 | M | backlog | defect | done | The event lines of `relay serve` name no client, no target and no time |
 | [T-1017](relay.md) | P3 | S | backlog | defect | done | `relay rank --forget` says it forgot a rank that was not kept, and `--cached` shows a file with no rank as one of 0 hosts |
 | [T-1018](pipe.md) | P2 | S | backlog | defect | done | `pipe - relay:HOST:PORT` never ends when its target waits for the end of its input |
 | [T-1019](pipe.md) | P3 | S | backlog | defect | done | `pipe - fd:N` of a closed number ends in `(os error 9)`, and `tx send a b` gives the parser's generic lines |
@@ -1041,3 +1041,4 @@ repository and CI).
 | [T-1031](cli.md) | P3 | S | backlog | defect | done | `status` does not say how it reads a destination of two @, and its `open_files.refused` ends with (os error N) |
 | [T-1032](cli.md) | P3 | S | backlog | defect | done | The refusal of PODSSH_OFFLINE has three wordings across the commands |
 | [T-1033](cli.md) | P3 | S | backlog | defect | done | `doctor --json` gives an empty `diagnosis` beside a failed check, and the manual does not say why |
+| [T-1035](relay.md) | P3 | S | M10 | defect | open | The relay role's HTTP road and reverse road lines name their client and target, as T-1016 did for the others |

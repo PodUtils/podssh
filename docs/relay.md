@@ -115,6 +115,36 @@ the resumable layer, so that the role keeps a standard sshd's connection
 across a drop of the client's link ("The relay role's resumable layer",
 below; T-173).
 
+Each event of the role is one line on stdout (T-1016). Its own words come
+first, unchanged, so that an owner greps a line by its first word and a
+harness counts them; then its fields, each one `KEY=VALUE` with no space:
+`client=ADDR`, the client's address (`-` where the role does not know it),
+and `target=HOST:PORT` where the event has one; last, `at=TIME`, the time
+of the line in UTC (RFC 3339, to the second), on each line:
+
+```text
+h2 client=203.0.113.7 at=2026-11-26T10:00:00Z
+upgrade client=203.0.113.7 target=github.com:22 at=2026-11-26T10:00:00Z
+end gone: the client went with no Close client=203.0.113.7 target=github.com:22 at=2026-11-26T10:04:12Z
+```
+
+The lines that name a client and a target are a session's of the forward
+road and of the resumable layer: `upgrade`, `upgrade layer`, `layer
+resumed`, `close CODE`, `end client`, `end gone: ...`, `end close CODE
+REASON`, `refused 502 ...` and a refusal of the policy. `h2`, `quic`,
+`mint`, `mint once` and `relays.json` name the client alone. A link of the
+layer that the HTTP road carries names its target, with `client=-`. The
+other lines (the HTTP road's, the reverse road's, `iroh:`, `derp:`, `sshd
+from ...`, `publish ...`) keep their words, which name what they name, and
+end with the time. A field's value never holds a space: a space or a
+control character in a target is shown as `?`. A reader takes the words
+as the line before its last fields, and a field by its key
+(`podssh_relay::serve::said`); a line of the stand-in relay
+(`scripts/fake-relay.py`), which has no fields, reads the same way. A
+journal stamps each line itself, and the time stays: the one shape holds
+wherever stdout goes. The role behind a node's quick tunnel says the same
+lines on the node's stderr, with no time, as the node's other lines.
+
 A port below 1024 needs a privilege for its bind alone: a start as root, or
 the file capability `cap_net_bind_service` on the binary. On Linux the role
 gives up each capability of its start once its listener is bound, before its

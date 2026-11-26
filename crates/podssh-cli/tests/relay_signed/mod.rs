@@ -136,7 +136,10 @@ fn a_role_s_signed_list_names_a_deployment_outside_the_domain() {
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
     assert_eq!(text(&out.stdout), super::ssh_harness::GREETING);
     let events = std::fs::read_to_string(s.home.join("fake-relay-normal-events.log")).unwrap_or_default();
-    assert!(events.lines().any(|l| l == "mint") && events.contains("upgrade"), "backup minted and upgraded: {events}");
+    // Each line's words first, then its fields (T-1016).
+    let words_of = podssh_relay::serve::said::words;
+    let minted = events.lines().any(|l| words_of(l) == "mint");
+    assert!(minted && events.lines().any(|l| words_of(l) == "upgrade"), "backup minted and upgraded: {events}");
     // Untrusted, on another host: the list is not used, nor kept.
     let elsewhere = throughput_harness::scratch("relay-signed-untrusted");
     let out = info(&elsewhere, None);

@@ -88,7 +88,7 @@ async fn connection(incoming: Incoming, cfg: Arc<Config>) {
         .and_then(|data| data.downcast::<HandshakeData>().ok())
         .and_then(|data| data.server_name);
     // A harness counts the connections, as `h2` for HTTP/2's.
-    cfg.event("quic");
+    cfg.event_of(&super::said::Of::client(Some(peer)), "quic");
     while let Ok((send, recv)) = connection.accept_bi().await {
         let stream = QuicStream::new(send, recv, connection.clone());
         tokio::spawn(super::serve_from(stream, cfg.clone(), sni.clone(), Some(peer)));

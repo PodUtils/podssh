@@ -217,7 +217,9 @@ where
 {
     let (asked, plan, meter) = checked(stream, head, cfg, path, keep).await?;
     if path == OPEN_LAYER || path == ONE_LAYER {
-        let (from, to) = tokio::io::split(super::layer::link(cfg, asked.host, plan));
+        // The road's lines name no client yet: its target alone (T-1016).
+        let of = super::said::Of::default().to(&shown(&asked.host, asked.port));
+        let (from, to) = tokio::io::split(super::layer::link(cfg, asked.host, plan, of));
         let far: Far = (Box::new(from), Box::new(to));
         return Ok((far, meter));
     }

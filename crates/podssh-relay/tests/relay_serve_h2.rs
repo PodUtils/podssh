@@ -32,6 +32,7 @@ use podssh_relay::open::Request;
 use podssh_relay::relay::{Relay, RelayList};
 use podssh_relay::serve::listener::{connection, Door};
 use podssh_relay::serve::policy::Policy;
+use podssh_relay::serve::said;
 use podssh_relay::serve::{tokens, Mint};
 use podssh_ws::frame::OPCODE_BINARY;
 use podssh_ws::h2_road::{self, Fallback, Road};
@@ -174,9 +175,15 @@ impl Tls {
         self.role.cfg.tokens.mint(tokens::now_ms(), tokens::LIFETIME_MS).0
     }
 
-    /// How many times the role said `line`, whole.
+    /// How many times the role said `line`: its words, whole, before its
+    /// fields (T-1016).
     fn said(&self, line: &str) -> usize {
-        self.role.events.lock().unwrap().iter().filter(|l| *l == line).count()
+        self.role.events.lock().unwrap().iter().filter(|l| said::words(l) == line).count()
+    }
+
+    /// The role's lines whose words are `line`.
+    fn lines(&self, line: &str) -> Vec<String> {
+        self.role.events.lock().unwrap().iter().filter(|l| said::words(l) == line).cloned().collect()
     }
 }
 
@@ -247,6 +254,13 @@ async fn eight_sessions_of_one_process_share_one_connection_to_the_role() {
     assert_eq!(roads.iter().filter(|r| **r == Road::Stream { shared: false }).count(), 1, "{roads:?}");
     assert_eq!(tls.said("h2"), 1, "{:?}", tls.role.events.lock().unwrap());
     assert_eq!(tls.said("upgrade"), 8, "each session is the role's upgrade of its path");
+    // Each line names the client and the target (T-1016); the connection's,
+    // the client alone.
+    let at = format!("127.0.0.1:{target}");
+    for line in tls.lines("upgrade") {
+        assert_eq!((said::field(&line, "client"), said::field(&line, "target")), (Some("127.0.0.1"), Some(&*at)));
+    }
+    assert_eq!(tls.lines("h2").iter().map(|l| said::field(l, "client")).collect::<Vec<_>>(), [Some("127.0.0.1")]);
     // How each one ended is a line of its own (T-816), as the manual says.
     let ended = || tls.role.events.lock().unwrap().iter().filter(|l| l.starts_with("end ")).count();
     let deadline = std::time::Instant::now() + LIMIT;
@@ -254,6 +268,9 @@ async fn eight_sessions_of_one_process_share_one_connection_to_the_role() {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
     assert_eq!(ended(), 8, "{:?}", tls.role.events.lock().unwrap());
+    let events = tls.role.events.lock().unwrap().clone();
+    let ends = events.iter().filter(|l| l.starts_with("end ") && said::field(l, "target") == Some(&*at)).count();
+    assert_eq!(ends, 8, "each end names its target: {events:?}");
 }
 
 /// A target that refuses: the role's 502, and its cause a line (T-816).
@@ -273,6 +290,10 @@ async fn a_target_that_refuses_is_a_502_and_a_line_of_its_cause() {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
     assert!(line().is_some_and(|l| l.contains("refused")), "{:?}", tls.role.events.lock().unwrap());
+    let to = format!("127.0.0.1:{closed}");
+    let named = line()
+        .is_some_and(|l| said::field(&l, "client") == Some("127.0.0.1") && said::field(&l, "target") == Some(&*to));
+    assert!(named, "the line names the client and the target: {:?}", line());
 }
 
 /// OpenSSH's sshd, software that podssh did not write, says its version

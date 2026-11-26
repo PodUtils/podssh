@@ -56,7 +56,9 @@ fn a_small_cap_ends_links_with_the_role_s_close_and_the_bytes_come_whole() {
     // The client moves each link before the role's cap (T-826): the move
     // threshold and both windows fit under it, and the old link is held while
     // the new one greets (pod-session, podcrates' entries 953 and 958).
-    let capped = events.lines().filter(|l| *l == "end close 1009 session byte cap").count();
+    // The line's words, before its fields (T-1016).
+    let capped =
+        events.lines().filter(|l| podssh_relay::serve::said::words(l) == "end close 1009 session byte cap").count();
     assert_eq!(capped, 0, "no link ends at the cap: {events}\n{err}");
     assert!(err.contains("moved to a new link before the relay's limits"), "the session moved: {err}");
     let lost =

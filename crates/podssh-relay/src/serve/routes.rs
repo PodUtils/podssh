@@ -14,7 +14,7 @@ use super::cover;
 use super::derp;
 use super::surface::{self};
 use super::{answer, body, brake, docs, forward, head_of, http_road, layer, leg, mailbox, meet, mint, probe};
-use super::{reverse, slow_down, strike, tokens, Config, MINT_BODY};
+use super::{reverse, said, slow_down, strike, tokens, Config, MINT_BODY};
 
 /// [`serve_named`] for a client at `from`, by whom the brake counts (T-454):
 /// a listener's TCP peer; behind the quick tunnel, where the peer is
@@ -134,18 +134,18 @@ async fn serve_surface<S>(
                 let reply = request::refusal(400, "the mint takes a JSON body", &[]);
                 return answer(&mut stream, reply).await;
             }
-            mint(&mut stream, &head, pending, &cfg, sni.as_deref()).await
+            mint(&mut stream, &head, pending, &cfg, sni.as_deref(), from).await
         }
         Some(surface::Id::Mint) if head.method == "POST" => {
-            mint(&mut stream, &head, pending, &cfg, sni.as_deref()).await
+            mint(&mut stream, &head, pending, &cfg, sni.as_deref(), from).await
         }
-        Some(surface::Id::Connect) => forward::connect(stream, head, pending, cfg).await,
+        Some(surface::Id::Connect) => forward::connect(stream, head, pending, cfg, from).await,
         // The forward road in the resumable layer (T-173), beside the contract.
-        Some(surface::Id::Layer) => layer::connect(stream, head, pending, cfg).await,
+        Some(surface::Id::Layer) => layer::connect(stream, head, pending, cfg, from).await,
         Some(surface::Id::Health) => answer(&mut stream, docs::json(&docs::health(&cfg))).await,
         Some(surface::Id::Relays) => {
             // A harness counts the reads of the document (T-173).
-            cfg.event("relays.json");
+            cfg.event_of(&said::Of::client(from), "relays.json");
             answer(&mut stream, docs::json(&docs::relays(&cfg, &head))).await
         }
         Some(surface::Id::Trace) => {

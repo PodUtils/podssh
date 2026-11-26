@@ -13,6 +13,7 @@
 //! end charges, and a key whose budget for today is spent is refused before
 //! the dial (T-636, `usage`).
 
+use std::net::IpAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -27,6 +28,7 @@ use tokio::time::Instant;
 
 use super::egress::{self, Missed, Plan};
 use super::policy::shown;
+use super::said::Of;
 use super::usage::{self, Meter};
 use super::{answer, Config};
 
@@ -75,8 +77,8 @@ pub fn asked(target: &str) -> Option<Asked> {
 }
 
 /// Serve one `/connect/` request on `stream`, `pending` the bytes that came
-/// after its head.
-pub async fn connect<S>(mut stream: S, head: Request, pending: Vec<u8>, cfg: Arc<Config>)
+/// after its head, of a client at `from`, whom its lines name (T-1016).
+pub async fn connect<S>(mut stream: S, head: Request, pending: Vec<u8>, cfg: Arc<Config>, from: Option<IpAddr>)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -100,11 +102,12 @@ where
         return answer(&mut stream, request::refusal(400, &why, &[])).await;
     };
     let target = shown(&asked.host, asked.port);
+    let of = Of::client(from).to(&target);
     let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
         Ok(plan) => plan,
         Err(refused) => {
             if let Some(line) = refused.logged() {
-                cfg.event(&line);
+                cfg.event_of(&of, &line);
             }
             return answer(&mut stream, request::refusal(refused.status(), &refused.answer(), &[])).await;
         }
@@ -127,7 +130,7 @@ where
             Err(why) => {
                 let why = format!("relay: {}", egress::cannot_reach(&target, &why));
                 // Its cause is a line on stdout too, as the manual says (T-816).
-                cfg.event(&format!("refused 502 {}", why.trim_start_matches("relay: ")));
+                cfg.event_of(&of, &format!("refused 502 {}", why.trim_start_matches("relay: ")));
                 return answer(&mut stream, request::refusal(502, &why, &[])).await;
             }
         }
@@ -135,7 +138,7 @@ where
     if stream.write_all(&server::switching(&key)).await.is_err() {
         return;
     }
-    cfg.event("upgrade");
+    cfg.event_of(&of, "upgrade");
     // The client's Close is answered once the target's bytes are over.
     let session = Arc::new(server::session(stream, pending, None).holding_close_answer());
     let tcp = match dialed {
@@ -159,7 +162,7 @@ where
         },
     };
     let after = AfterClose::Drains(cfg.limits.half_closed);
-    pump(session, tcp.into_split(), early, cfg, after, meter).await;
+    pump(session, tcp.into_split(), early, cfg, after, meter, of).await;
 }
 
 /// The target `host` by `plan`, within the dial's limit in all; `Err` holds
@@ -238,7 +241,8 @@ pub(super) fn half_closed(idle: Duration) -> String {
 /// Bytes both ways between the client and the target's two halves until one
 /// side ends or a limit is met. The target is a TCP connection, or a link's
 /// end of the resumable layer (T-173); `after`, what the client's Close does;
-/// `meter`, the payload of each way for its key, charged at the end (T-636).
+/// `meter`, the payload of each way for its key, charged at the end (T-636);
+/// `of`, the client and the target that its lines name (T-1016).
 pub(super) async fn pump<S, R, W>(
     session: Arc<RelaySession<S>>,
     (mut from_target, mut to_target): (R, W),
@@ -246,6 +250,7 @@ pub(super) async fn pump<S, R, W>(
     cfg: Arc<Config>,
     after: AfterClose,
     meter: Meter,
+    of: Of,
 ) where
     S: AsyncRead + AsyncWrite + Send + 'static,
     R: AsyncRead + Unpin + Send,
@@ -265,7 +270,7 @@ pub(super) async fn pump<S, R, W>(
     let stamp = |heard: &AtomicU64| heard.store(started.elapsed().as_millis() as u64, Ordering::SeqCst);
 
     let up = {
-        let (session, moved, heard, meter) = (session.clone(), moved.clone(), heard.clone(), meter.clone());
+        let (session, moved, heard, meter, of) = (session.clone(), moved.clone(), heard.clone(), meter.clone(), &of);
         async move {
             loop {
                 let f = match session.read_frame().await {
@@ -288,7 +293,7 @@ pub(super) async fn pump<S, R, W>(
                         }
                     }
                     frame::OPCODE_CLOSE => {
-                        cfg.event(&format!("close {}", close_code(&f.payload)));
+                        cfg.event_of(of, &format!("close {}", close_code(&f.payload)));
                         let _ = to_target.shutdown().await;
                         return End::Client;
                     }
@@ -375,11 +380,12 @@ pub(super) async fn pump<S, R, W>(
     };
     // How each session ended is a line, on each road (T-816): a client of
     // HTTP/2 ends its stream with no Close frame of its own.
-    said.event(&match &end {
+    let words = match &end {
         End::Client => "end client".to_string(),
         End::Gone => "end gone: the client went with no Close".to_string(),
         End::Close(code, why) => format!("end close {code} {why}"),
-    });
+    };
+    said.event_of(&of, &words);
     if let End::Close(code, why) = end
         && session.send_close(code, &why).await.is_ok()
     {

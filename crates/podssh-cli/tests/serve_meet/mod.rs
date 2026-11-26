@@ -69,7 +69,9 @@ fn iroh_relay_of_the_role_carries_a_session_of_two_podssh_endpoints_each_way() {
         run(&s, &cell, up, 1 << 20).unwrap_or_else(|why| panic!("up {up}: {why}"));
     }
     let events = std::fs::read_to_string(s.home.join("fake-relay-normal-events.log")).unwrap_or_default();
-    let up = events.lines().filter(|l| l.starts_with("iroh: the endpoint ") && l.ends_with(" is up")).count();
+    // The line's words, before its time (T-1016).
+    let words = podssh_relay::serve::said::words;
+    let up = events.lines().filter(|l| l.starts_with("iroh: the endpoint ") && words(l).ends_with(" is up")).count();
     assert!(up >= 2, "both endpoints came up at the role: {events}");
     let log = std::fs::read_to_string(s.home.join("fake-relay-normal-role.log")).unwrap_or_default();
     assert!(log.contains("iroh's relay protocol at /relay for the endpoints of --mint anyone"), "{log}");

@@ -30,6 +30,7 @@ use podssh_relay::quic_road::{decisive, WORDS};
 use podssh_relay::relay::{Relay, RelayList};
 use podssh_relay::serve::listener::{connection, Door};
 use podssh_relay::serve::policy::Policy;
+use podssh_relay::serve::said;
 use podssh_relay::serve::{tokens, Mint};
 use podssh_ws::frame::OPCODE_BINARY;
 use podssh_ws::tls_server::{Served, HTTP1};
@@ -214,9 +215,10 @@ impl Both {
         self.role.cfg.tokens.mint(tokens::now_ms(), tokens::LIFETIME_MS).0
     }
 
-    /// How many times the role said `line`, whole.
+    /// How many times the role said `line`: its words, whole, before its
+    /// fields (T-1016).
     fn said(&self, line: &str) -> usize {
-        self.role.events.lock().unwrap().iter().filter(|l| *l == line).count()
+        self.role.events.lock().unwrap().iter().filter(|l| said::words(l) == line).count()
     }
 
     fn relay(&self) -> Relay {
@@ -278,6 +280,11 @@ async fn a_session_over_quic_carries_each_byte_once() {
     each_way(session, 4 * MIB, 1).await;
     assert_eq!(both.accepted.load(Ordering::SeqCst), 0, "no TCP connection");
     assert_eq!((both.said("quic"), both.said("upgrade")), (1, 1), "{:?}", both.role.events.lock().unwrap());
+    // The session's line names its client and its target (T-1016).
+    let events = both.role.events.lock().unwrap().clone();
+    let to = format!("127.0.0.1:{target}");
+    let named = |l: &&String| said::field(l, "client") == Some("127.0.0.1") && said::field(l, "target") == Some(&*to);
+    assert!(events.iter().filter(|l| said::words(l) == "upgrade").all(|l| named(&l)), "{events:?}");
     let answered = dial::learned(NAME, both.port);
     assert!(matches!(answered, Some(Learned::Answered(at)) if at.port() == both.port), "{answered:?}");
 }

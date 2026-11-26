@@ -27,6 +27,7 @@
 //! `/v1/http/one-layer/`), with the same checks: [`link`] gives its bytes to
 //! the same sessions, so a session may resume on either kind of link.
 
+use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -38,6 +39,8 @@ use tokio::net::TcpStream;
 
 use super::egress::Plan;
 use super::forward;
+use super::policy::shown;
+use super::said::Of;
 use super::{answer, Config};
 use crate::forward_layer::PATH;
 use crate::relay::Relay;
@@ -162,8 +165,8 @@ pub fn serves(path: &str) -> bool {
 }
 
 /// Serve one link of the road on `stream`, `pending` the bytes that came
-/// after its head.
-pub async fn connect<S>(mut stream: S, head: Request, pending: Vec<u8>, cfg: Arc<Config>)
+/// after its head, of a client at `from`, whom its lines name (T-1016).
+pub async fn connect<S>(mut stream: S, head: Request, pending: Vec<u8>, cfg: Arc<Config>, from: Option<IpAddr>)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -187,12 +190,13 @@ where
         let why = format!("{}: the path is {PATH}HOST/PORT", head.target);
         return answer(&mut stream, request::refusal(400, &why, &[])).await;
     };
+    let of = Of::client(from).to(&shown(&asked.host, asked.port));
     // A resume's path is checked too: the policy holds for each link.
     let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
         Ok(plan) => plan,
         Err(refused) => {
             if let Some(line) = refused.logged() {
-                cfg.event(&line);
+                cfg.event_of(&of, &line);
             }
             return answer(&mut stream, request::refusal(refused.status(), &refused.answer(), &[])).await;
         }
@@ -200,18 +204,20 @@ where
     if stream.write_all(&server::switching(&key)).await.is_err() {
         return;
     }
-    cfg.event("upgrade layer");
+    cfg.event_of(&of, "upgrade layer");
     let session = Arc::new(server::session(stream, pending, None));
-    let theirs = link(&cfg, asked.host, plan);
+    let theirs = link(&cfg, asked.host, plan, of.clone());
     // A link's Close ends the link alone: the layer's `END` is its half-close.
-    forward::pump(session, tokio::io::split(theirs), Vec::new(), cfg, forward::AfterClose::Ends, meter).await;
+    let ends = forward::AfterClose::Ends;
+    forward::pump(session, tokio::io::split(theirs), Vec::new(), cfg, ends, meter, of).await;
 }
 
 /// A new link of the layer to `host`, checked and planned by its carrier:
 /// the carrier's end of a pipe whose other end is the layer's, which runs on
 /// its own, as the session that it carries outlives the link. The carrier
-/// is a WebSocket of `/v1/layer/`, or a session of the HTTP road.
-pub fn link(cfg: &Arc<Config>, host: String, plan: Plan) -> DuplexStream {
+/// is a WebSocket of `/v1/layer/`, or a session of the HTTP road; `of`,
+/// the client and the target that its lines name (T-1016).
+pub fn link(cfg: &Arc<Config>, host: String, plan: Plan, of: Of) -> DuplexStream {
     let resumes = &cfg.resumes;
     resumes.sweep();
     let (ours, theirs) = tokio::io::duplex(PIPE);
@@ -219,7 +225,7 @@ pub fn link(cfg: &Arc<Config>, host: String, plan: Plan) -> DuplexStream {
     let (far_cfg, dial_cfg) = (cfg.clone(), cfg.clone());
     tokio::spawn(async move {
         let open = || async move { forward::dial(&host, &plan, &dial_cfg).await };
-        serve_link(ours, settings, budget, &keeper, open, &far_cfg).await;
+        serve_link(ours, settings, budget, &keeper, open, &far_cfg, &of).await;
     });
     theirs
 }
@@ -237,6 +243,7 @@ async fn serve_link<L, O, F>(
     keeper: &Keeper<TcpStream>,
     open: O,
     cfg: &Config,
+    of: &Of,
 ) where
     L: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     O: FnOnce() -> F,
@@ -259,7 +266,7 @@ async fn serve_link<L, O, F>(
     };
     if accepted.established().resumed {
         // The handshake proved the session's secret on this new link.
-        cfg.event("layer resumed");
+        cfg.event_of(of, "layer resumed");
         let _ = keeper.run_resumed(accepted).await;
         return;
     }

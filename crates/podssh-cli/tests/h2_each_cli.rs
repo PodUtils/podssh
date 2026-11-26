@@ -39,6 +39,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use http_road_cli_support::{bytes, role_certificate, run, MIB, NAME};
+use podssh_relay::serve::said;
 use sha2::{Digest, Sha256};
 use throughput_harness::{without_proxy, Session};
 
@@ -235,8 +236,20 @@ fn each_over_8_hosts_through_the_role_shares_one_tls_connection_with_equal_diges
     assert!(others.clone().all(|(up, down)| *up < SMALL && *down < SMALL), "no other carried a session: {carried:?}");
 
     // The role upgraded each stream's path once: 8 sessions, 8 upgrades.
+    // Each line's words first, then its fields (T-1016).
     let lines = std::fs::read_to_string(&events).unwrap_or_default();
-    let upgrades = lines.lines().filter(|l| *l == "upgrade").count();
-    assert_eq!(upgrades, HOSTS, "the role's events: {lines}");
-    assert!(lines.lines().any(|l| l == "h2"), "the role served HTTP/2: {lines}");
+    let upgrades: Vec<&str> = lines.lines().filter(|l| said::words(l) == "upgrade").collect();
+    assert_eq!(upgrades.len(), HOSTS, "the role's events: {lines}");
+    assert!(lines.lines().any(|l| said::words(l) == "h2"), "the role served HTTP/2: {lines}");
+    // Each upgrade names the client, its own target and its time.
+    let mut targets: Vec<&str> = upgrades.iter().filter_map(|l| said::field(l, "target")).collect();
+    let mut wanted: Vec<String> = ports.iter().map(|p| format!("127.0.0.1:{p}")).collect();
+    targets.sort_unstable();
+    wanted.sort_unstable();
+    assert_eq!(targets, wanted, "each host's target, once: {lines}");
+    for line in &upgrades {
+        assert_eq!(said::field(line, "client"), Some("127.0.0.1"), "{line}");
+        let at = said::field(line, "at").unwrap_or_default();
+        assert!(at.len() == 20 && at.ends_with('Z') && at.as_bytes()[10] == b'T', "a time in UTC: {line}");
+    }
 }

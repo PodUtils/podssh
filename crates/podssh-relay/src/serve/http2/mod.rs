@@ -84,7 +84,7 @@ where
     let Ok(Ok(mut connection)) = tokio::time::timeout(super::listener::HANDSHAKE_WAIT, handshake).await else {
         return;
     };
-    cfg.event("h2");
+    cfg.event_of(&super::said::Of::client(from), "h2");
     let open = Arc::new(AtomicUsize::new(0));
     let (mut quiet, mut closing) = (Duration::ZERO, false);
     loop {

@@ -86,7 +86,7 @@ where
         ("POST", "/v1/mint") if once_asked(&head.target) => {
             cfg.event("cleartext POST /v1/mint");
             // No TLS: no name that a key's signed mint must name.
-            super::mint(&mut stream, &head, pending, &cfg, None).await
+            super::mint(&mut stream, &head, pending, &cfg, None, from).await
         }
         ("POST", "/v1/mint") => {
             cfg.event("cleartext refused POST /v1/mint");
@@ -104,7 +104,7 @@ where
             }
             cfg.event("cleartext GET /connect/");
             // The upgrade spends the token (`Tokens::take`).
-            forward::connect(stream, head, pending, cfg).await
+            forward::connect(stream, head, pending, cfg, from).await
         }
         (_, p) => {
             cfg.event("cleartext refused");

@@ -67,6 +67,8 @@ pub mod quic;
 // exit's and the net's routes read too.
 pub mod ranges;
 pub mod reverse;
+// The shape of an event line: its words, then its fields (T-1016).
+pub mod said;
 // The one request on one surface, and the credential of a cover (T-764 to
 // T-767).
 mod routes;
@@ -203,8 +205,9 @@ pub struct Config {
     pub cover: Option<Arc<cover::Cover>>,
     /// Each mint, upgrade, read of `/relays.json` and client's Close as a
     /// line (`mint`, `upgrade`, `relays.json`, `close CODE`), and each step of
-    /// the reverse road (`reverse ...`), as
-    /// the stand-in relay prints them for a harness.
+    /// the reverse road (`reverse ...`), with the words that the stand-in
+    /// relay prints first; a session's lines end with its fields
+    /// ([`said`], T-1016).
     pub events: Option<Events>,
 }
 
@@ -212,6 +215,14 @@ impl Config {
     fn event(&self, line: &str) {
         if let Some(say) = &self.events {
             say(line);
+        }
+    }
+
+    /// A line of `words` for the connection `of`: its client, and its
+    /// target where it has one (T-1016).
+    fn event_of(&self, of: &said::Of, words: &str) {
+        if self.events.is_some() {
+            self.event(&of.line(words));
         }
     }
 }
@@ -269,9 +280,15 @@ where
 }
 
 /// `POST /v1/mint`: `{token, expires, scope}`; with `?once=1`, a token of
-/// one session, `"once": true` (T-326).
-pub(super) async fn mint<S>(stream: &mut S, head: &request::Request, pending: Vec<u8>, cfg: &Config, sni: Option<&str>)
-where
+/// one session, `"once": true` (T-326). Its line names the client at `from`.
+pub(super) async fn mint<S>(
+    stream: &mut S,
+    head: &request::Request,
+    pending: Vec<u8>,
+    cfg: &Config,
+    sni: Option<&str>,
+    from: Option<IpAddr>,
+) where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     // The body first: a byte left unread would make the end of the
@@ -292,7 +309,7 @@ where
     // A token of one session, which an upgrade spends: the one that the
     // cleartext road asks for, and the only one minted in cleartext.
     if cleartext::once_asked(&head.target) {
-        cfg.event("mint once");
+        cfg.event_of(&said::Of::client(from), "mint once");
         let body = match cfg.tokens.mint_once(tokens::now_ms()) {
             Ok((token, expires)) => {
                 // Its nonce is drawn: no other key holds it.
@@ -305,7 +322,7 @@ where
         };
         return answer(stream, docs::json(&body)).await;
     }
-    cfg.event("mint");
+    cfg.event_of(&said::Of::client(from), "mint");
     let Some((token, expires)) = forward_token(cfg, maker.as_deref()) else {
         let why = "/v1/mint: mints of one millisecond made one token for several keys; ask again";
         return answer(stream, request::refusal(503, why, &[("Retry-After", "1")])).await;

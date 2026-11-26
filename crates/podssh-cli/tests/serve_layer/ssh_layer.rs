@@ -91,7 +91,7 @@ fn podssh_ssh_in_the_layer_lives_on_cuts_of_its_link() {
     assert!(events.contains("layer resumed"), "the role resumed the session: {events}");
     assert!(stderr.contains("the session resumed after"), "podssh ssh says each resume: {stderr}");
     // Unset, by the offer of one read, then kept: no read at each resume.
-    let reads = events.lines().filter(|l| l.trim() == "relays.json").count();
+    let reads = events.lines().filter(|l| podssh_relay::serve::said::words(l) == "relays.json").count();
     assert_eq!(reads, 1, "the offer was read once: {events}");
 }
 

@@ -94,7 +94,10 @@ fn the_net_s_relay_member_gives_its_list_with_no_relay_host() {
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
     assert_eq!(text(&out.stdout), crate::ssh_harness::GREETING);
     let events = std::fs::read_to_string(s.home.join("fake-relay-normal-events.log")).unwrap_or_default();
-    assert!(events.lines().any(|l| l == "mint") && events.contains("upgrade"), "backup minted and upgraded: {events}");
+    // Each line's words first, then its fields (T-1016).
+    let words_of = podssh_relay::serve::said::words;
+    let minted = events.lines().any(|l| words_of(l) == "mint");
+    assert!(minted && events.lines().any(|l| words_of(l) == "upgrade"), "backup minted and upgraded: {events}");
     // relay status names the deployment, signed by the member's key, and the
     // member with its list taken.
     let status = words(&["relay", "status", "--ca-file", &ca, "--relay-addr", &pins]);

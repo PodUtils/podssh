@@ -4,7 +4,7 @@ index ec93d2e..1c924b0 100644
 +++ b/crates/podssh-relay/src/serve/forward.rs
 @@ -132,7 +132,7 @@ where
      }
-     cfg.event("upgrade");
+     cfg.event_of(&of, "upgrade");
      // The client's Close is answered once the target's bytes are over.
 -    let session = Arc::new(server::session(stream, pending, None).holding_close_answer());
 +    let session = Arc::new(server::session(stream, pending, None));
@@ -17,6 +17,6 @@ index ec93d2e..1c924b0 100644
      };
 -    let after = AfterClose::Drains(cfg.limits.half_closed);
 +    let after = AfterClose::Ends;
-     pump(session, tcp.into_split(), early, cfg, after, meter).await;
+     pump(session, tcp.into_split(), early, cfg, after, meter, of).await;
  }
  

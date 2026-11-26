@@ -33,6 +33,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use http_road_cli_support::{bytes, role_certificate, run, Ran, NAME};
+use podssh_relay::serve::said::{field, words};
 use podssh_ws::Trust;
 use rustls::pki_types::ServerName;
 use throughput_harness::{without_proxy, Session};
@@ -306,7 +307,14 @@ fn the_shape_of_the_road_that_the_cli_opens_is_the_shape_that_was_chosen() {
         "the shape changed the session's SETTINGS"
     );
     // The role served both sessions on HTTP/2 and upgraded each path.
+    // Each line's words first, then its fields (T-1016).
     let said = std::fs::read_to_string(&events).unwrap_or_default();
-    assert!(said.lines().any(|l| l == "h2"), "the role served HTTP/2: {said}");
-    assert_eq!(said.lines().filter(|l| *l == "upgrade").count(), 2, "the role's events: {said}");
+    assert!(said.lines().any(|l| words(l) == "h2"), "the role served HTTP/2: {said}");
+    let upgrades: Vec<&str> = said.lines().filter(|l| words(l) == "upgrade").collect();
+    assert_eq!(upgrades.len(), 2, "the role's events: {said}");
+    for line in upgrades {
+        let to = field(line, "target").unwrap_or_default();
+        assert!(field(line, "client") == Some("127.0.0.1") && to.starts_with("127.0.0.1:"), "{line}");
+        assert!(field(line, "at").is_some_and(|at| at.ends_with('Z')), "a time in UTC: {line}");
+    }
 }

@@ -174,7 +174,10 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
         (Some(path), true) => Some(serve::control::Control::bind(path).map_err(Refusal::config)?),
         _ => None,
     };
+    // Each line ends with its time in UTC (T-1016): one shape whether a
+    // journal, a file or a terminal takes stdout.
     let events: serve::Events = Box::new(|line: &str| {
+        let line = serve::said::stamped(line, &crate::pairs::utc(crate::pairs::now_ms()));
         let mut out = std::io::stdout().lock();
         let _ = writeln!(out, "{line}");
         let _ = out.flush();
