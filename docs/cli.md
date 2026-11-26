@@ -2450,7 +2450,11 @@ them (T-197; `crates/podssh-cli/src/job/`).
   regular file of that pattern of sh, in the home directory of the host, to
   `DIR/files` by its path. DIR is `./podssh-job-ID` by default. A pattern
   with an absolute path or a `..` is refused (64), and so is each path that
-  has no place under `DIR/files`. A job that is queued or running is not
+  has no place under `DIR/files`. DIR is made before anything connects
+  (T-1065): one that cannot be made here, or that is no directory, is 73
+  with a line that names it, as `cp` says a destination, never the 255 of
+  a host out of reach; a file under it that cannot be written is 73 too,
+  and the levels of DIR that the fetch made go again while they are empty. A job that is queued or running is not
   fetched, as its output is not whole until it ends (75). A lost job is
   fetched as it is, then a line names it lost, and the exit is 255, as
   `wait` and `log --follow` end for it (T-986). `list --json` gives one
@@ -2459,9 +2463,11 @@ them (T-197; `crates/podssh-cli/src/job/`).
 - **The exit status** is that of `podssh ssh`: 0; 64 for a usage error and
   78 for a setting, before anything connects; 255 when the host cannot be
   reached or logged in to, has no tmux, has no job of that ID, gives no
-  answer, or a job of `--no-tmux` runs on after its stop. `wait` and `log
+  answer, or a job of `--no-tmux` runs on after its stop; for `fetch` also
+  a file of the host that cannot be read. `wait` and `log
   --follow` give the job's status; 75 when their `--timeout` passed, and
-  when `fetch` finds the job queued or running. `--no-tmux` with another
+  when `fetch` finds the job queued or running. `fetch` gives 73 when DIR,
+  or a file in it, cannot be made here; a fault of the host wins over it. `--no-tmux` with another
   subcommand than `start` and `submit` is 64, and so are `--from-end`,
   `--jsonl` and `--timeout` with `log` without `--follow`.
 

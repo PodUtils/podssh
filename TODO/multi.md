@@ -4358,3 +4358,64 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test containers a_bad_command_line
 Drafted 2026-11-26 by a drafting agent;
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1065: `job fetch` into a DIR that cannot be made here exits 255, as a host out of reach
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 6.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh job fetch HOST ID /proc/nope` said "podssh: /proc/nope: No such file or directory" and exited 255, and `...
+ID /dev/null` said "/dev/null: File exists" with 255: the code of a host that cannot be reached, for a fault here.
+`podssh cp` gives 73 for a destination that cannot be written, and the manual says that fetch copies "as podssh cp
+copies a file". A remote file of `--files` that cannot be read was 255 too, which the manual did not say.
+
+## Premise
+
+- Read, at `40a83e5`: `fetch` in `crates/podssh-cli/src/job/fetch.rs` makes the directory of each copy with
+  `create_dir_all` after the connection and the far script's answer (line 116), says the system's words, and sets
+  one flag `failed` for every fault (lines 108, 117 and 128), which ends as `EXIT_FAILURE` (line 145): a fault here
+  and a fault of the host are one 255.
+- The failure of a copy carries its fault (`crates/podssh-cli/src/cp/transfer.rs:76`): `CantCreate` for a
+  destination that cannot be written, which is here for a fetch.
+
+## Approach
+
+1. `prepare` (`crates/podssh-cli/src/job/fetch.rs:83`) makes DIR before anything connects, level by level, and
+   remembers the levels that it made; a DIR that is a file, or one that cannot be made, is one line that names the
+   place here, and 73. `fetch` (`crates/podssh-cli/src/job/fetch.rs:125`) takes the levels away again, while they
+   are empty, when the fetch does not end with 0, so that a fetch of a running job or of a host out of reach leaves
+   no empty `podssh-job-ID`.
+2. In the copies, a fault here (a directory under DIR, a path with no place, a copy whose fault is `CantCreate`)
+   and a fault of the host or the link are kept apart; `exit_of` (`crates/podssh-cli/src/job/fetch.rs:238`) gives
+   255 for a fault of the host first, else 73, else 0. A lost job stays 255 (T-986).
+3. The manual (`podssh man job`, and the row of 73 in EXIT STATUS) and `docs/cli.md` say both codes, and that a
+   file of the host that cannot be read is 255.
+
+## Decision
+
+- 73, as `cp`'s destination and `--result-file`'s (T-1048): a file that cannot be made here, which a script must
+  tell from a host out of reach. Lost: nothing; 255 told the two apart from nothing.
+- DIR is made before the connection, not checked: only a try of the system tells a `/proc` that takes no
+  directory. The levels made go again when empty, so a failed fetch leaves nothing; a directory that holds a file
+  stays, also one that another process filled.
+- A file of the host that cannot be read stays 255 and is documented: it is the host's fault, as the other 255s of
+  `job` are, and not cp's 66 of a source named on the command line. When both come, 255 wins: the host failed.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib job::fetch
+cargo test -p podssh-cli --test job
+```
+
+## Done
+
+UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.

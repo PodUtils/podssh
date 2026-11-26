@@ -97,6 +97,25 @@ fn a_host_out_of_reach_is_255_and_stdout_stays_empty() {
         assert!(out.is_empty(), "{args:?}: {out}");
         assert!(!err.is_empty(), "{args:?}: no word of why");
     }
+    // T-1065: the DIR that fetch made for nothing goes again.
+    assert!(!home.join("podssh-job-abcd1234").exists(), "fetch left its empty DIR");
+}
+
+/// T-1065: a DIR of `fetch` that cannot be made here is 73, before
+/// anything connects (the host is out of reach, which would be 255), with
+/// a line that names the place here.
+#[test]
+fn a_fetch_dir_that_cannot_be_made_here_is_73_before_anything_connects() {
+    let home = scratch("fetch-dir");
+    let file = home.join("a-file");
+    std::fs::write(&file, b"x").unwrap();
+    for (dir, says) in [(file.clone(), "not a directory"), (file.join("sub"), "a-file")] {
+        let shown = dir.display().to_string();
+        let (code, out, err) = podssh(&home, &["job", "fetch", "web1.example.org", "abcd1234", &shown]);
+        assert_eq!(code, 73, "{shown}: {err}");
+        assert!(out.is_empty(), "{shown}: {out}");
+        assert!(err.lines().any(|line| line.contains(&shown) && line.contains(says)), "{shown}: {err}");
+    }
 }
 
 #[test]

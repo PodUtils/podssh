@@ -51,12 +51,13 @@ pub const JOB: &[&str] = &[
      status; after a lost connection it connects again, 5 times in a row at most. With --timeout DURATION, it exits \
      75 when the job has not ended within DURATION, and the job runs on. podssh job fetch HOST ID [DIR] copies the \
      job's output to DIR/out, as podssh cp copies a file. With --files GLOB it also copies each file of that pattern \
-     of sh in the host's home directory to DIR/files, by its path; DIR is ./podssh-job-ID by default. A job that is \
-     queued or running is not fetched, as its output is not whole yet (75). A lost job's output is fetched as it \
+     of sh in the host's home directory to DIR/files, by its path; DIR is ./podssh-job-ID by default. fetch makes \
+     DIR before it connects, and takes it away again when it stays empty. A job that is queued or running is not fetched, as its output is not whole yet (75). A lost job's output is fetched as it \
      is; then a line names it lost, and the exit is 255. podssh job list HOST --json gives one \
      JSON object: the host, and each job with its id, state, status, started_ms and command.",
     "The exit status is that of podssh ssh: 0; 64 for a usage error and 78 for a setting, before anything connects; \
      255 when the host cannot be reached or logged in to, has no tmux, has no such job, or gives no answer. 255 also \
      when a job of --no-tmux runs on after its stop. wait and log --follow give the job's status, or 75 at their \
-     --timeout.",
+     --timeout. fetch gives 73, as podssh cp does, when DIR or a file in it cannot be made here. It gives 255 when \
+     a file of the host cannot be read.",
 ];
