@@ -842,7 +842,7 @@ sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
 the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:362-402`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
-`crates/podssh-cli/src/ssh/resolve.rs:352-362` (the `warnings` of keepalives), and `podssh ssh` exits 255.
+`crates/podssh-cli/src/ssh/resolve.rs:344-354` (the `warnings` of keepalives), and `podssh ssh` exits 255.
 
 ## Approach
 
@@ -856,7 +856,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 3. Carry the `ACK` of T-152 in each `PONG`. The cost is about 20 bytes each
    way each 10 s: under 0.2 MiB in 12 h.
 4. On the resumable road, do not print the warning of
-   `crates/podssh-cli/src/ssh/resolve.rs:352-362` (the `warnings` of keepalives).
+   `crates/podssh-cli/src/ssh/resolve.rs:344-354` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:394-409`,
    `crates/podssh-cli/src/man/facts.rs:429-438`), the note at
@@ -1418,7 +1418,7 @@ the shell on a detach fails it.
   `env` requests of podssh's own names and a subsystem, which the handler
   sees (`crates/podssh-ssh/src/keep.rs`).
 - An escape needs a pty and a terminal on stdin
-  (`crates/podssh-ssh/src/session.rs:210`), so a test cannot type `~d`
+  (`crates/podssh-ssh/src/session.rs:212`), so a test cannot type `~d`
   through a pipe: the attach test types it in a pseudo console on Windows
   (`crates/podssh-cli/tests/conpty_harness/mod.rs`) and in a pty on Linux
   (`crates/podssh-cli/tests/pty_harness/mod.rs`, new).
@@ -2700,6 +2700,89 @@ See also the addition of the donor study (report 14) to T-161: the offset log is
     is (item 1). Lost: the lines by default (the gate's test of the bar would fail at random); an `-o` keyword, which
     `ssh_config` has none of; `--frames=scroll`, a flag with a value where `--frames` takes none today.
 
+2026-11-26, the calls of the draft of item (c) of the Done's list: local echo's guesses over frames.
+
+25. **The client's local echo reads the frames' drawing as its far end's output.** The bytes that a frame draws on the
+    terminal go through `Predict::output`, as the far end's bytes do with no frames (`crates/podssh-ssh/src/io/msg.rs`,
+    `frame`): the guesses come off, the drawing goes, and the guesses that still stand go on again. Its model then
+    reads what the terminal is drawn with, so it holds the terminal's screen, which is what a guess is drawn over;
+    after the first frame, whose drawing is the whole screen, the two agree cell for cell. The cost is one `vt100`
+    parse of each frame's drawing, for a session that asked for both, and none for each byte of a flood. This
+    supersedes the usage error of item 12. Lost: a second model fed with the receiver's states (`State::screen`),
+    which would need a guess drawn over a screen that no stream of bytes made, so a new `draw` and `undo` against a
+    state; Mosh's own overlay over its framebuffer, a rewrite of local echo's engine for the one mode.
+26. **The far end puts each report of local echo in the queue of the frames, after the frame of the output read before
+    it** (`crates/podssh-ssh/src/server/frames.rs`, `Shared::reported`; `Sender::pending`). With bytes a report follows
+    the output that the pump read before it, so a guess is judged on a screen that holds its echo. With frames the
+    echo waits up to half a round trip (or the window) for its frame, and a report sent at once would judge each guess
+    before its echo and kill each epoch. So a report made while a change waits for its frame is parked and goes right
+    after that frame; with no change waiting it goes at once; a change that leaves the client's screen as it is lets
+    the parked reports go with no frame; the last frame takes those that wait. At most 64 wait, the oldest dropped, as
+    a later report's count covers it. The reports keep their own code and their own writer, written by the task that
+    sends the frames in the queue's order. So "the far end needs nothing new" does not hold: the wire is the same, but
+    the order is new, and serve takes both asks. Lost: the client holding each report until the next frame (it cannot
+    know which frame holds the echo, and a key whose echo changes nothing would wait for ever); the count inside the
+    frame's header, as Mosh's echo ack (a version 3 of the frames for the one mode); reports sent at once (each guess
+    judged wrong).
+27. **The frames are asked before local echo.** A serve before this draft takes one of the two on a channel (each
+    refused the other): asked first, the frames are taken, and local echo is refused with its line at -v. The frames
+    are what the user cannot do without under a flood; a guess is a comfort. Lost: local echo first, as before, with
+    which such a serve would give guesses over bytes and refuse the frames with one line.
+
+2026-11-26, the calls of the draft of item (b) of the Done's list, for a kept shell (T-159); a shell shared by name
+(T-837) is not drafted (item 35).
+
+28. **The model belongs to the kept shell's record** (`State::frames` in `crates/podssh-ssh/src/server/kept.rs`): made
+    when a channel with frames first has the shell (the channel that starts it, whose model it takes, or one that joins
+    it), and fed by the shell's pump with each byte of the output from then on, with no client or with a client of
+    bytes too, for the shell's life. A framed login shell is kept as any login shell, and `~d` keeps it. This
+    supersedes "a shell that is kept" of item 12. Lost: a model for each kept shell from its start (a parse of each byte
+    and a grid for each shell that no one asked frames of, the cost for which T-161 took none); a model made from the
+    ring at each attach with frames and dropped at its leave (the re-read of 256 KiB and a redraw at each attach, and
+    the model would not outlive its client, as this item asks).
+29. **Each channel with frames that has the shell is an epoch of the model's sender**
+    (`crates/podssh-ssh/src/server/frames_epoch.rs`): `Shared::restart` at its attach (a new sender with no base, so
+    the first frame is the whole screen; a queue, a wake and a task of its own), `Shared::release` at its leave (`~d`,
+    a close, another client's `--take`: its task ends, and the model is fed with no frame made). A kept shell has one
+    channel at a time, so one sender in turn is enough. The numbers of the frames go on from the last epoch's, and an
+    acknowledgement of a number before the epoch's first goes nowhere; a report of local echo carries its epoch, and
+    one of an older channel goes nowhere. Lost: a list of senders, one for each channel at once, which only a shell
+    shared by name needs (item 35); numbers from 1 at each attach, with which an older client's acknowledgement could
+    name a frame of the new one.
+30. **An attach with frames gets no replay, no reset's line and no modes: its first frame is the shell's whole
+    screen** (`Shell::attach_framed` in `crates/podssh-ssh/src/server/kept_frames.rs`). A model made at an attach (a
+    shell started with bytes) reads the modes before the ring's start, then the ring, as a fresh attach of bytes
+    does, and the program is asked to draw its screen again (T-161's redraw); a model that the shell had needs none.
+    Lost: the catch-up's bytes drawn as frames (the model has them already); the ring's last screenful alone
+    (`tail_from`), which gives none on the alternate screen.
+31. **The model answers the program's questions only while a channel with frames has the shell**
+    (`Model::set_answering`). With a client of bytes, its terminal answers; with none, nobody does, as with bytes.
+    The ring read into a new model answers nothing: the program asked long ago. Lost: a model that always answers (two
+    answers with a client of bytes).
+32. **The ring stays: each byte goes into it also while a channel with frames has the shell**, so that a later client
+    of bytes gets the ring and the output as before (`Out` in `crates/podssh-ssh/src/server/kept_flow.rs`), and the
+    model is fed out of the shell's lock, which a window change takes on the SSH session's task (item 22's rule). The
+    cost: a framed kept shell parses each byte twice, the ring's grammar and the model, where a framed shell not kept
+    parses it once. `podssh serve --listen` keeps no shell (`podssh-cli`'s `serve_keep::lease`), so the measured bar
+    (`frames_e2e`, `feel_interrupt.py`) runs the path of a shell not kept, unchanged. Lost: no ring while a channel
+    with frames has the shell, and the model's screen as the replay of a later attach of bytes (a second replay path,
+    and the offsets that T-895's clients count would stop).
+33. **The client asks for frames with `--attach NAME`** (`frames::wanted`): the line "no frames with --attach" is
+    gone; a list of the kept shells is no session of a terminal, and asks none. A serve before this draft refuses the
+    ask on a channel that joins, and the session shows each byte, with its line. Lost: nothing else; the attach's own
+    asks are unchanged.
+34. **The tests**: `crates/podssh-ssh/tests/serve_keep_frames.rs` (russh's client and podssh's receiver; the harness's
+    `Seen` keeps the frames apart, `crates/podssh-ssh/tests/share_harness/mod.rs`) and
+    `server::frames::tests::each_epoch_starts_with_the_whole_screen_and_ends_the_last`.
+35. **A shell shared by name is not drafted.** Its seats are several channels at once, each with its own base: the
+    model would belong to the hub (`crates/podssh-ssh/src/server/share.rs`, `Hub`), fed by the tee of the owner's
+    pump, and `Shared` would hold one sender, one queue and one task for each seat with frames, where it holds one in
+    turn; the pump would make the due frame of each seat at each write, and the handler would give each seat's
+    acknowledgements to its own sender. A watcher's model gives no answer to the pty. What waits: that split of
+    `Shared` (the model apart from the senders), the ask on a seat (`frames_ask.rs` refuses it under `--share` and for
+    a login under a name), and a test of two seats with their own bases. Lost for now: nothing that this draft builds
+    on; the epochs of item 29 are one sender at a time of the same split.
+
 ## Prove
 
 ```sh
@@ -2894,6 +2977,86 @@ lines alone waiting for an empty window; 1,117 ms with the handler kept off the 
 587 ms earlier the same day. So `--frames` stays as it was, and the scrollback's lines are `--frames-scroll`'s (Decision
 24). Item (d) is done as `--frames-scroll`; item (e) is done (the recording tap held the drawn bytes; the test is
 `frames_e2e`'s record and play, with `--frames-scroll`). Left: (b), (c), (f), (g) and (h).
+
+Drafted 2026-11-26 by a worker, on `main` at `b562ec9`, not built and not run: item (c), local echo's guesses over
+frames (the Decision, items 25 to 27). Each result is below, from the lead's merge.
+
+- The client: `crates/podssh-ssh/src/io/msg.rs` (a frame's drawing through `Predict::output`),
+  `crates/podssh-ssh/src/session.rs` (the frames asked before local echo, and answered first),
+  `crates/podssh-ssh/src/predict/mod.rs` (its note).
+- The far end: `crates/podssh-ssh/src/server/frames.rs` (the queue holds frames and reports, `Shared::reported`, the
+  writer `Reports`, `Shared::run_told` with the reports' writer; `Shared::run` is the tests' alone),
+  `crates/podssh-ssh/src/frames/sender.rs` (`Sender::pending`), `crates/podssh-ssh/src/server/predict.rs`
+  (`Reporter::to`), `crates/podssh-ssh/src/server/pty_child.rs` (a framed channel's reporter and its count of the
+  input), `crates/podssh-ssh/src/server/predict_ask.rs` and `crates/podssh-ssh/src/server/frames_ask.rs` (each takes
+  its ask beside the other).
+- The command line: the refusal is gone from `crates/podssh-cli/src/ssh/resolve.rs`, its two rows from `APART` in
+  `crates/podssh-cli/src/refuse.rs`, and its row from `crates/podssh-cli/tests/words.rs`; the manual's notes
+  (`crates/podssh-cli/src/man/notes_frames.rs`, `crates/podssh-cli/src/man/notes_predict.rs`); `docs/terminal.md`
+  ("Local echo over frames"), `docs/cli.md`, a row of `docs/STATUS.md`.
+- The tests: `crates/podssh-ssh/tests/predict_frames.rs`, one table of steps (the far end's model and sender make each
+  frame, the receiver draws it, local echo draws over it, `vt100` reads each byte written): a guess confirmed by a
+  frame, one contradicted (it goes with the report after the frame), one pending when a frame of a new title comes
+  (drawn again over it), and a frame that moves the cursor to the next row (the row's guesses go); after each step
+  each row but the cursor's is the far end's, and at the end the terminal is the far end's screen.
+  `server::frames::tests::a_report_goes_after_the_frame_of_the_output_before_it` (a table: no change waits, a change
+  waits for its frame, a change that the client's screen already shows) and
+  `server::frames::tests::the_last_frame_takes_the_reports_that_wait` (the order of the two writers of the task that
+  sends).
+
+Drafted 2026-11-26 by the same worker, on top of the draft of item (c), not built and not run: item (b) for a kept
+shell (the Decision, items 28 to 34); a shell shared by name waits (item 35). Each result is below, from the lead's merge, not
+lead's merge.
+
+- The far end: `crates/podssh-ssh/src/server/frames.rs` (the version and the feeding in the model's record, the queue
+  of an epoch, `Shared::fed` for each pump, `Shared::run_epoch`), `crates/podssh-ssh/src/server/frames_epoch.rs` (new:
+  the epochs, `restart`, `release`, `seed`, `end`; the writers `Sink` and `Reports`),
+  `crates/podssh-ssh/src/frames/sender.rs` (`Sender::from_number`, `next_number`), `crates/podssh-ssh/src/frames/screen.rs`
+  (`Model::set_answering`), `crates/podssh-ssh/src/server/kept.rs` (the model in the shell's record; a size, a leave
+  and the end reach it), `crates/podssh-ssh/src/server/kept_frames.rs` (new: a framed channel's record, the model made
+  at an attach, `attach_framed`), `crates/podssh-ssh/src/server/kept_flow.rs` (`Out` feeds the model; a framed
+  channel's reports), `crates/podssh-ssh/src/server/kept_run.rs` (the first channel's frames; the last frame before
+  the status), `crates/podssh-ssh/src/server/kept_join.rs` (an attach with frames), `crates/podssh-ssh/src/server/kept_catch.rs`
+  (the redraw, for `kept_frames.rs`), `crates/podssh-ssh/src/server/pty_child.rs` (a framed login shell is kept),
+  `crates/podssh-ssh/src/server/frames_ask.rs` (the ask on a channel that joins or keeps).
+- The client: `crates/podssh-ssh/src/frames/mod.rs` (`wanted` with `--attach`).
+- The manual (`crates/podssh-cli/src/man/notes_frames.rs`), `docs/terminal.md` ("A kept shell with frames"; "Screen
+  on attach"), `docs/cli.md`, a row of `docs/STATUS.md`.
+
+What the main session runs, in this order, for both drafts:
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib frames::
+cargo test -p podssh-ssh --lib server::frames
+cargo test -p podssh-ssh --lib server::kept
+cargo test -p podssh-ssh --test predict_frames --test predict
+cargo test -p podssh-ssh --test frame_rate
+cargo test -p podssh-ssh --test serve_keep_frames --test serve_keep --test serve_attach_ticket
+cargo test -p podssh-ssh --test serve_predict --test serve_predict_kept --test serve_predict_share
+cargo test -p podssh-ssh --test serve_pty --test serve_share
+cargo test -p podssh-cli --lib man
+cargo test -p podssh-cli --lib refuse
+cargo test -p podssh-cli --test words --test flag_table --test man_flag_parity
+cargo test -p podssh-cli --test frames_e2e --test predict_e2e --test ssh_record
+python3 scripts/feel_interrupt.py --frames --podssh target/debug/podssh --runs 5
+```
+
+The last one must stay within the bar of three round trips (900 ms) and near `main`'s figure the same hour: neither
+draft adds work for a byte of the path that it measures (`podssh serve --listen` keeps no shell; a channel without
+`--predict` has no reporter), and the queue's reports and the epoch's checks cost each frame, not each byte. Then
+`podssh man --llms full > llms-full.txt`, `cargo todo remap` of each file named above that entries cite, rustfmt and
+the gate's clippy, also for `x86_64-pc-windows-gnu` (`kept_frames.rs`, `frames_epoch.rs` and `kept_join.rs` build
+there too, where serve runs no program).
+
+Left after these: (b) for a shell shared by name (the Decision, item 35), (f), (g) and (h).
+
+Merged 2026-11-26 (the drafts abe9572 and f1e8468): `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317
+binaries passed (`predict_frames`, `serve_keep_frames` and the `server::frames` tests among them), after one type of a
+test named for clippy; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again.
+`python3 scripts/feel_interrupt.py --frames --no-openssh --runs 5`: 782 ms median (692 to 1,042), as `main` measured the
+same day: `--frames` keeps its bar. Items (c) and (b) for kept shells are done; (b) for shells shared by name (item 35),
+(f), (g) and (h) are left.
 
 
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
@@ -4876,15 +5039,15 @@ same setting.
 
 ## Premise
 
-- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:342` decides `resumable` from
+- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:334` decides `resumable` from
   `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
   list.
-- The warning at `crates/podssh-cli/src/ssh/resolve.rs:354-359` sits inside `if resumable`.
+- The warning at `crates/podssh-cli/src/ssh/resolve.rs:346-351` sits inside `if resumable`.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:167` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:201` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/tries.rs:52` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:448` sets when the user
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:440` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:891-895`) says that the resumable

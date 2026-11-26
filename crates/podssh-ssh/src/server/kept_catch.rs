@@ -139,7 +139,7 @@ impl Shell {
     /// `generation`. Nothing where serve never knew a size, or where the
     /// shell ended or another client took it first; the size always comes
     /// back, so the pty is never left nudged.
-    async fn redraw(&self, generation: u64) {
+    pub(super) async fn redraw(&self, generation: u64) {
         let size = {
             let state = self.state();
             if state.ended || state.generation != generation {

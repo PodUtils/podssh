@@ -49,14 +49,13 @@ impl Served {
 }
 
 /// Take the ask of `version` on `open`, before its program, once: on a pty
-/// of serve's own; not on a channel that joins or names a kept shell, whose
-/// output outlives its channels and is replayed as bytes; and not on one
-/// that took local echo's ask (T-160), whose guesses are drawn on those
-/// bytes.
+/// of serve's own. A channel that joins a kept shell (T-159) gets the
+/// frames of the shell's model at its join, in place of this one, and a
+/// shell kept with frames keeps its model (`kept_frames.rs`). A channel that
+/// took local echo's ask (T-160) too gets its reports in the frames' queue.
 #[cfg(unix)]
 fn take(open: &mut Open, version: Version) -> bool {
-    let bytes = open.predict || open.keep.attach.is_some() || open.keep.keep.is_some();
-    if open.started() || open.frames.is_some() || bytes {
+    if open.started() || open.frames.is_some() {
         return false;
     }
     let Some(size) = open.pty.as_ref().map(super::super::pty_child::Granted::size) else { return false };

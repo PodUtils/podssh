@@ -119,8 +119,11 @@ impl Frames {
 
 /// Whether a session asks its far end for frames: `--frames`, a shell or a
 /// command on a pty, with this process's own terminal on each side, and
-/// nothing else that reads the output as bytes or takes the keys.
+/// nothing else that reads the output as bytes or takes the keys. An attach
+/// to a kept shell asks too: the far end keeps the shell's model (T-159);
+/// a list of the kept shells is no session of a terminal.
 pub(crate) fn wanted(opts: &crate::options::Options, want_pty: bool, stdin_tty: bool) -> bool {
+    use crate::keep::Ask;
     use crate::options::Request;
     opts.frames
         && want_pty
@@ -131,7 +134,7 @@ pub(crate) fn wanted(opts: &crate::options::Options, want_pty: bool, stdin_tty: 
         && opts.elevate.is_none()
         && opts.output.is_none()
         && opts.feed.is_none()
-        && opts.keep.ask.is_none()
+        && !matches!(opts.keep.ask, Some(Ask::List))
 }
 
 /// Why a session that has `--frames` does not ask for them, in one line;
@@ -140,9 +143,7 @@ pub(crate) fn not_asked(opts: &crate::options::Options, want_pty: bool, stdin_tt
     if !opts.frames || wanted(opts, want_pty, stdin_tty) {
         return None;
     }
-    Some(if opts.keep.ask.is_some() {
-        "--frames: no frames with --attach: a kept shell sends each byte"
-    } else if !want_pty || !stdin_tty || !crate::terminal::stdout_is_terminal() {
+    Some(if !want_pty || !stdin_tty || !crate::terminal::stdout_is_terminal() {
         "--frames: no frames: they need a terminal on each side and a pseudo-terminal at the far end"
     } else {
         "--frames: no frames: this session's output is read as bytes"

@@ -157,6 +157,18 @@ impl Model {
         self
     }
 
+    /// Whether the model answers the questions of [`Aside`]: a kept shell's
+    /// model answers only while a channel with frames has the shell, as a
+    /// client with bytes answers them itself (T-159). Off drops the answers
+    /// that wait.
+    pub fn set_answering(&mut self, on: bool) {
+        let aside = self.parser.callbacks_mut();
+        aside.answering = on;
+        if !on {
+            aside.answers.clear();
+        }
+    }
+
     /// A new size of the pty. The rows that it moves off the screen are no
     /// lines: the client's terminal moves its own at its new size.
     pub fn resize(&mut self, rows: u16, cols: u16) {

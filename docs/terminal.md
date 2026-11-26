@@ -484,7 +484,9 @@ scrollback, maybe on another host. The bytes since the detach can be none
 at all, for a full-screen program that sat still while no client had it;
 and a replay that the ring cut (a reset, T-833) starts long after the
 program set the alternate screen, its keys and bracketed paste. `podssh
-serve` keeps no model of the screen. Such a client gets three things, in
+serve` keeps no model of the screen of a shell that no client with frames
+had ("A kept shell with frames", in "The latest screen: frames"). Such a
+client of bytes gets three things, in
 order (`crates/podssh-ssh/src/server/kept_screen.rs`, and the catch-up in
 `kept_catch.rs`):
 
@@ -1249,7 +1251,8 @@ terminal always reads those bytes on the screen that the far end wrote.
 
 - **What podssh knows.** A model of the far end's screen (the `vt100`
   crate, the model of the oracle below) reads each byte of the far end's
-  output and nothing else (`crates/podssh-ssh/src/predict/mod.rs`). Which
+  output and nothing else (`crates/podssh-ssh/src/predict/mod.rs`); with
+  frames, what the frames draw ("Local echo over frames", below). Which
   keys reached the pty, and whether the pty echoes, only the far end
   knows: `podssh ssh` asks with `env predict@podssh v1`, last before the
   shell or the command, and `podssh serve` takes it on a channel whose pty
@@ -1344,12 +1347,13 @@ on 2026-11-26 through a link of 300 ms and 64 KiB/s
 (`scripts/feel_interrupt.py`): the prompt after Ctrl-C showed after 6.3 s
 through podssh and 18 s through OpenSSH. With `--frames`, `podssh serve`
 sends the latest screen, as Mosh does, not each byte, so the link holds a
-frame or two. The result with frames: UNVERIFIED (drafted 2026-11-26, not
-built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
+frame or two. The result with frames, measured the same day in a debug
+build: the prompt after 533 ms median, 1.78 round trips
+(`python3 scripts/feel_interrupt.py --frames --runs 3`).
 
 - **The ask.** `podssh ssh --frames` asks with `env frames@podssh v1` and
-  a reply, on a channel with a pty, after local echo's ask and before the
-  shell or the command. `podssh ssh --frames-scroll` asks with `v2` and a
+  a reply, on a channel with a pty, before local echo's ask and the shell
+  or the command. `podssh ssh --frames-scroll` asks with `v2` and a
   reply, then at once with `v1` and a reply: version 2 carries the lines
   that leave the top of the screen, for the terminal's scrollback. `podssh
   serve` takes the first version that it knows, once, on
@@ -1450,12 +1454,47 @@ built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
   (`crates/podssh-ssh/src/io/msg.rs`). `podssh play` shows it as any
   recording, and gives the screen that the terminal showed. `podssh
   session` asks for no frames: it reads its output as bytes.
-- **Where there are none.** A shell with frames is not kept (`~d` is
-  refused). `--attach`, a shell shared by name, `--expect`, `--sudo`,
-  `--su`, `podssh each` and a session through a control master carry each
-  byte. `--frames` with `--predict` is a usage error (64): a guess is drawn
-  on the far end's bytes. A Windows console that takes no VT sequences
-  ends the session with one line (255), and so do bytes that are no frame.
+- **Local echo over frames.** With `--predict` too, the guesses of local
+  echo (below) are drawn over the screen that the frames draw, as Mosh's
+  overlay: before each frame's drawing the guesses come off, and those that
+  still stand go on again after it. Local echo's model reads what the
+  terminal is drawn with, the frames' drawing, so it holds the screen that
+  the terminal shows (`crates/podssh-ssh/src/io/msg.rs`). A guess whose
+  echo a frame shows is no longer drawn; one that a frame contradicts goes
+  with the far end's report. The far end puts each report of local echo in
+  the queue of its frames: a report made while a change of the screen waits
+  for its frame goes right after that frame, so the client judges each
+  guess on a screen that holds the echo of each key that the report counts,
+  as with bytes (`crates/podssh-ssh/src/server/frames.rs`, `reported`).
+  `podssh ssh` asks for frames before local echo, so a serve older than
+  the overlay, which takes one of the two, takes the frames; `-v` says that
+  no local echo comes.
+- **A kept shell with frames.** A login shell with frames is kept as any
+  login shell (T-159), and `~d` keeps it: its model of the screen belongs
+  to the shell, as its ring does, and outlives each client
+  (`crates/podssh-ssh/src/server/kept_frames.rs`). The model is made when
+  a channel with frames first has the shell, the one that starts it or one
+  that joins it; from then on the shell's pump feeds it with each byte of
+  the output, with no client too, and keeps the ring as before
+  (`crates/podssh-ssh/src/server/kept_flow.rs`, `Out`). Each channel with
+  frames that has the shell is an epoch of the model's sender
+  (`crates/podssh-ssh/src/server/frames_epoch.rs`): its first frame is the
+  whole screen, then the differences from the state that it acknowledged;
+  the numbers go on from the last epoch's, so an acknowledgement of an
+  older client names no frame of the new one. `podssh ssh --attach NAME
+  --frames` gets no replay of bytes: its first frame is the shell's screen,
+  with what came while no client had it. A model made at an attach (a shell
+  started with bytes) reads the ring first, then the program is asked to
+  draw its screen again, as in "Screen on attach". A client without
+  `--frames` gets the ring and the bytes, as before. The model answers the
+  program's questions only while a client with frames has the shell; with
+  none, nobody answers, as with bytes. A kept shell with a model costs a
+  parse of each byte of its output for its life, beside the ring, and one
+  grid of 60 KiB at 80 by 24 with the states of the frames that wait.
+- **Where there are none.** A shell shared by name (`--share`),
+  `--expect`, `--sudo`, `--su`, `podssh each` and a session through a
+  control master carry each byte. A Windows console that takes no VT sequences ends the session with
+  one line (255), and so do bytes that are no frame.
 
 ## Tests
 
@@ -1519,7 +1558,7 @@ cursor and the attributes of cells:
   `--frames`. The unit tests of `crates/podssh-ssh/src/frames/` hold the
   difference on a table of screens (each pair a base and a new state),
   the pace and the bases on a clock of the test, and the two halves
-  together. Results: UNVERIFIED (drafted 2026-11-26, not built).
+  together. Results: each passes (2026-11-26, `cargo test -p podssh-ssh --lib frames::`).
 
 The model must agree with tmux before it judges podssh: each sequence of a
 fixed corpus (`PodUtils/podssh:crates/podssh-terminal/tests/screen/corpus.txt`) goes

@@ -10,7 +10,9 @@
 //! screen that holds their echo. A kept shell's pump tells the reporter of
 //! the channel that has the shell then (`kept_flow.rs`, T-896). A shell
 //! shared by name puts each seat's report in its broadcast, after the
-//! output read before it (`share_told.rs`, T-896).
+//! output read before it (`share_told.rs`, T-896). A channel whose screen
+//! goes as frames (T-303) puts each report in the queue of its frames,
+//! after the frame of the output read before it (`frames.rs`).
 
 use std::io;
 use std::os::fd::{AsRawFd, OwnedFd, RawFd};
@@ -63,7 +65,13 @@ pub(super) struct Reporter {
 impl Reporter {
     /// The reports of the channel of `write`, for the pty of `master`.
     pub(super) fn new(write: &ChannelWriteHalf<Msg>, master: Arc<AsyncFd<OwnedFd>>) -> Reporter {
-        let out = Box::pin(write.make_writer_ext(Some(EXT)));
+        Reporter::to(Box::pin(write.make_writer_ext(Some(EXT))), master)
+    }
+
+    /// The reports for the pty of `master`, written whole on `out`: the
+    /// queue of a channel's frames (T-303), which sends each report after
+    /// the frame of the output read before it.
+    pub(super) fn to(out: Pin<Box<dyn AsyncWrite + Send>>, master: Arc<AsyncFd<OwnedFd>>) -> Reporter {
         Reporter { applied: Applied::default(), out, master, told: None }
     }
 

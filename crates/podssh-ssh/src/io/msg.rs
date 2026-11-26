@@ -96,8 +96,9 @@ pub(super) async fn handle_msg(
 }
 
 /// The frames that `data` completes, drawn on stdout as the newest state
-/// (T-303), and into the recording as drawn. Bytes that are no frame end
-/// the session with one line: nothing that follows them can be shown.
+/// (T-303), and into the recording as drawn, with no guess of local echo.
+/// Bytes that are no frame end the session with one line: nothing that
+/// follows them can be shown.
 async fn frame(data: &[u8], out: &mut Out, through: &mut Through, log: &Log) -> Option<End> {
     let drawn = match through.frames.as_mut()?.feed(data) {
         Ok(drawn) => drawn,
@@ -118,6 +119,13 @@ async fn frame(data: &[u8], out: &mut Out, through: &mut Through, log: &Log) -> 
             first
         }
         _ => drawn,
+    };
+    // Local echo's guesses off, the frame's drawing, and the guesses that
+    // still stand on again over the new screen, as over bytes (T-160): its
+    // model reads what the terminal is drawn with.
+    let drawn = match through.predict.as_mut() {
+        Some(p) => p.output(&drawn),
+        None => drawn,
     };
     let drawn = out.consoles.text(false, drawn);
     if out.gone.is_none() && write_out(out.sink.as_ref(), &drawn, false).await.is_err() {

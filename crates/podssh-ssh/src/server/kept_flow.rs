@@ -51,15 +51,20 @@ impl Attached {
 
 /// The reporter of the channel of `write`, and the count of its input,
 /// where the channel `asked` (`env predict@podssh v1`) and the shell's pty
-/// is known.
+/// is known. A channel with frames (T-303) has its reports go in the queue
+/// of the frames of `framed`, each after the frame of the output before it.
 #[cfg(unix)]
 pub(in crate::server) fn reports_for(
     shell: &Shell,
     asked: bool,
     write: &russh::ChannelWriteHalf<russh::server::Msg>,
+    framed: Option<&Arc<super::super::frames::Shared>>,
 ) -> (Option<Told>, Option<Count>) {
     let Some(master) = shell.tells.master.get().filter(|_| asked) else { return (None, None) };
-    let told = Told::new(write, master.clone());
+    let told = match framed {
+        Some(frames) => Told::to(Box::pin(frames.reports()), master.clone()),
+        None => Told::new(write, master.clone()),
+    };
     let applied = told.applied();
     let count: Count = Box::new(move |n| applied.wrote(n, tokio::time::Instant::now()));
     (Some(told), Some(count))
@@ -71,6 +76,7 @@ pub(in crate::server) fn reports_for(
     _shell: &Shell,
     _asked: bool,
     _write: &russh::ChannelWriteHalf<russh::server::Msg>,
+    _framed: Option<&Arc<super::super::frames::Shared>>,
 ) -> (Option<Told>, Option<Count>) {
     (None, None)
 }
@@ -159,32 +165,41 @@ pub(in crate::server) fn watch_close(held: &Held, mut closed: watch::Receiver<bo
     });
 }
 
-/// The shell's output: to the attached channel, and into the ring. It
-/// never fails, so the pump reads the pty to its end with no client too.
+/// The shell's output: to the attached channel, into the ring, and into
+/// the model of the screen where the shell has one (T-303). It never
+/// fails, so the pump reads the pty to its end with no client too. A
+/// channel with frames takes its bytes at once and goes on: its frames go
+/// by their own task, so its link never holds the shell back.
 pub(in crate::server) struct Out(pub(in crate::server) Arc<Shell>);
 
 impl AsyncWrite for Out {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
-        let mut guard = self.0.state();
-        let state = &mut *guard;
-        if let Some(attached) = state.attached.as_mut() {
-            match attached.out.as_mut().poll_write(cx, buf) {
-                Poll::Ready(Ok(n)) if n > 0 => {
-                    state.ring.push(&buf[..n], Instant::now());
-                    return Poll::Ready(Ok(n));
+        let (n, frames) = {
+            let mut guard = self.0.state();
+            let state = &mut *guard;
+            let mut taken = buf.len();
+            if let Some(attached) = state.attached.as_mut() {
+                match attached.out.as_mut().poll_write(cx, buf) {
+                    Poll::Ready(Ok(n)) if n > 0 => taken = n,
+                    // The client's window holds the shell back, as without T-159.
+                    Poll::Pending => {
+                        state.waker = Some(cx.waker().clone());
+                        return Poll::Pending;
+                    }
+                    // The channel is gone: its close follows, and the ring
+                    // keeps the output until then.
+                    _ => state.attached = None,
                 }
-                // The client's window holds the shell back, as without T-159.
-                Poll::Pending => {
-                    state.waker = Some(cx.waker().clone());
-                    return Poll::Pending;
-                }
-                // The channel is gone: its close follows, and the ring
-                // keeps the output until then.
-                _ => state.attached = None,
             }
+            state.ring.push(&buf[..taken], Instant::now());
+            (taken, state.frames.clone())
+        };
+        // The model is fed out of the shell's lock, which a window change
+        // takes on the SSH session's task; only this pump feeds it.
+        if let Some(frames) = frames {
+            frames.fed(&buf[..n]);
         }
-        state.ring.push(buf, Instant::now());
-        Poll::Ready(Ok(buf.len()))
+        Poll::Ready(Ok(n))
     }
 
     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {

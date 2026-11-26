@@ -83,6 +83,19 @@ impl Default for Sender {
 }
 
 impl Sender {
+    /// A sender whose first frame has the number `next`: a kept shell's
+    /// model starts one for each channel that has it with frames, and its
+    /// numbers go on, so that no acknowledgement of an older channel names
+    /// a frame of the new one (T-159).
+    pub fn from_number(next: u64) -> Sender {
+        Sender { next: next.max(1), ..Sender::default() }
+    }
+
+    /// The number of the next frame.
+    pub fn next_number(&self) -> u64 {
+        self.next
+    }
+
     /// The screen may differ from the last frame, since `now`: output came,
     /// the size changed, or the client lost its base. True for the first
     /// such word since the last frame: the caller then looks at
@@ -91,6 +104,13 @@ impl Sender {
         let first = self.changed.is_none();
         self.changed.get_or_insert(now);
         first
+    }
+
+    /// Whether the screen may differ from the last frame, with no frame
+    /// made of it: a report of local echo then waits for that frame, so
+    /// that the client judges its guesses on a screen that holds their echo.
+    pub fn pending(&self) -> bool {
+        self.changed.is_some()
     }
 
     /// The time from one frame to the next: half the round trip, within

@@ -53,6 +53,10 @@ pub(super) use flow::Out;
 // An attach's catch-up, with the modes and the redraw of T-161.
 #[path = "kept_catch.rs"]
 mod catch;
+// The model of the screen of a shell with frames, and an attach with frames
+// (T-303).
+#[path = "kept_frames.rs"]
+mod framed;
 
 /// The most kept shells of one key.
 pub const PER_KEY: usize = 4;
@@ -82,12 +86,15 @@ pub(super) struct Attached {
     tally: Arc<Tally>,
     /// Local echo's reports, where the channel asked (T-896).
     told: Option<flow::Told>,
+    /// The task that sends the frames of the shell's model to a channel
+    /// with frames (T-303), waited for before the status.
+    framing: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl Attached {
     pub(super) fn new(write: ChannelWriteHalf<Msg>, handle: Handle, id: ChannelId, tally: Arc<Tally>) -> Attached {
         let out: Pin<Box<dyn AsyncWrite + Send>> = Box::pin(tally.count(write.make_writer()));
-        Attached { write, handle, id, out, tally, told: None }
+        Attached { write, handle, id, out, tally, told: None, framing: None }
     }
 
     /// Its parts, for the end of the program (`child::Running`).
@@ -153,6 +160,9 @@ struct State {
     ended: bool,
     /// The program's exit status, once it ended.
     status: Option<u32>,
+    /// The model of the screen, once a channel with frames had the shell
+    /// (T-303): fed with each byte of the output from then on, as the ring.
+    frames: Option<Arc<super::frames::Shared>>,
 }
 
 /// One shell that may be kept.
@@ -196,6 +206,7 @@ impl Shell {
             timer: None,
             ended: false,
             status: None,
+            frames: None,
         };
         let input = tokio::sync::Mutex::new(input);
         let (owner, shelf, cap) = (keeper.owner.clone(), keeper.shelf.clone(), keeper.cap);
@@ -242,6 +253,10 @@ impl Shell {
         let mut state = self.state();
         state.size = Some(size);
         (self.resize)(size);
+        // The model of the screen takes the pty's size (T-303).
+        if let Some(frames) = state.frames.as_ref() {
+            frames.resize(size);
+        }
     }
 
     /// The channel whose shell request started it.
@@ -349,6 +364,10 @@ impl Shell {
         if let Some(timer) = state.timer.take() {
             timer.abort();
         }
+        // The last frame goes to a channel with frames, before the status.
+        if let Some(frames) = state.frames.as_ref() {
+            frames.end();
+        }
         let attached = state.attached.take();
         drop(state);
         self.shelf.remove(self);
@@ -384,6 +403,10 @@ fn let_go(state: &mut State) {
     state.generation += 1;
     state.joining = false;
     state.detached_at = state.ring.end();
+    // A channel with frames left: its task ends, and the model is fed alone.
+    if let Some(frames) = state.frames.as_ref() {
+        frames.release();
+    }
     if let Some(waker) = state.waker.take() {
         waker.wake();
     }

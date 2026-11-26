@@ -862,10 +862,14 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   dim line that counts them.
   ZMODEM and a copy to the clipboard do not cross. `--record` keeps what
   was drawn. Another server refuses the ask (OpenSSH's sshd, a podssh with
-  no frames): podssh says so in one line, and the session shows each byte. A shell with frames is not kept;
-  `--attach`, `--expect`, `--sudo`, `--su` and a far end with `--share`
-  carry each byte, with one line that says so. `--frames` with `--predict`
-  is a usage error (64). The flag has no `-o` keyword and no key of the
+  no frames): podssh says so in one line, and the session shows each byte.
+  A shell with frames is kept as any shell (`~d`), and `podssh serve`
+  keeps the model of its screen with it: `--attach NAME --frames` gets the
+  whole screen first, then its changes, and a client without `--frames`
+  gets the bytes. `--expect`, `--sudo`, `--su` and a far end with
+  `--share` carry each byte, with one line that says so. With `--predict` too, the
+  guesses of local echo are drawn over the frames' screen, as Mosh's
+  overlay. The flag has no `-o` keyword and no key of the
   settings file ([terminal.md](terminal.md), "The latest screen: frames").
 - **`--result-file FILE` writes the result of the run as JSON** (T-054), at
   its end, also when it failed before it connected, so that a script tells

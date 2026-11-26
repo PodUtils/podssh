@@ -142,6 +142,8 @@ impl Server {
 pub struct Seen {
     pub out: Vec<u8>,
     pub err: Vec<u8>,
+    /// The frames of the far end's screen, where the channel asked (T-303).
+    pub frames: Vec<u8>,
     pub replies: Vec<bool>,
     pub status: Option<u32>,
     pub closed: bool,
@@ -176,6 +178,9 @@ impl Seat {
                 let mut seen = into.lock().unwrap();
                 match message {
                     ChannelMsg::Data { data } => seen.out.extend_from_slice(&data),
+                    ChannelMsg::ExtendedData { data, ext } if ext == podssh_ssh::frames::EXT => {
+                        seen.frames.extend_from_slice(&data)
+                    }
                     ChannelMsg::ExtendedData { data, .. } => seen.err.extend_from_slice(&data),
                     ChannelMsg::Success => seen.replies.push(true),
                     ChannelMsg::Failure => seen.replies.push(false),

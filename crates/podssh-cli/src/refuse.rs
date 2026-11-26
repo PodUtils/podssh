@@ -69,8 +69,6 @@ pub const APART: &[(&str, &str, &str)] = &[
     ("--policy", "--upgrade", "--upgrade moves the session to an end that the policy did not judge"),
     ("--policy", "--preflight", "--policy probes with no login, and --preflight asks after one"),
     ("--upgrade", "--persist", "each keeps a session across a lost link"),
-    ("--frames", "--predict", "a guess of --predict is drawn on the far end's bytes, and --frames carries none"),
-    ("--frames-scroll", "--predict", "a guess of --predict is drawn on the far end's bytes, and frames carry none"),
 ];
 
 /// The refusal of `a` beside `b`: "A and B cannot be used together: WHY",

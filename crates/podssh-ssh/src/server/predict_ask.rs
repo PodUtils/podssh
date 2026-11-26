@@ -40,10 +40,11 @@ impl Served {
 /// gets them on a pty of serve's own, or on serve's own tty where `--share`
 /// may share the shell, whose reports ride its seats' broadcast; a command
 /// there is not shared, and sends none. A channel whose screen goes as
-/// frames (T-303) sends none either: a guess is drawn on the pty's bytes.
+/// frames (T-303) gets them too, each after the frame that holds the echo
+/// of the keys it counts (`server/frames.rs`).
 #[cfg(unix)]
 fn take(open: &mut Open, seat: Option<Mode>, share: bool) -> bool {
-    if open.started() || open.offer.is_some() || open.frames.is_some() {
+    if open.started() || open.offer.is_some() {
         return false;
     }
     let reports = match seat {

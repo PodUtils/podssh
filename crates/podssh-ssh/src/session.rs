@@ -134,18 +134,20 @@ pub async fn attach(
             counting.counter.unknown();
         }
     }
-    // `--predict` (T-160): asked last before the session's request, so that
-    // its answer comes after the pty's, which may wait as long.
-    let wanted = crate::predict::wanted(opts, want_pty, stdin_tty);
-    let predict_at = if wanted { crate::predict::ask(&channel).await } else { None };
-    // `--frames` (T-303): asked beside it, and answered after it. A session
-    // that cannot show frames says why, and carries each byte.
+    // `--frames` (T-303): asked before local echo, so that a serve that
+    // takes only one of the two (one older than their overlay) takes the
+    // frames. A session that cannot show frames says why, and carries each
+    // byte.
     if let Some(why) = crate::frames::not_asked(opts, want_pty, stdin_tty) {
         log.info(why);
     }
     let scroll = opts.frames_scroll;
     let frames_asked =
         if crate::frames::wanted(opts, want_pty, stdin_tty) { crate::frames::ask(&channel, scroll).await } else { 0 };
+    // `--predict` (T-160): asked last before the session's request, so that
+    // its answer comes after the pty's, which may wait as long.
+    let wanted = crate::predict::wanted(opts, want_pty, stdin_tty);
+    let predict_at = if wanted { crate::predict::ask(&channel).await } else { None };
     let mut elevated = None;
     let what = match &opts.request {
         Request::Shell => {
@@ -178,8 +180,8 @@ pub async fn attach(
     if together {
         pty = granted(&mut channel, &mut early, log).await?;
     }
-    let rtt = crate::predict::answered(&mut channel, &mut early, predict_at, log).await?;
     let frames = crate::frames::answered(&mut channel, &mut early, (frames_asked, scroll), log).await?;
+    let rtt = crate::predict::answered(&mut channel, &mut early, predict_at, log).await?;
     if !wait_reply(&mut channel, &mut early).await? {
         return Err(format!("the server refused to start {what}"));
     }

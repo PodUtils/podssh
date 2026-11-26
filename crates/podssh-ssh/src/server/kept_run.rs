@@ -54,9 +54,28 @@ pub(super) fn start(
     if let Some(size) = crate::terminal::size_of_fd(master.get_ref().as_raw_fd()) {
         shell.resize(size);
     }
+    // With frames (T-303), the channel's model becomes the shell's, and
+    // its task sends them while this channel has the shell.
+    let frames = open.frames.clone();
+    if let Some(frames) = frames.as_ref() {
+        shell.keep_frames(frames.clone());
+    }
     // Local echo's reports, where the first channel asked (T-896).
-    let (told, count) = reports_for(&shell, open.predict, &write);
-    let held = shell.first(Attached::new(write, handle, channel, tally).with_reports(told));
+    let (told, count) = reports_for(&shell, open.predict, &write, frames.as_ref());
+    let attached = match frames {
+        Some(frames) => {
+            // The first channel has the first generation (1) and the
+            // model's first epoch (0); the model's answers go to the pty
+            // while it has the shell.
+            let out = tally.count(write.make_writer_ext(Some(crate::frames::EXT)));
+            let reports = open.predict.then(|| tally.count(write.make_writer_ext(Some(crate::predict::EXT))));
+            let answers = shell.writer(1, None);
+            let framing = tokio::spawn(frames.run_epoch(0, out, answers, reports));
+            Attached::framed(write, handle, channel, tally, framing)
+        }
+        None => Attached::new(write, handle, channel, tally),
+    };
+    let held = shell.first(attached.with_reports(told));
     if let Some(name) = keeper.keep.as_deref()
         && let Err(why) = keeper.shelf.put(&shell, name)
     {
@@ -101,7 +120,11 @@ async fn finish(shell: Arc<Shell>, mut child: Child, output: JoinHandle<()>, exi
         () = turned(&mut gone) => abort.abort(),
     }
     let code = status.as_ref().ok().and_then(|s| s.code()).and_then(|c| u32::try_from(c).ok());
-    if let Some(attached) = shell.ended_with(code) {
+    if let Some(mut attached) = shell.ended_with(code) {
+        // A channel with frames gets the last frame before the status.
+        if let Some(framing) = attached.take_framing() {
+            let _ = framing.await;
+        }
         let (write, handle, id, tally) = attached.into_parts();
         Running::of(write, handle, id, shell.group.clone(), tally).end(status).await;
     }

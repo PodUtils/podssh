@@ -98,14 +98,6 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
             (None, None) => parse_hop(destination)?,
         },
     };
-    // The far end's screen as frames (T-303) carries none of the bytes that
-    // local echo's guesses are drawn on.
-    if args.frames && args.predict {
-        return Err(crate::refuse::apart("--frames", "--predict").into());
-    }
-    if args.frames_scroll && args.predict {
-        return Err(crate::refuse::apart("--frames-scroll", "--predict").into());
-    }
     if args.iroh_ticket.is_some() && node.is_none() {
         return Err("--iroh-ticket is for a node://NAME destination, whose pair it races with".into());
     }

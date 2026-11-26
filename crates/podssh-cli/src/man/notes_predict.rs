@@ -11,4 +11,5 @@ pub const SSH_PREDICT: &str = "--predict shows each key that you type at once, u
      characters, Backspace and the left and right arrows, on the cursor's row. After each other key, a paste or a \
      wrong guess, nothing shows until the far end echoes a new guess. A line that the pty \
      reads with no echo, as for a password, shows no guess at all. A line of podssh's own on the terminal, an \
-     escape, ZMODEM or a far end that counts wrong ends the guesses for the session.";
+     escape, ZMODEM or a far end that counts wrong ends the guesses for the session. With --frames, the guesses \
+     are drawn over the screen that the frames draw.";

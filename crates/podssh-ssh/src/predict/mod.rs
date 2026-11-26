@@ -12,6 +12,11 @@
 //! `podssh serve` with a pty, asked with `env predict@podssh v1`
 //! ([`report`]). Another server refuses the request, and nothing shows.
 //!
+//! With the frames of the far end's screen (T-303), the model reads what
+//! the frames draw on the terminal in place of the far end's bytes, and the
+//! guesses are drawn over that screen, as Mosh's overlay: the far end sends
+//! each report after the frame of the output read before it.
+//!
 //! A line of podssh's own on the terminal (a message, `~?`, ZMODEM's
 //! words) moves the terminal's cursor where the model does not know it:
 //! local echo then stops for the session, as a guess drawn after it could

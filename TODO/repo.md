@@ -2688,7 +2688,7 @@ Measured with grep over the `src`, `tests` and `examples` of `podssh-cli`:
 
 Read: `libc` (line 44) is used only in code under `cfg(unix)`
 (`crates/podssh-cli/src/ssh/tokens.rs:235`, `crates/podssh-cli/src/ssh/tokens.rs:252`,
-`crates/podssh-cli/src/ssh/resolve.rs:127`,
+`crates/podssh-cli/src/ssh/resolve.rs:119`,
 the module of `crates/podssh-cli/src/doctor/unix.rs`). T-060 decides whether a
 command uses `podssh-probe`.
 
@@ -4975,7 +4975,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 - Read, by `grep -w yet` over `docs/`, `README.md`, `AGENTS.md` and `SECURITY.md` on 2026-10-31,
   after the corrections: 19 lines with no date and no id on them. Most are true today, as of the
   work that the operator holds (Q32); some state nothing of podssh, as "not whole yet"
-  (`docs/cli.md:2375`) and "did not act on yet" (`docs/cli.md:1930`).
+  (`docs/cli.md:2379`) and "did not act on yet" (`docs/cli.md:1934`).
 - Read: the checker reads the ids of these documents and the citations of `TODO/` alone
   (`PodUtils/podssh:crates/podssh-todo/src/refs.rs:22-35`); it reads no sentence of a document.
 - Read: the fifth statement of GitHub #71, the comment of the facts file that the relay's frame
@@ -5185,7 +5185,7 @@ names no version and no way to a newer release. Docs.
   35a0d19` exits 1). The notes of `v1.0.1` (T-584, partial) say that it carries the work of M10
   that `main` holds since `v1.0.0` (`docs/releases/v1.0.1.md:5-6`).
 - Read: an unknown subcommand's words list this binary's subcommands, with no version
-  (`crates/podssh-cli/src/refuse.rs:169-172`).
+  (`crates/podssh-cli/src/refuse.rs:167-170`).
 - Read: `podssh serve` is M5 in `docs/ROADMAP.md:179`, and the operator holds its entries (T-107
   to T-113, Q32); the roadmap gives milestones, not releases, and its line says no hold.
 
@@ -5250,7 +5250,7 @@ Read at `38f424c` (2026-11-03): since the entry was written, `v1.0.1` (`6ece1f9`
 `v1.1.0-beta.1` (`5d95e5f`, published at 08:31 UTC) are out, and each holds the exit:
 `git merge-base --is-ancestor 0b07025 6ece1f9` exits 0. The tester's case is now answered by an
 update; the page still said nothing of `main` or of the releases, and T-584 is done. The words
-that list the subcommands are at `crates/podssh-cli/src/refuse.rs:174-178`; the premise's lines are
+that list the subcommands are at `crates/podssh-cli/src/refuse.rs:172-176`; the premise's lines are
 the arm of an unknown word with no close subcommand. The build image has no Python, so the plant
 installs it first (SETUP), as T-430's plant does.
 

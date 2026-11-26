@@ -2,7 +2,9 @@
 //! `env attach@podssh NAME`, finds the shell of its key by that name, takes
 //! it from the client that has it where `take@podssh` asked, and gets what
 //! came while no client had it, then the shell's output. Its own pty, which
-//! its `pty-req` made, is closed, and its size goes to the shell's.
+//! its `pty-req` made, is closed, and its size goes to the shell's. A
+//! channel that asked for frames (T-303) gets the frames of the shell's
+//! model in place of the ring and the output (`kept_frames.rs`).
 
 // Windows refuses each program (`podssh serve` is a Unix host's), so no
 // shell is ever kept there.
@@ -40,14 +42,35 @@ pub(super) fn join(open: &mut Open, shelf: &Shelf, owner: &str, channel: Channel
     if let Some(size) = spare_pty(open) {
         shell.resize(size);
     }
+    // With frames, the shell's model and a new epoch of its frames for this
+    // channel, whose acknowledgements go to it from now on.
+    let framed = open.frames.as_ref().map(|asked| shell.frames_for(asked.version()));
+    if let Some((frames, _, _)) = framed.as_ref() {
+        open.frames = Some(frames.clone());
+    }
     // Local echo's reports, where this channel asked (T-896): its count of
     // its own bytes starts at its attach, as the client's does.
-    let (told, count) = reports_for(&shell, open.predict, &write);
-    open.give_stdin(shell.writer(joined.held.generation, count));
+    let (told, count) = reports_for(&shell, open.predict, &write, framed.as_ref().map(|f| &f.0));
+    let generation = joined.held.generation;
+    open.give_stdin(shell.writer(generation, count));
     watch_close(&joined.held, open.closed.clone());
     open.kept = Some(joined.held.clone());
-    let attached = Attached::new(write, open.handle.clone(), channel, open.tally.clone()).with_reports(told);
-    tokio::spawn(shell.clone().catch_up(joined, attached));
+    let (handle, tally) = (open.handle.clone(), open.tally.clone());
+    match framed {
+        Some((frames, epoch, made)) => {
+            let out = tally.count(write.make_writer_ext(Some(crate::frames::EXT)));
+            let reports = open.predict.then(|| tally.count(write.make_writer_ext(Some(crate::predict::EXT))));
+            // The model's answers go to the pty while this channel has it.
+            let answers = shell.writer(generation, None);
+            let framing = tokio::spawn(frames.run_epoch(epoch, out, answers, reports));
+            let attached = Attached::framed(write, handle, channel, tally, framing).with_reports(told);
+            tokio::spawn(shell.clone().attach_framed(joined, attached, made));
+        }
+        None => {
+            let attached = Attached::new(write, handle, channel, tally).with_reports(told);
+            tokio::spawn(shell.clone().catch_up(joined, attached));
+        }
+    }
     Ok(name)
 }
 

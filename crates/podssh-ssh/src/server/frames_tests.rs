@@ -2,8 +2,13 @@
 //! sends, and a client's receiver at the other end of a pipe, on the
 //! clock of the test.
 
+use std::io;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use tokio::io::{AsyncReadExt, DuplexStream};
 
+use super::epoch::Sink;
 use super::*;
 use crate::frames::receiver::Receiver;
 
@@ -192,4 +197,139 @@ async fn under_a_flood_that_only_scrolls_the_prompt_shows_at_once() {
     let at = (*seen.expect("the prompt shows").expect("the client reads")).expect("a time");
     let after = at - ctrl_c;
     assert!(after <= COLLECT, "the prompt showed {after:?} after its change, over the collection");
+}
+
+/// A kept shell's model across its channels (T-159): a released model is
+/// fed with no frame made and its epoch's task ends; the next epoch's first
+/// frame is the whole screen, numbered after the last epoch's, and an
+/// acknowledgement of an older epoch's frame goes nowhere.
+#[tokio::test(start_paused = true)]
+async fn each_epoch_starts_with_the_whole_screen_and_ends_the_last() {
+    let shared = Shared::new(size(20, 4), Version::One);
+    let mut sink = shared.sink();
+    let near = |from| Near { from, receiver: Receiver::default(), bytes: 0 };
+    let (out, from) = tokio::io::duplex(1 << 16);
+    let (answers, _pty) = tokio::io::duplex(1 << 10);
+    let task = tokio::spawn(shared.clone().run_epoch(0, out, answers, None::<tokio::io::Sink>));
+    let mut first = near(from);
+    sink.write_all(b"one").await.unwrap();
+    first.until(|r| r.newest() >= 1).await;
+    assert_eq!(first.receiver.newest(), 1);
+
+    shared.release();
+    tokio::time::timeout(Duration::from_secs(5), task).await.expect("a released epoch's task ends").unwrap();
+    sink.write_all(b" two").await.unwrap();
+    tokio::time::advance(Duration::from_secs(1)).await;
+    assert!(unpoisoned(&shared.made).queue.is_empty(), "no frame with no channel");
+
+    let epoch = shared.restart(Version::One);
+    let (out, from) = tokio::io::duplex(1 << 16);
+    let (answers, _pty) = tokio::io::duplex(1 << 10);
+    let task = tokio::spawn(shared.clone().run_epoch(epoch, out, answers, None::<tokio::io::Sink>));
+    let mut second = near(from);
+    second.until(|r| r.state().is_some_and(|state| state.screen.contents().contains("one two"))).await;
+    assert!(second.receiver.newest() > 1, "the numbers go on from the last epoch's");
+    shared.acked(Ack { number: 1, lost: true });
+    assert!(unpoisoned(&shared.told).acks.is_empty(), "an older channel's acknowledgement goes nowhere");
+    drop(sink);
+    second.until(Receiver::ended).await;
+    tokio::time::timeout(Duration::from_secs(5), task).await.expect("the task ends with the output").unwrap();
+}
+
+/// One step of the order of local echo's reports in the frames' queue.
+#[derive(Debug, Clone, Copy)]
+enum Act {
+    /// The pump writes the pty's output.
+    Out(&'static [u8]),
+    /// The pump's reporter tells a report, here one byte.
+    Report(u8),
+    /// The clock moves on, and the frame that is due is made.
+    Wait(u64),
+}
+
+/// The queue, taken: `F` for a frame, the byte for a report.
+fn queued(shared: &Shared) -> String {
+    let made = std::mem::take(&mut unpoisoned(&shared.made).queue);
+    made.into_iter()
+        .map(|out| match out {
+            Out::Frame(_) => "F".to_string(),
+            Out::Report(bytes) => bytes.iter().map(u8::to_string).collect(),
+        })
+        .collect()
+}
+
+/// Local echo's reports go in the frames' queue (T-160 with T-303), so the
+/// client judges each guess on a screen that holds its echo: a report made
+/// while a change waits for its frame goes right after that frame; one
+/// made with no change waiting goes at once; a change that leaves the
+/// client's screen as it is lets the waiting reports go with no frame. One
+/// table: each run's steps, and the queue after each.
+#[tokio::test(start_paused = true)]
+async fn a_report_goes_after_the_frame_of_the_output_before_it() {
+    #[rustfmt::skip]
+    let runs: &[(&str, &[(Act, &str)])] = &[
+        ("no change waits", &[(Act::Report(1), "1")]),
+        ("a change waits for its frame", &[
+            (Act::Out(b"a"), ""), (Act::Report(1), ""), (Act::Report(2), ""), (Act::Wait(10), "F12"),
+            (Act::Report(3), "3"),
+        ]),
+        ("a change that the client's screen already shows", &[
+            (Act::Out(b"a"), ""), (Act::Wait(10), "F"),
+            (Act::Out(b"\x1b[1C\x1b[1D"), ""), (Act::Report(1), ""), (Act::Wait(300), "1"),
+        ]),
+    ];
+    for (name, steps) in runs {
+        let shared = Shared::new(size(20, 4), Version::One);
+        let mut sink = shared.sink();
+        let mut reports = shared.reports();
+        for (i, &(act, after)) in steps.iter().enumerate() {
+            match act {
+                Act::Out(bytes) => sink.write_all(bytes).await.unwrap(),
+                Act::Report(byte) => reports.write_all(&[byte]).await.unwrap(),
+                Act::Wait(ms) => {
+                    tokio::time::advance(Duration::from_millis(ms)).await;
+                    let mut guard = shared.lock();
+                    shared.make(&mut guard, Instant::now());
+                }
+            }
+            assert_eq!(queued(&shared), after, "{name}, step {i}: {act:?}");
+        }
+    }
+}
+
+/// A writer that notes each write's tag, in the order of the writes.
+struct Tagged(Arc<Mutex<Vec<char>>>, char);
+
+impl AsyncWrite for Tagged {
+    fn poll_write(self: Pin<&mut Self>, _cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
+        unpoisoned(&self.0).push(self.1);
+        Poll::Ready(Ok(buf.len()))
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+}
+
+/// The task that sends writes each report on the reports' own writer,
+/// after the frame it waited for; at the end of the output the last frame
+/// takes the reports that wait.
+#[tokio::test(start_paused = true)]
+async fn the_last_frame_takes_the_reports_that_wait() {
+    let shared = Shared::new(size(20, 4), Version::One);
+    let order = Arc::new(Mutex::new(Vec::new()));
+    let (frames, told) = (Tagged(order.clone(), 'F'), Tagged(order.clone(), 'R'));
+    let (answers, _pty) = tokio::io::duplex(1 << 10);
+    let task = tokio::spawn(shared.clone().run_told(frames, answers, Some(told)));
+    let mut sink = shared.sink();
+    let mut reports = shared.reports();
+    sink.write_all(b"$ ls").await.unwrap();
+    reports.write_all(&[1]).await.unwrap();
+    drop(sink);
+    tokio::time::timeout(Duration::from_secs(5), task).await.expect("the task ends with the output").unwrap();
+    assert_eq!(*unpoisoned(&order), ['F', 'R'], "the last frame, then the report that waited for it");
 }

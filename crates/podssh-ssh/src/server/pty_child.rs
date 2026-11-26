@@ -98,9 +98,9 @@ pub(super) fn spawn(
     let Some(slave) = granted.slave.take() else { return Err("a program ran on this pty already".into()) };
     let env = super::env::with_tty(env, &granted.term, granted.path.then_some(granted.name.as_str()));
     // A login shell that may be kept (T-159) knows its id, so that an
-    // attach from inside it is refused; with --share it is not kept, nor
-    // with frames (T-303), whose screen no ring of bytes replays.
-    let kept = open.offer.is_none() && open.frames.is_none();
+    // attach from inside it is refused; with --share it is not kept. With
+    // frames (T-303) the shell's model is kept with it (`kept_frames.rs`).
+    let kept = open.offer.is_none();
     let kept_id = open.keeper.as_ref().filter(|_| kept).and_then(|_| super::kept_ask::new_id());
     let env = match kept_id.as_deref() {
         Some(id) => super::kept_ask::with_id(env, id),
@@ -178,18 +178,27 @@ pub(super) fn spawn(
                 super::kept_run::start(open, &keeper, id, running, (master, child), motd, marks);
                 return Ok(());
             }
-            // Local echo's reports, where the client asked for them (T-160).
-            let reporter = open.predict.then(|| super::predict::Reporter::new(&running.write, master.clone()));
             if let Some(frames) = open.frames.clone() {
                 // The screen as frames, where the client asked (T-303): the
                 // pump feeds serve's model of the screen, and a second task
                 // sends the frames. It is waited for after the pump, so the
-                // last frame comes before the program's status.
-                open.give_stdin(Box::new(Master(master.clone())));
+                // last frame comes before the program's status. Local
+                // echo's reports, where asked too, go in the frames' queue,
+                // each after the frame of the output read before it.
+                let reporter =
+                    open.predict.then(|| super::predict::Reporter::to(Box::pin(frames.reports()), master.clone()));
+                match reporter.as_ref() {
+                    Some(r) => open.give_stdin(Box::new(r.applying(Master(master.clone())))),
+                    None => open.give_stdin(Box::new(Master(master.clone()))),
+                }
                 let out = running.writer_of(crate::frames::EXT);
-                framing = Some(tokio::spawn(frames.clone().run(out, Master(master.clone()))));
-                tokio::spawn(pump_told(motd.chain(Master(master)), frames.sink(), exited, None))
+                let reports = open.predict.then(|| running.writer_of(crate::predict::EXT));
+                framing = Some(tokio::spawn(frames.clone().run_told(out, Master(master.clone()), reports)));
+                let teller = reporter.map(Teller::Own);
+                tokio::spawn(pump_told(motd.chain(Master(master)), frames.sink(), exited, teller))
             } else {
+                // Local echo's reports, where the client asked for them (T-160).
+                let reporter = open.predict.then(|| super::predict::Reporter::new(&running.write, master.clone()));
                 match reporter.as_ref() {
                     Some(r) => open.give_stdin(Box::new(r.applying(Master(master.clone())))),
                     None => open.give_stdin(Box::new(Master(master.clone()))),
