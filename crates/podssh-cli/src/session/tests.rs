@@ -196,6 +196,12 @@ fn a_second_daemon_of_a_socket_is_refused_while_the_first_holds_it() {
         }
     };
     drop(again);
+    // T-1068: the lock's file stays after each holder, and the second one
+    // above took the file that the first left; no list takes it for a
+    // session.
+    assert!(dir.join("w.sock.lock").is_file(), "the lock's file stays after its holder");
+    let found = place::all_in(std::slice::from_ref(&dir));
+    assert!(found.sessions.is_empty(), "{:?}", found.sessions);
     assert!(daemon::socket_lock("@w").unwrap().is_none());
     let _ = std::fs::remove_dir_all(&dir);
 }

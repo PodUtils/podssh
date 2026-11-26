@@ -4538,3 +4538,56 @@ cargo test -p podssh-cli --test session
 ## Done
 
 UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.
+
+
+# T-1068: The manual says that a session's podssh holds `NAME.sock.lock` for its life, and not that the file stays
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 9.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+After `session stop`, and after a `session start` that failed to log in, `NAME.sock` is gone and `NAME.sock.lock`
+stays; ten such files after one pass, also one beside a `--socket` outside the cache. FILES says only that the
+session's podssh holds the file for its life, which reads as if it went with that life.
+
+## Premise
+
+- Read, at `40a83e5`: `socket_lock` (line 416 of `crates/podssh-cli/src/session/daemon.rs`) takes
+  `PATH.lock` with `try_hold` of `crates/podssh-cli/src/node_install/lock.rs`, and nothing removes the file; the
+  kernel lets the lock go when the process ends (T-392).
+- Read, at `40a83e5`: `list` takes a session from a name that ends in `.sock` alone (line 103 of
+  `crates/podssh-cli/src/session/place.rs`), so a stale lock's file is never listed.
+- Read, at `40a83e5`: FILES (line 335 of `crates/podssh-cli/src/man/data_files.rs`) and the paragraph of T-392 in
+  `docs/cli.md` say "holds for its life".
+
+## Approach
+
+Keep the file, and say so: FILES, `docs/cli.md` and the comment of `socket_lock` say that the file stays after its
+session ended or failed to start, that the kernel's lock and not the file holds the name, and that the next start of
+the name takes the file again. The unit test of the lock asks that the file stays after its holder, that a second
+holder takes the file that the first left, and that `list` takes no session from it.
+
+## Decision
+
+Keep and document, against a removal when the daemon ends. A removal is not safe with a lock that is a file's: a
+start that opened `NAME.sock.lock` before it was removed takes the lock of a file with no name once its holder ends,
+while a later start makes a new file and takes its lock, and two daemons of one name are the fault that T-392 closed
+(the second's failed bind removes the first's socket). A safe removal needs a check, after each lock, that the path
+still names the file locked, in `pod-core`'s `FileLock` (PodUtils/podcrates); the lock of the detached runs keeps
+its files too. Lost: a file of a few bytes for each name, which the next start of the name uses.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib session::tests::a_second_daemon_of_a_socket_is_refused_while_the_first_holds_it
+```
+
+## Done
+
+UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.

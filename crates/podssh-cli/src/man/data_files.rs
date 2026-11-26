@@ -333,7 +333,9 @@ pub fn files() -> Vec<(Vec<String>, String)> {
              and each socket mode 0600 (on Windows, the access list of the cache); it goes when its session's \
              podssh ends. A socket that nobody serves is replaced by the next start of its name. Beside a \
              socket's file, NAME.sock.lock, which its podssh holds for its life. So a second one of the \
-             name is refused (69), and it never removes the first one's socket."
+             name is refused (69), and it never removes the first one's socket. The lock's file stays after its \
+             session ends or fails to start: the system's lock, not the file, holds the name. The next start of \
+             NAME takes it again. podssh never removes it, as a removal could let two starts hold one name."
                 .to_string(),
         ),
         (

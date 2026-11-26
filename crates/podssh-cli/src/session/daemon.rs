@@ -441,7 +441,9 @@ pub(super) fn unbound_line(line: &str, code: i32, socket_given: bool) -> String 
 /// its session answered nobody. Another daemon's lock is a refusal (69); a
 /// lock that cannot be had lets the daemon go on as before. An abstract
 /// name of Linux and a named pipe of Windows have no file: their bind
-/// alone decides.
+/// alone decides. The file stays after the daemon (T-1068), and the next
+/// start of the name takes it again: a removal would let a start that had
+/// opened it lock a file with no name, beside one that made a new file.
 pub(super) fn socket_lock(path: &str) -> Result<Option<pod_core::lock::FileLock>, String> {
     if path.starts_with('@') || path.starts_with(r"\\.\pipe\") {
         return Ok(None);

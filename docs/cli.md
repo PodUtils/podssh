@@ -1860,7 +1860,13 @@ is signalled only while its run's lock is held, and it is the pid that the
 holder wrote. The same lock now guards the socket of `podssh session`: two
 starts of one name could both find its path free, and the second, whose
 bind failed, removed the first's socket; its daemon holds `NAME.sock.lock`
-for its life, and a second one is refused (69).
+for its life, and a second one is refused (69). The file stays after its
+session ended or failed to start (T-1068), as `detached/NAME.lock` does:
+the kernel's lock, not the file, holds the name, the next start of the
+name takes the file again, and `list` reads only `NAME.sock`. A removal
+would not be safe: a start that opened the file before it was removed
+would hold the lock of a file with no name once the holder ended, beside a
+later start that made a new file, two daemons of one name.
 On Windows the supervisor's end leaves the run; it has no signal to pass.
 
 ## `podssh each`
