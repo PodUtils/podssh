@@ -30,7 +30,7 @@ pub(super) fn stored(report: &mut Report<'_>) -> Vec<(String, Pair)> {
                 format!("expired at {}; make a new one with podssh relay pair {label}", utc(found.expires_ms)),
             ),
             Ok(None) => {}
-            Err(e) => report.fail(&name, e.to_string()),
+            Err(e) => report.fail(&name, podssh_ws::text::said(&e)),
         }
     }
     usable
@@ -48,7 +48,7 @@ pub(super) async fn presence(report: &mut Report<'_>, pairs: &[(String, Pair)], 
                 report.ok(&name, format!("node online, {} sessions; expires {until}", seen.sessions))
             }
             Ok(_) => report.ok(&name, format!("node offline; expires {until}")),
-            Err(e) => report.fail(&name, e.to_string()),
+            Err(e) => report.fail(&name, podssh_ws::text::said(&e)),
         }
     }
 }

@@ -55,8 +55,9 @@ fn run(args: &KeygenArgs, path: &Path, out: &mut dyn Write, err: &mut dyn Write)
         let comment = match &args.comment {
             Some(comment) => comment.clone(),
             None => {
-                let asked = prompt::ask("Enter new comment: ", true)
-                    .map_err(|e| failed(format!("the new comment: {e}; give it with -C COMMENT")))?;
+                let asked = prompt::ask("Enter new comment: ", true).map_err(|e| {
+                    failed(format!("the new comment: {}; give it with -C COMMENT", podssh_ws::text::said(&e)))
+                })?;
                 check_comment(&asked)?;
                 asked.to_string()
             }
@@ -76,8 +77,9 @@ fn run(args: &KeygenArgs, path: &Path, out: &mut dyn Write, err: &mut dyn Write)
             key.public_key().to_openssh().map_err(|e| failed(format!("could not encode the public key: {e}")))?;
         keygen::write_public(path, &line, crate::keygen::KEY_FILES).map_err(|(public, e)| {
             failed(format!(
-                "the key in {shown} has the new comment, but {} could not be written: {e}",
-                public.display()
+                "the key in {shown} has the new comment, but {} could not be written: {}",
+                public.display(),
+                podssh_ws::text::said(&e)
             ))
         })?;
         if !args.quiet {
@@ -121,8 +123,9 @@ fn open(path: &Path, text: &str, given: NewPassphrase) -> Result<(PrivateKey, Ze
                 ),
             ))
         }
-        _ => prompt::ask("Enter old passphrase: ", false)
-            .map_err(|e| (EXIT_FAILED, format!("{shown} is encrypted, and its passphrase: {e}")))?,
+        _ => prompt::ask("Enter old passphrase: ", false).map_err(|e| {
+            (EXIT_FAILED, format!("{shown} is encrypted, and its passphrase: {}", podssh_ws::text::said(&e)))
+        })?,
     };
     podssh_ssh::key_file::decode(text, Some(old.as_str()))
         .map(|key| (key, old))
@@ -145,7 +148,7 @@ fn replace(path: &Path, text: &str, original: &PublicKey, passphrase: &str) -> R
                 format!("the new file could not take its place: {}", failed.cause())
             }
             Some(failed) => format!("{}: {}", failed.step(), failed.cause()),
-            None => e.to_string(),
+            None => podssh_ws::text::said(&e),
         };
         format!("{shown} is unchanged: {why}")
     })

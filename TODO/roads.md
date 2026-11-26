@@ -168,7 +168,7 @@ Read in the reports, not verified here: iroh-ssh warns when a server's key is
 ephemeral (`rustonbsd/iroh-ssh:src/ssh.rs`); zuko hands over a ticket out of
 band (`adonm/zuko:docs/protocol.md`). Read: `podssh ts` keeps its node key in
 the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:388-389`,
-`crates/podssh-cli/src/ts.rs:182`). Credentials never go on argv
+`crates/podssh-cli/src/ts.rs:183`). Credentials never go on argv
 (`AGENTS.md`, section 4).
 
 ## Approach
@@ -5022,7 +5022,7 @@ Endpoint puts a credential in its URL.
   `docs/decisions.md:101` says "in a header or a 0600 file and never in a URL" of the relay's
   tokens. The presigned URL carries an access key id and a signature in its query.
 - Read: the `cf://` road uses podssh-ws's WebSocket client through the proxy
-  (`crates/podssh-cli/src/ssh/cloudflare.rs:223`); an RSA key signs through aws-lc-rs in the
+  (`crates/podssh-cli/src/ssh/cloudflare.rs:224`); an RSA key signs through aws-lc-rs in the
   binary (`deny.toml`, the reason of RUSTSEC-2023-0071); `podssh cp` opens a new session before
   the relay's caps (`docs/relay.md:651-657`), as an hour of EICE would need.
 - Inferred: a proxy that re-terminates TLS passes either road where it passes a WebSocket.
@@ -5902,7 +5902,7 @@ code that no command of the default build uses is P2 at most".
    is set, a QUIC handshake to the quick tunnel's edge as `podssh node --quick-tunnel` makes it
    (`crates/podssh-relay/src/quick/quic.rs:60-68`), and with a proxy set, that the quick tunnel
    takes HTTP/2. Each answer is `ok`, as a road with no UDP works; a home relay that does not
-   answer is already `FAIL` (`crates/podssh-cli/src/doctor/iroh.rs:92-98`).
+   answer is already `FAIL` (`crates/podssh-cli/src/doctor/iroh.rs:93-99`).
 5. `-v` says which answer the road took. The manual's `PODSSH_IROH_UDP`, `docs/design.md`
    (section 7), `docs/architecture.md` (rule 3) and `SECURITY.md` say that the iroh road takes UDP
    after a datagram came back, not after a socket binds.
@@ -6050,7 +6050,7 @@ does not depend on them.
 - Read: `Transport::Direct` comes from `--direct` alone
   (`crates/podssh-cli/src/ssh/resolve.rs`, lines 340-346 at `4e2010e`), and else the relay (lines 348-371 at `4e2010e`); its other
   uses are a label (`crates/podssh-cli/src/ssh/servers.rs:92`), the dial
-  (`crates/podssh-cli/src/ssh/transport.rs:296-343`) and a check of `--upgrade`
+  (`crates/podssh-cli/src/ssh/transport.rs:296-345`) and a check of `--upgrade`
   (`crates/podssh-cli/src/ssh/upgrade.rs:59`). The issue's citation of
   the arm began two lines early; it is at `crates/podssh-cli/src/ssh/resolve.rs:296-299`.
 - Read: `docs/design.md:45` says "podssh tries the roads in this order"; for a public sshd, the
@@ -6061,7 +6061,7 @@ does not depend on them.
   and for the split HTTP road (`AGENTS.md:404-432`); a race of the forward and the direct road is
   neither.
 - Read: the direct dial goes through `HTTPS_PROXY` when it is set, with the relay's step limit of
-  20 s (`crates/podssh-cli/src/ssh/transport.rs:357-371`, `PodUtils/podssh:crates/podssh-relay/src/open.rs:33`),
+  20 s (`crates/podssh-cli/src/ssh/transport.rs:359-373`, `PodUtils/podssh:crates/podssh-relay/src/open.rs:33`),
   and names a proxy that takes the CONNECT and sends nothing back (T-317). doctor reads the
   server's version line on port 22, straight out or through the proxy, to say whether plain ssh
   can leave (`crates/podssh-cli/src/doctor/net.rs:193-200`, `:202-294`).
@@ -9852,7 +9852,7 @@ Read at `2042200`:
 - The section is opened at `crates/podssh-cli/src/doctor/mod.rs:287`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
-  (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:33` (`iroh UDP out`); a bind
+  (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:34` (`iroh UDP out`); a bind
   that fails is a fact, not a failure (`crates/podssh-cli/src/doctor/iroh.rs:22`), by the rule of
   `crates/podssh-cli/src/doctor/mod.rs:6`, which says "A condition podssh is built for (no listener, no
   pty, no user database".

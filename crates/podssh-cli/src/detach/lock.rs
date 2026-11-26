@@ -132,7 +132,7 @@ pub fn holder(path: &Path) -> Holder {
         Ok(Some(_)) => Holder::Free,
         Ok(None) => Holder::Held(read_pid(path)),
         Err(e) if e.class == Class::NotFound => Holder::Free,
-        Err(e) => Holder::Unknown(e.to_string()),
+        Err(e) => Holder::Unknown(podssh_ws::text::said(&e)),
     }
 }
 

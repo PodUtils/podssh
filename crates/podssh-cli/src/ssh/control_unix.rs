@@ -45,8 +45,11 @@ pub async fn start(resolved: &mut Resolved, log: &Arc<Log>) -> Start {
         match client::connect(&path).await {
             Ok(mux) => return Start::Exit(through(mux, resolved, log).await),
             Err(Unreached::NoMaster(e)) if plan.mode == Mode::No => {
-                let e = podssh_ws::text::said(&e);
-                log.verbose(&format!("no control master at {}: {e}; this run connects alone", path.display()));
+                log.verbose(&format!(
+                    "no control master at {}: {}; this run connects alone",
+                    path.display(),
+                    podssh_ws::text::said(&e)
+                ));
                 return Start::Go;
             }
             Err(Unreached::NoMaster(_)) => {}

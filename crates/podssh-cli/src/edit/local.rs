@@ -37,7 +37,7 @@ impl Local {
         for parent in dirs {
             match make_dir(parent) {
                 Ok(dir) => return Ok(Local { file: dir.join(&name), dir }),
-                Err(e) => refused.push(format!("{}: {e}", parent.display())),
+                Err(e) => refused.push(format!("{}: {}", parent.display(), podssh_ws::text::said(&e))),
             }
         }
         Err((Fault::CantCreate, format!("no cache directory would take the copy ({})", refused.join("; "))))

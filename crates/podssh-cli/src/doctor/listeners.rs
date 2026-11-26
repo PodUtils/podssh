@@ -86,8 +86,8 @@ impl Probe {
 /// The words of one probe of `what`, which may name a place.
 pub fn words(what: &str, probe: &Probe) -> String {
     match probe {
-        Probe::BindRefused(e) => format!("{what}: the bind was refused: {e}"),
-        Probe::ListenRefused(e) => format!("{what}: bound, and the listen was refused: {e}"),
+        Probe::BindRefused(e) => format!("{what}: the bind was refused: {}", podssh_ws::text::said(&e)),
+        Probe::ListenRefused(e) => format!("{what}: bound, and the listen was refused: {}", podssh_ws::text::said(&e)),
         Probe::Listened => format!("{what}: bound, listened and closed with no connection taken"),
         Probe::NotTried => format!("{what}: bound and closed, with no listen tried"),
     }

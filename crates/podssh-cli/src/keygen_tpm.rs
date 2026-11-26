@@ -207,7 +207,7 @@ fn replace(path: &Path, new: &KeyFile) -> Result<(), String> {
     Replace::new(Mode::Private)
         .write_checked(path, pem.as_bytes(), check)
         .map(drop)
-        .map_err(|e| format!("{} is unchanged: {e}", path.display()))
+        .map_err(|e| format!("{} is unchanged: {}", path.display(), podssh_ws::text::said(&e)))
 }
 
 /// Whether `-O` asks to add a signed policy to an existing key file: then

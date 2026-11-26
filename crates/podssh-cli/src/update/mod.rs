@@ -332,7 +332,7 @@ pub fn run(args: &UpdateArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     };
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
-        Err(e) => return fail(Error::Config(format!("a runtime: {e}")), err),
+        Err(e) => return fail(Error::Config(format!("a runtime: {}", podssh_ws::text::said(&e))), err),
     };
     let before = stamp(&opts.exe);
     match runtime.block_on(update(&opts, args.check, asked.as_ref(), out)) {

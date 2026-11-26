@@ -125,7 +125,7 @@ pub(crate) fn dial(relay: SocketAddr) -> podssh_zerotier::road::Dial {
             let limit = podssh_relay::open::CONNECT_TIMEOUT;
             let tcp = podssh_ws::dial::dial(&relay.ip().to_string(), relay.port(), &proxy, limit)
                 .await
-                .map_err(|e| format!("ZeroTier's relay {relay}: {e}"))?;
+                .map_err(|e| format!("ZeroTier's relay {relay}: {}", podssh_ws::text::said(&e)))?;
             Ok(podssh_zerotier::road::relay_wire(tcp))
         })
     })
@@ -135,10 +135,11 @@ pub(crate) fn dial(relay: SocketAddr) -> podssh_zerotier::road::Dial {
 pub(crate) fn planet() -> Result<Option<Vec<u8>>, String> {
     let Some(path) = std::env::var_os(PLANET_ENV).filter(|p| !p.is_empty()) else { return Ok(None) };
     let shown = std::path::Path::new(&path).display().to_string();
-    let file = std::fs::File::open(&path).map_err(|e| format!("{PLANET_ENV} {shown}: {e}"))?;
+    let file =
+        std::fs::File::open(&path).map_err(|e| format!("{PLANET_ENV} {shown}: {}", podssh_ws::text::said(&e)))?;
     let mut bytes = Vec::new();
     std::io::Read::read_to_end(&mut std::io::Read::take(file, MOST_PLANET + 1), &mut bytes)
-        .map_err(|e| format!("{PLANET_ENV} {shown}: {e}"))?;
+        .map_err(|e| format!("{PLANET_ENV} {shown}: {}", podssh_ws::text::said(&e)))?;
     if bytes.is_empty() || bytes.len() as u64 > MOST_PLANET {
         return Err(format!("{PLANET_ENV} {shown}: not a planet of 1 byte to 16 KiB"));
     }
@@ -154,7 +155,7 @@ pub(crate) async fn pair_road(name: &str, token: &str) -> Result<podssh_zerotier
     let (name, token) = (name.to_string(), token.to_string());
     let made = tokio::task::spawn_blocking(move || podssh_zerotier::pair::PairRoad::of(&name, &token))
         .await
-        .map_err(|e| format!("ZeroTier's road: {e}"))?;
+        .map_err(|e| format!("ZeroTier's road: {}", podssh_ws::text::said(&e)))?;
     let mut made = made?;
     made.planet = planet;
     Ok(made)

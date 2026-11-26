@@ -62,7 +62,7 @@ pub(super) fn check_local(report: &mut Report<'_>, relays: &RelayList, trust: &T
             };
             report.ok("trust store", detail);
         }
-        Err(e) => report.fail("trust store", format!("{e} (chosen by {trust_from})")),
+        Err(e) => report.fail("trust store", format!("{} (chosen by {trust_from})", podssh_ws::text::said(&e))),
     }
     // A file chosen by the user replaces the compiled-in roots and the
     // system's stores.
@@ -241,19 +241,19 @@ async fn through_proxy(
                 Verdict::Ok { detail }
             }
             None => {
-                let e = error.map(|e| e.to_string()).unwrap_or_default();
+                let why = error.map(|e| podssh_ws::text::said(&e)).unwrap_or_default();
                 match (is_relay, port) {
                     (true, _) => Verdict::Failed {
                         detail: format!(
-                            "{target}: {e}; {summary}; another relay host may be allowed (--relay-host or PODSSH_RELAY)"
+                            "{target}: {why}; {summary}; another relay host may be allowed (--relay-host or PODSSH_RELAY)"
                         ),
                     },
                     (false, 22) => Verdict::Ok {
                         detail: format!(
-                            "{target}: {e}; {summary}; plain ssh cannot leave this way, which is what the relay is for"
+                            "{target}: {why}; {summary}; plain ssh cannot leave this way, which is what the relay is for"
                         ),
                     },
-                    (false, _) => Verdict::Ok { detail: format!("{target}: {e}; {summary}") },
+                    (false, _) => Verdict::Ok { detail: format!("{target}: {why}; {summary}") },
                 }
             }
         };
@@ -286,7 +286,7 @@ async fn direct(report: &mut Report<'_>) -> bool {
         }
         None => format!(
             "{}; {summary}; plain ssh cannot leave this host, which is what the relay is for",
-            error.map(|e| e.to_string()).unwrap_or_default()
+            error.map(|e| podssh_ws::text::said(&e)).unwrap_or_default()
         ),
     };
     report.sampled("direct TCP", Verdict::Ok { detail }, &samples);

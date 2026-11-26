@@ -82,7 +82,10 @@ impl YggRoads {
             .await?;
         self.log.verbose(&format!("{}: Yggdrasil's road through the peer {}", self.shown, self.peer));
         let node = node_secret(&self.name, &self.token).verifying_key().to_bytes();
-        let stream = ends.link(node, &self.token, LIMIT).await.map_err(|e| format!("Yggdrasil's road: {e}"))?;
+        let stream = ends
+            .link(node, &self.token, LIMIT)
+            .await
+            .map_err(|e| format!("Yggdrasil's road: {}", podssh_ws::text::said(&e)))?;
         Ok(Road::Ygg(Box::new(stream)))
     }
 

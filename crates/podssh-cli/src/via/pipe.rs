@@ -68,7 +68,7 @@ pub fn run(road: &Road, host: &str, port: u16, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return EXIT_NOT_IMPLEMENTED;
         }
     };
@@ -104,7 +104,7 @@ pub async fn open(road: &Road, host: &str, port: u16, say: &mut dyn FnMut(&str))
             Ok(End::plain(Box::new(read), Box::new(write)))
         }
         Err(e) => {
-            say(&crate::pipe::remote::could_not_connect(&target.to_string(), e.to_string()));
+            say(&crate::pipe::remote::could_not_connect(&target.to_string(), podssh_ws::text::said(&e)));
             Err(super::reach::exit_code(&e))
         }
     }

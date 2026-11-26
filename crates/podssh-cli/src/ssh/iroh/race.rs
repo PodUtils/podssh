@@ -103,7 +103,7 @@ impl<'a> IrohRoad<'a> {
         options.relays = home;
         options.trust = self.trust.clone();
         options.secret = Some(secret);
-        let opened = pod_iroh::endpoint::open(&options).await.map_err(|e| e.to_string())?;
+        let opened = pod_iroh::endpoint::open(&options).await.map_err(|e| podssh_ws::text::said(&e))?;
         // Which answer the road took of this host's UDP (T-359), and the arm
         // of QUIC's settings when it is not iroh's own (T-665).
         self.log.verbose(&format!("the iroh road: {}", opened.udp));

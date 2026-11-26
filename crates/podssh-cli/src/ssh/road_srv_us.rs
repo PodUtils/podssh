@@ -102,7 +102,7 @@ impl SrvUsRoads {
             (Access::default(), ProxyChoice::FromEnvironment, podssh_relay::open::CONNECT_TIMEOUT);
         match cloudflare::connect(name, &access, &self.trust, &proxy, limit, Some(DEFAULT_IDLE_TIMEOUT)).await {
             Ok(session) => Ok(Road::SshHttp(podssh_ssh::relay_stream::spawn(session).0)),
-            Err(e) => Err(format!("wss://{name}/: {e}")),
+            Err(e) => Err(format!("wss://{name}/: {}", podssh_ws::text::said(&e))),
         }
     }
 }

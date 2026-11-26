@@ -91,7 +91,7 @@ pub fn run_exit(args: &ExitArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh exit: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh exit: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return crate::exit_codes::EXIT_NOT_IMPLEMENTED;
         }
     };

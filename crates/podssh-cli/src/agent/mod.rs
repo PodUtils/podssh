@@ -48,7 +48,7 @@ pub fn run(args: &AgentArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
-            let _ = writeln!(err, "podssh agent: no runtime: {e}");
+            let _ = writeln!(err, "podssh agent: no runtime: {}", podssh_ws::text::said(&e));
             return crate::exitmap::sysexits::EX_SOFTWARE;
         }
     };

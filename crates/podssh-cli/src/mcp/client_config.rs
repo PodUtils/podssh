@@ -141,7 +141,7 @@ pub fn print(args: &McpArgs, client: &str, out: &mut dyn Write, err: &mut dyn Wr
     let binary = match std::env::current_exe().and_then(std::fs::canonicalize) {
         Ok(binary) => binary.display().to_string(),
         Err(e) => {
-            let _ = writeln!(err, "podssh mcp: the path of this program: {e}");
+            let _ = writeln!(err, "podssh mcp: the path of this program: {}", podssh_ws::text::said(&e));
             return EX_SOFTWARE;
         }
     };

@@ -19,7 +19,8 @@ use super::Report;
 pub(super) fn udp(report: &mut Report<'_>) {
     match pod_iroh::probe::udp() {
         Ok(addr) => report.ok("bind UDP", format!("bound {addr} and closed it, sending nothing")),
-        Err(e) => report.ok("bind UDP", format!("refused: {e}; the iroh road then uses its relay alone")),
+        Err(e) => report
+            .ok("bind UDP", format!("refused: {}; the iroh road then uses its relay alone", podssh_ws::text::said(&e))),
     }
 }
 
@@ -35,7 +36,7 @@ async fn udp_out(report: &mut Report<'_>, home: RelayUrl, trust: &Trust) {
         Ok(mut options) => {
             options.relays = vec![home];
             options.trust = trust.clone();
-            pod_iroh::endpoint::open(&options).await.map_err(|e| e.to_string())
+            pod_iroh::endpoint::open(&options).await.map_err(|e| podssh_ws::text::said(&e))
         }
         Err(why) => Err(why),
     };
@@ -44,7 +45,7 @@ async fn udp_out(report: &mut Report<'_>, home: RelayUrl, trust: &Trust) {
             report.ok("iroh UDP out", opened.udp.to_string());
             let _ = tokio::time::timeout(CLOSE_LIMIT, opened.endpoint.close()).await;
         }
-        Err(e) => report.fail("iroh UDP out", e.to_string()),
+        Err(e) => report.fail("iroh UDP out", podssh_ws::text::said(&e)),
     }
 }
 

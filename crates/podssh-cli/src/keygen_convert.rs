@@ -139,7 +139,7 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
         Ok(key) => Ok(KeyFile::Private(key)),
         Err(podssh_ssh::russh::keys::Error::KeyIsEncrypted) => {
             let passphrase = prompt::ask("Enter passphrase: ", false)
-                .map_err(|e| format!("{shown} is encrypted, and its passphrase: {e}"))?;
+                .map_err(|e| format!("{shown} is encrypted, and its passphrase: {}", podssh_ws::text::said(&e)))?;
             podssh_ssh::key_file::decode(&text, Some(passphrase.as_str()))
                 .map(KeyFile::Private)
                 .map_err(|_| format!("{shown}: incorrect passphrase"))

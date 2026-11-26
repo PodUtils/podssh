@@ -173,6 +173,17 @@ pub fn early_word(value: Option<&str>) -> Result<(), String> {
     Err(format!("{EARLY_ENV}: 0rtt, 1rtt or off, not {word}"))
 }
 
+/// [`early_word`] of the word of `--early-data`: a refusal names the flag, never the variable that the
+/// word did not come from (64 at the caller, where the variable's is 78).
+pub fn early_flag_word(word: &str) -> Result<(), String> {
+    early_word(Some(word)).map_err(|why| flag_words(&why))
+}
+
+/// A refusal of [`early_word`] or [`early_of`], said of the flag.
+fn flag_words(why: &str) -> String {
+    why.replacen(EARLY_ENV, "--early-data", 1)
+}
+
 /// [`early_from_env`] of `value`, which a test gives. `1rtt` puts the nonce
 /// in the window first, so that the session takes the 1-RTT fallback of a
 /// nonce the window has seen.
@@ -196,7 +207,7 @@ pub fn early_of(value: Option<&str>) -> Result<Option<Early>, String> {
 /// The early data that `--early-data` names, or the variable's, or none.
 pub fn early_from(flag: Option<&str>) -> Result<Option<Early>, String> {
     match flag {
-        Some(word) => early_of(Some(word)),
+        Some(word) => early_of(Some(word)).map_err(|why| flag_words(&why)),
         None => early_from_env(),
     }
 }
@@ -265,6 +276,23 @@ mod tests {
         let refused = early_of(Some("2rtt")).unwrap_err();
         assert!(refused.starts_with("PODSSH_VLESS_EARLY_DATA: 0rtt, 1rtt or off"), "{refused}");
         assert!(early_word(Some("  ")).is_err(), "an empty word is not off");
+    }
+
+    /// A word that is refused is said with the name of its source: the flag's with `--early-data`, the
+    /// variable's with the variable.
+    #[test]
+    fn a_refused_word_names_the_flag_or_the_variable_it_came_from() {
+        for (word, rest) in [("2rtt", "not 2rtt"), ("", "not an empty word"), ("  ", "not an empty word")] {
+            let flag = format!("--early-data: 0rtt, 1rtt or off, {rest}");
+            let variable = format!("{EARLY_ENV}: 0rtt, 1rtt or off, {rest}");
+            assert_eq!(early_flag_word(word).unwrap_err(), flag, "{word:?}");
+            assert_eq!(early_from(Some(word)).unwrap_err(), flag, "{word:?}");
+            assert_eq!(early_word(Some(word)).unwrap_err(), variable, "{word:?}");
+            assert_eq!(early_of(Some(word)).unwrap_err(), variable, "{word:?}");
+        }
+        for word in ["0rtt", "1RTT", "off", "No"] {
+            assert!(early_flag_word(word).is_ok(), "{word}");
+        }
     }
 
     #[test]

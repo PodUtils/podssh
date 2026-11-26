@@ -121,7 +121,7 @@ fn sign(args: &KeygenArgs, options: &Options, out: &mut dyn Write, err: &mut dyn
         }
     };
     let make = |reader: &mut dyn Read| -> Result<String, String> {
-        let prehash = sshsig::digest(reader, options.hash).map_err(|e| e.to_string())?;
+        let prehash = sshsig::digest(reader, options.hash).map_err(|e| podssh_ws::text::said(&e))?;
         let signature = match &signing {
             Signing::Key(key) => sshsig::sign(key, namespace, options.hash, &prehash)?,
             Signing::Agent(public) => with_agent(public, namespace, options.hash, &prehash)?,
@@ -155,14 +155,16 @@ fn sign(args: &KeygenArgs, options: &Options, out: &mut dyn Write, err: &mut dyn
         if !args.quiet {
             let _ = writeln!(err, "Signing file {file}");
         }
-        let made = std::fs::File::open(file).map_err(|e| format!("{file}: {e}")).and_then(|mut f| make(&mut f));
+        let made = std::fs::File::open(file)
+            .map_err(|e| format!("{file}: {}", podssh_ws::text::said(&e)))
+            .and_then(|mut f| make(&mut f));
         let written = made.and_then(|text| {
             std::fs::OpenOptions::new()
                 .write(true)
                 .create_new(true)
                 .open(&target)
                 .and_then(|mut f| f.write_all(text.as_bytes()))
-                .map_err(|e| format!("{target}: {e}"))
+                .map_err(|e| format!("{target}: {}", podssh_ws::text::said(&e)))
         });
         match written {
             Ok(()) if !args.quiet => {
@@ -200,7 +202,7 @@ fn checked(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> Optio
     let signed = signature_file(args, out, err)?;
     let namespace = args.namespace.as_deref().unwrap_or_default();
     let held = sshsig::digest(&mut std::io::stdin().lock(), signed.signature.hash_alg())
-        .map_err(|e| format!("Couldn't read the data: {e}"))
+        .map_err(|e| format!("Couldn't read the data: {}", podssh_ws::text::said(&e)))
         .and_then(|prehash| sshsig::check(&signed.signature, namespace, &prehash));
     match held {
         Ok(()) => Some(signed),
@@ -218,7 +220,7 @@ fn allowed(args: &KeygenArgs, err: &mut dyn Write) -> Option<(String, Vec<Line>)
     match std::fs::read(path) {
         Ok(raw) => Some((path.to_string(), sshsig::allowed_signers(&String::from_utf8_lossy(&raw)))),
         Err(e) => {
-            let _ = writeln!(err, "podssh keygen: {path}: {e}");
+            let _ = writeln!(err, "podssh keygen: {path}: {}", podssh_ws::text::said(&e));
             None
         }
     }

@@ -157,7 +157,7 @@ pub fn locate(places: &Places) -> Result<Option<PathBuf>, String> {
         }
         return match std::fs::symlink_metadata(&path) {
             Ok(_) => Ok(Some(path)),
-            Err(e) => Err(format!("{SETTINGS_ENV}={given}: {e}")),
+            Err(e) => Err(format!("{SETTINGS_ENV}={given}: {}", podssh_ws::text::said(&e))),
         };
     }
     let config = match (&places.config_home, &places.home) {
@@ -194,22 +194,22 @@ pub fn load(places: &Places) -> Defaults {
 /// file, another user's than this one or root, or open to others' writes.
 fn read_checked(path: &Path) -> Result<String, String> {
     let shown = path.display();
-    let meta = std::fs::symlink_metadata(path).map_err(|e| format!("{shown}: {e}"))?;
+    let meta = std::fs::symlink_metadata(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if meta.file_type().is_symlink() {
         return Err(format!(
             "{shown} is a symbolic link, which podssh does not follow for its settings; name the file itself with \
              {SETTINGS_ENV}"
         ));
     }
-    let file = std::fs::File::open(path).map_err(|e| format!("{shown}: {e}"))?;
-    let meta = file.metadata().map_err(|e| format!("{shown}: {e}"))?;
+    let file = std::fs::File::open(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
+    let meta = file.metadata().map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err(format!("{shown} is not a regular file"));
     }
     crate::ssh::config::owner_alone_writes(path, &file, &meta)?;
     let mut bytes = Vec::new();
     std::io::Read::read_to_end(&mut std::io::Read::take(&file, MAX_FILE + 1), &mut bytes)
-        .map_err(|e| format!("{shown}: {e}"))?;
+        .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if bytes.len() as u64 > MAX_FILE {
         return Err(format!("{shown} is larger than 1 MiB, which no settings file is"));
     }

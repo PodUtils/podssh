@@ -174,7 +174,9 @@ pub(crate) fn dial() -> podssh_relay::strelay::pair::Dial {
             let proxy = podssh_ws::ProxyChoice::FromEnvironment;
             let tcp = podssh_ws::dial::dial(&ip.to_string(), port, &proxy, podssh_relay::open::CONNECT_TIMEOUT)
                 .await
-                .map_err(|e| std::io::Error::other(format!("Syncthing's relay {ip}:{port}: {e}")))?;
+                .map_err(|e| {
+                std::io::Error::other(format!("Syncthing's relay {ip}:{port}: {}", podssh_ws::text::said(&e)))
+            })?;
             Ok(Box::new(tcp) as podssh_relay::strelay::pair::BoxIo)
         })
     })

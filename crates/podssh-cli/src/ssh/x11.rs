@@ -136,7 +136,8 @@ async fn untrusted(text: &str, display: &Display, plan: &Plan, env: &Env) -> Res
     // A pid repeats in each PID namespace: a nonce too, so that two runs
     // never share the directory that each one removes (podvm's COORD-180).
     let dir = std::env::temp_dir().join(format!("podssh-x11-{}-{:016x}", std::process::id(), rand::random::<u64>()));
-    podssh_relay::cache::private_dir(&dir).map_err(|e| format!("X11 forwarding: {}: {e}", dir.display()))?;
+    podssh_relay::cache::private_dir(&dir)
+        .map_err(|e| format!("X11 forwarding: {}: {}", dir.display(), podssh_ws::text::said(&e)))?;
     let file = dir.join("xauthfile");
     let seconds = plan.timeout.map_or(0, |t| t.as_secs() + 60).to_string();
     let made = tokio::process::Command::new(&xauth)
@@ -156,7 +157,7 @@ async fn untrusted(text: &str, display: &Display, plan: &Plan, env: &Env) -> Res
             xauth.display(),
             String::from_utf8_lossy(&out.stderr).trim()
         )),
-        (Err(e), _) => Err(format!("X11 forwarding: {}: {e}", xauth.display())),
+        (Err(e), _) => Err(format!("X11 forwarding: {}: {}", xauth.display(), podssh_ws::text::said(&e))),
     }
 }
 

@@ -35,8 +35,10 @@ fn each_command_says_that_its_output_could_not_be_written() {
     let made = made.unwrap();
     assert_eq!(made.status.code(), Some(0), "{}", String::from_utf8_lossy(&made.stderr));
     let key = key.to_str().unwrap();
-    let cases: [(&str, Vec<&str>); 3] = [
+    let cases: [(&str, Vec<&str>); 5] = [
         ("man", vec!["man", "doctor"]),
+        ("node", vec!["node", "lab", "127.0.0.1:22", "--print-unit"]),
+        ("serve", vec!["serve", "lab", "--no-forwarding", "--authorized-keys", "keys", "--print-unit"]),
         ("keygen", vec!["keygen", "-l", "-f", key]),
         ("keygen", vec!["keygen", "-y", "-f", key]),
     ];

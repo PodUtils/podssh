@@ -48,8 +48,10 @@ async fn judged<S: AsyncRead + Unpin>(stream: &mut S, got: &mut Vec<u8>) -> Resu
             Ok(0) if got.is_empty() => return Err("it was closed with nothing sent".into()),
             Ok(0) => return Err(NOT_SSH.into()),
             Ok(n) => n,
-            Err(e) if got.is_empty() => return Err(format!("it broke with nothing sent ({e})")),
-            Err(e) => return Err(format!("{NOT_SSH}, then it broke ({e})")),
+            Err(e) if got.is_empty() => {
+                return Err(format!("it broke with nothing sent ({})", podssh_ws::text::said(&e)))
+            }
+            Err(e) => return Err(format!("{NOT_SSH}, then it broke ({})", podssh_ws::text::said(&e))),
         };
         got.extend_from_slice(&buf[..n]);
         match judge(got) {

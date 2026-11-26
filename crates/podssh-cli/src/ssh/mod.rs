@@ -321,7 +321,7 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            log.error(&format!("could not start the async runtime: {e}"));
+            log.error(&format!("could not start the async runtime: {}", podssh_ws::text::said(&e)));
             return EXIT_FAILURE;
         }
     };

@@ -126,7 +126,7 @@ async fn inside_warp(found: &edge::Edge, why: String) -> String {
     };
     let trust = match edge::trust() {
         Ok(trust) => trust,
-        Err(e) => return format!("{why}; the edge's roots: {e}"),
+        Err(e) => return format!("{why}; the edge's roots: {}", podssh_ws::text::said(&e)),
     };
     match podssh_relay::quick::edge_warp::connect(warp.net(), found, &trust).await {
         Ok(_) => format!(

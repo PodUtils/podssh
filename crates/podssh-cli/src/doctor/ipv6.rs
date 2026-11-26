@@ -21,7 +21,7 @@ const ANY_PUBLIC: &str = "2000::1";
 
 /// The line, with the relay host that answered `/health`, if one did.
 pub(super) async fn check(report: &mut Report<'_>, relay: Option<&Relay>, trust: &Trust, timeout: Duration) {
-    let socket = tokio::net::TcpSocket::new_v6().map(drop).map_err(|e| e.to_string());
+    let socket = tokio::net::TcpSocket::new_v6().map(drop).map_err(|e| podssh_ws::text::said(&e));
     let proxy = dial::proxy_from_env(ANY_PUBLIC);
     let direct = direct_words(proxy, socket, Ipv6Out::default().out());
     let Some(relay) = relay else {
@@ -45,8 +45,9 @@ fn default_deployment(host: &str) -> bool {
 async fn relays_json(relay: &Relay, trust: &Trust, timeout: Duration) -> Result<Vec<u8>, String> {
     let host = &relay.host;
     let proxy = ProxyChoice::FromEnvironment;
-    let mut tls =
-        podssh_ws::client::open_tls(host, relay.port, host, trust, &proxy, timeout).await.map_err(|e| e.to_string())?;
+    let mut tls = podssh_ws::client::open_tls(host, relay.port, host, trust, &proxy, timeout)
+        .await
+        .map_err(|e| podssh_ws::text::said(&e))?;
     let host_header = if relay.port == 443 { host.clone() } else { dial::authority(host, relay.port) };
     let accept = [("Accept", "application/json")];
     let exchange =
@@ -54,7 +55,7 @@ async fn relays_json(relay: &Relay, trust: &Trust, timeout: Duration) -> Result<
     let response = tokio::time::timeout(timeout, exchange)
         .await
         .map_err(|_| format!("no answer within {} s", timeout.as_secs()))?
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| podssh_ws::text::said(&e))?;
     if response.status != 200 {
         return Err(format!("HTTP {}", response.status));
     }

@@ -46,7 +46,9 @@ pub(super) async fn through_proxy(report: &mut Report<'_>, proxy: &HttpProxy, tr
                 ),
             ),
         },
-        None => (false, format!("{target}: {}; {summary}", error.map(|e| e.to_string()).unwrap_or_default())),
+        None => {
+            (false, format!("{target}: {}; {summary}", error.map(|e| podssh_ws::text::said(&e)).unwrap_or_default()))
+        }
     };
     report.sampled("IP CONNECT", Verdict::Ok { detail }, &samples);
     took

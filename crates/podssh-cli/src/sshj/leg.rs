@@ -125,7 +125,7 @@ where
                     "{service} presented the host key {key}, not ssh-j.com's {pinned} (pod-services): a proxy or \
                      another server answered"
                 ),
-                _ => format!("{service}: SSH: {e}"),
+                _ => format!("{service}: SSH: {}", podssh_ws::text::said(&e)),
             });
         }
         Err(_) => return Err(format!("{service}: no SSH within {} s", CONNECT_LIMIT.as_secs())),

@@ -124,19 +124,20 @@ impl Bus {
     /// (not a peer such as systemd's private socket), `Hello` too. Each read
     /// and write waits `limit` at most.
     pub fn connect(path: &Path, bus: bool, limit: Duration) -> Result<Bus, String> {
-        let stream = UnixStream::connect(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        stream.set_read_timeout(Some(limit)).map_err(|e| e.to_string())?;
-        stream.set_write_timeout(Some(limit)).map_err(|e| e.to_string())?;
+        let stream =
+            UnixStream::connect(path).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
+        stream.set_read_timeout(Some(limit)).map_err(|e| podssh_ws::text::said(&e))?;
+        stream.set_write_timeout(Some(limit)).map_err(|e| podssh_ws::text::said(&e))?;
         let mut me = Bus { stream, serial: 0 };
         // SAFETY: getuid has no preconditions and cannot fail.
         let uid = unsafe { libc::getuid() }.to_string();
         let hex: String = uid.bytes().map(|b| format!("{b:02x}")).collect();
-        me.stream.write_all(format!("\0AUTH EXTERNAL {hex}\r\n").as_bytes()).map_err(|e| e.to_string())?;
+        me.stream.write_all(format!("\0AUTH EXTERNAL {hex}\r\n").as_bytes()).map_err(|e| podssh_ws::text::said(&e))?;
         let answer = me.line()?;
         if !answer.starts_with("OK ") {
             return Err(format!("the login was refused: {answer}"));
         }
-        me.stream.write_all(b"BEGIN\r\n").map_err(|e| e.to_string())?;
+        me.stream.write_all(b"BEGIN\r\n").map_err(|e| podssh_ws::text::said(&e))?;
         if bus {
             let hello = Call {
                 destination: Some("org.freedesktop.DBus"),
@@ -162,7 +163,7 @@ impl Bus {
             match self.stream.read(&mut byte) {
                 Ok(1) => line.push(byte[0]),
                 Ok(_) => return Err("the socket ended during the login".into()),
-                Err(e) => return Err(format!("the login: {e}")),
+                Err(e) => return Err(format!("the login: {}", podssh_ws::text::said(&e))),
             }
         }
         Ok(String::from_utf8_lossy(&line[..line.len() - 2]).into_owned())
@@ -173,7 +174,9 @@ impl Bus {
     pub fn call(&mut self, call: &Call<'_>) -> Result<Vec<u8>, String> {
         self.serial += 1;
         let serial = self.serial;
-        self.stream.write_all(&message(serial, call)).map_err(|e| format!("{}: {e}", call.member))?;
+        self.stream
+            .write_all(&message(serial, call))
+            .map_err(|e| format!("{}: {}", call.member, podssh_ws::text::said(&e)))?;
         for _ in 0..MESSAGES_MAX {
             let reply = self.read()?;
             if reply.reply_serial != Some(serial) {
@@ -195,7 +198,7 @@ impl Bus {
 
     fn read(&mut self) -> Result<Received, String> {
         let mut fixed = [0u8; 16];
-        self.stream.read_exact(&mut fixed).map_err(|e| format!("a reply: {e}"))?;
+        self.stream.read_exact(&mut fixed).map_err(|e| format!("a reply: {}", podssh_ws::text::said(&e)))?;
         let little = match fixed[0] {
             b'l' => true,
             b'B' => false,
@@ -216,7 +219,7 @@ impl Bus {
             return Err(format!("a message of {} bytes", header + body_len));
         }
         let mut rest = vec![0u8; header - 16 + body_len];
-        self.stream.read_exact(&mut rest).map_err(|e| format!("a reply: {e}"))?;
+        self.stream.read_exact(&mut rest).map_err(|e| format!("a reply: {}", podssh_ws::text::said(&e)))?;
         let mut whole = fixed.to_vec();
         whole.extend_from_slice(&rest);
         let mut received = Received { kind: fixed[1], reply_serial: None, error: None, body: whole[header..].to_vec() };

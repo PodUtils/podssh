@@ -12,10 +12,10 @@ use crate::relay_settings::Refusal;
 /// The policy in the file `path`.
 pub fn load(path: &str) -> Result<Policy, Refusal> {
     let refused = |why: String| Refusal::config(format!("--policy {path}: {why}"));
-    let file = std::fs::File::open(path).map_err(|e| refused(e.to_string()))?;
+    let file = std::fs::File::open(path).map_err(|e| refused(podssh_ws::text::said(&e)))?;
     let mut bytes = Vec::new();
     // One byte past the bound, so that a longer file is said to be one.
-    file.take(MAX_BYTES as u64 + 1).read_to_end(&mut bytes).map_err(|e| refused(e.to_string()))?;
+    file.take(MAX_BYTES as u64 + 1).read_to_end(&mut bytes).map_err(|e| refused(podssh_ws::text::said(&e)))?;
     parse(&bytes).map_err(|e| refused(e.to_string()))
 }
 

@@ -50,10 +50,13 @@ where
     // `keep.v1` named, as `podssh ssh` names it (T-158): a copy asks for
     // no shell, so the offer changes nothing of it. The edge keeps no bound
     // of the pair's relay (T-443).
-    let client = greeted
-        .start(Ask::New, layered::ssh_settings().off_the_pair(), &mut OsEntropy)
-        .await
-        .map_err(|e| format!("the far end greets with the resumable layer, but its handshake failed: {e}"))?;
+    let client =
+        greeted.start(Ask::New, layered::ssh_settings().off_the_pair(), &mut OsEntropy).await.map_err(|e| {
+            format!(
+                "the far end greets with the resumable layer, but its handshake failed: {}",
+                podssh_ws::text::said(&e)
+            )
+        })?;
     crate::no_resume::found_lines(client.found()).iter().for_each(|l| log.verbose(&format!("{shown}: {l}")));
     layered::learn(client.found(), &shared.offer);
     let client = layered::heard(client, &shared.silence);

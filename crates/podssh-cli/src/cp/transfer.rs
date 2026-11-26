@@ -121,7 +121,7 @@ pub(crate) fn from_sftp(e: SftpError, side: Side) -> Failed {
         SftpError::Closed(_) | SftpError::Timeout { .. } => Cause::Broke,
         _ => Cause::Answer,
     };
-    Failed { fault, message: super::words::plain(&e.to_string()), cause }
+    Failed { fault, message: podssh_ws::text::said(&e), cause }
 }
 
 /// The line of a destination `target` whose temporary file in `dir` could

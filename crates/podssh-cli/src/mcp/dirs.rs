@@ -88,7 +88,8 @@ impl Dirs {
     /// in an allowed directory.
     pub fn source(&self, path: &str) -> Result<PathBuf, String> {
         let joined = self.given(path)?;
-        let resolved = std::fs::canonicalize(&joined).map_err(|e| format!("local_path {path}: {e}"))?;
+        let resolved =
+            std::fs::canonicalize(&joined).map_err(|e| format!("local_path {path}: {}", podssh_ws::text::said(&e)))?;
         self.holds(&resolved, path)?;
         Ok(resolved)
     }

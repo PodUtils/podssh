@@ -61,7 +61,8 @@ pub(crate) fn stored_part(label: &str) -> Result<pair::OperatorPart, Refusal> {
 
 /// A pair from a file of the store's form, as `--pair-file` gives it.
 pub(crate) fn from_file(path: &str) -> Result<Pair, Refusal> {
-    pair::read_file(Path::new(path)).map_err(|e| Refusal::config(format!("--pair-file {path}: {e}")))
+    pair::read_file(Path::new(path))
+        .map_err(|e| Refusal::config(format!("--pair-file {path}: {}", podssh_ws::text::said(&e))))
 }
 
 /// `pair`, unless it has expired: then the remedy, with the code of an
@@ -170,7 +171,7 @@ pub(crate) fn online() -> Result<(), Refusal> {
 pub(crate) fn operator_part(label: &str, pair_file: Option<&str>) -> Result<pair::OperatorPart, Refusal> {
     let part = match pair_file {
         Some(path) => pair::read_operator_file(Path::new(path))
-            .map_err(|e| Refusal::config(format!("--pair-file {path}: {e}")))?,
+            .map_err(|e| Refusal::config(format!("--pair-file {path}: {}", podssh_ws::text::said(&e))))?,
         None => match pair::load(label) {
             Ok(Some(found)) => pair::OperatorPart::of(&found),
             Ok(None) => match pair::part::load(label) {
@@ -215,7 +216,10 @@ fn renewed(mut part: pair::OperatorPart, label: &str) -> Result<pair::OperatorPa
             Ok(part)
         }
         Ok(_) | Err(PairError::Forbidden) => Err(expired(String::new())),
-        Err(e) => Err(expired(format!(", by its file, and its relay could not say whether it was renewed: {e}"))),
+        Err(e) => Err(expired(format!(
+            ", by its file, and its relay could not say whether it was renewed: {}",
+            podssh_ws::text::said(&e)
+        ))),
     }
 }
 
@@ -225,10 +229,9 @@ fn renewed(mut part: pair::OperatorPart, label: &str) -> Result<pair::OperatorPa
 fn ended_at(part: &pair::OperatorPart) -> Result<Option<i64>, PairError> {
     std::thread::scope(|scope| {
         let asking = scope.spawn(|| {
-            let runtime = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .map_err(|e| PairError::Store(format!("could not start the async runtime: {e}")))?;
+            let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| {
+                PairError::Store(format!("could not start the async runtime: {}", podssh_ws::text::said(&e)))
+            })?;
             let (trust, relay_ctx) = (trust(None), podssh_relay::context::process());
             let ctx = context(&part.relay, &trust, &relay_ctx);
             runtime.block_on(pair::renew::status(&ctx, part)).map(|status| status.expires)

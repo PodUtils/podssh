@@ -84,7 +84,7 @@ pub fn remove_local(path: &str, before: &Before) -> Result<(), Failed> {
     if &now != before {
         return Err(changed(path, "its size, time of change or file is not the one copied"));
     }
-    std::fs::remove_file(path).map_err(|e| not_removed(path, &e.to_string()))
+    std::fs::remove_file(path).map_err(|e| not_removed(path, &podssh_ws::text::said(&e)))
 }
 
 /// [`finish`] for a far source.
@@ -112,7 +112,7 @@ pub async fn remove_far(link: &Link, path: &str, before: &Before, done: &Done) -
         }
     }
     let gone = match &link.road {
-        Road::Sftp(sftp) => sftp.remove(path).await.map_err(|e| e.to_string()),
+        Road::Sftp(sftp) => sftp.remove(path).await.map_err(|e| podssh_ws::text::said(&e)),
         Road::Exec(far) => far.delete(link.handle(), path).await,
     };
     gone.map_err(|why| not_removed(path, &why))

@@ -1528,6 +1528,8 @@ server as `ssh` does, `proxy` and `doctor`, which checks each:
   1-RTT; `1rtt` takes that fallback from the start. The nonce never goes in a
   line or a log. The flag goes with `--vless`; without it the run is refused
   (64).
+  A word of the flag that is none of the three is refused (64) in the
+  flag's name; the same word in the variable is 78, in the variable's name.
 - `podssh doctor --vless FILE` gives a line in its section `vless` for each
   server, and for each mode where a link says `auto`: the transport that
   carried it, the time of VLESS's answer, the first write's size and whether
@@ -7727,7 +7729,7 @@ nothing did), and why.
   `--dry-run` whose plan cannot be written is 74 (T-983).
 - An output that could not be written is 74 (`EX_IOERR`, T-965), for each
   command whose answer is its stdout: `keygen`, `doctor`, `man`, `status`,
-  `config`, `agent` and `update`. One line says so ("the output could not
+  `config`, `agent`, `update` and `node` or `serve` with `--print-unit`. One line says so ("the output could not
   be written: No space left on device"), where the command would exit 0;
   a command that failed first keeps its own code. A stdout closed at the
   start (`>&-`) is not told apart: Rust's runtime puts `/dev/null` there,

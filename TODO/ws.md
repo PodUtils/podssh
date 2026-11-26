@@ -1982,7 +1982,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
   with the relay failed: {why}", and `crates/podssh-ws/src/client.rs` lines 202-203 at `1316e53`
   kept rustls's words. doctor adds a hint for the
   clock's errors only (`crates/podssh-cli/src/doctor/relay_checks.rs` lines 96-105 at `b9e007c`), and its test
-  asserts none for `UnknownIssuer` (`:392`).
+  asserts none for `UnknownIssuer` (`:393`).
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:321-337`, `:374-390`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
@@ -2329,7 +2329,7 @@ and each other command print rustls's words alone. An error should tell what to 
 ## Premise
 
 - Read: doctor's hint (`crates/podssh-cli/src/doctor/relay_checks.rs` lines 96-105 at `b9e007c`) and its tests
-  (`:389-392`).
+  (`:390-393`).
 - Read: the other commands print the error's text: `PodUtils/podssh:crates/podssh-ws/src/client.rs:142` says "TLS
   with the relay failed: {why}"; the TLS of IRC and of the quick tunnel's edge gives the text of
   `PodUtils/podssh:crates/podssh-ws/src/tls.rs:151` (`crates/podssh-relay/src/quick/edge.rs:111-113`).
@@ -2801,7 +2801,7 @@ refused it.
   resolver's order (`PodUtils/podssh:crates/podssh-ws/src/resolve/order.rs:124`), which the dialer runs only
   with no proxy (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:235`, `:239`; `PodUtils/podssh:crates/podssh-ws/src/race.rs:51`);
   doctor's line asks `doh_ask`, the same direct way
-  (`crates/podssh-cli/src/doctor/names.rs:102`). So "other lookups of DoH fail the same way" does
+  (`crates/podssh-cli/src/doctor/names.rs:108`). So "other lookups of DoH fail the same way" does
   not hold: the change is `doh_srv`'s alone.
 
 The test target `doh_names` and the tests `resolve::` of the library of `podssh-ws` moved to `pod-dns` of PodUtils/podcrates when podssh took the crate: `cargo test -p pod-dns --all-features` there runs them, with their names. The live test `live_doh` and its workflow `doh-live.yml` leave podssh: pod-dns runs `cargo test -p pod-dns --test live_doh -- --ignored`.
@@ -2859,7 +2859,7 @@ met.
 
 - Read: each relay host gets a line of its own (`crates/podssh-cli/src/doctor/relay_checks.rs:53-72`),
   and DNS over HTTPS one line with each resolver's error
-  (`crates/podssh-cli/src/doctor/names.rs:141`); the end of the report gives the counts alone
+  (`crates/podssh-cli/src/doctor/names.rs:147`); the end of the report gives the counts alone
   (`crates/podssh-cli/src/doctor/report.rs:132-154`).
 - Read: a failed handshake reaches `doctor` as text: `ConnectError::Tls` holds a String
   (`crates/podssh-ws/src/client.rs` line 115 at `38f424c`), and `HealthError::Connect` the

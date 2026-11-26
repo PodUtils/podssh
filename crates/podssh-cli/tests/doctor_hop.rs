@@ -168,13 +168,20 @@ fn a_flag_that_cannot_be_used_is_refused_before_any_probe() {
         (vec!["--tier", "--hop", "a.example", "--policy", "p.toml"], "--hop cannot go with it"),
         (vec!["--tier", "--dns-zone", "t.example"], "--dns-zone and --dns-server cannot go with it"),
         (vec!["--h2-shape", "bogus"], "--h2-shape: existing, browser or firefox, not bogus"),
+        (vec!["--vless", "v.list", "--early-data", "2rtt"], "--early-data: 0rtt, 1rtt or off, not 2rtt"),
+        (vec!["--vless", "v.list", "--early-data", ""], "--early-data: 0rtt, 1rtt or off, not an empty word"),
     ] {
         let (code, out, err) = doctor(&home, &args, &offline);
         assert_eq!(code, 64, "{args:?}: {out}{err}");
         assert!(err.contains(said) && out.is_empty(), "{args:?}: {err}");
-        assert!(!err.contains("PODSSH_H2_SHAPE"), "{args:?}: {err}");
+        assert!(!err.contains("PODSSH_H2_SHAPE") && !err.contains("PODSSH_VLESS_EARLY_DATA"), "{args:?}: {err}");
     }
     let (code, out, err) = doctor(&home, &["--tier"], &[("PODSSH_OFFLINE", "1"), ("PODSSH_H2_SHAPE", "bogus")]);
     assert_eq!(code, 78, "{out}{err}");
     assert!(err.contains("PODSSH_H2_SHAPE: existing, browser or firefox, not bogus") && out.is_empty(), "{err}");
+    let said = "PODSSH_VLESS_EARLY_DATA: 0rtt, 1rtt or off, not 2rtt";
+    let env = [("PODSSH_OFFLINE", "1"), ("PODSSH_VLESS_EARLY_DATA", "2rtt")];
+    let (code, out, err) = doctor(&home, &["--vless", "v.list"], &env);
+    assert_eq!(code, 78, "{out}{err}");
+    assert!(err.contains(said) && !err.contains("--early-data") && out.is_empty(), "{err}");
 }

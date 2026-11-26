@@ -181,8 +181,10 @@ pub(crate) async fn drain(mut pieces: mpsc::Receiver<(Vec<u8>, bool)>, place: Pl
             while let Some((bytes, stderr)) = pieces.recv().await {
                 if failed.is_none() {
                     if let Err(e) = write(&mut out[usize::from(stderr)], &bytes).await {
-                        let e = podssh_ws::text::said(&e);
-                        failed = Some(format!("its output could not be written: {e}; the rest is dropped"));
+                        failed = Some(format!(
+                            "its output could not be written: {}; the rest is dropped",
+                            podssh_ws::text::said(&e)
+                        ));
                     }
                 }
             }

@@ -146,10 +146,14 @@ pub fn run(args: &SshArgs, env: &Env, out: &mut dyn Write, err: &mut dyn Write) 
     };
     let text = match serde_json::to_string_pretty(&json(&records)) {
         Ok(text) => text,
-        Err(e) => return Refusal { message: format!("--list-hosts: {e}"), code: EXIT_WRITE }.report("ssh", err),
+        Err(e) => {
+            return Refusal { message: format!("--list-hosts: {}", podssh_ws::text::said(&e)), code: EXIT_WRITE }
+                .report("ssh", err)
+        }
     };
     if let Err(e) = writeln!(out, "{text}").and_then(|()| out.flush()) {
-        return Refusal { message: format!("--list-hosts: stdout: {e}"), code: EXIT_WRITE }.report("ssh", err);
+        return Refusal { message: format!("--list-hosts: stdout: {}", podssh_ws::text::said(&e)), code: EXIT_WRITE }
+            .report("ssh", err);
     }
     0
 }

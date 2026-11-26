@@ -36,14 +36,18 @@ impl Keys {
         #[cfg(unix)]
         {
             use tokio::signal::unix::{signal, SignalKind};
-            let stop = signal(SignalKind::quit()).map_err(|e| format!("SIGQUIT, the key Ctrl-\\: {e}"))?;
-            let interrupt = signal(SignalKind::interrupt()).map_err(|e| format!("SIGINT, the key Ctrl-C: {e}"))?;
+            let stop = signal(SignalKind::quit())
+                .map_err(|e| format!("SIGQUIT, the key Ctrl-\\: {}", podssh_ws::text::said(&e)))?;
+            let interrupt = signal(SignalKind::interrupt())
+                .map_err(|e| format!("SIGINT, the key Ctrl-C: {}", podssh_ws::text::said(&e)))?;
             Ok(Keys { stop, interrupt })
         }
         #[cfg(windows)]
         {
-            let stop = tokio::signal::windows::ctrl_break().map_err(|e| format!("Ctrl-Break: {e}"))?;
-            let interrupt = tokio::signal::windows::ctrl_c().map_err(|e| format!("Ctrl-C: {e}"))?;
+            let stop = tokio::signal::windows::ctrl_break()
+                .map_err(|e| format!("Ctrl-Break: {}", podssh_ws::text::said(&e)))?;
+            let interrupt =
+                tokio::signal::windows::ctrl_c().map_err(|e| format!("Ctrl-C: {}", podssh_ws::text::said(&e)))?;
             Ok(Keys { stop, interrupt })
         }
     }

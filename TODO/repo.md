@@ -7377,10 +7377,10 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
     written.is_err() || std::fs::rename(&part, path).is_err()` (line 333), with no sync at all.
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
-  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:137`,
+  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:140`,
   `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
   with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
-  `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,
+  `crates/podssh-cli/src/cp/clobber.rs:328`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,
   `crates/podssh-relay/src/cache/own.rs:68` (`create_private`, a hard link), `crates/podssh-cli/src/relay_code.rs:151`
   (an append), `crates/podssh-cli/src/pinggy_cert.rs:56` (`create_new_private`, never a replace).
 

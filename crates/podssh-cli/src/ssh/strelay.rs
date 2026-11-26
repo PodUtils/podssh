@@ -70,7 +70,7 @@ impl StRoads {
         let relay = crate::strelay::library(self.relay);
         let stream = pair::link(&crate::strelay::dial(), &relay, node, LIMIT)
             .await
-            .map_err(|e| format!("Syncthing's relay {}: {e}", self.relay.at))?;
+            .map_err(|e| format!("Syncthing's relay {}: {}", self.relay.at, podssh_ws::text::said(&e)))?;
         Ok(Road::Syncthing(Box::new(stream)))
     }
 

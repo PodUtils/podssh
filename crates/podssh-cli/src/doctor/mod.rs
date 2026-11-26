@@ -129,7 +129,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
     // in the environment. Both are refused before a probe, as a road's own
     // settings are.
     if let Some(word) = args.early_data.as_deref() {
-        if let Err(why) = crate::vless::early_word(Some(word)) {
+        if let Err(why) = crate::vless::early_flag_word(word) {
             let _ = writeln!(err, "podssh doctor: {why}");
             return crate::exit_codes::EXIT_USAGE;
         }
@@ -369,7 +369,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
             // the report is done, so none is waited for.
             runtime.shutdown_background();
         }
-        Err(e) => report.fail("network", format!("could not start the async runtime: {e}")),
+        Err(e) => report.fail("network", format!("could not start the async runtime: {}", podssh_ws::text::said(&e))),
     }
     if args.quick {
         sections::left_out_line(&mut report);

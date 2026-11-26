@@ -3324,7 +3324,7 @@ destination too.
   (`crates/podssh-ssh/src/sftp/mod.rs:414-423`).
 - Read: `hardlink@openssh.com` gives a file a second name
   (`crates/podssh-ssh/src/sftp/mod.rs:341-351`, which T-146 uses in
-  `crates/podssh-cli/src/cp/meta.rs:391-414`). A hard link is never made over a name that is there
+  `crates/podssh-cli/src/cp/meta.rs:393-416`). A hard link is never made over a name that is there
   (POSIX `link()`; Inferred for each server), so it can put a verified file at a name that must
   not be replaced, also when that name came during the copy. Not read here: what each server does
   with SFTP's own rename onto a name that is there.
@@ -4058,7 +4058,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 - Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/tries.rs:55`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
-- Read: `crates/podssh-cli/src/sftp/run.rs:160` hands `self.link.meter` to `bysftp::down` and `up`;
+- Read: `crates/podssh-cli/src/sftp/run.rs:161` hands `self.link.meter` to `bysftp::down` and `up`;
   `crates/podssh-cli/src/cp/link.rs:92-100` stops the transfer with the failure
   "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:79`.
 - The issue says the transfer is "cut mid-way". That is not right: the meter stops it before the cap.
@@ -4721,7 +4721,7 @@ directory is met again" and exit 66, and `real` was never copied. OpenSSH's scp 
 
 - The walk that follows links kept a set of each directory seen anywhere in the walk, so the second path to one directory read as a
   loop: here (`crates/podssh-cli/src/cp/tree.rs:284`, `walk_local_in`) by its canonical path, and on the server
-  (`crates/podssh-cli/src/cp/tree.rs:389`, `walk_far`) by its `realpath`.
+  (`crates/podssh-cli/src/cp/tree.rs:395`, `walk_far`) by its `realpath`.
 
 ## Approach
 
@@ -4775,7 +4775,7 @@ An edit of a file in a read-only directory ended with "cannot be written in ro/:
 
 - The copy up names its temporary file in its record before the server makes it (`crates/podssh-cli/src/cp/bysftp.rs:138`), so
   that a break between the two leaves no file that no record names; the open's failure returned with `?` and left that record,
-  which `partial()` of `crates/podssh-cli/src/edit/mod.rs:323` read as a partial copy.
+  which `partial()` of `crates/podssh-cli/src/edit/mod.rs:331` read as a partial copy.
 
 ## Approach
 
@@ -4836,10 +4836,10 @@ overwritten in place and stayed 0644, though the manual says "a new file for its
 ## Approach
 
 `no_place` (`crates/podssh-cli/src/ssh/result.rs:168`) says why FILE's directory cannot take it (missing, or no directory). `cp`,
-`mv`, `scp` (`crates/podssh-cli/src/cp/mod.rs:234`) and `sftp` refuse such a FILE before anything connects, with 73 and "Nothing has
+`mv`, `scp` (`crates/podssh-cli/src/cp/mod.rs:235`) and `sftp` refuse such a FILE before anything connects, with 73 and "Nothing has
 been attempted". `write` makes a new file of mode 0600 under a private name beside FILE and renames it onto FILE; a FIFO or a device
 (`/dev/stderr`) takes the object as before. It says whether it wrote: a run of `cp`, `mv`, `scp` or `sftp` that succeeded and whose
-record could not be written at the end exits 73 (`crates/podssh-cli/src/cp/mod.rs:244`). `ssh`, `run` and `each` keep their exit
+record could not be written at the end exits 73 (`crates/podssh-cli/src/cp/mod.rs:245`). `ssh`, `run` and `each` keep their exit
 code, as their record is no part of their work.
 
 ## Decision
@@ -5007,7 +5007,7 @@ SIGTERM name it). `--timeout 1ms` said "the --timeout of 0 s passed".
 
 ## Premise
 
-- The line of the bound (`crates/podssh-cli/src/cp/mod.rs:386`) was built from `limit.as_secs()`, and named no partial copy; the
+- The line of the bound (`crates/podssh-cli/src/cp/mod.rs:387`) was built from `limit.as_secs()`, and named no partial copy; the
   words of an interruption, a few lines below, did. `sftp` and `edit` built theirs the same way.
 
 ## Approach
@@ -5283,7 +5283,7 @@ missing source.
 
 - The tree's copy gave `Fault::Capability` (78) for a server with no SFTP (`crates/podssh-cli/src/cp/tree_copy.rs:136` is the line
   now), and `df` read the client's refusal of the missing extension as a status of the source (`transfer::from_sftp` with
-  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:284` is the look now).
+  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:285` is the look now).
 
 ## Approach
 
@@ -5332,13 +5332,13 @@ named the temporary `.part` file, not the destination. `lcd nodir` said "not a d
 
 ## Premise
 
-- `put` took its operand as one path (`crates/podssh-cli/src/sftp/run.rs:111` is the expansion now); `get` and `rm` expanded a
+- `put` took its operand as one path (`crates/podssh-cli/src/sftp/run.rs:112` is the expansion now); `get` and `rm` expanded a
   pattern on the server, with no rule for a name that starts with a dot.
 - The tree up named its root by `Path::file_name`, which reads `tree/.` as `tree` (`crates/podssh-cli/src/cp/tree_copy.rs:166`); down,
   a `.` failed the check of one component.
 - The notes of `-p` and `--owner` named the path that they set, the temporary file before its rename
-  (`crates/podssh-cli/src/cp/meta.rs:228`, `named`, gives the destination now).
-- `lcd` looked at `is_dir` alone (`crates/podssh-cli/src/sftp/run.rs:223` is its missing case now).
+  (`crates/podssh-cli/src/cp/meta.rs:230`, `named`, gives the destination now).
+- `lcd` looked at `is_dir` alone (`crates/podssh-cli/src/sftp/run.rs:224` is its missing case now).
 
 ## Approach
 

@@ -3782,7 +3782,7 @@ home; a number that overflows or an argument that is not UTF-8 can panic a parse
 
 - `crates/podssh-cli/src/ssh/x11.rs:136`: `podssh-x11-PID` in the temporary directory, made with `private_dir`, which
   takes a directory that exists, and removed at the end of the run.
-- `crates/podssh-cli/src/keygen_cert.rs:140`, `crates/podssh-cli/src/keygen_change.rs:156` and
+- `crates/podssh-cli/src/keygen_cert.rs:140`, `crates/podssh-cli/src/keygen_change.rs:159` and
   `crates/podssh-ssh/src/known_hosts/edit.rs:281`: `.NAME.podssh-new-PID` beside a key or `known_hosts`, made with
   `create_new`.
 
@@ -5164,7 +5164,7 @@ existing connection was forcibly closed by the remote host. (os error 10054)").
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -5226,3 +5226,66 @@ for `--target x86_64-pc-windows-gnu` clean (the `cfg(windows)` sites); `cargo te
 two tests that the gate at `07d7d9b` (run 45692616657) failed: `derp_net`'s refusal of the pair, which T-938 made name
 the relay's own words (`(403: reverse: forbidden)`), and `cp::resume`'s stable form, whose time had nanoseconds that
 Windows keeps in units of 100 ns.
+
+Drafted 2026-11-25: the scope of `crates/podssh-cli/tests/io_error_lines.rs` is now the whole of `crates/podssh-cli/src/`
+(`in_scope` is gone; the scan reads each source file outside test blocks and outside `*_tests.rs`, `*_test.rs` and
+`tests.rs`), and its test of the scope became `the_scan_reaches_the_whole_crate`. The wider scan found 362 lines more
+than the table of the first sweep: 282 were converted to `podssh_ws::text::said(&e)` (the lines of `doctor/`, `ssh/`,
+`keygen*`, `agent/`, `detach/`, `mcp/`, `each/`, `edit/`, `exit/`, `job/`, `session_log.rs`, `settings.rs`, `zerotier.rs`,
+`ts.rs`, `chisel/`, the `*/pipe.rs` of the roads, and others; six places that rebound `let e = said(&e)` for one line
+lost the rebinding, and `doctor/net.rs` names its already said text `why`, not `e`), 45 lines of `cp/` are exempt as a
+class (`sunk` of the test: a line that builds its failure with `Failed::new(` or `failed(Fault::`, whose constructor
+takes the suffix off the message, T-929; `only_the_failed_constructor_of_cp_is_a_sink` pins the rule), and 35 whole
+lines joined `NOT_IO` (62 in all): the encoders and parsers of keys, PCRs and pins, the JSON readers, the e2e
+`Timeout` and `NotChannel` words, the manual's own render, the label of a pair, the `-e` value, a plain String. The
+helper of `cp/` was not touched. `crates/podssh-ssh/src/` was scanned the same way and is not in the test: it has 301
+lines, mostly the key, signature, TPM, cert and SOCKS codecs, whose table would be five times the 60 lines that a
+table can bear; its I/O sites are T-989's. Merged 2026-11-26 and built: `cargo test --locked -p podssh-cli --no-fail-fast`
+264 binaries passed, `io_error_lines` among them; `cargo clippy --locked --all-targets -- -D warnings` clean for the four
+crates, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Two tests that held the old words were brought to
+the new: `--early-data`'s refusal names the flag (T-988), and the manual's row of 74 reads "The output of a command could
+not be written" (T-987). Each line of `podssh-cli` that shows an I/O error is held by the scan; `podssh-ssh` is T-989.
+
+# T-989: `(os error N)` leaves each user line of `podssh-ssh`, as T-952 did for `podssh-cli`
+
+**Source:** T-952's scan, 2026-11-26: `crates/podssh-ssh/src/` was scanned by the rules of
+`crates/podssh-cli/tests/io_error_lines.rs` and gave 301 lines, mostly of codecs (keys, signatures, the TPM, certificates,
+SOCKS), whose values are not I/O errors.
+**Category:** defect
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The SSH client's crate builds lines of its own (the connection, a forward, the agent, a known_hosts file, a key file)
+that can show an `std::io::Error` by its `Display`, with Rust's "(os error N)". T-952 holds `podssh-cli` to one rule by
+a scan; `podssh-ssh` is outside it.
+
+## Premise
+
+- Read: `crates/podssh-cli/tests/io_error_lines.rs` scans `crates/podssh-cli/src/` alone, with a table `NOT_IO` of whole
+  lines that show no I/O error.
+- Read: T-952's `## Done` (`TODO/robustness.md`): 301 hits in `crates/podssh-ssh/src/`.
+
+## Approach
+
+1. Sort the 301 hits by module: the codecs whose values are not I/O errors become an exemption by module (a rule of the
+   scan, as `sunk` exempts `cp/`'s constructor), not 300 table lines.
+2. Convert each remaining line that can show an I/O error to `podssh_ws::text::said(&e)` (podssh-ssh depends on
+   podssh-ws), and widen the scan to `crates/podssh-ssh/src/` with its own small table.
+
+## Decision
+
+An exemption of whole codec modules, each named with why, keeps the table small enough to read; a module that gains an
+I/O line later is caught only if it is not exempt, which the module list makes plain. Lost: a table of 300 lines, which
+no one would read.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test io_error_lines
+cargo test -p podssh-ssh --lib
+```

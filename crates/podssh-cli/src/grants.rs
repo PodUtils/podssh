@@ -269,7 +269,8 @@ fn grantee(text: &str) -> Result<PublicKey, Refusal> {
     }
     let path = Path::new(text);
     if path.is_file() {
-        let read = std::fs::read_to_string(path).map_err(|e| Refusal::config(format!("--grant-to {text}: {e}")))?;
+        let read = std::fs::read_to_string(path)
+            .map_err(|e| Refusal::config(format!("--grant-to {text}: {}", podssh_ws::text::said(&e))))?;
         if is_seed_file(&read) {
             return Err(Refusal::config(format!(
                 "--grant-to {text}: this is a private key file of podssh (64 hex digits alone); give its public line, \

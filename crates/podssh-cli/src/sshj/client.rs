@@ -56,7 +56,7 @@ pub(crate) async fn first_hop_to(
     let proxy = ProxyChoice::FromEnvironment;
     let direct = match podssh_ws::dial::dial(host, port, &proxy, CONNECT_LIMIT).await {
         Ok(tcp) => return Ok(Box::new(tcp)),
-        Err(e) => format!("{shown}: {e}"),
+        Err(e) => format!("{shown}: {}", podssh_ws::text::said(&e)),
     };
     let fallback = forwarder::fallback::FALLBACK_ENV;
     match forwarder::fallback::on_from(forwarder::fallback::env_value(), crate::settings::here()) {

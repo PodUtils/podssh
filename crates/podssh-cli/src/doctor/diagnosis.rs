@@ -106,7 +106,7 @@ pub(super) async fn reference(report: &mut Report<'_>, trust: &Trust, through: T
             Err(e) => {
                 let found = met(&ConnectError::Dial(e.clone()));
                 record(report, found, None);
-                return report.ok(NAME, format!("{target}: {e}: {}", found.words()));
+                return report.ok(NAME, format!("{target}: {}: {}", podssh_ws::text::said(&e), found.words()));
             }
         },
         Through::Proxy { shown, kept: Some(stream) } => (stream, Some(shown)),
@@ -123,7 +123,7 @@ pub(super) async fn reference(report: &mut Report<'_>, trust: &Trust, through: T
         }
         Err(e) => {
             let found = met(&e);
-            (found, format!("{target}{way}: {e}: {}", found.words()))
+            (found, format!("{target}{way}: {}: {}", podssh_ws::text::said(&e), found.words()))
         }
     };
     record(report, found, shown);

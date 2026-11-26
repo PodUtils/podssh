@@ -54,7 +54,8 @@ impl<'a> State<'a> {
             return Err(failed(Fault::RelayUnreachable, "the server has no SFTP subsystem".into()));
         };
         let home = sftp.realpath(".").await.map_err(|e| transfer::from_sftp(e, Side::Source))?;
-        let lcwd = std::env::current_dir().map_err(|e| failed(Fault::CantCreate, format!("this directory: {e}")))?;
+        let lcwd = std::env::current_dir()
+            .map_err(|e| failed(Fault::CantCreate, format!("this directory: {}", podssh_ws::text::said(&e))))?;
         Ok(State { link, sftp, cwd: home.clone(), lcwd, home, log, shape, recursive })
     }
 

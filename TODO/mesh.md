@@ -3619,7 +3619,7 @@ relay. Planted, the net's lookup skipped, and the test fails.
 
 The copies do ask the net (read 2026-11-02). Each reads its operand with its own parser
 (`crates/podssh-cli/src/cp/operand.rs:114`), and hands the server to `ssh`'s resolution
-(`crates/podssh-cli/src/cp/mod.rs:320`, `crates/podssh-cli/src/sftp/mod.rs:226`,
+(`crates/podssh-cli/src/cp/mod.rs:321`, `crates/podssh-cli/src/sftp/mod.rs:226`,
 `crates/podssh-cli/src/edit/mod.rs:153`), which reads the destination's node before its host
 (`crates/podssh-cli/src/ssh/resolve.rs:86`), and a name alone there in the net
 (`crates/podssh-cli/src/ssh/node.rs:44` says "crate::net::lookup::bare(text)"); the copy's link then reaches `Transport::Node` through the pair
@@ -8414,7 +8414,7 @@ with no listener; behind this tunnel it would give the node a road where its egr
 2026-11-10 (the drafting agent), each call with what lost:
 
 - **The client's road is a WebSocket at `/` of the tunnel's name**, as the quick tunnel of a record
-  is taken (`crates/podssh-cli/src/ssh/cloudflare.rs:221`), under the resumable layer and the
+  is taken (`crates/podssh-cli/src/ssh/cloudflare.rs:222`), under the resumable layer and the
   end-to-end channel, in place of Step 3's relay road to `https://DOMAIN`. Lost: a pair at the
   node's own relay role, as a relay of another deployment (Q49), as a client of `node://NAME` holds
   neither a pair nor a token of that role, and a node paired with itself has both ends in one
@@ -12093,8 +12093,8 @@ other items hold, with three facts that the Approach did not know:
   while a document may have more bytes than that:
   `crates/podssh-cli/src/net/doc.rs:35` says "pub const MAX_DOC: usize = 60 * 1024;"
   The last words carry the document in parts of 6 KiB.
-- The agent's signature, `crates/podssh-cli/src/keygen_sign.rs:286`, starts a runtime of its own
-  (`:290`), which cannot start inside the exchange's: the owner's host signs on a thread of its
+- The agent's signature, `crates/podssh-cli/src/keygen_sign.rs:288`, starts a runtime of its own
+  (`:292`), which cannot start inside the exchange's: the owner's host signs on a thread of its
   own.
 
 The new Approach, in place of items 1 and 2 above (item 3 holds):

@@ -59,7 +59,7 @@ server listens, and the client connects out for each connection.
 3. In the handler, accept a `forwarded-tcpip` channel only for an address and
    a port that podssh asked for, and reject the rest. Dial the spec's target
    with `podssh_ws::dial::dial` and `ProxyChoice::FromEnvironment`, as
-   `--direct` does (`crates/podssh-cli/src/ssh/transport.rs:369-375`), with the
+   `--direct` does (`crates/podssh-cli/src/ssh/transport.rs:371-377`), with the
    limit of 20 s (`PodUtils/podssh:crates/podssh-relay/src/open.rs:31-33`).
 4. Copy both ways. Pass EOF on in each direction, and close both ends on an
    error. The SSH window is the flow control.
@@ -430,7 +430,7 @@ swap of the cookie in `crates/podssh-ssh/src/x11.rs:1-339`; the session asks
 (`crates/podssh-ssh/src/session.rs:123-125`) and the handler joins an `x11`
 channel when the destination's run asked
 (`crates/podssh-ssh/src/handler.rs:327-340`). The plan and the probe of the
-command line in `crates/podssh-cli/src/ssh/x11.rs:1-166`, the flags at
+command line in `crates/podssh-cli/src/ssh/x11.rs:1-167`, the flags at
 `crates/podssh-cli/src/flags.rs:293-296`, and the keywords, honoured now, at
 `crates/podssh-cli/src/ssh/keywords.rs:49-51` and
 `crates/podssh-cli/src/ssh/keywords.rs:98`.
@@ -1490,7 +1490,7 @@ ssh(1), ESCAPE CHARACTERS: `~C` opens a command line that takes `-L`, `-R`,
 - podssh-ssh binds nothing: the caller gives `Options::command_line`, a
   `Forwarder` (`crates/podssh-ssh/src/escape_command.rs:141`) that reads a
   spec as its command line reads one and makes the listeners of `-L` and
-  `-D` with the same probe (`crates/podssh-cli/src/ssh/local_bind.rs:243`),
+  `-D` with the same probe (`crates/podssh-cli/src/ssh/local_bind.rs:245`),
   as the binder of a control master does. Lost: a bind inside podssh-ssh,
   which would break the rule of the crate and repeat the probe; a closure
   type as the master's `Binder`, which has no place for the reading of `-R`.
@@ -1582,8 +1582,8 @@ a session with a pty:
   `unread`. `io.rs`, `session.rs`, `options.rs`: the caller's `Forwarder`
   to the pump.
 - `crates/podssh-cli/src/ssh/local_bind.rs`: the TCP listener and the
-  socket of `-L` and `-D` can be closed (`crates/podssh-cli/src/ssh/local_bind.rs:165`
-  and `crates/podssh-cli/src/ssh/local_bind.rs:212`), and the `Forwarder`
+  socket of `-L` and `-D` can be closed (`crates/podssh-cli/src/ssh/local_bind.rs:167`
+  and `crates/podssh-cli/src/ssh/local_bind.rs:214`), and the `Forwarder`
   of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:383` gives to
   each session.
 - The manual: the note of the terminal names `~C`, and a note of its own
@@ -1648,7 +1648,7 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
   (`crates/podssh-ssh/src/remote.rs:159-188`), and so does a control master for `-O forward -R`
   (`crates/podssh-ssh/src/mux/fwd.rs` line 52 at `6f6eda2`); `-G` prints it from those fields
   (`crates/podssh-cli/src/ssh/dump.rs:179-191`), and `~C -R` reads it with the same parser
-  (`crates/podssh-cli/src/ssh/local_bind.rs:294-296`).
+  (`crates/podssh-cli/src/ssh/local_bind.rs:296-298`).
 - Read: the handler joins a `forwarded-tcpip` channel that podssh asked for
   (`crates/podssh-ssh/src/handler.rs:237-257`), and refuses each
   `forwarded-streamlocal@openssh.com` channel as one that podssh did not ask for (`:259-276`,

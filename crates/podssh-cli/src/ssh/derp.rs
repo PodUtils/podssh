@@ -206,7 +206,8 @@ pub(crate) fn dialer(
         Arc::new(move |line: String| log.verbose(&format!("{shown}: {line}")))
     };
     let dial = dial::tls(trust.clone(), ProxyChoice::FromEnvironment);
-    Dialer::with_servers(ticket, servers.to_vec(), dial, derp::events(say), derp::names()).map_err(|e| e.to_string())
+    Dialer::with_servers(ticket, servers.to_vec(), dial, derp::events(say), derp::names())
+        .map_err(|e| podssh_ws::text::said(&e))
 }
 
 /// SSH over the DERP road to the node of `ticket`, trying `servers` in turn.
@@ -349,7 +350,7 @@ pub(crate) async fn reach(
         if let Some((fault, why)) = failed.as_ref().and_then(|e| crate::channel::judged(e, me.as_deref())) {
             log.error(&format!("{task_shown}: {why}"));
             crate::ssh::result::channel_failed(&fault);
-        } else if let Some(why) = carried.map_or_else(|e| Some(e.to_string()), crate::layered::why_ended) {
+        } else if let Some(why) = carried.map_or_else(|e| Some(podssh_ws::text::said(&e)), crate::layered::why_ended) {
             log.error(&format!("{task_shown}: {why}"));
         }
         dialer.close().await;

@@ -26,7 +26,7 @@ pub(super) async fn check(report: &mut Report<'_>, name: &str, relays: &RelayLis
     let token = match token::obtain(&ctx, false).await {
         Ok(token) => token,
         Err(e) => {
-            report.fail("token", e.to_string());
+            report.fail("token", podssh_ws::text::said(&e));
             report.unknown("cover credential", "not attempted: there is no relay token");
             return;
         }
@@ -35,7 +35,7 @@ pub(super) async fn check(report: &mut Report<'_>, name: &str, relays: &RelayLis
     let mut tls = match podssh_ws::client::open_tls(&at.host, at.port, name, trust, &proxy, TIMEOUT).await {
         Ok(tls) => tls,
         Err(e) => {
-            report.fail("cover credential", format!("the TLS connection to {name}: {e}"));
+            report.fail("cover credential", format!("the TLS connection to {name}: {}", podssh_ws::text::said(&e)));
             return;
         }
     };
@@ -46,7 +46,7 @@ pub(super) async fn check(report: &mut Report<'_>, name: &str, relays: &RelayLis
         match podssh_ws::delegated::request_and_verify(&mut tls, token.secret(), subject, name, now).await {
             Ok(credential) => credential,
             Err(e) => {
-                report.fail("cover credential", e.to_string());
+                report.fail("cover credential", podssh_ws::text::said(&e));
                 return;
             }
         };

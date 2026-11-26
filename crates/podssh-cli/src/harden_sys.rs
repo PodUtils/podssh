@@ -111,7 +111,8 @@ pub fn euid() -> u32 {
 /// effective or permitted set holds more than `keep`, by `/proc/self/task`. A
 /// thread whose status cannot be read as sets counts as one that holds some.
 pub fn threads_holding(keep: u64) -> Result<(usize, Vec<String>), String> {
-    let dir = std::fs::read_dir("/proc/self/task").map_err(|e| format!("/proc/self/task: {e}"))?;
+    let dir =
+        std::fs::read_dir("/proc/self/task").map_err(|e| format!("/proc/self/task: {}", podssh_ws::text::said(&e)))?;
     let (mut count, mut holding) = (0, Vec::new());
     for entry in dir.flatten() {
         // A thread that ended between the two reads holds nothing.

@@ -141,7 +141,7 @@ async fn offer(handle: &Connection, client_key: Option<&str>, host: &str, log: &
             log.verbose(&format!("{host}: a podssh answers there; it starts a temporary node"));
         }
         Ok(out) => return Err(format!("no podssh answers there (podssh --version: {})", said(&out))),
-        Err(e) => return Err(format!("no podssh answers there (podssh --version: {e})")),
+        Err(e) => return Err(format!("no podssh answers there (podssh --version: {})", podssh_ws::text::said(&e))),
     }
     let say = |line: String| log.info(&format!("{host}: {line}"));
     let me = crate::channel::client_identity(client_key, &say)?;
@@ -153,7 +153,7 @@ async fn offer(handle: &Connection, client_key: Option<&str>, host: &str, log: &
             Err(why) => Err(format!("its temporary node gave an offer that podssh cannot read: {why}")),
         },
         Err(NoLine::Ended(out)) => Err(format!("its podssh started no temporary node ({})", said(&out))),
-        Err(NoLine::Failed(e)) => Err(format!("its podssh started no temporary node: {e}")),
+        Err(NoLine::Failed(e)) => Err(format!("its podssh started no temporary node: {}", podssh_ws::text::said(&e))),
     }
 }
 
@@ -198,7 +198,7 @@ async fn through(offer: Offer, node: Channel<Msg>, me: Arc<Identity>, road: Road
     let leg = match operator::start(&config, leg_end).await {
         Ok(leg) => leg,
         Err(e) => {
-            let why = format!("its temporary node could not be reached: {e}");
+            let why = format!("its temporary node could not be reached: {}", podssh_ws::text::said(&e));
             return stay(handles, opts, relay, log, host, why).await;
         }
     };
@@ -210,12 +210,22 @@ async fn through(offer: Offer, node: Channel<Msg>, me: Arc<Identity>, road: Road
             let why = "its podssh offers no resumable layer: the node's greeting does not name it".to_string();
             return stay(handles, opts, relay, log, host, why).await;
         }
-        Err(e) => return stay(handles, opts, relay, log, host, format!("its temporary node did not greet: {e}")).await,
+        Err(e) => {
+            return stay(
+                handles,
+                opts,
+                relay,
+                log,
+                host,
+                format!("its temporary node did not greet: {}", podssh_ws::text::said(&e)),
+            )
+            .await
+        }
     };
     let started = match greeted.start(LayerAsk::New, crate::layered::settings(), &mut OsEntropy).await {
         Ok(started) => started,
         Err(e) => {
-            let why = format!("the layer's handshake with its temporary node failed: {e}");
+            let why = format!("the layer's handshake with its temporary node failed: {}", podssh_ws::text::said(&e));
             return stay(handles, opts, relay, log, host, why).await;
         }
     };

@@ -25,14 +25,14 @@ impl<'a> Checked<'a> {
     fn kept<T>(&mut self, done: io::Result<T>) -> io::Result<T> {
         if let Err(e) = &done {
             if self.failed.is_none() {
-                self.failed = Some(io::Error::new(e.kind(), e.to_string()));
+                self.failed = Some(io::Error::new(e.kind(), podssh_ws::text::said(&e)));
             }
         }
         done
     }
 
     fn again(&self) -> Option<io::Error> {
-        self.failed.as_ref().map(|e| io::Error::new(e.kind(), e.to_string()))
+        self.failed.as_ref().map(|e| io::Error::new(e.kind(), podssh_ws::text::said(&e)))
     }
 }
 

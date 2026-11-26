@@ -159,9 +159,9 @@ fn bytes(file: &str) -> Result<Vec<u8>, String> {
     let reader: Box<dyn Read> = if file == "-" {
         Box::new(std::io::stdin())
     } else {
-        Box::new(std::fs::File::open(file).map_err(|e| e.to_string())?)
+        Box::new(std::fs::File::open(file).map_err(|e| podssh_ws::text::said(&e))?)
     };
-    reader.take(MAX_FILE + 1).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+    reader.take(MAX_FILE + 1).read_to_end(&mut bytes).map_err(|e| podssh_ws::text::said(&e))?;
     if bytes.len() as u64 > MAX_FILE {
         return Err(format!("larger than {} MiB, which no host list is", MAX_FILE >> 20));
     }
@@ -176,7 +176,7 @@ fn inputs(file: &str) -> Result<Vec<Input>, String> {
         return Ok(vec![Input { name: file.to_string(), bytes: bytes(file)? }]);
     }
     let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(path)
-        .map_err(|e| e.to_string())?
+        .map_err(|e| podssh_ws::text::said(&e))?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|p| p.is_file())

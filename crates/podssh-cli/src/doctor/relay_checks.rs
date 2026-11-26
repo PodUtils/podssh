@@ -121,11 +121,11 @@ async fn health(relay: &Relay, trust: &Trust) -> (Result<(String, Option<String>
             (Ok((line, found.date)), Met::Completed)
         }
         Err(HealthError::Connect(e)) => {
-            let text = e.to_string();
+            let text = podssh_ws::text::said(&e);
             (Err(format!("{host}: {text}{}", clock_hint(&text))), super::diagnosis::met(&e))
         }
         // The connection and its TLS were made: the answer failed after them.
-        Err(e) => (Err(format!("{host}: {e}")), Met::Completed),
+        Err(e) => (Err(format!("{host}: {}", podssh_ws::text::said(&e))), Met::Completed),
     }
 }
 
@@ -171,7 +171,7 @@ async fn token_check(report: &mut Report<'_>, at: &Relay, trust: &Trust) -> bool
             true
         }
         Err(e) => {
-            report.fail("token", e.to_string());
+            report.fail("token", podssh_ws::text::said(&e));
             false
         }
     }
@@ -262,9 +262,10 @@ pub(super) fn after_upgrade(why: &str, end: Option<RelayEnd>, age: Duration) -> 
     let passed = "the upgrade passed (101, with this request's accept)";
     match end {
         Some(RelayEnd::Failed(e @ (SessionError::Io { .. } | SessionError::ClosedWithoutClose(_)))) => format!(
-            "{passed}, then the connection ended {:.1} s later with no Close ({e}): something between drops \
+            "{passed}, then the connection ended {:.1} s later with no Close ({}): something between drops \
              the stream after the upgrade",
-            age.as_secs_f64()
+            age.as_secs_f64(),
+            podssh_ws::text::said(&e)
         ),
         Some(end) => match end.explain() {
             Some(relay) => format!("{passed}, then {why} ({relay})"),
@@ -351,7 +352,7 @@ pub(super) async fn github_keys(trust: &Trust) -> Result<Vec<String>, String> {
         TIMEOUT,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| podssh_ws::text::said(&e))?;
     if response.status != 200 {
         return Err(format!("HTTP {}", response.status));
     }

@@ -127,7 +127,10 @@ pub(super) async fn check(report: &mut Report<'_>, setting: &Setting) {
     let socket = match UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).await {
         Ok(socket) => socket,
         Err(e) => {
-            let why = format!("no UDP socket binds here ({e}), so no STUN server was asked; the relays need no UDP");
+            let why = format!(
+                "no UDP socket binds here ({}), so no STUN server was asked; the relays need no UDP",
+                podssh_ws::text::said(&e)
+            );
             return report.unknown(LINE, why);
         }
     };
@@ -211,7 +214,7 @@ pub(super) async fn ask(
     let mut said = String::new();
     for _ in 0..tries {
         if let Err(e) = socket.send_to(&request, to).await {
-            return Answer::Silent(format!("could not be sent to: {e}"));
+            return Answer::Silent(format!("could not be sent to: {}", podssh_ws::text::said(&e)));
         }
         let until = Instant::now() + wait;
         loop {
@@ -222,7 +225,7 @@ pub(super) async fn ask(
                 // another question (Windows reports a closed port so): the
                 // try waits out its time, and what came stays queued.
                 Ok(Err(e)) => {
-                    said = format!("; the system said: {e}");
+                    said = format!("; the system said: {}", podssh_ws::text::said(&e));
                     tokio::time::sleep_until(until).await;
                     break;
                 }

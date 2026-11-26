@@ -125,7 +125,7 @@ fn path_new() -> Result<PathBuf, Failed> {
     for dir in podssh_relay::cache::candidate_dirs() {
         match podssh_relay::cache::private_dir(&dir) {
             Ok(()) => return Ok(dir.join(DEVICE_FILE)),
-            Err(e) => refused.push(format!("{}: {e}", dir.display())),
+            Err(e) => refused.push(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
         }
     }
     let line = match refused.is_empty() {

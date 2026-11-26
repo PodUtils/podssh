@@ -54,7 +54,7 @@ pub(super) fn user() -> (Verdict, Name) {
             (ok(said), name)
         }
         Err(e) => {
-            let why = format!("the user database could not be read: {e}");
+            let why = format!("the user database could not be read: {}", podssh_ws::text::said(&e));
             (Verdict::Unknown { why: why.clone() }, Name::Unread(why))
         }
     }
@@ -264,7 +264,10 @@ fn bind_unix_at(path: Option<&Path>) -> Probe {
         match private {
             Ok(()) => listen_once(fd),
             // A file that cannot be made private is not listened on.
-            Err(e) => Probe::ListenRefused(io::Error::new(e.kind(), format!("not made private, so not tried: {e}"))),
+            Err(e) => Probe::ListenRefused(io::Error::new(
+                e.kind(),
+                format!("not made private, so not tried: {}", podssh_ws::text::said(&e)),
+            )),
         }
     };
     // SAFETY: `fd` was opened above and is closed once.

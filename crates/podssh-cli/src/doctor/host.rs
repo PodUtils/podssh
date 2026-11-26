@@ -120,14 +120,16 @@ fn writable(file: &Path) -> Result<String, String> {
             .append(true)
             .open(file)
             .map(|_| "exists and can be written".to_string())
-            .map_err(|e| format!("cannot be written: {e}"));
+            .map_err(|e| format!("cannot be written: {}", podssh_ws::text::said(&e)));
     }
     let mut dir = file.parent();
     while let Some(d) = dir {
         if d.is_dir() {
             return probe_dir(d)
                 .map(|()| format!("does not exist yet; {} can be written, so it will be created", d.display()))
-                .map_err(|e| format!("does not exist, and {} cannot be written: {e}", d.display()));
+                .map_err(|e| {
+                    format!("does not exist, and {} cannot be written: {}", d.display(), podssh_ws::text::said(&e))
+                });
         }
         dir = d.parent();
     }
@@ -195,7 +197,7 @@ fn token_cache(report: &mut Report<'_>) -> State {
                 report.ok("token cache", format!("{} can be written{from}{skipped}{passed}", dir.display()));
                 return State::Writes(dir.display().to_string());
             }
-            Err(e) => refused.push(format!("{}: {e}", dir.display())),
+            Err(e) => refused.push(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
         }
     }
     report.ok(
@@ -214,8 +216,9 @@ fn proc_fs(report: &mut Report<'_>) {
         Err(e) => report.ok(
             "/proc",
             format!(
-                "/proc/self/exe cannot be read ({e}): podssh cannot find its own file, so a podssh-ca.pem \
-                 beside it is not used"
+                "/proc/self/exe cannot be read ({}): podssh cannot find its own file, so a podssh-ca.pem \
+                 beside it is not used",
+                podssh_ws::text::said(&e)
             ),
         ),
     }
@@ -288,15 +291,27 @@ mod exec {
                 }
                 Tried::NotWritable(e) => {
                     floor.closed();
-                    report.ok("exec", format!("{shown}: cannot be written ({e}), so nothing can be installed there"))
+                    report.ok(
+                        "exec",
+                        format!(
+                            "{shown}: cannot be written ({}), so nothing can be installed there",
+                            podssh_ws::text::said(&e)
+                        ),
+                    )
                 }
                 Tried::Refused(e) => {
                     floor.closed();
-                    report.ok("exec", format!("{shown}: can be written, but programs cannot run from it ({e}){noexec}"))
+                    report.ok(
+                        "exec",
+                        format!(
+                            "{shown}: can be written, but programs cannot run from it ({}){noexec}",
+                            podssh_ws::text::said(&e)
+                        ),
+                    )
                 }
                 Tried::Other(e) => {
                     floor.unknown();
-                    report.unknown("exec", format!("{shown}: {e}{noexec}"))
+                    report.unknown("exec", format!("{shown}: {}{noexec}", podssh_ws::text::said(&e)))
                 }
             }
         }
@@ -343,12 +358,14 @@ mod exec {
     fn try_exec(dir: &Path, own: &Path) -> Tried {
         let copy = dir.join(super::unique(".podssh-doctor"));
         let tried = match std::fs::copy(own, &copy) {
-            Err(e) => Tried::NotWritable(e.to_string()),
+            Err(e) => Tried::NotWritable(podssh_ws::text::said(&e)),
             Ok(_) => {
                 use std::os::unix::fs::PermissionsExt;
                 match std::fs::set_permissions(&copy, std::fs::Permissions::from_mode(0o700)) {
                     Ok(()) => run(&copy),
-                    Err(e) => Tried::Other(format!("could not mark the copy executable: {e}")),
+                    Err(e) => {
+                        Tried::Other(format!("could not mark the copy executable: {}", podssh_ws::text::said(&e)))
+                    }
                 }
             }
         };
@@ -374,8 +391,10 @@ mod exec {
                     busy += 1;
                     std::thread::sleep(Duration::from_millis(50));
                 }
-                Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => return Tried::Refused(e.to_string()),
-                Err(e) => return Tried::Other(format!("the copy could not be started: {e}")),
+                Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                    return Tried::Refused(podssh_ws::text::said(&e))
+                }
+                Err(e) => return Tried::Other(format!("the copy could not be started: {}", podssh_ws::text::said(&e))),
             }
         };
         let deadline = Instant::now() + WAIT;
@@ -398,7 +417,7 @@ mod exec {
                     let _ = child.wait();
                     return Tried::Other(format!("the copy did not finish within {} s", WAIT.as_secs()));
                 }
-                Err(e) => return Tried::Other(e.to_string()),
+                Err(e) => return Tried::Other(podssh_ws::text::said(&e)),
             }
         }
     }

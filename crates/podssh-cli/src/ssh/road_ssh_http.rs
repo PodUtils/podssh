@@ -218,7 +218,7 @@ impl SshHttpRoads {
         let (proxy, limit) = (ProxyChoice::FromEnvironment, podssh_relay::open::CONNECT_TIMEOUT);
         match podssh_ws::bare::dial(node, &far, &self.trust, &proxy, limit, Some(DEFAULT_IDLE_TIMEOUT)).await {
             Ok(session) => Ok(Road::SshHttp(podssh_ssh::relay_stream::spawn(session).0)),
-            Err(e) => Err(format!("{} through {}: {e}", far.shown(), node.shown())),
+            Err(e) => Err(format!("{} through {}: {}", far.shown(), node.shown(), podssh_ws::text::said(&e))),
         }
     }
 
@@ -284,7 +284,7 @@ impl SshHttpRoads {
             (Access::default(), ProxyChoice::FromEnvironment, podssh_relay::open::CONNECT_TIMEOUT);
         match cloudflare::connect(&name, &access, &self.trust, &proxy, limit, Some(DEFAULT_IDLE_TIMEOUT)).await {
             Ok(session) => Ok(Road::SshHttp(podssh_ssh::relay_stream::spawn(session).0)),
-            Err(e) => Err(format!("wss://{name}/: {e}")),
+            Err(e) => Err(format!("wss://{name}/: {}", podssh_ws::text::said(&e))),
         }
     }
 }

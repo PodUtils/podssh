@@ -207,8 +207,10 @@ fn own_local(path: &Path, shown: &str, stamp: &Stamp, log: &Log) {
     match (stamp.uid, stamp.gid) {
         (Some(uid), Some(gid)) => {
             if let Err(e) = std::os::unix::fs::chown(path, Some(uid), Some(gid)) {
-                let e = super::words::said(&e);
-                let why = format!("{shown}: the owner was not kept: {e}; only root gives a file away");
+                let why = format!(
+                    "{shown}: the owner was not kept: {}; only root gives a file away",
+                    podssh_ws::text::said(&e)
+                );
                 note(log, "owner-here", &why);
             }
         }

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**918 entries: 4 open, 33 partial, 15 blocked, 866 done.**
+**921 entries: 5 open, 32 partial, 15 blocked, 869 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
 | P2 | 0 | 20 | 3 | 341 | 364 |
-| P3 | 4 | 7 | 9 | 422 | 442 |
-| **All** | 4 | 33 | 15 | 866 | 918 |
+| P3 | 5 | 6 | 9 | 425 | 445 |
+| **All** | 5 | 32 | 15 | 869 | 921 |
 
 ## Entries
 
@@ -959,7 +959,7 @@ repository and CI).
 | [T-949](reverse.md) | P3 | S | backlog | defect | done | Lines that garble: "the label the pair name is empty", "--sshd goes not with --cover", and ping's ".;" |
 | [T-950](reverse.md) | P3 | S | backlog | defect | done | The manual says croc's bridge and smee.io's server are none in this release, and a default node dials both |
 | [T-951](reverse.md) | P3 | S | backlog | defect | done | `relay serve --idle` reads as the end of a session, and it ends a link that the resumable layer resumes |
-| [T-952](robustness.md) | P3 | M | none | defect | partial | `(os error N)` leaves each user line, not only the file commands' |
+| [T-952](robustness.md) | P3 | M | none | defect | done | `(os error N)` leaves each user line, not only the file commands' |
 | [T-953](ssh.md) | P2 | S | backlog | defect | done | A value in double quotes keeps its quotes for most keywords of `-o` and of ssh_config |
 | [T-954](ssh.md) | P2 | S | backlog | defect | done | `-G` prints no line for X11, the fork, `TCPKeepAlive` or `RekeyLimit` |
 | [T-955](ssh.md) | P2 | S | backlog | defect | done | `--direct` with `-4` or `-6` is refused "not supported yet", though the fallback honours the family |
@@ -994,3 +994,6 @@ repository and CI).
 | [T-984](cli.md) | P3 | S | backlog | defect | done | `podssh play` takes a time below 0, and says nothing of a time that goes back |
 | [T-985](cli.md) | P3 | S | backlog | defect | done | `mcp --client-config` does not keep the flags in the order typed |
 | [T-986](multi.md) | P3 | S | backlog | defect | done | `job fetch` of a lost job exits 0 and says nothing |
+| [T-987](cli.md) | P3 | S | backlog | defect | done | `node --print-unit` exits 73 when its stdout write fails, where an output that cannot be written is 74 |
+| [T-988](cli.md) | P3 | S | backlog | defect | done | A bad word of `--early-data` is said with the variable's name |
+| [T-989](robustness.md) | P3 | M | none | defect | open | `(os error N)` leaves each user line of `podssh-ssh`, as T-952 did for `podssh-cli` |

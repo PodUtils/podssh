@@ -779,7 +779,7 @@ Read: the ignored test makes a new state file in the temporary directory and rem
 (`docs/tailscale.md:170-171`). Its reason still names M5. On 2026-10-07, registration worked, no map
 came in 60 s, and only the operator can add a node key to the allowlist (`docs/tailscale.md:8-24`).
 
-Read: `podssh ts` has no form that accepts a connection (`crates/podssh-cli/src/ts.rs:272-276`), but
+Read: `podssh ts` has no form that accepts a connection (`crates/podssh-cli/src/ts.rs:273-277`), but
 the fork can listen in its own network stack, with no socket of the host
 (`vendor/tailscale-rs/src/lib.rs:296-305`). The fork's echo example takes the auth key on the
 command line (`vendor/tailscale-rs/examples/tcp_echo/main.rs:24-28`), which podssh must not do. With

@@ -97,10 +97,11 @@ impl Server {
         if self.tls {
             let tls = podssh_ws::client::open_tls(&self.host, self.port, &self.host, trust, &proxy, CONNECT_WAIT)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| podssh_ws::text::said(&e))?;
             return Ok(Stream::Tls(Box::new(tls)));
         }
-        let tcp = dial::dial(&self.host, self.port, &proxy, CONNECT_WAIT).await.map_err(|e| e.to_string())?;
+        let tcp =
+            dial::dial(&self.host, self.port, &proxy, CONNECT_WAIT).await.map_err(|e| podssh_ws::text::said(&e))?;
         Ok(Stream::Plain(Box::new(tcp)))
     }
 }
@@ -181,7 +182,7 @@ pub(super) fn cut_words(e: &std::io::Error) -> String {
     match e.kind() {
         std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted => "a reset".into(),
         std::io::ErrorKind::UnexpectedEof => "an end with no close of TLS".into(),
-        _ => podssh_ws::text::one_line(&e.to_string()),
+        _ => podssh_ws::text::one_line(&podssh_ws::text::said(&e)),
     }
 }
 

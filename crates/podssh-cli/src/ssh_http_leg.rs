@@ -48,7 +48,7 @@ pub(crate) async fn open(
         let tcp = match podssh_ws::dial::dial(&at.host, port, proxy, CONNECT_LIMIT).await {
             Ok(tcp) => tcp,
             Err(e) => {
-                failed.push(format!("port {port}: {e}"));
+                failed.push(format!("port {port}: {}", podssh_ws::text::said(&e)));
                 continue;
             }
         };
@@ -83,11 +83,12 @@ async fn login(handle: &mut client::Handle<Leg>, service: &Service, node: &Ident
     match service.word.login {
         Login::NoAccount => pinggy_leg::login(handle, user).await.map(|()| "a user with no account"),
         Login::NodeKey => {
-            let key = podssh_ssh::seeded_login_key(&node.seed()).map_err(|e| format!("the login: {e}"))?;
+            let key = podssh_ssh::seeded_login_key(&node.seed())
+                .map_err(|e| format!("the login: {}", podssh_ws::text::said(&e)))?;
             match handle.authenticate_publickey(user, key).await {
                 Ok(done) if done.success() => Ok("by the node's own key, of which the service derives the name"),
                 Ok(_) => Err("the login: the service refused the node's key".into()),
-                Err(e) => Err(format!("the login: {e}")),
+                Err(e) => Err(format!("the login: {}", podssh_ws::text::said(&e))),
             }
         }
     }
@@ -118,7 +119,11 @@ async fn forwarded(handle: client::Handle<Leg>, host_key: (String, bool), servic
         }
     }
     if let Err(e) = handle.tcpip_forward(address, port).await {
-        return give_up(handle, format!("{service} refused the tunnel's forward of port {port}: {e}")).await;
+        return give_up(
+            handle,
+            format!("{service} refused the tunnel's forward of port {port}: {}", podssh_ws::text::said(&e)),
+        )
+        .await;
     }
     let session = match first {
         Some(session) => session,
@@ -132,7 +137,8 @@ async fn forwarded(handle: client::Handle<Leg>, host_key: (String, bool), servic
         None => session.request_shell(false).await,
     };
     if let Err(e) = asked {
-        return give_up(handle, format!("{service}: the session's shell or command: {e}")).await;
+        return give_up(handle, format!("{service}: the session's shell or command: {}", podssh_ws::text::said(&e)))
+            .await;
     }
     let (said, mut names) = watch::channel(None);
     tokio::spawn(read_names(session, said, service.clone()));

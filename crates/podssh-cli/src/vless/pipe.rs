@@ -28,7 +28,7 @@ pub fn beside(args: &ProxyArgs) -> Result<(), Refusal> {
         return Err(Refusal::usage("--early-data chooses the VLESS road's early data; it goes with --vless FILE"));
     }
     if let Some(word) = args.early_data.as_deref() {
-        super::early_word(Some(word)).map_err(Refusal::usage)?;
+        super::early_flag_word(word).map_err(Refusal::usage)?;
     }
     if args.vless.is_none() {
         return Ok(());
@@ -64,7 +64,7 @@ pub fn run(path: &str, host: &str, port: u16, ca_file: Option<&str>, early: Opti
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return EXIT_NOT_IMPLEMENTED;
         }
     };

@@ -165,7 +165,10 @@ async fn connect(road: &Road, host: &str, port: u16, limit: Duration) -> Result<
             return Err(Failed { line, code: EX_NOPERM });
         }
         Ok(Err(e)) => {
-            return Err(Failed { line: format!("{peer} {shown}: the login failed: {e}"), code: EX_UNAVAILABLE })
+            return Err(Failed {
+                line: format!("{peer} {shown}: the login failed: {}", podssh_ws::text::said(&e)),
+                code: EX_UNAVAILABLE,
+            })
         }
         Err(_) => {
             return Err(Failed {
@@ -188,9 +191,10 @@ async fn connect(road: &Road, host: &str, port: u16, limit: Duration) -> Result<
             ),
             code: EX_NOPERM,
         }),
-        Ok(Err(e)) => {
-            Err(Failed { line: format!("{peer} {shown}: its configuration failed: {e}"), code: EX_UNAVAILABLE })
-        }
+        Ok(Err(e)) => Err(Failed {
+            line: format!("{peer} {shown}: its configuration failed: {}", podssh_ws::text::said(&e)),
+            code: EX_UNAVAILABLE,
+        }),
         Err(_) => Err(Failed {
             line: format!("{peer} {shown}: no answer to its configuration within {} s", ANSWER_LIMIT.as_secs()),
             code: EX_UNAVAILABLE,
@@ -217,10 +221,15 @@ fn handshake_failed(
             code: EX_NOPERM,
         },
         (_, None) => Failed {
-            line: format!("{shown} answered the WebSocket, then spoke no chisel SSH: no chisel server ({e})"),
+            line: format!(
+                "{shown} answered the WebSocket, then spoke no chisel SSH: no chisel server ({})",
+                podssh_ws::text::said(&e)
+            ),
             code: EX_UNAVAILABLE,
         },
-        _ => Failed { line: format!("{peer} {shown}: SSH failed: {e}"), code: EX_UNAVAILABLE },
+        _ => {
+            Failed { line: format!("{peer} {shown}: SSH failed: {}", podssh_ws::text::said(&e)), code: EX_UNAVAILABLE }
+        }
     }
 }
 
@@ -276,9 +285,10 @@ pub async fn open(
                 Failed { line: format!("{peer} {shown} refused the tunnel to {to}: {why}"), code: EX_UNAVAILABLE }
             }
         }),
-        Ok(Err(e)) => {
-            Err(Failed { line: format!("{peer} {shown}: the tunnel to {to} failed: {e}"), code: EX_UNAVAILABLE })
-        }
+        Ok(Err(e)) => Err(Failed {
+            line: format!("{peer} {shown}: the tunnel to {to} failed: {}", podssh_ws::text::said(&e)),
+            code: EX_UNAVAILABLE,
+        }),
         Err(_) => Err(Failed {
             line: format!("{peer} {shown}: no tunnel to {to} within {} s", limit.as_secs()),
             code: EX_UNAVAILABLE,

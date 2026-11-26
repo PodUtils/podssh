@@ -90,8 +90,10 @@ async fn ports(
     if listeners.is_empty() {
         let (address, e) = failed.into_iter().next().expect("one address at least");
         let instead = if e.kind() == io::ErrorKind::PermissionDenied { "; this host refuses the listener" } else { "" };
-        let e = podssh_ws::text::said(&e);
-        return Err((EXIT_FAILURE, format!("{}: cannot listen on {address}: {e}{instead}; {INSTEAD}", spec.shown)));
+        return Err((
+            EXIT_FAILURE,
+            format!("{}: cannot listen on {address}: {}{instead}; {INSTEAD}", spec.shown, podssh_ws::text::said(&e)),
+        ));
     }
     for (address, e) in failed {
         log.verbose(&format!("{}: not on {address}: {}", spec.shown, podssh_ws::text::said(&e)));

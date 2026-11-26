@@ -160,9 +160,10 @@ pub(super) async fn reach(
     let link = open(host, &access, trust).await.map_err(|(line, code)| NotReached { lines: vec![line], code })?;
     log.verbose(&format!("the tunnel of {host} took the session"));
     let shown = format!("{SCHEME}{host}");
-    let greeted = client::greeted(link)
-        .await
-        .map_err(|e| NotReached { lines: vec![format!("{shown}: {e}")], code: sysexits::EX_UNAVAILABLE })?;
+    let greeted = client::greeted(link).await.map_err(|e| NotReached {
+        lines: vec![format!("{shown}: {}", podssh_ws::text::said(&e))],
+        code: sysexits::EX_UNAVAILABLE,
+    })?;
     if !greeted.layer() {
         // cloudflared's service: SSH, which speaks first, or silence.
         if ask.node_key.is_some() {

@@ -15,7 +15,7 @@ use super::Report;
 pub(super) async fn with_proxy(report: &mut Report<'_>, host: &str) {
     let fact = match system_lookup(host).await {
         Ok(ips) => format!("{host} is {ips} here (system resolver)"),
-        Err(e) => format!("{host} does not resolve here ({e})"),
+        Err(e) => format!("{host} does not resolve here ({})", podssh_ws::text::said(&e)),
     };
     report.ok("DNS", format!("{fact}; not needed: the proxy is given names and resolves them"));
 }
@@ -43,7 +43,13 @@ pub(super) async fn direct(report: &mut Report<'_>, host: &str) -> (bool, bool) 
         Ok(ips) => report.ok("DNS", format!("{host} is {ips} (system resolver)")),
         Err(e) => {
             let then = if fresh.is_empty() { "DNS over HTTPS" } else { "the cached addresses, then to DNS over HTTPS" };
-            report.ok("DNS", format!("the system resolver fails for {host} ({e}); podssh falls back to {then}"))
+            report.ok(
+                "DNS",
+                format!(
+                    "the system resolver fails for {host} ({}); podssh falls back to {then}",
+                    podssh_ws::text::said(&e)
+                ),
+            )
         }
     }
     cached(report, host, &remembered);
@@ -165,7 +171,7 @@ pub(super) async fn system_lookup(host: &str) -> Result<String, String> {
                 Ok(shorten(&ips))
             }
         }
-        Ok(Err(e)) => Err(e.to_string()),
+        Ok(Err(e)) => Err(podssh_ws::text::said(&e)),
         Err(_) => Err(format!("no answer within {} s", PROBE.as_secs())),
     }
 }

@@ -2017,7 +2017,7 @@ queue, no wait for a result, and no way to get the output back.
    gives one object.
 4. `job wait HOST ID [--timeout D]` reads `state` every 5 s until it is
    `done`, and exits with the job's status. When the limit passes first, it
-   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-169`.
+   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-170`.
 5. `job fetch HOST ID [DIR]` copies `out`, and the files that `--files GLOB`
    names, with the engine of T-134; DIR is `./podssh-job-ID` by default.
 6. With a list of hosts (T-184), `submit` picks the host with the fewest
@@ -2086,7 +2086,7 @@ one running and two queued must fail.
 ## Correction
 
 2026-10-09 (T-134): 75 (`EX_TEMPFAIL`) is in the table of exit codes
-already (`crates/podssh-cli/src/man/data.rs:17-169`), for a `--timeout` of
+already (`crates/podssh-cli/src/man/data.rs:17-170`), for a `--timeout` of
 `cp` that passed; this entry adds its sentence for `job wait`.
 
 2026-10-13 (the draft of T-197): T-193 runs a job under tmux only; the
@@ -2840,7 +2840,7 @@ relay reaches; nothing reports the far side.
 
 - Read: `doctor --hop` reaches the hop as `--direct` does, through `HTTPS_PROXY`
   (`crates/podssh-cli/src/doctor/hop.rs:1-8`), and logs in with a key made for the check, which
-  the server refuses (`crates/podssh-cli/src/doctor/hop.rs:160-181`): no command runs there.
+  the server refuses (`crates/podssh-cli/src/doctor/hop.rs:160-183`): no command runs there.
 - Read: `doctor` takes no option of `ssh` (`crates/podssh-cli/src/doctor/mod.rs:114-186`), and its
   `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:134-135`), so the
   issue's `doctor --via HOST` names a flag that exists.
@@ -3708,7 +3708,7 @@ SSH runs on one.
 
 - `crates/podssh-cli/src/ssh/iroh.rs:182` says "pub(super) async fn connect(": the iroh road's runner, which
   gives an exit code, not a stream.
-- `crates/podssh-cli/src/ssh/derp.rs:213` says "pub(super) async fn connect(": the DERP road's, the same.
+- `crates/podssh-cli/src/ssh/derp.rs:214` says "pub(super) async fn connect(": the DERP road's, the same.
 
 ## Approach
 

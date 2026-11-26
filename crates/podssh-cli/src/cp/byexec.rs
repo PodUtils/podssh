@@ -67,7 +67,7 @@ fn step_failed(what: &str, e: ExecError) -> Failed {
         ExecError::Refused(_) => (Fault::RelayUnreachable, Cause::Answer),
         ExecError::Timeout(_) | ExecError::Lost(_) => (Fault::SessionFault, Cause::Broke),
     };
-    Failed { fault, message: format!("{what}: {e}"), cause }
+    Failed { fault, message: format!("{what}: {}", podssh_ws::text::said(&e)), cause }
 }
 
 /// The command for the login shell: `sh -c 'SCRIPT' sh` and each argument
@@ -425,7 +425,7 @@ impl Far {
     /// Remove `path`, and say why when the server does not.
     pub(super) async fn delete(&self, handle: &Connection, path: &str) -> Result<(), String> {
         let cmd = command("exec rm -- \"$1\"", &[path])?;
-        let got = exec::capture(handle, &cmd, STEP_WAIT, 4096).await.map_err(|e| e.to_string())?;
+        let got = exec::capture(handle, &cmd, STEP_WAIT, 4096).await.map_err(|e| podssh_ws::text::said(&e))?;
         if got.status == Some(0) {
             return Ok(());
         }

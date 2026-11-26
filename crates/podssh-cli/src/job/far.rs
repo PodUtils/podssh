@@ -76,7 +76,7 @@ pub(crate) async fn connect(resolved: &Resolved, log: &Arc<Log>) -> Option<Vec<C
     match podssh_ssh::run::connect_hops(reached.stream, &resolved.options, log).await {
         Ok(handles) => Some(handles),
         Err(e) => {
-            log.error(&e.to_string());
+            log.error(&podssh_ws::text::said(&e));
             None
         }
     }
@@ -187,8 +187,10 @@ pub(crate) async fn stream(
 /// A call that did not run to its end.
 fn failed(host: &str, e: &ExecError) -> String {
     match e {
-        ExecError::Refused(_) => format!("{host} runs no command for podssh job ({e}): it needs a shell"),
-        _ => format!("{host}: {e}"),
+        ExecError::Refused(_) => {
+            format!("{host} runs no command for podssh job ({}): it needs a shell", podssh_ws::text::said(&e))
+        }
+        _ => format!("{host}: {}", podssh_ws::text::said(&e)),
     }
 }
 

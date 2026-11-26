@@ -48,7 +48,7 @@ impl std::fmt::Display for Fault {
             Fault::Token(TokenFault::Config(why) | TokenFault::Refused(why) | TokenFault::Unreachable(why)) => {
                 write!(f, "the token: {why}")
             }
-            Fault::Upgrade(e) => write!(f, "the upgrade: {e}"),
+            Fault::Upgrade(e) => write!(f, "the upgrade: {}", podssh_ws::text::said(&e)),
         }
     }
 }
@@ -130,7 +130,9 @@ pub fn not_open(shown: &str, target: &Target, not: &NotOpen<Fault>) -> (String, 
             (line, EX_NOPERM)
         }
         NotOpen::Dial(Fault::Upgrade(ConnectError::Config(why))) => (format!("{shown}: the upgrade: {why}"), EX_CONFIG),
-        NotOpen::Dial(Fault::Upgrade(e)) => (format!("{shown}: the upgrade: {e}"), EX_UNAVAILABLE),
+        NotOpen::Dial(Fault::Upgrade(e)) => {
+            (format!("{shown}: the upgrade: {}", podssh_ws::text::said(&e)), EX_UNAVAILABLE)
+        }
         NotOpen::Closed { code, reason } => match closed(target, *code, reason) {
             Some((line, refusal)) => (format!("{shown}: {line}"), if refusal { EX_NOPERM } else { EX_UNAVAILABLE }),
             None => {

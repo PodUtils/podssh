@@ -82,9 +82,10 @@ pub async fn carry<A: crate::channel::Bytes + 'static>(
 ) -> Result<Carried, Refusal> {
     let Tunnel { host, access, trust } = tunnel;
     let link = cloudflare::open(host, access, trust).await.map_err(|(message, code)| Refusal { message, code })?;
-    let greeted = client::greeted(link)
-        .await
-        .map_err(|e| Refusal { message: format!("{SCHEME}{host}: {e}"), code: sysexits::EX_UNAVAILABLE })?;
+    let greeted = client::greeted(link).await.map_err(|e| Refusal {
+        message: format!("{SCHEME}{host}: {}", podssh_ws::text::said(&e)),
+        code: sysexits::EX_UNAVAILABLE,
+    })?;
     // The exit's word goes in the channel, which a podssh node alone runs: a
     // service of cloudflared would take the bytes with no exit, and no rule.
     if !greeted.layer() {
@@ -119,7 +120,10 @@ where
     let client = match started {
         Ok(client) => client,
         Err(e) => {
-            let why = format!("the far end greets with the resumable layer, but its handshake failed: {e}");
+            let why = format!(
+                "the far end greets with the resumable layer, but its handshake failed: {}",
+                podssh_ws::text::said(&e)
+            );
             return Carried { why: Some(why), leg: None, channel: None, cut: false, signalled: false };
         }
     };

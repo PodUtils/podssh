@@ -25,7 +25,7 @@ pub(super) async fn check(report: &mut Report<'_>, road: &Road) {
     let opened = match client.open(forward_host(), 22).await {
         Ok(opened) => opened,
         Err(e) => {
-            report.fail("via", format!("{target} through {shown}{first}: {e}"));
+            report.fail("via", format!("{target} through {shown}{first}: {}", podssh_ws::text::said(&e)));
             return;
         }
     };

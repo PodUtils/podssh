@@ -72,7 +72,7 @@ pub async fn serve(args: &AgentArgs, out: &mut dyn Write, err: &mut dyn Write) -
         served = agent_server::serve(connections, Keys) => match served {
             Ok(()) => 0,
             Err(e) => {
-                let _ = writeln!(err, "podssh agent: the agent stopped: {e}");
+                let _ = writeln!(err, "podssh agent: the agent stopped: {}", podssh_ws::text::said(&e));
                 EX_SOFTWARE
             }
         },
@@ -115,8 +115,9 @@ impl Place {
                 .filter(|p| p.is_absolute())
                 .unwrap_or_else(std::env::temp_dir);
             let dir = agent_dir(base.clone(), std::process::id());
-            private_dir(&dir)
-                .map_err(|e| format!("{}: a directory of mode 0700 could not be made: {e}", dir.display()))?;
+            private_dir(&dir).map_err(|e| {
+                format!("{}: a directory of mode 0700 could not be made: {}", dir.display(), podssh_ws::text::said(&e))
+            })?;
             let moved = (!dir.starts_with(&base)).then(|| {
                 format!(
                     "the socket is in {}: a path in {} would not fit a socket's address",

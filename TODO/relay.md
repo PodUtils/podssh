@@ -896,7 +896,7 @@ paths only: lines 286-299 at `22c3b88`), then `std::env::temp_dir()` with the us
 working directory (lines 72-74 there). A store falls through each directory that refuses it
 (lines 151-160 there). No variable or
 flag names a directory. `doctor` probes the same list and names the first that can be written
-(`crates/podssh-cli/src/doctor/host.rs:151-206`). VARIABLES and FILES give the list
+(`crates/podssh-cli/src/doctor/host.rs:153-208`). VARIABLES and FILES give the list
 (`crates/podssh-cli/src/man/facts.rs`, line 112 at `4dd52f8`, and the cache's text of FILES in
 `crates/podssh-cli/src/man/data.rs`), a test fixes its shape (lines 365-377 at `22c3b88`), and
 the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at `4dd52f8`).
@@ -6610,7 +6610,7 @@ Read at `60d5426` (the drafting agent, 2026-11-17), and at the cited lines, whic
   lost": `pod-relay` classifies a Close by its exact reason
   (`PodUtils/podcrates:crates/pod-relay/src/reverse/closes.rs:157`), and a reason of no row is `Unknown`, which
   neither reconnects nor resumes; podssh's own operator already reads the row as "the node's link to the relay
-  ended" (`crates/podssh-cli/src/pairs.rs:250`). The cause goes to the role's line instead.
+  ended" (`crates/podssh-cli/src/pairs.rs:253`). The cause goes to the role's line instead.
 - A silent node is let go after 30 s to 40 s, not 60 s to 80 s: under `pod-relay`'s `Settings::lost_hold` of 60 s,
   so that the node finds its name free before it gives the route up. A live node pings the role each 10 s
   (`pod_ws::LIVENESS_EVERY`) and answers each Ping, so it is heard well within that. Lost: the client's watch

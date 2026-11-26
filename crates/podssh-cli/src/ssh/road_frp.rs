@@ -52,7 +52,9 @@ impl FrpRoads {
 
     async fn link(&self) -> Result<Road, String> {
         let shown = self.road.server.shown();
-        let stream = podssh_ws::frp::node::visit(&self.road, &self.name).await.map_err(|e| format!("{shown}: {e}"))?;
+        let stream = podssh_ws::frp::node::visit(&self.road, &self.name)
+            .await
+            .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
         Ok(Road::Pair(stream))
     }
 }
@@ -97,7 +99,9 @@ impl Plain {
         log.verbose(&format!(
             "{shown}: the plain STCP service {service} through {at}, with SSH on the visit: no end-to-end channel"
         ));
-        podssh_ws::frp::node::visit(&self.road, &self.name).await.map_err(|e| format!("{shown}: {at}: {e}"))
+        podssh_ws::frp::node::visit(&self.road, &self.name)
+            .await
+            .map_err(|e| format!("{shown}: {at}: {}", podssh_ws::text::said(&e)))
     }
 }
 

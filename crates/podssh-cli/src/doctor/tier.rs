@@ -391,7 +391,9 @@ fn probe_resolver(host: &str) -> Resolver {
     }
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
-        Err(e) => return Resolver::Unknown(format!("could not start the async runtime: {e}")),
+        Err(e) => {
+            return Resolver::Unknown(format!("could not start the async runtime: {}", podssh_ws::text::said(&e)))
+        }
     };
     let class = runtime.block_on(lookup(host));
     runtime.shutdown_background();

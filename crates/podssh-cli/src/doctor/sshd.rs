@@ -35,7 +35,7 @@ pub(super) fn check(report: &mut Report<'_>) {
     let target = crate::node::SSHD;
     let port = match target.parse::<SocketAddr>() {
         Ok(addr) => dial(addr),
-        Err(e) => Port::Not(NotSshd::Failed(e.to_string())),
+        Err(e) => Port::Not(NotSshd::Failed(podssh_ws::text::said(&e))),
     };
     report.ok("sshd", words(&found, &places, target, &port));
 }
@@ -47,7 +47,7 @@ fn dial(addr: SocketAddr) -> Port {
         Ok(stream) => stream,
         Err(e) if e.kind() == std::io::ErrorKind::ConnectionRefused => return Port::Refused,
         Err(e) if e.kind() == std::io::ErrorKind::TimedOut => return Port::NoAnswer,
-        Err(e) => return Port::Not(NotSshd::Failed(e.to_string())),
+        Err(e) => return Port::Not(NotSshd::Failed(podssh_ws::text::said(&e))),
     };
     let read = |buf: &mut [u8], left: Duration| {
         stream.set_read_timeout(Some(left))?;
@@ -87,7 +87,7 @@ fn first_line(
             Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {
                 return Err(unjudged(&bytes, End::Limit(LIMIT)));
             }
-            Err(e) => return Err(NotSshd::Failed(e.to_string())),
+            Err(e) => return Err(NotSshd::Failed(podssh_ws::text::said(&e))),
         }
     }
 }

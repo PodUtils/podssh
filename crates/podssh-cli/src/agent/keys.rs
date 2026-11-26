@@ -256,7 +256,7 @@ pub async fn lock(locking: bool, _out: &mut dyn Write, err: &mut dyn Write) -> i
 /// A prompt that gave nothing: 78 where nothing can ask (no terminal and no
 /// `SSH_ASKPASS` that runs), else 66, as no answer came.
 fn no_answer(what: &str, e: &PromptError, err: &mut dyn Write) -> i32 {
-    let _ = writeln!(err, "podssh agent: {what}: {e}");
+    let _ = writeln!(err, "podssh agent: {what}: {}", podssh_ws::text::said(&e));
     match e {
         PromptError::NoTerminal | PromptError::Failed(_) => EX_CONFIG,
         _ => EX_NOINPUT,

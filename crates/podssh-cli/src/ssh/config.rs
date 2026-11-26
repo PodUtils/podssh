@@ -336,9 +336,9 @@ fn read_file(path: &Path, checked: bool) -> Result<Option<String>, String> {
         Err(e) if matches!(e.kind(), std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory) => {
             return Ok(None)
         }
-        Err(e) => return Err(format!("{shown}: {e}")),
+        Err(e) => return Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
     };
-    let meta = file.metadata().map_err(|e| format!("{shown}: {e}"))?;
+    let meta = file.metadata().map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if meta.is_dir() {
         return Err(format!("{shown} is a directory, not an ssh_config file"));
     }
@@ -347,7 +347,7 @@ fn read_file(path: &Path, checked: bool) -> Result<Option<String>, String> {
     }
     let mut bytes = Vec::new();
     std::io::Read::read_to_end(&mut std::io::Read::take(file, MAX_FILE + 1), &mut bytes)
-        .map_err(|e| format!("{shown}: {e}"))?;
+        .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if bytes.len() as u64 > MAX_FILE {
         return Err(format!("{shown} is larger than {} MiB, which no ssh_config is", MAX_FILE >> 20));
     }

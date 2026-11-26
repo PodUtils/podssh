@@ -141,7 +141,7 @@ pub(crate) struct Facts {
 pub(crate) async fn ask(server: SocketAddr, zone: &str, edns: Option<u16>, wait: Duration) -> Got {
     let mut random = [0u8; 10];
     if let Err(e) = OsEntropy.fill(&mut random) {
-        return Got::Failed(format!("no random name for the query: {e}"));
+        return Got::Failed(format!("no random name for the query: {}", podssh_ws::text::said(&e)));
     }
     let id = u16::from_be_bytes([random[0], random[1]]);
     let name = probe_name(zone, &random[2..]);
@@ -155,14 +155,14 @@ pub(crate) async fn ask(server: SocketAddr, zone: &str, edns: Option<u16>, wait:
     };
     let socket = match UdpSocket::bind(any).await {
         Ok(socket) => socket,
-        Err(e) => return Got::Failed(format!("no UDP socket ({e}), so nothing was sent")),
+        Err(e) => return Got::Failed(format!("no UDP socket ({}), so nothing was sent", podssh_ws::text::said(&e))),
     };
     if let Err(e) = socket.connect(server).await {
-        return Got::Failed(format!("no UDP toward {server} ({e}), so nothing was sent"));
+        return Got::Failed(format!("no UDP toward {server} ({}), so nothing was sent", podssh_ws::text::said(&e)));
     }
     let started = Instant::now();
     if let Err(e) = socket.send(&query).await {
-        return Got::Failed(format!("the query did not go out: {e}"));
+        return Got::Failed(format!("the query did not go out: {}", podssh_ws::text::said(&e)));
     }
     let deadline = tokio::time::Instant::now() + wait;
     let mut datagram = vec![0u8; MOST_DATAGRAM];
@@ -174,7 +174,7 @@ pub(crate) async fn ask(server: SocketAddr, zone: &str, edns: Option<u16>, wait:
             Ok(Err(e)) if e.kind() == std::io::ErrorKind::ConnectionRefused => {
                 return Got::Failed(format!("the system says that nothing serves UDP port {} there", server.port()));
             }
-            Ok(Err(e)) => return Got::Failed(format!("the read of the answer failed: {e}")),
+            Ok(Err(e)) => return Got::Failed(format!("the read of the answer failed: {}", podssh_ws::text::said(&e))),
         };
         let reply = &datagram[..n];
         match txt::read(reply, id, &name, txt::TXT) {

@@ -154,13 +154,13 @@ pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
     let binary = match std::env::current_exe() {
         Ok(binary) => binary,
         Err(e) => {
-            let _ = writeln!(err, "podssh mcp: the path of this program: {e}");
+            let _ = writeln!(err, "podssh mcp: the path of this program: {}", podssh_ws::text::said(&e));
             return EX_SOFTWARE;
         }
     };
     let scratch = std::env::temp_dir().join(format!("podssh-mcp-{}", std::process::id()));
     if let Err(e) = podssh_relay::cache::private_dir(&scratch) {
-        let _ = writeln!(err, "podssh mcp: {}: {e}", scratch.display());
+        let _ = writeln!(err, "podssh mcp: {}: {}", scratch.display(), podssh_ws::text::said(&e));
         return EX_CONFIG;
     }
     let settings = Settings {
@@ -198,7 +198,7 @@ pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
-            let _ = writeln!(err, "podssh mcp: {e}");
+            let _ = writeln!(err, "podssh mcp: {}", podssh_ws::text::said(&e));
             return EX_SOFTWARE;
         }
     };

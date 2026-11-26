@@ -10,7 +10,7 @@ use super::Report;
 pub(super) fn check(report: &mut Report<'_>) {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
-        Err(e) => return report.unknown("agent", format!("not asked: no runtime: {e}")),
+        Err(e) => return report.unknown("agent", format!("not asked: no runtime: {}", podssh_ws::text::said(&e))),
     };
     match runtime.block_on(credential_store::count(&Agent::FromEnvironment)) {
         None => report.ok("agent", "none runs (SSH_AUTH_SOCK)"),
@@ -21,6 +21,6 @@ pub(super) fn check(report: &mut Report<'_>) {
         Some(Err(StoreError::NoStore)) => {
             report.ok("agent", "an agent that keeps no passwords: it is not podssh agent, or it is locked")
         }
-        Some(Err(e)) => report.fail("agent", format!("the agent of SSH_AUTH_SOCK: {e}")),
+        Some(Err(e)) => report.fail("agent", format!("the agent of SSH_AUTH_SOCK: {}", podssh_ws::text::said(&e))),
     }
 }

@@ -283,7 +283,9 @@ fn a_bad_early_data_word_refuses_before_the_vless_file_is_read() {
     let rc = run(&p, &mut Streams { out: &mut out, err: &mut err });
     assert_eq!(rc, EXIT_USAGE);
     let text = String::from_utf8(err).unwrap();
-    assert!(text.contains("PODSSH_VLESS_EARLY_DATA: 0rtt, 1rtt or off, not 2rtt"), "{text}");
+    // The flag's word is refused by the flag's name (T-988), not the variable's.
+    assert!(text.contains("--early-data: 0rtt, 1rtt or off, not 2rtt"), "{text}");
+    assert!(!text.contains("PODSSH_VLESS_EARLY_DATA"), "{text}");
     assert!(!text.contains("no-such-file"), "the file was not read: {text}");
     assert!(out.is_empty());
 }

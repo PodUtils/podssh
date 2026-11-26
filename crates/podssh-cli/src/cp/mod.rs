@@ -199,7 +199,8 @@ fn tree_of(args: &CpArgs) -> Result<Option<tree::Tree>, String> {
     let mut excludes = args.excludes.clone();
     if let Some(file) = &args.exclude_from {
         excludes.extend(
-            tree::read_excludes(std::path::Path::new(file)).map_err(|e| format!("--exclude-from {file}: {e}"))?,
+            tree::read_excludes(std::path::Path::new(file))
+                .map_err(|e| format!("--exclude-from {file}: {}", podssh_ws::text::said(&e)))?,
         );
     }
     let (dry_run, follow, delete) = (args.dry_run, args.verb == "scp", args.delete);
@@ -362,7 +363,7 @@ fn run_copy(
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let why = format!("could not start the async runtime: {e}");
+            let why = format!("could not start the async runtime: {}", podssh_ws::text::said(&e));
             log.error(&why);
             (did.failure, did.error) = (Some("session"), Some(why));
             return Fault::SessionFault.code();

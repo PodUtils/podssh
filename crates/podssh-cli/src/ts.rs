@@ -79,7 +79,7 @@ pub fn run_ts(a: &TsArgs, out: &mut dyn Write, err: &mut dyn Write, tty: Tty) ->
     let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh ts: cannot start the async runtime: {e}");
+            let _ = writeln!(err, "podssh ts: cannot start the async runtime: {}", podssh_ws::text::said(&e));
             return EXIT_NOT_IMPLEMENTED;
         }
     };
@@ -161,7 +161,8 @@ async fn ts_async(
     let mut raw = match std::fs::read(key_path) {
         Ok(b) => zeroize::Zeroizing::new(b),
         Err(e) => {
-            let _ = writeln!(err, "podssh ts: cannot read --ts-auth-key-file {key_path}: {e}");
+            let _ =
+                writeln!(err, "podssh ts: cannot read --ts-auth-key-file {key_path}: {}", podssh_ws::text::said(&e));
             return EXIT_USAGE;
         }
     };
@@ -197,7 +198,7 @@ async fn ts_async(
     let proxy = match podssh_ts::config::choose_proxy(a.proxy.as_deref(), |n| std::env::var(n).ok()) {
         Ok(p) => p,
         Err(e) => {
-            let _ = writeln!(err, "podssh ts: {e}");
+            let _ = writeln!(err, "podssh ts: {}", podssh_ws::text::said(&e));
             return EXIT_USAGE;
         }
     };
@@ -444,7 +445,7 @@ async fn pipe_form(
             0
         }
         Err(e) => {
-            let _ = writeln!(err, "podssh ts: the pipe failed: {e}");
+            let _ = writeln!(err, "podssh ts: the pipe failed: {}", podssh_ws::text::said(&e));
             EXIT_NOT_IMPLEMENTED
         }
     }

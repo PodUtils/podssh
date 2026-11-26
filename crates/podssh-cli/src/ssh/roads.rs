@@ -38,7 +38,7 @@ use podssh_relay::session::race::{in_turn, Start, HEAD_START};
 use podssh_relay::session::resume::{self, Next, Note};
 use podssh_relay::session::{client, Ask, End, Ended, OsEntropy};
 use podssh_ssh::{Log, EXIT_FAILURE};
-use podssh_ws::Trust;
+use podssh_ws::{text::said, Trust};
 use tokio::task::JoinHandle;
 
 use super::iroh::IrohRoad;
@@ -148,7 +148,7 @@ impl<'a> Roads<'a> {
         if let Some((dialer, asked)) = &self.derp {
             // A kept ticket is the fallback: only when each road before it failed.
             let start = if *asked { Start::After(HEAD_START) } else { Start::WhenAllFailed };
-            list.push((start, Box::pin(async move { dialer.link().await.map(Road::Derp).map_err(|e| e.to_string()) })));
+            list.push((start, Box::pin(async move { dialer.link().await.map(Road::Derp).map_err(|e| said(&e)) })));
             kinds.push(Kind::Derp);
         }
         if let Some((dialer, asked)) = &self.opentunnel {
@@ -178,7 +178,7 @@ impl<'a> Roads<'a> {
         }
         if let Some(dialer) = &self.transit {
             // Q65's fallback: only when each road before it failed.
-            let link = async move { dialer.link().await.map(Road::Transit).map_err(|e| e.to_string()) };
+            let link = async move { dialer.link().await.map(Road::Transit).map_err(|e| said(&e)) };
             list.push((Start::WhenAllFailed, Box::pin(link)));
             kinds.push(Kind::Transit);
         }
@@ -379,7 +379,7 @@ where
     let client = match Box::pin(client::start(first, Ask::New, settings, &mut OsEntropy)).await {
         Ok(client) => client,
         Err(e) => {
-            let code = hand(not_reached(&e.to_string(), sysexits::EX_UNAVAILABLE)).await;
+            let code = hand(not_reached(&said(&e), sysexits::EX_UNAVAILABLE)).await;
             roads.close().await;
             return code;
         }

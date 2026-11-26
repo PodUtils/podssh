@@ -51,7 +51,7 @@ pub(super) fn only(mut report: Report<'_>, text: &str, trust: &Trust, policy: Op
             runtime.block_on(check(&mut report, text, trust, policy));
             runtime.shutdown_background();
         }
-        Err(e) => report.fail("hop", format!("could not start the async runtime: {e}")),
+        Err(e) => report.fail("hop", format!("could not start the async runtime: {}", podssh_ws::text::said(&e))),
     }
     report.finish()
 }
@@ -89,7 +89,7 @@ async fn probes(report: &mut Report<'_>, text: &str, trust: &Trust, policy: Opti
     let Tried { samples, first, error } = sample(PROBE, |bound| dial::dial(&host, port, choice, bound)).await;
     let summary = samples.summary();
     let Some(stream) = first else {
-        let why = error.map(|e| e.to_string()).unwrap_or_default();
+        let why = error.map(|e| podssh_ws::text::said(&e)).unwrap_or_default();
         let detail = format!("{target} {via}: {why}; {summary}; -J cannot reach this hop from here with --direct");
         report.sampled("hop", Verdict::Failed { detail }, &samples);
         return false;
@@ -141,7 +141,7 @@ pub(super) async fn wrapped(stream: TcpStream, host: &str, tls: Option<&Trust>) 
         None => Ok(Box::new(stream)),
         Some(trust) => match podssh_ws::tls_over(stream, host, trust, PROBE).await {
             Ok(tls) => Ok(Box::new(tls)),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(podssh_ws::text::said(&e)),
         },
     }
 }
@@ -151,7 +151,7 @@ pub(super) type Probe = Box<dyn crate::ssh::transport::Duplex>;
 
 /// The fingerprint of the host key that the hop presents.
 async fn key(host: &str, port: u16, choice: &ProxyChoice, tls: Option<&Trust>) -> Result<String, String> {
-    let stream = dial::dial(host, port, choice, PROBE).await.map_err(|e| e.to_string())?;
+    let stream = dial::dial(host, port, choice, PROBE).await.map_err(|e| podssh_ws::text::said(&e))?;
     let stream = wrapped(stream, host, tls).await?;
     let key = podssh_ssh::probe::host_key(stream, PROBE).await?;
     Ok(podssh_ssh::known_hosts::fingerprint(&key))
@@ -169,7 +169,9 @@ async fn login(
 ) -> Verdict {
     let stream = match dial::dial(host, port, choice, PROBE).await {
         Ok(stream) => stream,
-        Err(e) => return Verdict::Failed { detail: format!("a second connection failed: {e}") },
+        Err(e) => {
+            return Verdict::Failed { detail: format!("a second connection failed: {}", podssh_ws::text::said(&e)) }
+        }
     };
     let stream = match wrapped(stream, host, tls).await {
         Ok(stream) => stream,

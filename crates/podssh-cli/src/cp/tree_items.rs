@@ -219,7 +219,7 @@ pub(super) async fn remove_far(sftp: &Sftp, src: &str, items: &[Item], left: &Ha
             Ok(true) => removed.push(remote_join(src, rel_of(item))),
             Ok(false) => {}
             Err(e) => {
-                log.info(&format!("{src}: a part of the source stays: {e}"));
+                log.info(&format!("{src}: a part of the source stays: {}", podssh_ws::text::said(&e)));
                 return removed;
             }
         }

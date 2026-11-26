@@ -149,7 +149,7 @@ pub async fn open_sftp(resolved: &Resolved, log: &Arc<Log>, name: &str) -> Resul
             podssh_ssh::run::disconnect_all(&handles).await;
             let why = match e {
                 SftpError::NoSftp => format!("{host} has no {name} subsystem"),
-                e => format!("{host}: {e}"),
+                e => format!("{host}: {}", podssh_ws::text::said(&e)),
             };
             Err(Failed::new(Fault::RelayUnreachable, why))
         }

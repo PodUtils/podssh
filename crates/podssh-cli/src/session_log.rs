@@ -182,7 +182,7 @@ pub fn append(place: &Place, line: &Value) -> Result<PathBuf, String> {
             let mut refused = Vec::new();
             for dir in &dirs {
                 let path = dir.join(FILE);
-                let done = podssh_relay::cache::private_dir(dir).map_err(|e| e.to_string());
+                let done = podssh_relay::cache::private_dir(dir).map_err(|e| podssh_ws::text::said(&e));
                 match done.and_then(|()| append_to(&path, text.as_bytes())) {
                     Ok(()) => return Ok(path),
                     Err(why) => refused.push(format!("{}: {why}", dir.display())),
@@ -197,16 +197,16 @@ pub fn append(place: &Place, line: &Value) -> Result<PathBuf, String> {
 fn append_to(path: &Path, line: &[u8]) -> Result<(), String> {
     let shown = path.display();
     if std::fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file() && meta.len() >= LIMIT) {
-        std::fs::rename(path, aside(path)).map_err(|e| format!("{shown}: {e}"))?;
+        std::fs::rename(path, aside(path)).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     }
     match podssh_relay::cache::create_new_private(path) {
         Ok(created) => drop(created),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
-        Err(e) => return Err(format!("{shown}: {e}")),
+        Err(e) => return Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
     }
-    let mut file = open_to_append(path).map_err(|e| format!("{shown}: {e}"))?;
+    let mut file = open_to_append(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     own_and_private(path, &file)?;
-    file.write_all(line).map_err(|e| format!("{shown}: {e}"))
+    file.write_all(line).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))
 }
 
 /// The name that a full log takes: `sessions.1.jsonl` for `sessions.jsonl`.
@@ -235,7 +235,7 @@ fn open_to_append(path: &Path) -> std::io::Result<std::fs::File> {
 
 /// A regular file of this user that no other user may read.
 fn own_and_private(path: &Path, file: &std::fs::File) -> Result<(), String> {
-    let meta = file.metadata().map_err(|e| format!("{}: {e}", path.display()))?;
+    let meta = file.metadata().map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err(format!("{} is not a regular file", path.display()));
     }

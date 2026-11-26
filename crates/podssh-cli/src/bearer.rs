@@ -129,7 +129,7 @@ fn agent_list() -> Result<Vec<[u8; 32]>, String> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .map_err(|e| format!("no runtime to ask the SSH agent: {e}"))?;
+            .map_err(|e| format!("no runtime to ask the SSH agent: {}", podssh_ws::text::said(&e)))?;
         runtime.block_on(agent_ed25519::ed25519_keys(&Agent::FromEnvironment))
     });
     match asked.join() {

@@ -27,7 +27,7 @@ pub(super) async fn check(
     policy: &Policy,
 ) -> Verdict {
     let reading = match dial::dial(host, port, choice, PROBE).await {
-        Err(e) => Err(format!("another connection failed: {e}")),
+        Err(e) => Err(format!("another connection failed: {}", podssh_ws::text::said(&e))),
         Ok(stream) => match super::hop::wrapped(stream, host, tls).await {
             Err(why) => Err(format!("another connection's TLS: {why}")),
             // The handshake and the host key's signature, as `key` bounds them.

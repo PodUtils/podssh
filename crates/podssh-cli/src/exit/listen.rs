@@ -91,7 +91,7 @@ async fn proxy(to: To, at: Address) -> i32 {
                 });
             }
             Err(e) => {
-                say(&format!("the listener failed: {e}"));
+                say(&format!("the listener failed: {}", podssh_ws::text::said(&e)));
                 return sysexits::EX_UNAVAILABLE;
             }
         }

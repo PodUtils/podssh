@@ -37,6 +37,6 @@ pub fn create(path: &Path) -> Result<Target, String> {
         ErrorKind::AlreadyExists => {
             format!("--record {}: the file exists, and podssh records over none", path.display())
         }
-        _ => format!("--record {}: {e}", path.display()),
+        _ => format!("--record {}: {}", path.display(), podssh_ws::text::said(&e)),
     })
 }

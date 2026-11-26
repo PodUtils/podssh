@@ -149,7 +149,7 @@ pub(crate) fn dial(relay: SocketAddr) -> podssh_relay::tox::pair::Dial {
             let limit = podssh_relay::open::CONNECT_TIMEOUT;
             let tcp = podssh_ws::dial::dial(&relay.ip().to_string(), relay.port(), &proxy, limit)
                 .await
-                .map_err(|e| std::io::Error::other(format!("the Tox relay {relay}: {e}")))?;
+                .map_err(|e| std::io::Error::other(format!("the Tox relay {relay}: {}", podssh_ws::text::said(&e))))?;
             Ok(Box::new(tcp) as Box<dyn podssh_relay::tox::pair::Io>)
         })
     })

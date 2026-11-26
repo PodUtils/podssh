@@ -311,7 +311,9 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
                 // -4 or -6 keeps the family: that family's addresses alone.
                 let dialled = match resolved.shown.family {
                     Some(_) => after::dial(first, resolved.shown.family, &target, log).await,
-                    None => direct(&first.host, first.port, multipath, &target, log).await.map_err(|e| e.to_string()),
+                    None => direct(&first.host, first.port, multipath, &target, log)
+                        .await
+                        .map_err(|e| podssh_ws::text::said(&e)),
                 };
                 match dialled {
                     Ok(tcp) => {

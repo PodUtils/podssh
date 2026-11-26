@@ -75,10 +75,15 @@ impl DhtRoads {
             .end
             .get_or_try_init(|| async { join(&self.bootstrap, None).await.map(tokio::sync::Mutex::new) })
             .await
-            .map_err(|e| format!("HyperDHT's road: {e}"))?;
+            .map_err(|e| format!("HyperDHT's road: {}", podssh_ws::text::said(&e)))?;
         self.log.verbose(&format!("{}: HyperDHT's road by the node's key", self.shown));
         let node = node_keys(&self.name, &self.token).public_key;
-        let stream = end.lock().await.link(node, LIMIT).await.map_err(|e| format!("HyperDHT's road: {e}"))?;
+        let stream = end
+            .lock()
+            .await
+            .link(node, LIMIT)
+            .await
+            .map_err(|e| format!("HyperDHT's road: {}", podssh_ws::text::said(&e)))?;
         Ok(Road::HyperDht(Box::new(stream)))
     }
 

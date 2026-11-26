@@ -30,7 +30,8 @@ pub(super) async fn socket(report: &mut Report<'_>, relay: &Relay, trust: &Trust
     let pair = match pair::create(&ctx).await {
         Ok(pair) => pair,
         Err(e) => {
-            let why = format!("a socket of the reverse road at {at}: no pair for the check: {e}");
+            let why =
+                format!("a socket of the reverse road at {at}: no pair for the check: {}", podssh_ws::text::said(&e));
             return report.unknown("quiet stream", why);
         }
     };
@@ -38,7 +39,10 @@ pub(super) async fn socket(report: &mut Report<'_>, relay: &Relay, trust: &Trust
     // The pair is the check's alone: it goes now, or at its expiry.
     let left = match pair::stop(&ctx, &pair).await {
         Ok(_) => String::new(),
-        Err(e) => format!("; the pair made for the check could not be stopped ({e}), and ends at its expiry"),
+        Err(e) => format!(
+            "; the pair made for the check could not be stopped ({}), and ends at its expiry",
+            podssh_ws::text::said(&e)
+        ),
     };
     let verdict = match judge::socket(&at, hold, &ended) {
         podssh_ws::Verdict::Ok { detail } => podssh_ws::Verdict::Ok { detail: format!("{detail}{left}") },
@@ -51,14 +55,15 @@ pub(super) async fn socket(report: &mut Report<'_>, relay: &Relay, trust: &Trust
 /// is over: `None` when it held, else when it ended and how.
 async fn held(relay: &Relay, pair: &Pair, trust: &Trust, hold: Duration) -> SocketEnd {
     let proxy = ProxyChoice::FromEnvironment;
-    let tls =
-        open_tls(&relay.host, relay.port, &relay.host, trust, &proxy, CONNECT_WAIT).await.map_err(|e| e.to_string())?;
+    let tls = open_tls(&relay.host, relay.port, &relay.host, trust, &proxy, CONNECT_WAIT)
+        .await
+        .map_err(|e| podssh_ws::text::said(&e))?;
     let host = dial::authority(&relay.host, relay.port);
     let path = format!("/v1/node/{}", pair.name);
     let upgraded = tokio::time::timeout(CONNECT_WAIT, upgrade(tls, &host, &path, pair.node_token())).await;
     let (mut tls, mut pending) = match upgraded {
         Ok(Ok(upgraded)) => upgraded,
-        Ok(Err(e)) => return Err(format!("the socket's upgrade: {e}")),
+        Ok(Err(e)) => return Err(format!("the socket's upgrade: {}", podssh_ws::text::said(&e))),
         Err(_) => return Err(format!("no answer to the socket's upgrade within {} s", CONNECT_WAIT.as_secs())),
     };
     let started = Instant::now();

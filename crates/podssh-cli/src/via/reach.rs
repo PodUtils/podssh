@@ -39,7 +39,7 @@ pub async fn reach(road: &Road, host: &str, port: u16, rounds: u32, log: &Arc<Lo
                 return Ok(Reached { stream: Box::new(stream), relay: None, direct_proxy: None, layer: None });
             }
             Err(e) => {
-                log.error(&crate::pipe::remote::could_not_connect(&target.to_string(), e.to_string()));
+                log.error(&crate::pipe::remote::could_not_connect(&target.to_string(), podssh_ws::text::said(&e)));
                 code = exit_code(&e);
                 // The proxy's answer, or a setting, is the same at each try.
                 if code != EX_UNAVAILABLE {

@@ -91,8 +91,14 @@ pub(super) fn verdict(
     };
     let offered = match offered {
         Ok(offered) => offered,
-        Err(e) if unmeasured(&e) => return Verdict::Unknown { why: format!("not measured: {host}: {e}") },
-        Err(e) => return Verdict::Unknown { why: format!("not measured, as {host} was not reached: {e}") },
+        Err(e) if unmeasured(&e) => {
+            return Verdict::Unknown { why: format!("not measured: {host}: {}", podssh_ws::text::said(&e)) }
+        }
+        Err(e) => {
+            return Verdict::Unknown {
+                why: format!("not measured, as {host} was not reached: {}", podssh_ws::text::said(&e)),
+            }
+        }
     };
     let road = match (offered.extended, choice.offers(explicit)) {
         (Some(true), true) => "the sessions of a run share one connection to it".to_string(),
@@ -117,7 +123,7 @@ pub(super) fn forwarder_verdict(host: &str, offered: Result<Offered, ConnectErro
         Ok(offered) => Verdict::Ok {
             detail: format!("{host}: {}; podssh's road to a forwarder takes its upgrade of HTTP/1.1", offered.words()),
         },
-        Err(e) => Verdict::Unknown { why: format!("not measured: {host}: {e}") },
+        Err(e) => Verdict::Unknown { why: format!("not measured: {host}: {}", podssh_ws::text::said(&e)) },
     }
 }
 

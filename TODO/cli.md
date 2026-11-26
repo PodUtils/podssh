@@ -1114,7 +1114,7 @@ the compare of step 4 and write a fresh key; the public-key test fails.
 
 ## Done
 
-2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:22-90`, their
+2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:22-92`, their
 flags at `crates/podssh-cli/src/flags/keygen.rs:21-26` and their refusals at
 `crates/podssh-cli/src/keygen.rs:137-144` and `:251-270`; `keygen::protect` keeps the comment
 (`crates/podssh-ssh/src/keygen.rs:95-108`).
@@ -1367,7 +1367,7 @@ OpenSSH's verify with `-n git` then fails.
 2026-10-11. Signatures and allowed signers in `crates/podssh-ssh/src/sshsig.rs:1-388`; an RSA key
 signs through `RsaSigner::sign_sha512` (`crates/podssh-ssh/src/rsa_key.rs:81-88`), and the keys of
 the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:415-427`). The command is
-`crates/podssh-cli/src/keygen_sign.rs:1-369`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
+`crates/podssh-cli/src/keygen_sign.rs:1-371`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
 - `cargo test -p podssh-ssh --lib -- sshsig`: 6 passed: the signatures of OpenSSH's (Ed25519 in
   `git`; RSA in `file` with SHA-256) verify, and refuse another namespace and changed data with
   OpenSSH's words; each kind of key signs with each hash, an RSA key with `rsa-sha2-512`; the lines
@@ -2390,8 +2390,8 @@ checks of a line (`not_authorized`, `:145`) and the principals of `find-principa
 `read_signature` gives a `Signed`, the signature and its certificate
 (`crates/podssh-ssh/src/sshsig.rs:26-32`, `:139-145`); `names_key` names a CA's certificate
 (`:383-388`); an agent that holds a key only in a certificate signs by it (`:111-124`). The
-command: `-f KEY-cert.pub` in `crates/podssh-cli/src/keygen_sign.rs:183-237`, the lines of `verify`
-and `check-novalidate` (`:230-288`) and `find-principals` (`:305-345`). The manual's note
+command: `-f KEY-cert.pub` in `crates/podssh-cli/src/keygen_sign.rs:185-239`, the lines of `verify`
+and `check-novalidate` (`:232-290`) and `find-principals` (`:307-347`). The manual's note
 (`crates/podssh-cli/src/man/notes_keygen.rs:27-31`), the help of `-f`
 (`crates/podssh-cli/src/flags/keygen.rs:17-18`), `docs/cli.md` (section of `keygen`) and
 `docs/STATUS.md` say it.
@@ -2472,13 +2472,13 @@ nothing.
   (`scripts/check-repo.py:170-191`), and these listen, each when the user asks: `pipe`'s
   `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:149-163`, `:190-214`),
   the control socket of `-M` (`:216-224`), `-L` and `-D` on a port or a path
-  (`crates/podssh-cli/src/ssh/local_bind.rs:79-89`, `:111-128`), `podssh agent`
+  (`crates/podssh-cli/src/ssh/local_bind.rs:79-89`, `:113-130`), `podssh agent`
   (`crates/podssh-cli/src/agent/serve.rs:41-44`) and `podssh session`
   (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
   (`crates/podssh-cli/src/pipe/listen_win.rs:147`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`
   (`crates/podssh-cli/src/pipe/listen.rs:68-75`), and 255 in `-L` and `-D`, with the system's
-  words and "this host refuses the listener" (`crates/podssh-cli/src/ssh/local_bind.rs:90-95`).
+  words and "this host refuses the listener" (`crates/podssh-cli/src/ssh/local_bind.rs:90-97`).
   The issue's amendment says that `-L` exits 77: it exits 255, as OpenSSH's ssh does for a
   failure of its own (`crates/podssh-ssh/src/run.rs:28`).
 - Read: `crates/podssh-cli/src/flags.rs` line 364 at `48a8744` says "join two byte streams, as socat does, with no
@@ -3597,7 +3597,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and in the notes (`crates/podssh-cli/src/man/notes.rs:185`), and in no row of `cp --help`
   (`crates/podssh-cli/src/flags/copy.rs:20-64`).
 - Read (L-17): `job fetch` of a job that runs exits 75, as EXIT STATUS says
-  (`crates/podssh-cli/src/man/data.rs:104-106`); the rows of `job --help` do not
+  (`crates/podssh-cli/src/man/data.rs:105-107`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
   about of `job` does not say (`crates/podssh-cli/src/flags.rs:405-406`).
@@ -3610,7 +3610,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:266`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:123-139`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:124-140`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -3811,7 +3811,7 @@ allow, and which features does that close, before the user tries a session.
 
 ## Premise
 
-- Read: the probes exist and each is local: `crates/podssh-cli/src/doctor/host.rs:251-265` (exec,
+- Read: the probes exist and each is local: `crates/podssh-cli/src/doctor/host.rs:254-268` (exec,
   with `ok` and `unknown`, never `FAIL` for a refusal), `crates/podssh-cli/src/doctor/unix.rs:95-110`
   (`pty`), `crates/podssh-cli/src/harden.rs:302` (`status_sets`, reads `CapEff`,
   `CapPrm`, `CapInh`), `crates/podssh-ws/src/resolve.rs:1-18` (the order of the resolver).
@@ -4401,8 +4401,8 @@ podssh (70). Lost: 73, which `node --print-unit` keeps for now (that file is of 
 to `deliver` later). A stdout closed at the start (`>&-`) is not told apart. The draft read it by its mode (descriptor 1 is /dev/null
 opened for reading and writing, as Rust's runtime opens it there) and failed each write of every command; the merge
 dropped that, because a daemon, systemd's `StandardOutput=null` and `--detach`'s own child
-(`crates/podssh-cli/src/detach/child.rs:242`) each open /dev/null so for a stdout meant to be thrown away, and a
-detached node's run then hung in `node_detach`'s heartbeat test. Lost: that check; `keygen -l >&-` stays exit 0 with
+(`crates/podssh-cli/src/detach/child.rs:242`) each open /dev/null so for a stdout meant to be thrown away, so that each
+write of a detached run would fail. Lost: that check; `keygen -l >&-` stays exit 0 with
 its output lost, as in OpenSSH's `ssh-keygen`.
 Asked of podcrates (a COORD issue for the lead): a class of pod-core for an output that could not be written.
 
@@ -4427,7 +4427,7 @@ Drafted 2026-11-25 by a drafting agent.
   `crates/podssh-cli/src/dispatch/command.rs`, `crates/podssh-cli/src/exitmap.rs`, `crates/podssh-cli/src/exitmap_tests.rs`,
   `crates/podssh-cli/src/man/data.rs`, new `crates/podssh-cli/tests/output_full.rs`, `docs/cli.md`.
 
-Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. The merge dropped the draft's reading of a stdout closed at the start (see the Decision): a detached node's run hung in `node_detach`'s heartbeat test with it, and passed without it. `cargo test -p podssh-cli --test output_full`: 1 passed.
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. The merge dropped the draft's reading of a stdout closed at the start (see the Decision): `--detach`'s child opens /dev/null for reading and writing, so each write of a detached run would have failed with it. `cargo test -p podssh-cli --test output_full`: 1 passed.
 
 
 # T-966: A key, a certificate or a signature file is read with no bound
@@ -4684,7 +4684,7 @@ agent runs. `keygen -p` with no terminal and no `SSH_ASKPASS` hinted "use -N ''"
 ## Approach
 
 1. `podssh_ssh::keys::held_keys` (`crates/podssh-ssh/src/keys.rs:432`): the agent's keys, `None` when none runs;
-   `agent_holds` and `not_held` (`crates/podssh-cli/src/keygen_signer.rs:120`) say "-U signs with the agent alone,
+   `agent_holds` and `not_held` (`crates/podssh-cli/src/keygen_signer.rs:121`) say "-U signs with the agent alone,
    and no agent runs: SSH_AUTH_SOCK names none", as `-s -U`.
 2. `ask_new_passphrase` takes the hint of its caller: `-p`'s names `-N ''` and `-P ''`
    (`crates/podssh-cli/src/keygen.rs:402`).
@@ -5135,3 +5135,125 @@ Drafted 2026-11-25 (a worker's draft, not built): `typed` and `from_matches` in 
 `the_entry_keeps_the_flags_in_the_order_typed`, the manual's note and `docs/cli.md`.
 
 Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-987: `node --print-unit` exits 73 when its stdout write fails, where an output that cannot be written is 74
+
+**Source:** T-965's helper read against `podssh node NAME TARGET --print-unit >/dev/full` (2026-11-25).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+T-965 made 74 (`EX_IOERR`) the exit of a command whose answer is its stdout and whose write failed, with one line
+`podssh VERB: the output could not be written: WHY`, through one helper (`crate::output::deliver`). `podssh node
+--print-unit` (and `podssh serve --print-unit`, which shares its writer) kept a check of its own: a failed write was
+said as `stdout: WHY` and exited 73 (`EX_CANTCREAT`), the code of a file that cannot be made. A script that tests for 74
+after a print of a unit sees another code, and the manual's EXIT STATUS row of 74 did not name the command.
+
+## Premise
+
+- Read, at `ec33fd8`: `say` of `crates/podssh-cli/src/node_install/print.rs` wrote the unit with `write_all` and gave
+  `Refusal { code: EX_CANTCREAT }` for a failed write, the one line `stdout: WHY`.
+- Read: `deliver` of `crates/podssh-cli/src/output.rs` is the helper that every other command of the kind uses: it keeps
+  the first failure, says it once, gives 74 where the command's code was 0, and leaves a closed pipe (`| head`) with no
+  failure.
+- Read: the row of 74 of `crates/podssh-cli/src/man/data.rs` names `keygen`, `doctor`, `man`, `status`, `config`,
+  `agent` and `update` only; `docs/cli.md` says the same.
+
+## Approach
+
+1. `say` of `node_install/print.rs` runs through `crate::output::deliver(verb, out, err, ...)`: the unit is written
+   inside the closure, the closure gives 0 (or the refusal's own code for a refusal), and the helper turns a failed
+   write into 74 with the line `podssh node: the output could not be written: WHY` (`serve` for serve).
+2. The manual's row of 74 names `podssh node --print-unit` and `podssh serve --print-unit`, in sentences of at most 25
+   words; `llms-full.txt` takes the same words, and `docs/cli.md` the same list.
+3. Tests: the row's words in `exit_status_names_the_codes_of_agent_and_of_an_output_that_failed`
+   (`crates/podssh-cli/src/man/notes_tests.rs`), and two cases of `each_command_says_that_its_output_could_not_be_written`
+   (`crates/podssh-cli/tests/output_full.rs`: `node lab 127.0.0.1:22 --print-unit` and a `serve lab` of the same
+   flags, each to `/dev/full`: 74 and the line).
+
+## Decision
+
+Lost: 73 for this command alone; one code for each output that cannot be written is what a script can test, and the
+same line form is what T-965 documented.
+`serve --print-unit` goes with `node`: they share one writer, and two codes for one fault would be a new defect.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib notes_tests
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test output_full
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test node_install
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `say` in `crates/podssh-cli/src/node_install/print.rs` (the
+`EX_CANTCREAT` import is gone with it), the row of 74 in `crates/podssh-cli/src/man/data.rs` and in `llms-full.txt`
+(wrapped by hand at the width of the file), the list of `docs/cli.md`, the test of the row and the two cases of the
+binary test.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-cli --no-fail-fast` 264 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`. Live: `podssh node lab 127.0.0.1:22 --print-unit > /dev/full` says "the output could not be written: No space left on device" and exits 74. The planted run waits for T-251.
+
+
+# T-988: A bad word of `--early-data` is said with the variable's name
+
+**Source:** T-972's fix of `--h2-shape` read against `--early-data` (2026-11-25): `podssh doctor --vless FILE --early-data
+2rtt` and `podssh ssh --vless FILE --early-data 2rtt`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+T-972 made each refusal name the source of the word: a word of `--h2-shape` is refused with 64 and names the flag, a
+word of `PODSSH_H2_SHAPE` is 78 and names the variable. `--early-data` does the same work with one check
+(`early_word`), which always names `PODSSH_VLESS_EARLY_DATA`; a user who typed the flag reads a line about a variable
+that was never set: "PODSSH_VLESS_EARLY_DATA: 0rtt, 1rtt or off, not 2rtt".
+
+## Premise
+
+- Read: `early_word` of `crates/podssh-cli/src/vless/mod.rs` builds both of its refusals with `EARLY_ENV`, and its
+  callers for the flag (`crates/podssh-cli/src/ssh/servers.rs`, `crates/podssh-cli/src/vless/pipe.rs` and
+  `crates/podssh-cli/src/doctor/mod.rs`) passed the text on unchanged, with 64.
+- Read: `crates/podssh-cli/src/h2_choice.rs` is T-972's way: the flag's refusal takes `replacen` of the variable's name
+  for the flag's, and the variable's own words are read apart, with 78.
+- Read: `early_from` of `crates/podssh-cli/src/vless/mod.rs` gives the flag's word to `early_of`, which names the
+  variable too (the second check, at the dial, which a word of the flag no longer reaches).
+
+## Approach
+
+1. `early_flag_word(word)`: `early_word` with the variable's name replaced by `--early-data`; the three callers of the
+   flag use it. `early_from(Some(word))` says the flag's name by the same replacement. The variable's checks
+   (`early_from_env`, doctor's second branch with 78) stay as they are.
+2. A table test of both sources and both words (`a_refused_word_names_the_flag_or_the_variable_it_came_from` in
+   `crates/podssh-cli/src/vless/mod.rs`), and the doctor table of T-972 (`crates/podssh-cli/tests/doctor_hop.rs`)
+   takes the flag's two words (64, no variable named) and the variable's (78, no flag named).
+3. `docs/cli.md` says that the flag's refusal is 64 in its name, and the variable's 78 in its name.
+
+## Decision
+
+Lost: one text for both sources (the old words, which named a source that the user did not use); a new error type
+that carries its source (a replacement of the one word that differs is what T-972 chose and is enough for a message
+of one line).
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib vless::tests
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test doctor_hop
+```
+
+## Done
+
+Drafted 2026-11-25 (a worker's draft, not built): `early_flag_word` and `flag_words` in
+`crates/podssh-cli/src/vless/mod.rs` (and `early_from`'s flag branch), the three callers, the table test, two rows and
+the variable's case in `crates/podssh-cli/tests/doctor_hop.rs`, and the paragraph of `docs/cli.md`.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-cli --no-fail-fast` 264 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`. Live: `podssh ssh --early-data 2rtt --vless x.list h` says "--early-data: 0rtt, 1rtt or off, not 2rtt" (64) before the file is read. The planted run waits for T-251.

@@ -133,10 +133,11 @@ fn content_file(content: &str, far: &str, file: &str) -> Result<PathBuf, String>
     let name = far.rsplit('/').next().filter(|n| !n.is_empty() && *n != "." && *n != "..");
     let name = name.ok_or("path: name the file that content becomes, not a directory")?;
     let dir = content_dir(file);
-    podssh_relay::cache::private_dir(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    podssh_relay::cache::private_dir(&dir).map_err(|e| format!("{}: {}", dir.display(), podssh_ws::text::said(&e)))?;
     let at = dir.join(name);
-    let mut out = podssh_relay::cache::create_new_private(&at).map_err(|e| format!("{}: {e}", at.display()))?;
-    out.write_all(&bytes).map_err(|e| format!("{}: {e}", at.display()))?;
+    let mut out = podssh_relay::cache::create_new_private(&at)
+        .map_err(|e| format!("{}: {}", at.display(), podssh_ws::text::said(&e)))?;
+    out.write_all(&bytes).map_err(|e| format!("{}: {}", at.display(), podssh_ws::text::said(&e)))?;
     Ok(at)
 }
 

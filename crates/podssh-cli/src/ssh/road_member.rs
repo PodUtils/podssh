@@ -91,7 +91,9 @@ impl MemberRoads {
         let timeout = podssh_relay::open::CONNECT_TIMEOUT;
         let ctx = PairContext { relay, trust: &self.trust, ctx: &podssh_relay::context::of(&self.proxy), timeout };
         let at = podssh_relay::token::relay_name(relay);
-        let drawn = leg::ask(&ctx, &self.node, self.identity.as_deref()).await.map_err(|e| format!("{at}: {e}"))?;
+        let drawn = leg::ask(&ctx, &self.node, self.identity.as_deref())
+            .await
+            .map_err(|e| format!("{at}: {}", podssh_ws::text::said(&e)))?;
         let config = OperatorConfig {
             relay,
             name: &drawn.name,
@@ -106,7 +108,8 @@ impl MemberRoads {
         // The drawn token is of one leg already, and of this member's pair:
         // the session's next token, which the node gave for another pair's
         // role, is no token here.
-        let handle = operator::start(&config, leg_end).await.map_err(|e| format!("{at}: {e}"))?;
+        let handle =
+            operator::start(&config, leg_end).await.map_err(|e| format!("{at}: {}", podssh_ws::text::said(&e)))?;
         *layered::lock(&self.legs) = Some(handle);
         Ok(Road::Pair(link))
     }

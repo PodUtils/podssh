@@ -244,7 +244,8 @@ fn exit_status_names_the_codes_of_agent_and_of_an_output_that_failed() {
         (EX_DATAERR, "podssh agent: a key file that is no key"),
         (EX_NOINPUT, "podssh agent: a key file is missing or cannot be read"),
         (EX_UNAVAILABLE, "a locked agent refuses each"),
-        (EX_IOERR, "the output could not be written"),
+        (EX_IOERR, "output of a command could not be written"),
+        (EX_IOERR, "podssh node --print-unit and podssh serve --print-unit"),
         (EX_NOPERM, "podssh agent: a wrong passphrase"),
         (EX_CONFIG, "podssh agent: no terminal and no SSH_ASKPASS"),
     ] {

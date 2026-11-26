@@ -231,7 +231,7 @@ fn write_path(place: &Place) -> Result<PathBuf, Refusal> {
     for dir in &dirs {
         match cache::private_dir(dir) {
             Ok(()) => return Ok(dir.join(name)),
-            Err(e) => refused.push(format!("{}: {e}", dir.display())),
+            Err(e) => refused.push(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
         }
     }
     let message = format!("no directory of the cache would take {name} ({})", refused.join("; "));
@@ -313,6 +313,7 @@ fn held_too_long(lock: &Path) -> Refusal {
 fn replace(path: &Path, body: &[u8]) -> Result<Option<String>, String> {
     // No write in place: a node reads the file for each session, and a
     // bind-mounted one is changed on its host, where the rename works.
-    let commit = cache::replace_private(path, body, 0o600, false).map_err(|e| format!("{}: {e}", path.display()))?;
+    let commit = cache::replace_private(path, body, 0o600, false)
+        .map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     Ok(cache::commit_note(path, &commit))
 }

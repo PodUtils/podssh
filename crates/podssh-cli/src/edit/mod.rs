@@ -184,7 +184,7 @@ pub fn run_edit(args: &EditArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         Ok(rt) => rt,
         Err(e) => {
             local.remove();
-            log.error(&format!("could not start the async runtime: {e}"));
+            log.error(&format!("could not start the async runtime: {}", podssh_ws::text::said(&e)));
             return Fault::SessionFault.code();
         }
     };
@@ -235,16 +235,24 @@ fn edit(
         Ok(ended) => ended,
         Err(e) => {
             local.remove();
-            let e = crate::cp::words::said(&e);
-            log.error(&format!("{} names {}, which did not start: {e}; nothing was sent", editor.from, editor.shown()));
+            log.error(&format!(
+                "{} names {}, which did not start: {}; nothing was sent",
+                editor.from,
+                editor.shown(),
+                podssh_ws::text::said(&e)
+            ));
             return Fault::Config.code();
         }
     };
     let changed = match digest::of_file(&local.file) {
         Ok(sum) => sum != record.sum,
         Err(e) => {
-            let e = crate::cp::words::said(&e);
-            log.error(&format!("{}: {e}; nothing was sent, and {} stays", local.file.display(), local.dir.display()));
+            log.error(&format!(
+                "{}: {}; nothing was sent, and {} stays",
+                local.file.display(),
+                podssh_ws::text::said(&e),
+                local.dir.display()
+            ));
             return Fault::NoInput.code();
         }
     };

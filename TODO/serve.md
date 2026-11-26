@@ -2797,7 +2797,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
-  (`crates/podssh-cli/src/doctor/unix.rs:150-273`).
+  (`crates/podssh-cli/src/doctor/unix.rs:150-276`).
 - Read in the report of GitHub #18, not verified here: sandhole can take SSH
   on its HTTPS port, and quic-ssh falls back to TLS over TCP on one port.
 
@@ -2956,7 +2956,7 @@ no reason (`docs/target-environment.md:88-89`).
 - Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:537`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
-  (`crates/podssh-cli/src/doctor/host.rs:243-245`).
+  (`crates/podssh-cli/src/doctor/host.rs:246-248`).
 - Read in the report, not verified here: `rssh-org/rssh:src-tauri/src/terminal/pty.rs`
   checks the exec bit; a directory `sh` and a data file `dash` pass `exists()`.
 
@@ -3031,7 +3031,7 @@ the entry joins the work order by its priority.
   noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:484`, `docs/STATUS.md:511`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
   The Prove's `docs/STATUS.md:482` is `docs/STATUS.md:484`.
-- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
+- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:232`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
   start of a data file of mode 0755 can succeed, and only its status tells. Each candidate is

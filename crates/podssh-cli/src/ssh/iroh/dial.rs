@@ -94,7 +94,8 @@ pub(crate) async fn prepare(
     options.relays = home;
     options.trust = trust.clone();
     options.secret = Some(key.secret.clone());
-    let opened = pod_iroh::endpoint::open(&options).await.map_err(|e| format!("{shown}: {e}"))?;
+    let opened =
+        pod_iroh::endpoint::open(&options).await.map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     // Which answer the road took of this host's UDP (T-359), and the arm of
     // QUIC's settings when it is not iroh's own (T-665).
     log.verbose(&format!("{shown}: the iroh road: {}", opened.udp));

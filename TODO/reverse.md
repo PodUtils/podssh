@@ -5579,7 +5579,7 @@ seed as a public key, and mints a grant for a key that nobody holds.
    the iroh road's door (`crates/podssh-cli/src/node_iroh_door.rs`), the relay role's list of a file or a URL, the
    code's allowlist (`crates/podssh-cli/src/relay_code.rs`), `--temporary`, `--node-key` and `net add`.
 3. `--grant-to FILE`: a file of 64 hex digits alone is refused (78) as podssh's private key file, with the
-   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:293`).
+   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:294`).
 4. The manual (the file of `--allow`, the node's paragraph of `--allow`, the grant's paragraph) and `docs/cli.md`
    say the forms.
 
@@ -5663,14 +5663,14 @@ upgrade, `podssh operator` and `podssh relay status` say "stopped, or has expire
 - Read: `pod-relay` maps each `403` of a pairing call to `PairError::Forbidden`, which holds no body and says "the
   pair is stopped or has expired" (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `refused` and the `Display` of
   `PairError`); `create_by` maps the `403` of `/v1/pair` the same (PodUtils/podcrates:crates/pod-relay/src/pair/once.rs).
-- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:86`), for `relay pair`
+- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:87`), for `relay pair`
   (`crates/podssh-cli/src/relay_cmd.rs:288`) and `relay status`; an operator's `403` at the upgrade had its own words,
-  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:264`).
+  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:267`).
 - Read: the store keeps no mark of `--once`, so the operator cannot tell a spent token from a stopped pair.
 
 ## Approach
 
-1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:110`): a `403` of a request for a new pair says that the relay
+1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:111`): a `403` of a request for a new pair says that the relay
    refused to make a pair, that a relay of `--mint keys:FILE` or `net` makes pairs for the keys of its list alone, and
    this client's fingerprint, with `podssh keygen -y` for the owner's list. Exit 77 as before.
 2. `refusal`: a `403` of a pair's token names each cause that gives it, the spent token of `--once` among them.

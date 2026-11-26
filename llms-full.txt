@@ -13801,10 +13801,12 @@ EXIT STATUS
       of --accept-dir is not there. podssh each: a file of --output-dir cannot
       be made; no host has run.
   74
-      podssh keygen, doctor, man, status, config, agent and update: the output
-      could not be written, as to a full disk or a device that refuses it. The
-      line says so, and the command's own code stays when it failed first. A
-      reader that went away, as head does, is no failure.
+      The output of a command could not be written, as to a full disk or a
+      device that refuses it. That holds for podssh keygen, doctor, man,
+      status, config, agent and update, and for podssh node --print-unit and
+      podssh serve --print-unit. The line says so, and the command's own code
+      stays when it failed first. A reader that went away, as head does, is no
+      failure.
   75
       podssh cp and mv: the --timeout passed before the copy ended; a later try
       can work. podssh chat: the --timeout passed, or the peer talks with

@@ -36,7 +36,7 @@ fn ended_words(outcome: Outcome) -> Option<String> {
             End::Closed(reason) if !reason.is_empty() => {
                 Some(format!("the far end ended the session: {}", podssh_ws::text::one_line(&reason)))
             }
-            End::Broken(e) => Some(e.to_string()),
+            End::Broken(e) => Some(podssh_ws::text::said(&e)),
             End::GaveUp(gave) => {
                 Some(format!("the session could not go on: {}", podssh_ws::text::one_line(&gave.reason)))
             }

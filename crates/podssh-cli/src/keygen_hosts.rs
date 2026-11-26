@@ -57,7 +57,7 @@ fn find(path: &Path, shown: &str, host: &str, args: &KeygenArgs, out: &mut dyn W
     let raw = match read(path) {
         Ok(raw) => raw,
         Err(e) => {
-            let _ = writeln!(err, "podssh keygen: {shown}: {e}");
+            let _ = writeln!(err, "podssh keygen: {shown}: {}", podssh_ws::text::said(&e));
             return EXIT_FAILED;
         }
     };
@@ -97,7 +97,7 @@ fn remove(path: &Path, shown: &str, host: &str, quiet: bool, out: &mut dyn Write
     let (rewritten, removed) = match done {
         Ok(done) => done,
         Err(e) => {
-            let _ = writeln!(err, "podssh keygen: {shown} is unchanged: {e}");
+            let _ = writeln!(err, "podssh keygen: {shown} is unchanged: {}", podssh_ws::text::said(&e));
             return EXIT_FAILED;
         }
     };
@@ -139,7 +139,7 @@ fn hash(path: &Path, shown: &str, quiet: bool, out: &mut dyn Write, err: &mut dy
     let (rewritten, hashed) = match done {
         Ok(done) => done,
         Err(e) => {
-            let _ = writeln!(err, "podssh keygen: {shown} is unchanged: {e}");
+            let _ = writeln!(err, "podssh keygen: {shown} is unchanged: {}", podssh_ws::text::said(&e));
             return EXIT_FAILED;
         }
     };

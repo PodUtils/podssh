@@ -98,7 +98,10 @@ pub(super) async fn check(report: &mut Report<'_>, trust: &Trust) {
         };
         match podssh_relay::health::fetch(relay, trust, &ProxyChoice::FromEnvironment, TIMEOUT).await {
             Ok(found) => report.ok(&label, found.line(&relay.host)),
-            Err(e) => report.fail(&label, format!("{}: {e}", podssh_ws::dial::authority(&relay.host, relay.port))),
+            Err(e) => report.fail(
+                &label,
+                format!("{}: {}", podssh_ws::dial::authority(&relay.host, relay.port), podssh_ws::text::said(&e)),
+            ),
         }
     }
     more_line(report, relays.len());

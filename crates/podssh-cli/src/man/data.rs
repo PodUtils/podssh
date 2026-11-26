@@ -93,9 +93,10 @@ pub fn exit_codes() -> Vec<(Code, String)> {
         ),
         row(
             sysexits::EX_IOERR,
-            "podssh keygen, doctor, man, status, config, agent and update: the output could not be written, as to \
-             a full disk or a device that refuses it. The line says so, and the command's own code stays when it failed \
-             first. A reader that went away, as head does, is no failure.",
+            "The output of a command could not be written, as to a full disk or a device that refuses it. That holds \
+             for podssh keygen, doctor, man, status, config, agent and update, and for podssh node --print-unit and \
+             podssh serve --print-unit. The line says so, and the command's own code stays when it failed first. A \
+             reader that went away, as head does, is no failure.",
         ),
         row(
             sysexits::EX_TEMPFAIL,

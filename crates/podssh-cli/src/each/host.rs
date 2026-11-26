@@ -255,8 +255,10 @@ pub(crate) async fn first_token(resolved: &Resolved, log: &Log) {
             log.verbose(&format!("one relay token for each host, from {from}"));
         }
         Err(e) => {
-            let e = podssh_ws::text::said(&e);
-            log.verbose(&format!("no relay token before the hosts ({e}); each host gets its own"));
+            log.verbose(&format!(
+                "no relay token before the hosts ({}); each host gets its own",
+                podssh_ws::text::said(&e)
+            ));
         }
     }
 }

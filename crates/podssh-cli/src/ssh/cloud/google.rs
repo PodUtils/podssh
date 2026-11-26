@@ -276,13 +276,13 @@ async fn exchange(body: &str, trust: &Trust) -> Result<podssh_ws::http::Response
     let unreachable = |why: String| TokenFault::Unreachable(format!("{TOKEN_HOST}: {why}"));
     let mut tls = podssh_ws::client::open_tls(TOKEN_HOST, 443, TOKEN_HOST, trust, &proxy, timeout)
         .await
-        .map_err(|e| unreachable(e.to_string()))?;
+        .map_err(|e| unreachable(podssh_ws::text::said(&e)))?;
     let headers = [("Content-Type", "application/x-www-form-urlencoded"), ("Accept", "application/json")];
     let asked =
         podssh_ws::http::exchange(&mut tls, "POST", TOKEN_HOST, TOKEN_PATH, &headers, body.as_bytes(), MAX_ANSWER);
     match tokio::time::timeout(timeout, asked).await {
         Err(_) => Err(unreachable(format!("no answer within {} s", timeout.as_secs()))),
-        Ok(Err(e)) => Err(unreachable(e.to_string())),
+        Ok(Err(e)) => Err(unreachable(podssh_ws::text::said(&e))),
         Ok(Ok(answer)) => Ok(answer),
     }
 }

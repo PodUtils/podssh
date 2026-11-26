@@ -130,7 +130,7 @@ fn certify_one(file: &str, ca: &Ca, request: &Request, rsa_hash: HashAlg) -> Res
     };
     let line = certificate.to_openssh().map_err(|e| format!("could not encode the certificate: {e}"))?;
     // The error names the path, the step and the cause.
-    replace(Path::new(&target), format!("{line}\n").as_bytes()).map_err(|e| e.to_string())?;
+    replace(Path::new(&target), format!("{line}\n").as_bytes()).map_err(|e| podssh_ws::text::said(&e))?;
     Ok((target, certificate))
 }
 

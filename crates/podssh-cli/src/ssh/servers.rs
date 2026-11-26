@@ -25,7 +25,7 @@ use crate::relay_settings::Refusal;
 pub(super) fn or_relay(args: &SshArgs, env: &Env, relay: Transport) -> Result<Transport, Refusal> {
     // A word of `--early-data` is refused before any file of a road is read.
     if let Some(word) = args.early_data.as_deref() {
-        crate::vless::early_word(Some(word)).map_err(Refusal::usage)?;
+        crate::vless::early_flag_word(word).map_err(Refusal::usage)?;
     }
     if args.exit.is_some() {
         return super::exit_road::or_exit(args, env, relay);

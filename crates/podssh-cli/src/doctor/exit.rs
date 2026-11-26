@@ -159,7 +159,7 @@ async fn session_line(report: &mut Report<'_>, plan: &Plan, relay: &str, trust: 
         match tokio::time::timeout(FIRST_BYTES, stream.read(&mut first)).await {
             Ok(Ok(0)) => report.ok("exit", format!("{reached}; the target closed with nothing")),
             Ok(Ok(n)) => report.ok("exit", format!("{reached}; its first bytes: {}", shown(&first[..n]))),
-            Ok(Err(e)) => report.fail("exit", format!("{reached}, then {e}")),
+            Ok(Err(e)) => report.fail("exit", format!("{reached}, then {}", podssh_ws::text::said(&e))),
             Err(_) => report.ok("exit", format!("{reached}; it sent nothing in {} s", FIRST_BYTES.as_secs())),
         }
         drop(stream);

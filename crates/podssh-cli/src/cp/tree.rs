@@ -330,7 +330,7 @@ fn walk_local_listed(
     let mut entries: Vec<_> = match std::fs::read_dir(dir) {
         Ok(read) => read.filter_map(Result::ok).collect(),
         Err(e) => {
-            items.push(Item::Skip { rel: rel.into(), why: format!("not listed: {e}") });
+            items.push(Item::Skip { rel: rel.into(), why: format!("not listed: {}", podssh_ws::text::said(&e)) });
             return;
         }
     };
@@ -355,7 +355,10 @@ fn walk_local_listed(
         if kind.is_symlink() && !tree.follow {
             match std::fs::read_link(&path) {
                 Ok(target) => items.push(Item::Link { rel: child, target: target.to_string_lossy().into_owned() }),
-                Err(e) => items.push(Item::Skip { rel: child, why: format!("the link is not read: {e}") }),
+                Err(e) => items.push(Item::Skip {
+                    rel: child,
+                    why: format!("the link is not read: {}", podssh_ws::text::said(&e)),
+                }),
             }
             continue;
         }
@@ -365,7 +368,10 @@ fn walk_local_listed(
             Ok(m) if m.is_dir() => walk_local_in(&path, &child, tree, depth + 1, above, items, left),
             Ok(m) if m.is_file() => items.push(Item::File { rel: child }),
             Ok(m) => items.push(Item::Special { rel: child, kind: Special::of_local(m.file_type()) }),
-            Err(e) => items.push(Item::Skip { rel: child, why: format!("the link names nothing here: {e}") }),
+            Err(e) => items.push(Item::Skip {
+                rel: child,
+                why: format!("the link names nothing here: {}", podssh_ws::text::said(&e)),
+            }),
         }
     }
 }
@@ -397,7 +403,7 @@ pub async fn walk_far(sftp: &Sftp, root: &str, tree: &Tree, windows: bool) -> (V
         let mut entries = match sftp.read_dir(&dir).await {
             Ok(entries) => entries,
             Err(e) => {
-                items.push(Item::Skip { rel, why: format!("not listed: {e}") });
+                items.push(Item::Skip { rel, why: format!("not listed: {}", podssh_ws::text::said(&e)) });
                 continue;
             }
         };
@@ -420,14 +426,17 @@ pub async fn walk_far(sftp: &Sftp, root: &str, tree: &Tree, windows: bool) -> (V
             let attrs = match sftp.lstat(&path).await {
                 Ok(attrs) => attrs,
                 Err(e) => {
-                    items.push(Item::Skip { rel: child, why: format!("not read: {e}") });
+                    items.push(Item::Skip { rel: child, why: format!("not read: {}", podssh_ws::text::said(&e)) });
                     continue;
                 }
             };
             if attrs.is_symlink() && !tree.follow {
                 match sftp.readlink(&path).await {
                     Ok(target) => items.push(Item::Link { rel: child, target }),
-                    Err(e) => items.push(Item::Skip { rel: child, why: format!("the link is not read: {e}") }),
+                    Err(e) => items.push(Item::Skip {
+                        rel: child,
+                        why: format!("the link is not read: {}", podssh_ws::text::said(&e)),
+                    }),
                 }
                 continue;
             }
@@ -436,7 +445,10 @@ pub async fn walk_far(sftp: &Sftp, root: &str, tree: &Tree, windows: bool) -> (V
                 Ok(a) if a.is_dir() => below.push((path, child, depth + 1, above.clone())),
                 Ok(a) if a.is_regular() => items.push(Item::File { rel: child }),
                 Ok(a) => items.push(Item::Special { rel: child, kind: Special::of_mode(a.permissions.unwrap_or(0)) }),
-                Err(e) => items.push(Item::Skip { rel: child, why: format!("the link names nothing there: {e}") }),
+                Err(e) => items.push(Item::Skip {
+                    rel: child,
+                    why: format!("the link names nothing there: {}", podssh_ws::text::said(&e)),
+                }),
             }
         }
         // The first name first: the stack takes them in reverse.

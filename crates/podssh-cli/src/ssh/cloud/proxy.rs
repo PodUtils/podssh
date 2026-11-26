@@ -93,7 +93,7 @@ pub fn run(args: &ProxyArgs, err: &mut dyn Write) -> Option<i32> {
     let runtime = match built {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Some(EXIT_NOT_IMPLEMENTED);
         }
     };

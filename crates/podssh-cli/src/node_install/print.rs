@@ -9,7 +9,6 @@ use std::path::PathBuf;
 
 use super::system::{self, Probes};
 use super::{prepare, system_text, text, Kind, Spec, Target};
-use crate::exitmap::sysexits::EX_CANTCREAT;
 use crate::node::NodeArgs;
 use crate::relay_settings::Refusal;
 use crate::serve::ServeArgs;
@@ -28,17 +27,17 @@ pub(crate) fn serve(args: &ServeArgs, out: &mut dyn Write, err: &mut dyn Write) 
     say(serve_text(args), "serve", out, err)
 }
 
+/// The unit on stdout, through the one helper of the commands whose answer is their output: a write that
+/// fails is said once and gives 74, and a reader that went away (`| head`) is no failure.
 fn say(printed: Result<String, Refusal>, verb: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
-    match printed {
-        Ok(unit) => match out.write_all(unit.as_bytes()).and_then(|()| out.flush()) {
-            Ok(()) => 0,
-            // A closed stdout, as `| head` makes, is no failure of the unit.
-            Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => 0,
-            Err(e) => Refusal { message: format!("stdout: {}", podssh_ws::text::said(&e)), code: EX_CANTCREAT }
-                .report(verb, err),
-        },
+    crate::output::deliver(verb, out, err, |out, err| match printed {
+        Ok(unit) => {
+            // The helper keeps the failure of this write and says it.
+            let _ = out.write_all(unit.as_bytes()).and_then(|()| out.flush());
+            0
+        }
         Err(refusal) => refusal.report(verb, err),
-    }
+    })
 }
 
 /// This user's unit, or the system unit of `--run-as USER`, whose passwd

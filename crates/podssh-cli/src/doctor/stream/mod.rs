@@ -124,7 +124,9 @@ pub(super) fn only(mut report: Report<'_>, plan: &Plan, trust: &Trust) -> i32 {
             runtime.block_on(check(&mut report, plan, trust));
             runtime.shutdown_background();
         }
-        Err(e) => report.fail("stream server", format!("could not start the async runtime: {e}")),
+        Err(e) => {
+            report.fail("stream server", format!("could not start the async runtime: {}", podssh_ws::text::said(&e)))
+        }
     }
     report.finish()
 }

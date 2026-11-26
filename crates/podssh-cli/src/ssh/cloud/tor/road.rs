@@ -55,7 +55,7 @@ fn directories(network: Option<&str>, own: Option<&str>) -> Result<(PathBuf, Pat
         made.extend([state.clone(), cache.clone()]);
         match made.iter().try_for_each(|d| private_dir(d)) {
             Ok(()) => return Ok((state, cache)),
-            Err(e) => tried.push(format!("{}: {e}", base.display())),
+            Err(e) => tried.push(format!("{}: {}", base.display(), podssh_ws::text::said(&e))),
         }
     }
     Err((format!("no private directory for Arti's state: {}", tried.join("; ")), EX_CANTCREAT))
@@ -74,9 +74,11 @@ fn file_of(var: &str, most: u64) -> Result<Option<(String, String)>, String> {
     use std::io::Read as _;
     let Some(path) = std::env::var_os(var).filter(|v| !v.is_empty()) else { return Ok(None) };
     let shown = PathBuf::from(&path).display().to_string();
-    let file = std::fs::File::open(&path).map_err(|e| format!("{var}={shown}: {e}"))?;
+    let file = std::fs::File::open(&path).map_err(|e| format!("{var}={shown}: {}", podssh_ws::text::said(&e)))?;
     let mut text = String::new();
-    file.take(most + 1).read_to_string(&mut text).map_err(|e| format!("{var}={shown}: {e}"))?;
+    file.take(most + 1)
+        .read_to_string(&mut text)
+        .map_err(|e| format!("{var}={shown}: {}", podssh_ws::text::said(&e)))?;
     if text.len() as u64 > most {
         return Err(format!("{var}={shown}: longer than {most} bytes"));
     }

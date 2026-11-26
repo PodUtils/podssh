@@ -138,7 +138,7 @@ pub(super) async fn dial(first: &Hop, family: Option<u8>, target: &str, log: &Lo
     let Some(family) = family.filter(|_| !literal) else {
         // A bad PODSSH_MPTCP asks for nothing here: the one dial is a plain one.
         let multipath = multipath_asked(std::env::var(MPTCP_ENV).ok().as_deref()).unwrap_or(false);
-        return direct(&first.host, first.port, multipath, target, log).await.map_err(|e| e.to_string());
+        return direct(&first.host, first.port, multipath, target, log).await.map_err(|e| podssh_ws::text::said(&e));
     };
     let deadline = tokio::time::Instant::now() + podssh_relay::open::CONNECT_TIMEOUT;
     let found = podssh_ws::resolve::resolve(&first.host, first.port, deadline)
@@ -157,7 +157,7 @@ pub(super) async fn dial(first: &Hop, family: Option<u8>, target: &str, log: &Lo
         let left = deadline.saturating_duration_since(tokio::time::Instant::now());
         match podssh_ws::dial::dial(&address.ip().to_string(), address.port(), &proxy, left).await {
             Ok(tcp) => return Ok(tcp),
-            Err(e) => last = e.to_string(),
+            Err(e) => last = podssh_ws::text::said(&e),
         }
     }
     Err(last)

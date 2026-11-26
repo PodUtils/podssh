@@ -156,7 +156,9 @@ pub fn choose_among(entries: &[Entry], several: bool, keys: &mut dyn Keys) -> Re
     let mut note = String::new();
     for _ in 0..ROUNDS {
         let prompt = format!("{}{note}{}", lines(&list), question(list.len(), several));
-        let line = keys.line(&prompt).map_err(|e| Refusal::usage(format!("{MISSING}; the host picker: {e}")))?;
+        let line = keys
+            .line(&prompt)
+            .map_err(|e| Refusal::usage(format!("{MISSING}; the host picker: {}", podssh_ws::text::said(&e))))?;
         let answer = line.trim();
         if answer.is_empty() {
             return Err(Refusal::usage(format!("{MISSING}; no host was picked")));

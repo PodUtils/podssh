@@ -101,7 +101,7 @@ pub fn give(mut command: Command, report: &[u8], limit: Duration, err: &mut dyn 
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(e) => {
-            let _ = writeln!(err, "podssh: {ENV} {shown} did not start: {e}");
+            let _ = writeln!(err, "podssh: {ENV} {shown} did not start: {}", podssh_ws::text::said(&e));
             return;
         }
     };
@@ -126,7 +126,7 @@ pub fn give(mut command: Command, report: &[u8], limit: Duration, err: &mut dyn 
                 return;
             }
             Err(e) => {
-                let _ = writeln!(err, "podssh: {ENV} {shown}: {e}");
+                let _ = writeln!(err, "podssh: {ENV} {shown}: {}", podssh_ws::text::said(&e));
                 return;
             }
         }

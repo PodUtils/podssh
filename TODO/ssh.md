@@ -1538,7 +1538,7 @@ Read:
 2. Preferred change: wrap the direct stream in a writer that fails a write
    that makes no progress for 60 s, with the constant of the relay leg
    (`crates/podssh-ws/src/client.rs:45-46`). Only
-   `crates/podssh-cli/src/ssh/transport.rs:297-345` changes, and both roads behave
+   `crates/podssh-cli/src/ssh/transport.rs:297-347` changes, and both roads behave
    the same.
 3. The other change: set `inactivity_timeout` at
    `crates/podssh-ssh/src/run_config.rs:74`. russh resets that timer only in a loop
@@ -2513,7 +2513,7 @@ Read in russh 0.64.1's `src/keys/agent/server.rs` (the local cargo registry): th
 constraint of a key (lines 296-297), and when a request to sign names such a key, it takes a future
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
-Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
+Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:187-190`), and is never
 called. `docs/cli.md:5980-5981` says that the key "is never used".
 
 ## Approach
@@ -2741,8 +2741,8 @@ package (T-341).
   and GHSA-vp5q-ff62-jwqv, an agent server that never calls `Agent::confirm`.
 - Read: podssh runs russh's client and its agent server (`crates/podssh-cli/src/agent/serve.rs:14`),
   and russh's SSH server only in tests; the agent refuses a key added for confirmation as it is
-  added (`crates/podssh-cli/src/agent/serve.rs:179-183`, T-284), and its front bounds each frame
-  (`crates/podssh-cli/src/agent/serve.rs:197-205`).
+  added (`crates/podssh-cli/src/agent/serve.rs:180-184`, T-284), and its front bounds each frame
+  (`crates/podssh-cli/src/agent/serve.rs:198-206`).
 - Read, through forge.web.pkgforge.dev on 2026-10-31: advisory-db's directory of russh holds
   RUSTSEC-2026-0154 alone; none of the six is there yet.
 - Read: the same release adds `AgentSessionBinding` to the client (#794): "Exposes the verified
@@ -6603,7 +6603,7 @@ mode 0644 is used after a warning, where OpenSSH refuses it, and the manual did 
 
 - Read: those lines wrote an `io::Error` with `{e}` (`crates/podssh-cli/src/ssh/local_bind.rs:94`,
   `crates/podssh-cli/src/ssh/control_unix.rs:49`, `crates/podssh-cli/src/ssh/mod.rs:308`,
-  `crates/podssh-cli/src/ssh/transport.rs:339`); `run_words::describe` wrote `{kind:?}`
+  `crates/podssh-cli/src/ssh/transport.rs:341`); `run_words::describe` wrote `{kind:?}`
   (`crates/podssh-ssh/src/run_words.rs:24`); `load` warned of the mode before it knew what the path was.
 
 ## Approach

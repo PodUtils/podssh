@@ -106,7 +106,8 @@ pub(crate) fn open_private(path: &Path, text: &str) -> Result<PrivateKey, String
         ));
     }
     let question = format!("Enter passphrase for \"{shown}\": ");
-    let passphrase = podssh_ssh::prompt::ask(&question, false).map_err(|e| format!("{shown}: {e}"))?;
+    let passphrase =
+        podssh_ssh::prompt::ask(&question, false).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     podssh_ssh::key_file::decode(text, Some(passphrase.as_str())).map_err(|_| format!("{shown}: incorrect passphrase"))
 }
 

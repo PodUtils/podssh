@@ -59,7 +59,7 @@ pub fn secret_file(name: &str, path: &str) -> Result<Zeroizing<String>, String> 
     let mut text = Zeroizing::new(String::with_capacity(MAX_VALUE + 1));
     std::fs::File::open(path)
         .and_then(|file| file.take(MAX_VALUE as u64 + 1).read_to_string(&mut text))
-        .map_err(|e| format!("{name}: {path}: {e}"))?;
+        .map_err(|e| format!("{name}: {path}: {}", podssh_ws::text::said(&e)))?;
     let value = text.trim();
     if value.is_empty() {
         return Err(format!("{name}: {path} holds no credential"));

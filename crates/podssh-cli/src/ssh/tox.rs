@@ -70,7 +70,7 @@ impl ToxRoads {
         let dial = crate::tox::dial(self.relay.at);
         let stream = pair::link(&dial, self.relay.key, node, LIMIT)
             .await
-            .map_err(|e| format!("the Tox relay {}: {e}", self.relay.at))?;
+            .map_err(|e| format!("the Tox relay {}: {}", self.relay.at, podssh_ws::text::said(&e)))?;
         Ok(Road::Tox(Box::new(stream)))
     }
 

@@ -72,7 +72,7 @@ pub async fn add_passphrase(args: &AgentArgs, err: &mut dyn Write) -> i32 {
 fn read_secret(question: &str, err: &mut dyn Write) -> Result<Zeroizing<String>, i32> {
     let secret = if podssh_ssh::terminal::stdin_is_terminal() {
         prompt::ask(question, false).map_err(|e| {
-            let _ = writeln!(err, "podssh agent: {e}");
+            let _ = writeln!(err, "podssh agent: {}", podssh_ws::text::said(&e));
             // Nothing can ask here (78), or nobody answered (66): T-969.
             match e {
                 prompt::PromptError::NoTerminal | prompt::PromptError::Failed(_) => EX_CONFIG,
@@ -122,7 +122,7 @@ async fn keep(args: &AgentArgs, target: &Target, secret: &str, err: &mut dyn Wri
         }
         // The agent answered wrong, or not at all: it refused (T-969).
         Err(e) => {
-            let _ = writeln!(err, "podssh agent: {e}");
+            let _ = writeln!(err, "podssh agent: {}", podssh_ws::text::said(&e));
             EX_UNAVAILABLE
         }
     }

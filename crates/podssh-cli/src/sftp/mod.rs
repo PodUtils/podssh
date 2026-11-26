@@ -243,7 +243,7 @@ fn sftp_run(
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let why = format!("could not start the async runtime: {e}");
+            let why = format!("could not start the async runtime: {}", podssh_ws::text::said(&e));
             log.error(&why);
             (tally.did.failure, tally.did.error) = (Some("session"), Some(why));
             return Fault::SessionFault.code();

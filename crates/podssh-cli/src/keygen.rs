@@ -408,8 +408,10 @@ pub(crate) fn ask_new_passphrase(first: &str, hint: &str) -> Result<Zeroizing<St
         return Err(format!("there is no terminal and no SSH_ASKPASS to ask for a passphrase; {hint}"));
     }
     let why = |e: prompt::PromptError| match e {
-        prompt::PromptError::NoTerminal | prompt::PromptError::NoAnswer => format!("the passphrase: {e}; {hint}"),
-        _ => format!("the passphrase: {e}"),
+        prompt::PromptError::NoTerminal | prompt::PromptError::NoAnswer => {
+            format!("the passphrase: {}; {hint}", podssh_ws::text::said(&e))
+        }
+        _ => format!("the passphrase: {}", podssh_ws::text::said(&e)),
     };
     let first = prompt::ask(first, false).map_err(why)?;
     let second = prompt::ask("Enter same passphrase again: ", false).map_err(why)?;

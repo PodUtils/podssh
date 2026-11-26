@@ -262,7 +262,10 @@ pub async fn link_far(sftp: &Sftp, from: &str, target: &str, log: &Log) -> Optio
             Some(Placed { skipped: Some(Skip::Exists), ..Placed::default() })
         }
         Err(e) => {
-            log.verbose(&format!("{target}: no hard link ({e}), so the look is the guard of --no-clobber"));
+            log.verbose(&format!(
+                "{target}: no hard link ({}), so the look is the guard of --no-clobber",
+                podssh_ws::text::said(&e)
+            ));
             None
         }
     }
@@ -312,7 +315,10 @@ pub fn place_local(temp: &Path, target: &Path, clobber: Clobber, log: &Log) -> R
                 log.info(&there(&shown));
                 return Ok(Placed { skipped: Some(Skip::Exists), ..Placed::default() });
             }
-            Err(e) => log.verbose(&format!("{shown}: no hard link ({e}), so the look is the guard of --no-clobber")),
+            Err(e) => log.verbose(&format!(
+                "{shown}: no hard link ({}), so the look is the guard of --no-clobber",
+                podssh_ws::text::said(&e)
+            )),
         }
     }
     let backup = match clobber.backup {

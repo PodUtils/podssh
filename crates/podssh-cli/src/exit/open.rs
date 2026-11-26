@@ -311,7 +311,10 @@ impl Ending for Session {
             let Session { task, label } = *self;
             match task.await {
                 Ok(judged) => judged.map(|(code, why)| (code, vec![format!("exit {label}: {why}")])),
-                Err(e) => Some((EXIT_SOFTWARE, vec![format!("exit {label}: the session's task failed: {e}")])),
+                Err(e) => Some((
+                    EXIT_SOFTWARE,
+                    vec![format!("exit {label}: the session's task failed: {}", podssh_ws::text::said(&e))],
+                )),
             }
         })
     }
@@ -326,7 +329,7 @@ pub fn run_proxy(to: &To, host: &str, port: u16, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return crate::exit_codes::EXIT_NOT_IMPLEMENTED;
         }
     };
