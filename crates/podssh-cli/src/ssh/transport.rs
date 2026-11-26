@@ -295,7 +295,7 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
         | Transport::Chisel { .. } => super::servers::reach(resolved, &first.host, first.port, log).await,
         Transport::Direct => {
             if podssh_relay::open::offline() {
-                let line = format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV);
+                let line = podssh_relay::open::offline_line();
                 return Err(NotReached { lines: vec![line], code: sysexits::EX_UNAVAILABLE });
             }
             let multipath = multipath_asked(std::env::var(MPTCP_ENV).ok().as_deref())

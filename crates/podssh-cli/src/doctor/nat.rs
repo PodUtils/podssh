@@ -114,7 +114,7 @@ fn off_words() -> String {
 pub(super) fn offline(report: &mut Report<'_>, setting: &Setting) {
     match setting {
         Setting::Off => report.unknown(LINE, off_words()),
-        Setting::Servers(_) => report.unknown(LINE, "not attempted: PODSSH_OFFLINE is set"),
+        Setting::Servers(_) => report.unknown(LINE, crate::doctor::not_attempted()),
     }
 }
 

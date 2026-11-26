@@ -273,7 +273,7 @@ pub(super) fn transport(road: &Road, r: &super::node::Ask<'_>, env: &Env, port: 
 /// The stream to the VM of `road`.
 pub(super) async fn reach(road: &Road, trust: &Trust, log: &Arc<Log>) -> Result<Reached, NotReached> {
     if podssh_relay::open::offline() {
-        let line = format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV);
+        let line = podssh_relay::open::offline_line();
         return Err(NotReached { lines: vec![line], code: crate::exitmap::sysexits::EX_UNAVAILABLE });
     }
     match road {

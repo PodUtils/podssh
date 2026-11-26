@@ -159,11 +159,7 @@ pub fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         return Refusal::usage(why).report("ping", err);
     }
     if podssh_relay::open::offline() {
-        let _ = writeln!(
-            err,
-            "podssh ping: {} is set, so podssh does not connect anywhere",
-            podssh_relay::open::OFFLINE_ENV
-        );
+        let _ = writeln!(err, "podssh ping: {}", podssh_relay::open::offline_line());
         return EX_UNAVAILABLE;
     }
     let level = resolved.as_ref().map_or(podssh_ssh::LogLevel::Info, |r| r.options.log_level);

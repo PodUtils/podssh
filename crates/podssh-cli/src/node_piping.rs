@@ -257,9 +257,11 @@ pub(crate) async fn serve(
             () = until_stopped(stopped.clone()) => {}
         }
     };
+    // The pair's road's fault, kept for the node's end when the door's road
+    // ends too (T-1026).
     let pair_road = async {
         if alone {
-            return;
+            return None;
         }
         let channel_say = podssh_relay::e2e::say(&channel);
         let say_pair = |line: String| channel_say(line);
@@ -282,9 +284,11 @@ pub(crate) async fn serve(
         let with_croc = Box::pin(crate::node_croc::alongside(run, croc, croc_open, keeper.clone()));
         let exit = crate::node_transit::alongside(with_croc, transit, transit_open, keeper.clone()).await;
         expiry.abort();
-        if let Some((_, why)) = crate::node::ended(&label, exit) {
+        let ended = crate::node::ended(&label, exit);
+        if let Some((_, why)) = &ended {
             channel_say(format!("the pair's road ended: {why}; the Piping Server road goes on"));
         }
+        ended
     };
     // Alone, the road ends with its pair: a client's part of it expires too.
     let expired = async {
@@ -297,7 +301,14 @@ pub(crate) async fn serve(
     let both = async { tokio::join!(door_road, pair_road) };
     tokio::pin!(both);
     tokio::select! {
-        _ = &mut both => {}
+        // Both roads ended by themselves: a fault of the pair's road, such as
+        // another node of the pair (409), is the node's end, never a stop.
+        (_, ended) = &mut both => {
+            if let Some((fault, why)) = ended {
+                crate::journal::line(err, podssh_ssh::LogLevel::Error, &format!("podssh node: {label}: {why}"));
+                return fault.code();
+            }
+        }
         () = expired => {
             let _ = stop.send(true);
             both.await;

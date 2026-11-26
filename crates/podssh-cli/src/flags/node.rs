@@ -193,7 +193,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
         "remove the service that --install made for NAME, its file of variables and its lock, and nothing else", None),
     // The unit read before it is installed, and a system unit (T-709).
     row(None, "print-unit", None, FlagKind::Supported,
-        "print the unit of systemd that --install would write, on stdout, and write nothing: a user unit, or with --system --run-as USER the system unit; on any system", None),
+        "print the unit of systemd that --install would write, on stdout, and write nothing: a user unit, or with --system --run-as USER the system unit; on any system; a TARGET that the node refuses is 64, and a user unit of a pair not stored 78, as with --install", None),
     row(None, "system", None, FlagKind::Supported,
         "with --install, --uninstall or --print-unit: a system unit of systemd, /etc/systemd/system/podssh-node-NAME.service, hardened, that runs as the user of --run-as; --install and --uninstall need root", None),
     row(None, "run-as", Some("USER"), FlagKind::Supported,

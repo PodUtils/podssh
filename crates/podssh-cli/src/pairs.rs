@@ -156,7 +156,8 @@ pub(crate) fn context<'a>(relay: &'a Relay, trust: &'a Trust, context: &'a Conte
 pub(crate) fn online() -> Result<(), Refusal> {
     if podssh_relay::open::offline() {
         return Err(Refusal {
-            message: "not attempted: PODSSH_OFFLINE is set".into(),
+            // The one wording of each command (T-1032).
+            message: podssh_relay::open::offline_line(),
             code: Fault::RelayUnreachable.code(),
         });
     }
@@ -283,7 +284,9 @@ pub(crate) fn connect_refusal(e: &ConnectError, label: &str) -> Refusal {
                 "the relay refused the pair (403{said}): {TOKEN_ENDED}; make a new one with `podssh relay pair {label}`"
             )
         }
-        other => other.to_string(),
+        // A relay that is down: the system's words once, as `proxy` says
+        // them, with no "(os error N)" (T-1022).
+        other => podssh_ws::text::plain(&other.to_string()),
     };
     Refusal { message, code: connect_code(e) }
 }
@@ -304,6 +307,16 @@ mod tests {
         let said = super::connect_refusal(&relay, "lab").message;
         assert!(said.starts_with("the relay refused the pair (403: reverse: forbidden)"), "{said}");
         assert!(said.contains("its connect token took its one upgrade"), "a spent token of --once is named: {said}");
+    }
+
+    /// A relay that is down is said in the system's words once, as `proxy`
+    /// says it, with no "(os error N)" (T-1022).
+    #[test]
+    fn a_relay_that_is_down_is_said_with_no_os_error() {
+        use podssh_ws::ConnectError;
+        let down = ConnectError::Config("could not connect to 127.0.0.1:1: Connection refused (os error 111)".into());
+        let said = super::connect_refusal(&down, "lab").message;
+        assert_eq!(said, "could not connect to 127.0.0.1:1: Connection refused");
     }
 
     /// A label that is no name is said with "the label" once (T-949), and

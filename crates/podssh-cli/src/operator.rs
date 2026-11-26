@@ -10,6 +10,8 @@
 //! for both verbs.
 
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use podssh_relay::reverse::{operator, OperatorConfig, OperatorLimits, Outcome, Wire};
 use podssh_ws::client::ConnectError;
@@ -164,7 +166,11 @@ pub(crate) fn to_node(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wri
         limits: OperatorLimits { on_ready: Some(crate::connect_bound::ready), ..OperatorLimits::default() },
         wire: Wire::Tls,
     };
-    let io = tokio::io::join(tokio::io::stdin(), crate::flushing::stdout());
+    // With --no-e2e, a node that runs the channel is found by its preamble,
+    // which never reaches stdout (T-1023).
+    let preamble = channel.is_none().then(|| Arc::new(AtomicBool::new(false)));
+    let stdout = crate::e2e_seen::Watched::new(crate::flushing::stdout(), preamble.clone());
+    let io = tokio::io::join(tokio::io::stdin(), stdout);
     // stdout carries the session's bytes alone: each line goes to stderr.
     let say = |line: Line| {
         if let Line::Always(text) = line {
@@ -189,6 +195,10 @@ pub(crate) fn to_node(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wri
     // A read on stdin may still be blocked in a helper thread; the session
     // has ended, so it is not waited for.
     runtime.shutdown_background();
+    if preamble.is_some_and(|seen| seen.load(Ordering::SeqCst)) {
+        let _ = writeln!(err, "podssh {verb}: {label}: {}", crate::e2e_seen::WORDS);
+        return Fault::SessionFault.code();
+    }
     match ran {
         Ok(carried) => match judged(&label, &carried) {
             None => 0,

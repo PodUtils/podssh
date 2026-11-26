@@ -66,6 +66,13 @@ fn each_node_s_bound_is_the_flag_then_the_variable() {
     let bad = node_limit(Some("5x"), none).unwrap_err();
     assert_eq!(bad.code, 64);
     assert!(!bad.message.starts_with("podssh: "), "{}", bad.message);
+    // Each bad value is one line, in the words of each command's --timeout (T-1029).
+    for text in ["5x", "0s", "0"] {
+        let bad = node_limit(Some(text), none).unwrap_err();
+        assert_eq!(bad.code, 64, "{text:?}");
+        assert!(bad.message.starts_with(&format!("bad --timeout {text:?}: ")), "{}", bad.message);
+        assert!(!bad.message.contains('\n'), "{}", bad.message);
+    }
     assert_eq!(node_limit(None, |_: &str| Some("x".to_string())).unwrap_err().code, 78);
     assert_eq!(node_limit(Some("11m"), none).unwrap_err().code, 64);
 }
@@ -103,4 +110,20 @@ fn the_json_has_each_node_with_its_code() {
     let lines = lines(&outcomes);
     assert_eq!(lines.last().map(String::as_str), Some("1 of 3 nodes answered"));
     assert!(lines.contains(&"node://b: PODSSH_X=y: yes or no".to_string()), "{lines:#?}");
+}
+
+/// A refusal that names its node already is said with the node once, in the
+/// line and in the JSON (T-1028); another refusal keeps its words.
+#[test]
+fn a_node_is_named_once_in_its_line() {
+    let stored = "no pair is stored under \"n1\"; make one with `podssh relay pair n1`";
+    for (error, want) in [
+        (format!("node://n1: {stored}"), stored.to_string()),
+        (stored.to_string(), stored.to_string()),
+        ("node://n2: other".to_string(), "node://n2: other".to_string()),
+    ] {
+        let outcome = Outcome::failed("node://n1".into(), 78, error);
+        assert_eq!(outcome.error.as_deref(), Some(want.as_str()));
+        assert_eq!(lines(&[outcome])[0], format!("node://n1: {want}"));
+    }
 }

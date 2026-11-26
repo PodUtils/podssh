@@ -43,7 +43,7 @@ pub(super) async fn check(report: &mut Report<'_>, full: bool) {
         return report.fail("gsr", format!("the secret: {why}"));
     }
     if podssh_relay::open::offline() {
-        return report.unknown("gsr", "not attempted: PODSSH_OFFLINE is set");
+        return report.unknown("gsr", crate::doctor::not_attempted());
     }
     let host = podssh_gsr::host_of(&settings, secret.expose());
     let dial = podssh_gsr::dialer(&ProxyChoice::FromEnvironment);

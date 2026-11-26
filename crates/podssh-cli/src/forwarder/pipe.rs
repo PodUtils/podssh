@@ -96,7 +96,7 @@ pub async fn open(
     say: &mut dyn FnMut(&str),
 ) -> Result<(End, String), i32> {
     if podssh_relay::open::offline() {
-        say(&format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV));
+        say(&podssh_relay::open::offline_line());
         return Err(EX_UNAVAILABLE);
     }
     let mut code = EX_UNAVAILABLE;

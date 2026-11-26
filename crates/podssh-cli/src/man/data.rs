@@ -148,7 +148,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              session ended with no exit status (also when stdout closed and none came within 5 s); or the \
              connection was lost after the exit status and before the end of the output, which may be cut \
              (the line says the status); or the server ended a run of -N. OpenSSH uses the same code, but \
-             for a cut, where it gives the status. podssh ping: the destination could \
+             for a cut, where it gives the status. A node://NAME with no pair stored under NAME is 255 too, as a \
+             host that cannot be reached; podssh operator and proxy give 78. podssh ping: the destination could \
              not be reached or logged in to, or a measure broke. podssh each: a host could not be reached \
              or logged in to, or its session ended with no exit status. podssh health: the host could not \
              be reached or logged in to, or it has no sh; or its answer had none of the lines of the script \

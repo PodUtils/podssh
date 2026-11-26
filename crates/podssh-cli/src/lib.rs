@@ -43,6 +43,8 @@ pub mod carrier_dns;
 // Its `resolver` of DNS over HTTPS, through HTTPS_PROXY (T-900).
 pub(crate) mod carrier_dns_https;
 pub mod channel;
+// The lines of an allowlist that are not keys, said once for each set (T-1025).
+pub mod allow_said;
 pub mod chat;
 // `--chisel URL`: a chisel server in place of the relay (T-490).
 pub mod chisel;
@@ -87,6 +89,8 @@ mod h2_choice;
 pub mod h2_road;
 // stdout whose each write is out when it returns.
 pub mod flushing;
+// The channel's preamble met by an operator of --no-e2e (T-1023).
+pub mod e2e_seen;
 // `--forwarder`: other products' WebSocket forwarders, in place of the
 // relay (T-369).
 pub mod forwarder;

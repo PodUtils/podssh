@@ -146,9 +146,9 @@ pub fn parse_duration(name: &str, raw: &str) -> Result<Duration, Refusal> {
     let refuse = |raw: &str, why: &str| -> Refusal {
         Refusal {
             fault: Fault::Usage,
+            // One line, as each refusal of a value is (T-1029).
             message: format!(
-                "podssh: bad {name} {raw:?}: {why}.\n\
-                 Want a whole duration like 30s, 2m or 1h (a bare 30 means 30s)."
+                "podssh: bad {name} {raw:?}: {why}; want a whole duration like 30s, 2m or 1h (a bare 30 means 30s)"
             ),
         }
     };

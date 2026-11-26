@@ -1408,7 +1408,7 @@ reach, as `tailscale status`, `ping` and `netcheck` show.
 - **`ping` is entered at `crates/podssh-cli/src/ping/node.rs`**, which hands each destination that
   is no node to `ping::run`; a destination is a node when `podssh ssh` would read it as one
   (`node://NAME`, a member's name with the role node, a group of one of them). Lost: a branch
-  inside `ping::run`, whose lines entries cite (`crates/podssh-cli/src/ping/mod.rs:180-185`).
+  inside `ping::run`, whose lines entries cite (`crates/podssh-cli/src/ping/mod.rs:176-181`).
 - **The record of the roads is the client's**, `net-roads.json` in the cache, by the node's label:
   each race's winner writes it (`road_link::winner`, so each resume of `ssh` too), and so do
   `ping`, the pair's road alone in `crates/podssh-cli/src/ssh/node.rs` (`ssh` and the copies take
@@ -5029,7 +5029,7 @@ of podssh's.
 
 ## Premise
 
-- `crates/podssh-cli/src/man/notes_pair.rs:174` says "Tailscale's free servers for tailcat", and
+- `crates/podssh-cli/src/man/notes_pair.rs:176` says "Tailscale's free servers for tailcat", and
   `crates/podssh-cli/src/man/notes_ssh.rs:244` says "Four words name public forwarders".
 - `docs/carriers.md` (the forward road, item 7 and its "Ruled out"; the reverse road, item 2):
   Tailscale's main fleet serves Tailscale's clients; the public Wisp lists come from web proxies
@@ -11110,7 +11110,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:309-319`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:311-321`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -11464,8 +11464,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:318-319`), and needs the net's role exit, signed by
-  its owner (`:315-316`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:320-321`), and needs the net's role exit, signed by
+  its owner (`:317-318`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:172`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -13905,7 +13905,7 @@ reached each and measures nothing.
 ## Premise
 
 - Read: `ping NAME` races the roads of a member and gives each its time and the winner
-  (T-435; `crates/podssh-cli/src/ping/node.rs:87-199`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:51`).
+  (T-435; `crates/podssh-cli/src/ping/node.rs:86-198`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:51`).
 - Read: `ping` takes one destination (`crates/podssh-cli/src/flags/ping.rs`, the positional).
 - Read: `status --net` measures no road (`crates/podssh-cli/src/status.rs:30`).
 - Read: each probe drops its link before `OPEN` (`TODO/mesh.md`, T-435 Decision), so no session starts.
@@ -17276,7 +17276,7 @@ of these for those commands.
   widened policy of `policy diff --exit-code`; 66 (`EX_NOINPUT`) for a missing FILE of `take`
   (`crates/podssh-cli/src/net/mod.rs:270`), `policy set`, `test` and `diff` (`crates/podssh-cli/src/net/policy_cmd.rs:124`)
   and `gateway set` (`crates/podssh-cli/src/net/gateway_cmd.rs:139`).
-- Read: `ping --nodes` gives 0, 69 when none answered, else 1 (`crates/podssh-cli/src/ping/nodes.rs:231`).
+- Read: `ping --nodes` gives 0, 69 when none answered, else 1 (`crates/podssh-cli/src/ping/nodes.rs:233`).
 - Read: EXIT STATUS is one table, `exit_codes` (`crates/podssh-cli/src/man/data.rs:17`), from the constants.
 
 ## Approach

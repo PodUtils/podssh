@@ -121,7 +121,7 @@ pub(super) fn offline(mut report: Report<'_>) -> i32 {
     if let Some(doc) = net_line(&mut report) {
         let relays = relays_of(&doc);
         for member in relays.iter().take(MOST) {
-            report.unknown(&format!("member relay {}", member.name), "not asked: PODSSH_OFFLINE is set");
+            report.unknown(&format!("member relay {}", member.name), crate::doctor::not_asked());
         }
         more_line(&mut report, relays.len());
     }

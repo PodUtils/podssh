@@ -291,39 +291,39 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         quick::check(&mut report);
     }
     if podssh_relay::open::offline() {
-        report.unknown("network", "not attempted: PODSSH_OFFLINE is set");
+        report.unknown("network", crate::doctor::not_attempted());
         if args.cover.is_some() {
-            report.unknown("cover credential", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("cover credential", crate::doctor::not_attempted());
         }
         if args.full {
-            report.unknown("login", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("login", crate::doctor::not_attempted());
         }
         if !forwarders.is_empty() {
-            report.unknown("forwarder", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("forwarder", crate::doctor::not_attempted());
         }
         if servers.is_some() {
-            report.unknown("shadowsocks", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("shadowsocks", crate::doctor::not_attempted());
         }
         if road.is_some() {
-            report.unknown("via", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("via", crate::doctor::not_attempted());
         }
         if links.is_some() {
-            report.unknown("vless", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("vless", crate::doctor::not_attempted());
         }
         if quic_links.is_some() {
-            report.unknown("hysteria", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("hysteria", crate::doctor::not_attempted());
         }
         if tuic_links.is_some() {
-            report.unknown("tuic", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("tuic", crate::doctor::not_attempted());
         }
         if turn.is_some() {
-            report.unknown("turn", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("turn", crate::doctor::not_attempted());
         }
         if tunnel.is_some() {
-            report.unknown("devtunnel", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("devtunnel", crate::doctor::not_attempted());
         }
         if exit.is_some() {
-            report.unknown("exit", "not attempted: PODSSH_OFFLINE is set");
+            report.unknown("exit", crate::doctor::not_attempted());
         }
         if dns.is_some() {
             dns_zone::offline(&mut report);
@@ -337,7 +337,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         }
         report.section("pairs");
         let stored = pairs::stored(&mut report);
-        pairs::not_asked(&mut report, &stored, "not asked: PODSSH_OFFLINE is set");
+        pairs::not_asked(&mut report, &stored, &not_asked());
         return members::offline(report);
     }
     match tokio::runtime::Builder::new_current_thread().enable_all().build() {
@@ -375,6 +375,17 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         sections::left_out_line(&mut report);
     }
     report.finish()
+}
+
+/// A check that `PODSSH_OFFLINE` kept from connecting, in the one wording of
+/// each command (T-1032).
+pub(crate) fn not_attempted() -> String {
+    format!("not attempted: {}", podssh_relay::open::offline_line())
+}
+
+/// A pair or a member that `PODSSH_OFFLINE` kept from being asked.
+pub(crate) fn not_asked() -> String {
+    format!("not asked: {}", podssh_relay::open::offline_line())
 }
 
 /// The line of the relay hosts that a run tries last now (T-059), for a

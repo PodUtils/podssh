@@ -40,9 +40,9 @@ fn road(host: &str) -> Result<(ProxyChoice, String), String> {
 pub(super) fn only(mut report: Report<'_>, text: &str, trust: &Trust, policy: Option<&Policy>) -> i32 {
     report.section("hop");
     if podssh_relay::open::offline() {
-        report.unknown("hop", "not attempted: PODSSH_OFFLINE is set");
+        report.unknown("hop", crate::doctor::not_attempted());
         if policy.is_some() {
-            report.unknown(super::policy::LABEL, "not attempted: PODSSH_OFFLINE is set");
+            report.unknown(super::policy::LABEL, crate::doctor::not_attempted());
         }
         return report.finish();
     }
@@ -141,7 +141,7 @@ pub(super) async fn wrapped(stream: TcpStream, host: &str, tls: Option<&Trust>) 
         None => Ok(Box::new(stream)),
         Some(trust) => match podssh_ws::tls_over(stream, host, trust, PROBE).await {
             Ok(tls) => Ok(Box::new(tls)),
-            Err(e) => Err(podssh_ws::text::said(&e)),
+            Err(e) => Err(super::diagnosis::tls_failed(host, &e)),
         },
     }
 }

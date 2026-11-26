@@ -170,6 +170,10 @@ fn a_known_host_key_is_found_and_an_unknown_one_is_not() {
     let doc = one_line(&out);
     assert_eq!(doc["host"]["name"], "[unknown.example]:2222");
     assert_eq!(doc["host"]["known"], false);
+    // The last @ ends the user, as OpenSSH's ssh -G reads x@y@z (T-1031).
+    let (rc, out, err) = status(&home, &["x@y@fixture.example"], &[]);
+    assert_eq!(rc, 0, "{err}");
+    assert_eq!(one_line(&out)["host"]["name"], "fixture.example");
     let _ = std::fs::remove_dir_all(&home);
 }
 

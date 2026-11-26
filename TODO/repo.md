@@ -7444,7 +7444,7 @@ The same tests pass, and no copy of the replace is left (a search for the tempor
 
 ## Correction
 
-- The spent-grant record is not podssh's: `crates/podssh-cli/src/grants.rs:182` `spent_of` only names its place,
+- The spent-grant record is not podssh's: `crates/podssh-cli/src/grants.rs:184` `spent_of` only names its place,
   and `Spent::at` is `pod-relay`'s (`PodUtils/podcrates:crates/pod-relay/src/grant/spent.rs:110`, its `sync_dir`),
   which makes a new file for each grant (`create_new`) and fails when its directory's sync fails: not a replace, and
   not podssh's to change (Rule Q3). `cargo test -p podssh-cli --lib grants` stays in the Prove, untouched.

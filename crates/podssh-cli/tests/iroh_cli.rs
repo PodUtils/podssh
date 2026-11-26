@@ -56,7 +56,7 @@ fn the_key_flags_serve_each_road_and_the_relays_need_iroh() {
     assert!(out.is_empty());
     assert!(err.contains("--iroh-relay") && err.contains("add --iroh"), "{err}");
     let no_pair = "no pair is stored under \"lab\"";
-    let offline = "not attempted: PODSSH_OFFLINE is set";
+    let offline = "PODSSH_OFFLINE is set, so podssh does not connect anywhere";
     for (flag, code, says) in [
         (&["--iroh-key", "node.key"][..], 78, no_pair),
         (&["--iroh-allow", "allow"][..], 69, offline),

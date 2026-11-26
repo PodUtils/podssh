@@ -4395,12 +4395,14 @@ podssh node
   at the first sight. With --allow FILE, only the operator keys of FILE come
   in, on each road: one key on each line, as podssh keygen -y prints it, or its
   fingerprint, read again for each session; a refused operator gets no byte of
-  TARGET, and its key is said on stderr, as the line to add. With no allowlist,
-  each operator with the pair's connect token comes in, and its key is said. A
-  node that is a member of a net, with no allowlist, lets in the net's members
-  alone, and says so. TARGET is dialled only once the operator's key is let in.
-  --no-e2e carries the bytes with no channel, to operators run with --no-e2e
-  too: the relay then sees them.
+  TARGET, and its key is said on stderr, as the line to add. The lines of FILE
+  that are not keys are said by number as the node starts. A later read that
+  finds other such lines says them once. With no allowlist, each operator with
+  the pair's connect token comes in, and its key is said. A node that is a
+  member of a net, with no allowlist, lets in the net's members alone, and says
+  so. TARGET is dialled only once the operator's key is let in. --no-e2e
+  carries the bytes with no channel, to operators run with --no-e2e too: the
+  relay then sees them.
 
   Routes: podssh node lab 127.0.0.1:22 web=127.0.0.1:8080 db=127.0.0.1:5432
   offers each TARGET under its route, here web and db. A route is a name of the
@@ -5216,18 +5218,19 @@ podssh node
 
   --print-unit prints the unit that --install would write, on stdout, and
   writes nothing. It does so on any system, so that the unit is read before it
-  is installed. With --system --run-as USER, it is the system unit. --install
-  --system --run-as USER writes /etc/systemd/system/podssh-node-NAME.service,
-  then runs systemctl daemon-reload, enable and restart. It probes first, in
-  this order: root (else 77), systemd as the service manager
-  (/run/systemd/system, else 69), USER in /etc/passwd (else 69), and USER's
-  cache of podssh (else 69). USER is no root (64). The unit runs as USER, with
-  HOME, XDG_CACHE_HOME and XDG_CONFIG_HOME in USER's home. So the node reads
-  the pair and the keys that USER's own runs keep: podssh relay pair NAME, run
-  as USER, makes them. The file of its variables is
-  /var/lib/podssh-node-NAME/node-NAME.env, of mode 0600 and USER's, in the
-  unit's state directory. Each user may read a unit, so no token goes in it.
-  The unit is hardened. It sets NoNewPrivileges, an empty
+  is installed. It checks what --install checks first: a TARGET that the node
+  refuses gives 64. A user unit of a pair not stored gives 78. With --system
+  --run-as USER, it is the system unit. --install --system --run-as USER writes
+  /etc/systemd/system/podssh-node-NAME.service, then runs systemctl
+  daemon-reload, enable and restart. It probes first, in this order: root (else
+  77), systemd as the service manager (/run/systemd/system, else 69), USER in
+  /etc/passwd (else 69), and USER's cache of podssh (else 69). USER is no root
+  (64). The unit runs as USER, with HOME, XDG_CACHE_HOME and XDG_CONFIG_HOME in
+  USER's home. So the node reads the pair and the keys that USER's own runs
+  keep: podssh relay pair NAME, run as USER, makes them. The file of its
+  variables is /var/lib/podssh-node-NAME/node-NAME.env, of mode 0600 and
+  USER's, in the unit's state directory. Each user may read a unit, so no token
+  goes in it. The unit is hardened. It sets NoNewPrivileges, an empty
   CapabilityBoundingSet, ProtectSystem strict, and ProtectHome tmpfs with
   USER's cache bound in. It sets PrivateTmp, PrivateDevices, ProtectKernel*,
   and RestrictAddressFamilies to inet, inet6 and unix sockets. It sets
@@ -5782,7 +5785,8 @@ podssh node
     --print-unit
         print the unit of systemd that --install would write, on stdout, and
         write nothing: a user unit, or with --system --run-as USER the system
-        unit; on any system.
+        unit; on any system; a TARGET that the node refuses is 64, and a user
+        unit of a pair not stored 78, as with --install.
     --system
         with --install, --uninstall or --print-unit: a system unit of systemd,
         /etc/systemd/system/podssh-node-NAME.service, hardened, that runs as
@@ -6065,7 +6069,8 @@ podssh operator
         known-nodes.
     --no-e2e
         carry the bytes with no end-to-end channel, to a node that runs none
-        either; the relay then sees them.
+        either; the relay then sees them; a node that runs the channel is
+        refused (70), and its preamble never reaches stdout.
     --resume-deadline TIME
         node://NAME and iroh:TICKET: wait at most TIME for a new link after a
         loss, though the node keeps the session longer: 90s, 30m, 8h or 3d,
@@ -9367,8 +9372,9 @@ podssh status
 
   It shows no token and no proxy credentials, opens no connection, asks no DNS
   and writes nothing. A bad --relay-host or destination is a usage error (64),
-  a bad PODSSH_RELAY a configuration error (78). podssh doctor is the report
-  that measures.
+  a bad PODSSH_RELAY a configuration error (78). The destination is read as
+  podssh ssh reads it. Its last @ ends the user, as in OpenSSH: x@y@z is the
+  user x@y at the host z. podssh doctor is the report that measures.
 
   Usage: podssh status [OPTIONS]
 
@@ -9506,7 +9512,8 @@ podssh doctor
   names. A reset and a timeout are read from the kind of the error, never from
   its words, which differ between systems. With --json, diagnosis lists each,
   with kind (tls-names, tls-reset or tls-dropped), detail and evidence, the
-  names that show it.
+  names that show it. It holds these cases alone, so it is often empty. A check
+  that failed is in checks, with the status FAIL.
 
   The line nat is in the section egress. It says whether the NAT in front of
   this host keeps one mapping for a local port whatever the destination: one
@@ -13915,17 +13922,18 @@ EXIT STATUS
       or the connection was lost after the exit status and before the end of
       the output, which may be cut (the line says the status); or the server
       ended a run of -N. OpenSSH uses the same code, but for a cut, where it
-      gives the status. podssh ping: the destination could not be reached or
-      logged in to, or a measure broke. podssh each: a host could not be
-      reached or logged in to, or its session ended with no exit status. podssh
-      health: the host could not be reached or logged in to, or it has no sh;
-      or its answer had none of the lines of the script (with --preflight, the
-      login alone). podssh containers: the host could not be reached or logged
-      in to, or its list did not end within 60 s. podssh session start: the
-      connection or the login failed. podssh job: the host could not be reached
-      or logged in to, has no tmux, has no such job, or gave no answer; for
-      wait, also a job that is lost. podssh run: the copy failed, and the
-      command did not run.
+      gives the status. A node://NAME with no pair stored under NAME is 255
+      too, as a host that cannot be reached; podssh operator and proxy give 78.
+      podssh ping: the destination could not be reached or logged in to, or a
+      measure broke. podssh each: a host could not be reached or logged in to,
+      or its session ended with no exit status. podssh health: the host could
+      not be reached or logged in to, or it has no sh; or its answer had none
+      of the lines of the script (with --preflight, the login alone). podssh
+      containers: the host could not be reached or logged in to, or its list
+      did not end within 60 s. podssh session start: the connection or the
+      login failed. podssh job: the host could not be reached or logged in to,
+      has no tmux, has no such job, or gave no answer; for wait, also a job
+      that is lost. podssh run: the copy failed, and the command did not run.
   N
       podssh ssh: the exit status of the remote command, unchanged. When signal
       N stopped the command, 128 + N. podssh ping: the status of the remote

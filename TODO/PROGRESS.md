@@ -82,7 +82,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 952 entries: 4 open, 33 partial, 15 blocked, 900 done.
+`TODO/INDEX.md` holds 965 entries: 4 open, 33 partial, 16 blocked, 912 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -145,13 +145,19 @@ These entries stay open in the index. The condition in each entry tells when it 
 
 ## Questions for the operator
 
-One is open (2026-11-25):
+Two are open (2026-11-26):
 
 - **T-967, the former signer of the releases.** `podssh update --version TAG` installs no release made before the
   repository moved: each was signed by the release workflow under the repository's former name, and T-683's ruling
   allows no second signer. Should this build accept that one former identity for the tags through `v1.1.0-beta.3`
   only, with the files still fetched from PodUtils/podssh? Recommendation: yes; the mechanism is asked of podcrates
   (COORD-153). Until a ruling, `update` gives a true line with the download page (T-967 stays blocked on it).
+
+- **T-1021, a node at the user's own relay and the public last fallbacks.** A node whose pair is at the user's own
+  relay (`PODSSH_RELAY` or `--relay-host` naming a relay that is not the default deployment) also waits, unasked, at
+  the public last fallbacks of Q65, Q77 and Q78 (the transit relay, croc, smee.io). Should such a node keep its
+  sessions at the user's relay by default, those fallbacks off unless `PODSSH_LAST_RESORT=yes`? Recommendation: yes;
+  the user chose where the bytes go. Until a ruling, the node names each public road it waits on, with its off switch.
 
 The rulings are in `docs/decisions.md`. Open entries name three settled questions:
 

@@ -766,7 +766,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:7353`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:7355`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -904,7 +904,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:823-826`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:375`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:7349-7353`).
+`podssh proxy` sysexits (`docs/cli.md:7351-7355`).
 
 ## Approach
 
@@ -1770,7 +1770,7 @@ The command line: the targets at `crates/podssh-cli/src/node.rs:251-288`,
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/node.rs:305-313`; the channel's glue at
 `crates/podssh-cli/src/channel.rs:387-396` and
-`crates/podssh-cli/src/channel.rs:441-465`; `node://NAME/ROUTE` at
+`crates/podssh-cli/src/channel.rs:434-458`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
 `crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
@@ -2679,7 +2679,7 @@ documents works; the form that a user expects is missing.
   (`crates/podssh-ws/src/names.rs:41`). The issue's prefix `podssh ssh:` is not this code's,
   which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:166`); not reproduced.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
-  (`crates/podssh-cli/src/man/notes_pair.rs:346-348`), and `pipe` takes `node:NAME`
+  (`crates/podssh-cli/src/man/notes_pair.rs:348-350`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
   byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:413`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of
@@ -2803,7 +2803,7 @@ cannot set.
   have no ConnectTimeout; `ssh` has one
   (`crates/podssh-cli/src/flags.rs:174-175`).
 - Read: `operator`'s waits are 30 s for each request of the relay
-  (`crates/podssh-cli/src/operator.rs:163`, `crates/podssh-cli/src/pairs.rs:18`) and 20 s for the
+  (`crates/podssh-cli/src/operator.rs:165`, `crates/podssh-cli/src/pairs.rs:18`) and 20 s for the
   node's `ready` (`PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs:59`); `proxy`'s, 20 s for each
   relay host (`PodUtils/podssh:crates/podssh-relay/src/open.rs:33`), in the order of the failover.
 - Inferred, which the Prove measures: OpenSSH's ConnectTimeout bounds the wait for the server's
@@ -4761,7 +4761,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
-  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:429` says "let (ours, mut theirs)
+  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:422` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
   each run (`crates/podssh-cli/src/node_quick_relay.rs:103` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.
@@ -5562,7 +5562,7 @@ seed as a public key, and mints a grant for a key that nobody holds.
 - Read: the allowlist of `pod-identity` reads a key in one word (`KeyName::parse`, PodUtils/podcrates:crates/pod-identity/src/allow.rs,
   `parse_with`); `ssh-ed25519` is no key, so the whole line is a bad one. The relay role's list is the same reader
   (`crates/podssh-relay/src/serve/keys/list.rs:55`), and so is the iroh road's (`pod_iroh::Allowlist`).
-- Read: `--grant-to` reads OpenSSH's line with `grant::parse_public` (`crates/podssh-cli/src/grants.rs:266`), and
+- Read: `--grant-to` reads OpenSSH's line with `grant::parse_public` (`crates/podssh-cli/src/grants.rs:268`), and
   `keygen -y` prints it for podssh's own key file (`crates/podssh-cli/src/keygen_convert.rs:148`).
 - Read: `--temporary` and `--node-key` read one word with `KeyName::parse`, and name their forms in their own words.
 - Read: `grantee` reads the first line of a file with `grant::parse_public`, which takes 64 hex digits as a key; the
@@ -5575,11 +5575,11 @@ seed as a public key, and mints a grant for a key that nobody holds.
    and its other words, one line out for each line in, before the crate reads it; `read`, `parse`, `admits` and
    `grants` read through it; `key_name` reads an argument (OpenSSH's line with a comment, or one word); `FORMS` names
    the forms for each refusal; `bad_lines_said` says the bad lines with the forms.
-2. Each place reads through it: the node's `--allow` (`crates/podssh-cli/src/channel.rs:398`, and the grants' door),
+2. Each place reads through it: the node's `--allow` (`crates/podssh-cli/src/channel.rs:391`, and the grants' door),
    the iroh road's door (`crates/podssh-cli/src/node_iroh_door.rs`), the relay role's list of a file or a URL, the
    code's allowlist (`crates/podssh-cli/src/relay_code.rs`), `--temporary`, `--node-key` and `net add`.
 3. `--grant-to FILE`: a file of 64 hex digits alone is refused (78) as podssh's private key file, with the
-   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:294`).
+   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:296`).
 4. The manual (the file of `--allow`, the node's paragraph of `--allow`, the grant's paragraph) and `docs/cli.md`
    say the forms.
 
@@ -5665,7 +5665,7 @@ upgrade, `podssh operator` and `podssh relay status` say "stopped, or has expire
   `PairError`); `create_by` maps the `403` of `/v1/pair` the same (PodUtils/podcrates:crates/pod-relay/src/pair/once.rs).
 - Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:87`), for `relay pair`
   (`crates/podssh-cli/src/relay_cmd.rs:301`) and `relay status`; an operator's `403` at the upgrade had its own words,
-  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:267`).
+  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:268`).
 - Read: the store keeps no mark of `--once`, so the operator cannot tell a spent token from a stopped pair.
 
 ## Approach
@@ -6021,7 +6021,7 @@ with `routes=`.
 
 - Read: the node's admission let each key of the file in for the TARGET with no route (`allow::admits`, any line of
   the key), and checked a route against the line's routes (`crates/podssh-cli/src/channel.rs:373`); a grant's issuer
-  likewise (`crates/podssh-cli/src/grants.rs:172`).
+  likewise (`crates/podssh-cli/src/grants.rs:174`).
 - Read: `pod-identity` merges each line of one key into one entry (routes and `routes=*`), which keeps no mark of a
   line with no `routes=` (PodUtils/podcrates:crates/pod-identity/src/allow.rs, `parse_with`).
 
@@ -6099,11 +6099,11 @@ link.
 - Read: `pod-session`'s `greeted` reads the far end's first bytes within `FIRST_BYTE_WAIT` (30 s); a read of 0 bytes
   (the far end closed) and a wait that passed both give no first bytes, and `greeting` says both as "the far end said
   nothing within 30 s" (PodUtils/podcrates:crates/pod-session/src/race.rs, `greeting`; client.rs, `greeted`).
-- Read: `road_line` said the road's why as it came (`crates/podssh-cli/src/ping/node.rs:119`).
+- Read: `road_line` said the road's why as it came (`crates/podssh-cli/src/ping/node.rs:118`).
 
 ## Approach
 
-`true_why` (`crates/podssh-cli/src/ping/node.rs:142`): a road whose why is the crate's words of a silent wait, and
+`true_why` (`crates/podssh-cli/src/ping/node.rs:141`): a road whose why is the crate's words of a silent wait, and
 that failed before that wait, is said as "the far end closed the link before it said anything"; a wait that passed
 keeps its words. A test.
 
@@ -6168,7 +6168,7 @@ Windows check clean; `llms.txt` and `llms-full.txt` written again.
   (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `file_name`; crates/pod-core/src/names.rs, `check_node_name`);
   podssh said it as it came (`crates/podssh-cli/src/pairs.rs:37`).
 - Read: the refusal of `--sshd` with `--cover` (`crates/podssh-cli/src/relay_serve/cover.rs:199`).
-- Read: ping joined the lines of a cause with "; " (`crates/podssh-cli/src/ping/mod.rs:248`), after a line of the
+- Read: ping joined the lines of a cause with "; " (`crates/podssh-cli/src/ping/mod.rs:244`), after a line of the
   host key's refusal that ends with ".".
 
 ## Approach
@@ -6356,3 +6356,481 @@ old refusal of a key of routes alone that asks no route, which T-945 now refuses
 `node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
 door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
 Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+# T-1021: A node of a pair at the user's own relay also waits at the public last fallbacks, unasked
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`podssh node NAME TARGET`, with `PODSSH_RELAY` at a private relay on loopback (the user's own `podssh relay serve`),
+also started the public roads: Least Authority's transit relay, croc's bridge and smee.io's server. The manual says
+so, and `PODSSH_LAST_RESORT=no` and `PODSSH_TRANSIT=no` turn them off. A user who runs a relay of their own may expect
+the pair's sessions to stay there, and the third parties to see no connection of the node, unless asked.
+
+## Premise
+
+- Read, at `9574133`: the node's road beside the pair's (`crate::node_transit::Beside`, in
+  `crates/podssh-cli/src/node_transit.rs`) starts each public road that `node_transit::wanted` finds on, whatever
+  relay the pair is at; each says its own line, "and through ... (VARIABLE=no turns it off)"
+  (`crates/podssh-cli/src/node_transit.rs:109`, `crates/podssh-cli/src/node_croc.rs:85`,
+  `crates/podssh-cli/src/node_smee.rs:30`).
+- The rulings: Q65 lets podssh try the public services with no account unasked; Q77 makes the fallbacks of other
+  projects roads tried unasked after podssh's own; Q78 makes each public service a last fallback. None names a pair
+  at the user's own relay apart (`docs/decisions.md`).
+
+## Approach
+
+The behaviour stays until the owner rules (below). If the owner takes the recommendation: a node whose pair is at a
+relay that is not podssh's default deployment, and that no net names a member of, starts no public road unless
+`PODSSH_LAST_RESORT` or `PODSSH_TRANSIT` asks for it; one line after the node's first says so, with the variable that
+turns them on. The manual's note of the pair and EXIT STATUS stay; the notes of the transit relay, croc and smee say
+the exception. `crates/podssh-cli/src/node.rs` is at 498 lines: the check goes into `node_transit::wanted`, which
+each road of the node asks already.
+
+## Decision
+
+- No change of behaviour here: a default of a node against Q65, Q77 and Q78 is the owner's policy. The node already
+  names each public road that it waits on, one line each with its off switch, right after its first line; so the
+  second remedy that the finding names is in place.
+- Question for the owner, with the recommendation: should a pair at the user's own relay (`PODSSH_RELAY` or
+  `--relay-host` naming a relay that is not the default deployment) keep its sessions there by default, with the
+  public last fallbacks off unless asked? Recommended: yes. A user who runs their own relay (Q63's role) chose where
+  the bytes go, and the fallbacks of Q65, Q77 and Q78 were ruled for a host whose way to podssh's relay fails. Lost:
+  a reach to the node when the user's own relay is down, which `PODSSH_LAST_RESORT=yes` gives back.
+- Blocked on the question (the lead, 2026-11-26): `TODO/PROGRESS.md`, "Questions for the operator".
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve_node
+cargo test -p podssh-cli --lib node_transit::
+```
+
+By hand, after a ruling of yes: a node of a pair at a local `podssh relay serve` says no line of the transit relay,
+croc or smee.io, and one line that names `PODSSH_LAST_RESORT`; with `PODSSH_LAST_RESORT=yes` it names each again.
+
+## Blocker
+
+The owner: whether a node at the user's own relay keeps the public last fallbacks off by default (the question of
+`TODO/PROGRESS.md`); the default is a ruling of Q65, Q77 and Q78.
+
+## Correction
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (not built, not run).
+
+- No code changed: the question waits for the owner.
+
+# T-1022: `operator --grant` of a missing file and `operator` with the relay down end with Rust's (os error N)
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh operator --grant /nonexistent n1` said "... No such file or directory (os error 2)", and `podssh operator n1`
+with its relay down said "could not connect to 127.0.0.1:PORT: Connection refused (os error 111)". `podssh proxy`
+says the second in the system's words once, with no "(os error N)".
+
+## Premise
+
+- Read, at `9574133`: `grants::ask` (`crates/podssh-cli/src/grants.rs:58`) put the words of `pod-relay`'s
+  `grant::read_file` in its line as they were; that function writes `{e}` of the `io::Error` of `metadata` and
+  `read_to_string` (PodUtils/podcrates:crates/pod-relay/src/grant/mod.rs, at `v0.85.0`).
+- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:289`) said any other `ConnectError`
+  by its `to_string()`, whose dial failure carries the suffix; `proxy` passes each line of a failed open through
+  `podssh_ws::text::plain` (`crates/podssh-cli/src/proxy.rs`, its failed open).
+
+## Approach
+
+1. `grants::ask` passes its line through `podssh_ws::text::plain`, where the line is built.
+2. `connect_refusal` does so for the other errors: `operator`, `proxy node://NAME`, `ssh node://NAME` and each user of
+   it say a relay that is down as `proxy` does.
+3. Tests: `grants`' case of a missing file (78, no "os error"), and `pairs`' case of a relay that is down.
+
+## Decision
+
+- `plain` at the two places where the line is built, not a check of the file before the crate reads it: the crate's
+  words are true, only the suffix is Rust's. Lost: a second read of the file's metadata.
+- The crate's part is an ask: `pod-relay`'s `grant::read_file` shows an `io::Error` by `{e}`; it could say it with
+  no suffix, as podssh's `podssh_ws::text::said` does, so that each user of the crate gets the true line.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib grants::
+cargo test -p podssh-cli --lib pairs::
+cargo test -p podssh-cli --test io_error_lines
+```
+
+By hand: `podssh operator --grant /nonexistent n1` says "--grant /nonexistent: No such file or directory", 78;
+`podssh operator n1` with the pair's relay down says "could not connect to ...: Connection refused", 69.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/grants.rs`, `crates/podssh-cli/src/pairs.rs`.
+- No line added to `NOT_IO`.
+- Ask of PodUtils/podcrates: `pod-relay`'s `grant::read_file` says an `io::Error` with no "(os error N)".
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. Live: `operator --grant MISSING n1` says "--grant PATH: No such file or directory" with no suffix. The planted run waits for T-251.
+
+# T-1023: `operator --no-e2e` to a node that runs the channel writes the channel's preamble to stdout and exits 0
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh operator --no-e2e n1`, to a node that runs the end-to-end channel, wrote the node's preamble
+`podssh-e2e/1` to stdout as the session's bytes, and exited 0. The program on the other side of stdout (OpenSSH, as
+a ProxyCommand) reads bytes that are not its protocol, and the run says nothing of why.
+
+## Premise
+
+- Read, at `9574133`: `to_node` (`crates/podssh-cli/src/operator.rs`) wrote the node's bytes to stdout as they came
+  when the operator's channel is off; each end of the channel writes `MAGIC` (`podssh-e2e/1` and a newline) first
+  (PodUtils/podcrates:crates/pod-e2e/src/handshake.rs, at `v0.85.0`).
+- The other way round is refused already: an operator with the channel, to a node with none, gets the crate's
+  `NotChannel` (`crates/podssh-cli/src/channel.rs:281`), said with "--no-e2e turns it off at this end" and 70.
+
+## Approach
+
+1. `e2e_seen::Watched` (`crates/podssh-cli/src/e2e_seen.rs`), a writer around stdout: with the check, it holds the
+   node's first bytes while they are a part of `MAGIC`, refuses the whole of it (never written), and writes any other
+   start as it came, also a part of it that the node ended on.
+2. `to_node` (`crates/podssh-cli/src/operator.rs:169`) puts it around stdout when the channel is off, for `operator`
+   and `proxy node://NAME`; a preamble seen gives one line, "the node runs the end-to-end channel, which --no-e2e
+   turns off at this end: drop --no-e2e", and 70, as the other way round.
+3. The help of `--no-e2e` of `operator` says so.
+4. A table test of the writer: the preamble, the preamble and more, an SSH banner, a start that differs late, a part
+   of the preamble that ends, nothing; each in writes of 1, 3, 13 and 64 bytes.
+
+## Decision
+
+- At stdout, not in the layer or the leg: the bytes there are the node's application bytes after the layer, which is
+  where the preamble comes; the layer and the leg stay the crate's. Lost: nothing for a node of no channel, whose
+  start is not the preamble, but for a target whose first bytes are a part of `podssh-e2e/1` and that then waits:
+  those bytes are held until the next byte or the end. No protocol of a TARGET starts so.
+- 70, the code of `NotChannel` the other way round: one class for a channel at one end only. Lost: 78 (a setting),
+  which would differ from the case that exists.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib e2e_seen::
+cargo test -p podssh-cli --test operator
+cargo test -p podssh-cli --test flag_table
+```
+
+By hand: a node `podssh node n1 127.0.0.1:22` and `podssh operator --no-e2e n1 </dev/null` gives the line above, 70,
+and an empty stdout.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/e2e_seen.rs` (new), `crates/podssh-cli/src/lib.rs`,
+  `crates/podssh-cli/src/operator.rs`, `crates/podssh-cli/src/flags/operator.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1025: A node's allowlist read again for a session says nothing of its new lines that are not keys
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A node of `--allow FILE` says, as it starts, the lines of FILE that are not keys. FILE is read again for each
+session, so that a key added counts at once; a line that is not a key, written while the node serves, was skipped in
+silence, and the operator whose key that line meant to let in was refused with no word of why.
+
+## Premise
+
+- Read, at `9574133`: `channel::who_may` said `bad_lines_said` once, at the start (`crates/podssh-cli/src/channel.rs:392`);
+  `grant_of` read FILE again for each session by `allow::grants` (`crates/podssh-relay/src/identity/allow.rs:119`),
+  which keeps the bad lines out with no line. The iroh road's `admits` (`crates/podssh-cli/src/node_iroh_door.rs`)
+  read it so too.
+
+## Approach
+
+1. `allow_said` (`crates/podssh-cli/src/allow_said.rs`): the set of lines that are not keys, last said for each file.
+   `marked` keeps the start's set as said; `seen` gives a line, "FILE: lines [N] are not keys (...)", in
+   `bad_lines_said`'s words, when a re-read finds another set that is not empty, once for that set.
+2. `grant_of` moves there (`channel` re-exports it, `crates/podssh-cli/src/channel.rs:389`) and says that line on
+   stderr, prefixed `podssh node:`, before the grant; the iroh road's `admits` says it on its log.
+3. The start's `who_may` of each road marks its set, so the first session does not say it again.
+4. The note of the pair names both.
+
+## Decision
+
+- Once for each set, not at each session: a file left wrong would fill the log, a line for each session.
+- The file's name in the line, not the label: `grant_of` has no label, and its callers (`net::admit::grant`) have
+  none to give; the path names the file to edit. Lost: the label's prefix of the node's other lines.
+- A re-read that finds no such line left says nothing: the next session that is let in says so.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib allow_said::
+cargo test -p podssh-cli --lib channel::
+cargo test -p podssh-cli --test node_routes
+cargo test -p podssh-cli --lib man::
+```
+
+By hand: a node of `--allow FILE` with a good key; add a line `nonsense`, then an operator's session: the node's
+stderr says "FILE: lines [2] are not keys (...)" once; a second session says nothing more.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/allow_said.rs` (new), `crates/podssh-cli/src/channel.rs`,
+  `crates/podssh-cli/src/node_iroh_door.rs`, `crates/podssh-cli/src/lib.rs`, `crates/podssh-cli/src/man/notes_pair.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1026: A second node of a pair that one serves can end "stopped", exit 0, after its 30 s of 409
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A second `podssh node NAME TARGET`, while a first one served the pair, connected again for 30 s with a line for each
+409, then said "stopped". The manual says it exits 69 then (`crates/podssh-cli/src/man/notes_pair.rs:115`), and its
+last line should say that another node serves the pair.
+
+## Premise
+
+- Read, at `9574133`: the pair's road of `node.rs` ends a 409 that lasts 30 s with `Exit::NameInUse`, which `finish`
+  says as "another node serves this pair (409), ..." with 69 (`crates/podssh-cli/src/node.rs:470`); each road beside
+  it (the transit relay, croc's bridge, the last fallbacks, the members) passes the pair's road's end through.
+- Read, at `9574133`: the Piping Server road of `node_piping.rs`, which serves the pair's road beside its door, said
+  the pair's road's fault as "the pair's road ended: ...; the Piping Server road goes on" and kept nothing of it; when
+  the door's road ended too, the node said "stopped" and exited 0.
+
+## Approach
+
+1. The pair's road of `node_piping` gives its fault (`crates/podssh-cli/src/node_piping.rs:287`); when both roads
+   ended by themselves, that fault is the node's end: its line on the journal's stderr and its code, 69 for a 409
+   (`crates/podssh-cli/src/node_piping.rs:306`). A stop (Ctrl-C, an upgrade) and the end of a pair alone are as before.
+2. The default road keeps its 69, which the Prove checks by hand.
+
+## Decision
+
+- Only the Piping Server road is changed: reading found no other road that turns the pair's road's `NameInUse` into
+  a stop. The tester's run may have been on another road; the Prove's run by hand settles it, and a road found to say
+  "stopped" there is repaired in this entry.
+- No process test of 30 s of 409 in the gate: `first_conflict` is pod-relay's 30 s, with no setting. Lost: a pinned
+  test; the run by hand stands for it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib node_piping::
+cargo test -p podssh-cli --test relay_serve_node
+```
+
+By hand, against a local `podssh relay serve`: two `podssh node lab 127.0.0.1:22` of one pair, the second started
+after the first is online. The second exits 69 after about 30 s, its last line "podssh node: lab: another node serves
+this pair (409), ...". Again with `PODSSH_PIPING` set to a server that ends: the same code and line.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/node_piping.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1027: EXIT STATUS does not say that `ssh node://NAME` of no stored pair is 255, where `operator` and `proxy` give 78
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh node://nosuch` exits 255, and `podssh operator nosuch` and `podssh proxy node://nosuch` exit 78, for one
+cause: no pair is stored under the label. The manual's EXIT STATUS said neither code for it.
+
+## Premise
+
+- Read, at `9574133`: `ssh`'s road to a node says each refusal of `pairs::operator_part` with 255
+  (`crates/podssh-cli/src/ssh/node.rs:241`), as each failure of the connection; `operator` and `proxy node://NAME`
+  report the refusal's own code, 78 (`crates/podssh-cli/src/pairs.rs:46`).
+- The 255 row of EXIT STATUS (`crates/podssh-cli/src/man/data.rs:149`) named the connection, the host key and the
+  login, not a node of no pair.
+
+## Approach
+
+The row of 255 says that a `node://NAME` with no pair stored under NAME is 255 too, and that `operator` and `proxy`
+give 78 for it. No code changes.
+
+## Decision
+
+- Keep 255 for `ssh`: a script and OpenSSH's own users read 255 as "ssh could not connect", whatever the cause, and
+  `node://NAME` stands where a host stands. A 78 here would be the only code of `ssh`'s road to a node that is not
+  255. Lost: one code for the cause across the three commands; the line says the cause in the same words in each.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test man_page
+```
+
+By hand: `podssh man --no-pager` shows the sentence under 255; `podssh ssh node://nosuch` exits 255 and `podssh
+operator nosuch` 78, each with "no pair is stored under \"nosuch\"".
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/man/data.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1028: `ping --nodes` names a node twice in the line of its refusal
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ping --nodes n1,nosuch` said "node://n1: node://n1: no pair is stored ...": the line's own prefix, then the
+refusal's, which names the node too.
+
+## Premise
+
+- Read, at `9574133`: `lines` of `crates/podssh-cli/src/ping/nodes.rs` writes each failed node as "SHOWN: ERROR", and
+  the error of a node that the roads refused comes from lines that name the node already; `Outcome::failed`
+  (`crates/podssh-cli/src/ping/nodes.rs:43`) kept them as they were.
+- `each` met the same fault and has the helper: `unlabeled` (`crates/podssh-cli/src/each/host.rs:102`, T-981).
+
+## Approach
+
+`Outcome::failed` takes the node's name off the start of its error by `each::unlabeled`
+(`crates/podssh-cli/src/ping/nodes.rs:44`), so that the line and the JSON's `error` name it once. A table test: a
+refusal that names the node, one that does not, and one that names another node.
+
+## Decision
+
+At the one constructor of a failed node, not in `lines`: the JSON's `error` held the doubled name too. `unlabeled`,
+not a copy: one rule for each command that prefixes a line with its destination.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib ping::nodes::
+cargo test -p podssh-cli --test ping_nodes
+```
+
+By hand: `podssh ping --nodes n1,nosuch` with no pair stored says "node://n1: no pair is stored under ..." once.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/ping/nodes.rs`, `crates/podssh-cli/src/ping/nodes_tests.rs` (one commit with
+  T-1029, which changes the same test file).
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. Live: `ping --nodes nosuch` names `node://nosuch` once. The planted run waits for T-251.
+
+# T-1029: A bad `--timeout` of `ping --nodes`, `ssh`, `job` and `session` is said on two lines
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ping --nodes n1 --timeout 0s` said its refusal on two lines, "bad --timeout "0s": it must be greater than
+zero." and "Want a whole duration like ...", where `operator`, `proxy` and `pipe` say a bad `--timeout` on one.
+
+## Premise
+
+- Read, at `9574133`: each `--timeout` that `non_interactive` parses (`ping --nodes`, `ssh`, `job`, `session`, `ts`,
+  `--expect-timeout`) is refused by `parse_duration`, whose message held a newline
+  (`crates/podssh-cli/src/non_interactive.rs:151`); `connect_bound`'s `whole_seconds`, the parser of `operator`,
+  `proxy` and `pipe`, says its own one line over the same parse.
+
+## Approach
+
+`parse_duration`'s refusal is one line: "bad NAME "TEXT": WHY; want a whole duration like 30s, 2m or 1h (a bare 30
+means 30s)". Each user of it gets the one line; `ping --nodes` keeps its trim of "podssh: ". The test of
+`node_limit` checks each bad value: 64, one line, its start.
+
+## Decision
+
+- The shared parser's words, not `ping` moved to `connect_bound`: `connect_bound`'s line says that the bound is of
+  the session's open, which is not `ping`'s, and it takes whole seconds, where `ping` and `ssh` take `ms`. Lost: one
+  wording across the two parsers; both are one line now, and each names the flag and the value.
+- The start "bad --timeout" stays, which the tests of `job`, `scp` and `non_interactive` read.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib ping::nodes::
+cargo test -p podssh-cli --lib job::
+cargo test -p podssh-cli --test non_interactive
+cargo test -p podssh-cli --test scp_args
+cargo test -p podssh-cli --test job
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/non_interactive.rs`, `crates/podssh-cli/src/ping/nodes_tests.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. Live: `ping --nodes n1 --timeout 0s` gives one line, "bad --timeout \"0s\": it must be greater than zero; want a whole duration like 30s, 2m or 1h" (64). The planted run waits for T-251.

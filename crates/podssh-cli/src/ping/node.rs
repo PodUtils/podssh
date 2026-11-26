@@ -54,8 +54,7 @@ pub fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Err(refusal) => return refusal.report("ping", err),
     };
     if podssh_relay::open::offline() {
-        let variable = podssh_relay::open::OFFLINE_ENV;
-        let _ = writeln!(err, "podssh ping: {variable} is set, so podssh does not connect anywhere");
+        let _ = writeln!(err, "podssh ping: {}", podssh_relay::open::offline_line());
         return EX_UNAVAILABLE;
     }
     let log = Arc::new(Log::new(resolved.options.log_level));

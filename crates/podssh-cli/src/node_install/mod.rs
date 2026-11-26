@@ -304,13 +304,20 @@ fn prepare(args: &NodeArgs, target: &Target, print: bool) -> Result<(Spec, Vec<S
         notes.push(format!("it reads the pair {name} and its keys from {}, the cache of {user}", cache.display()));
     }
     // A pair that is missing or has expired makes a service that fails at
-    // each start: it is read now, for this user's own service.
+    // each start: it is read now, for this user's own service, also for a
+    // unit that is only printed (T-1024).
     // The iroh road, the DERP road, OpenTunnel's, Pinggy's, Serveo's and
     // ssh-j's, localhost.run's, localtunnel's and bore's serve with no pair
     // (T-379, T-531, T-548, T-549, T-570, T-565, T-568, T-569).
     let tunnel = args.tunnel_asked();
-    let own = matches!(target, Target::User) && !print;
-    let pair = match (&args.pair_file, args.iroh || args.derp || tunnel || !own) {
+    let paired = !(args.iroh || args.derp || tunnel);
+    // The TARGETs first, as the node's own run checks them (64), then the
+    // pair (78).
+    if paired {
+        check_targets(args)?;
+    }
+    let own = matches!(target, Target::User);
+    let pair = match (&args.pair_file, !paired || !own) {
         (_, true) => None,
         (Some(file), false) => Some(crate::pairs::from_file(file)?),
         (None, false) => Some(crate::pairs::stored(&name)?),
@@ -330,6 +337,17 @@ fn prepare(args: &NodeArgs, target: &Target, print: bool) -> Result<(Spec, Vec<S
     };
     let words = text::service_args(args, &name, &env_file)?;
     Ok((Spec { kind: Kind::Node, name, exe, args: words, dir: None, env_file }, notes))
+}
+
+/// The TARGETs of a node of the pair's road, as its run checks them (64): a
+/// unit of words that the node refuses fails at each start (T-1024). An
+/// exit, the relay role and a quick tunnel can serve with no TARGET, and a
+/// `udp:` TARGET is `node_udp`'s.
+fn check_targets(args: &NodeArgs) -> Result<(), Refusal> {
+    if args.exit || args.relay || args.quick_tunnel || crate::node_udp::target_of(&args.targets)?.is_some() {
+        return Ok(());
+    }
+    crate::node::targets_of(&crate::node::words_of(args), args.no_e2e).map(|_| ())
 }
 
 /// Make the service by the first way that is there, and remove what another

@@ -123,11 +123,20 @@ pub(super) async fn reference(report: &mut Report<'_>, trust: &Trust, through: T
         }
         Err(e) => {
             let found = met(&e);
-            (found, format!("{target}{way}: {}: {}", podssh_ws::text::said(&e), found.words()))
+            (found, format!("{target}{way}: {}: {}", tls_failed(REFERENCE, &e), found.words()))
         }
     };
     record(report, found, shown);
     report.ok(NAME, format!("{detail}; the reference of the roads' handshakes"));
+}
+
+/// A failed TLS handshake with `host`, which is no relay: the crate's words
+/// of a TLS failure name the relay, its connection's usual peer (T-1030).
+pub(super) fn tls_failed(host: &str, e: &ConnectError) -> String {
+    match e {
+        ConnectError::Tls(failure) => format!("TLS with {host} failed: {}", podssh_ws::text::said(failure)),
+        other => podssh_ws::text::said(other),
+    }
 }
 
 fn record(report: &mut Report<'_>, met: Met, through: Option<String>) {

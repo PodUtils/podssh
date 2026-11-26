@@ -59,7 +59,8 @@ pub(super) const DOCTOR_DIAGNOSIS: &str = "The line TLS reference makes TLS with
      drops them, not one that lists names; a resolver, asked by its address with no name, that timed out says nothing \
      of names. A reset and a timeout are read from the kind of the error, never from its words, which differ between \
      systems. With --json, diagnosis lists each, with kind (tls-names, tls-reset or tls-dropped), detail and evidence, \
-     the names that show it.";
+     the names that show it. It holds these cases alone, so it is often empty. A check that failed is in checks, with \
+     the status FAIL.";
 
 pub(super) const DOCTOR_NAT: &str = "The line nat is in the section egress. It says whether the NAT in front of this \
      host keeps one mapping for a local port whatever the destination: one UDP socket of port 0 asks two STUN servers \

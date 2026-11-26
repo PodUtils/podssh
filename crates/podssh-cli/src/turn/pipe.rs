@@ -119,7 +119,7 @@ async fn session(road: &Road, host: &str, port: u16, err: &mut dyn Write) -> i32
 /// to stderr as it comes, as the pipe's own lines do.
 pub async fn open(road: &Road, host: &str, port: u16, say: &mut (dyn FnMut(&str) + Send)) -> Result<End, i32> {
     if podssh_relay::open::offline() {
-        say(&format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV));
+        say(&podssh_relay::open::offline_line());
         return Err(EX_UNAVAILABLE);
     }
     let dial = Dial {

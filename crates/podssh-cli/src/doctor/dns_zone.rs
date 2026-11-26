@@ -86,7 +86,7 @@ pub(super) fn asked(flags: &Flags) -> Result<Option<Plan>, Refusal> {
 
 /// The line of a run with `PODSSH_OFFLINE`: nothing was sent.
 pub(super) fn offline(report: &mut Report<'_>) {
-    report.unknown(RESOLVER_LINE, "not attempted: PODSSH_OFFLINE is set");
+    report.unknown(RESOLVER_LINE, crate::doctor::not_attempted());
 }
 
 /// The section: the resolver and the probe of UDP, then the two queries.

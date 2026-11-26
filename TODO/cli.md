@@ -189,7 +189,7 @@ measured: the debug binary has no `ts`).
 1. In the `Parsed::Command` arm, refuse a verb of `VERB_OWNER`
    (`crates/podssh-cli/src/flags.rs`, line 453 at `7aa955a`) before the gate. Keep one usage
    error first: a `--timeout` value that was given and does not parse is 64
-   (`docs/cli.md:7343-7344`).
+   (`docs/cli.md:7345-7346`).
 2. Give `require_timeout` the verb's name. The message names that verb, gives
    one true reason, and shows an example for that verb only. Replace
    `({attachment:?})` with words: "stdin or stdout is not a terminal", or
@@ -199,7 +199,7 @@ measured: the debug binary has no `ts`).
    (`crates/podssh-cli/src/dispatch.rs`, lines 424-477 at `7aa955a`,
    `crates/podssh-cli/tests/non_interactive.rs` lines 252-284 at `37ace00`). `ts` is the only verb
    that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:221-227`).
-5. Same commit: `docs/STATUS.md`. `docs/cli.md:7418` needs no change.
+5. Same commit: `docs/STATUS.md`. `docs/cli.md:7420` needs no change.
 
 ## Decision
 
@@ -606,7 +606,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:68-81`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
-   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7523-7525`;
+   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7525-7527`;
    `docs/STATUS.md`.
 5. Do this after T-008, so that a verb that does nothing still exits 70 first.
 
@@ -1037,7 +1037,7 @@ read in the report, not verified here.
 
 A host with no working `ssh-keygen` cannot change the passphrase or the
 comment of a key: the `ssh-keygen` of OpenSSH does not run without a user
-database entry (`docs/cli.md:3631-3632`). `podssh keygen -p` and `-c` exit 64
+database entry (`docs/cli.md:3633-3634`). `podssh keygen -p` and `-c` exit 64
 with "unknown flag", not a refusal by name. podssh's own message for a PEM key
 names `ssh-keygen -p -f FILE` as the remedy
 (`crates/podssh-ssh/src/keygen.rs`, lines 163-166 at `bdbe658`), a program that may not run there.
@@ -1069,13 +1069,13 @@ on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
 3. `-p`: ask for the new passphrase twice (or take `-N ''`), and encrypt with
    `keygen::protect`. `-c`: take `-C` or ask; refuse a control character, as
    `crates/podssh-cli/src/keygen.rs:295-298` does. Write the OpenSSH format.
-4. A new invariant beside "never over an existing file" (`docs/cli.md:3633`):
+4. A new invariant beside "never over an existing file" (`docs/cli.md:3635`):
    write a new file in the same directory (`create_new`, mode 0600), read it
    back, decrypt it with the new passphrase, compare its public key with the
    original, then rename it over the original. Never write a different key
    over the file. For `-c`, write `FILE.pub` again.
 5. Same commit: the PEM message at `crates/podssh-ssh/src/keygen.rs` (lines 184-187 at `8290fe1`)
-   names `podssh keygen -p`; `docs/cli.md:3626-3813`, the notes of `keygen`
+   names `podssh keygen -p`; `docs/cli.md:3628-3815`, the notes of `keygen`
    (`crates/podssh-cli/src/man/notes_keygen.rs:4-72`), `docs/STATUS.md`.
 
 ## Decision
@@ -1194,7 +1194,7 @@ The default files are the ones of `podssh ssh`
    it, and say so.
 4. `-H`: a random salt of 20 bytes and the HMAC-SHA1 of `hashed_matches`, so
    podssh and OpenSSH both find the result.
-5. Same commit: `docs/cli.md:3626-3813`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3628-3815`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfall: a rewrite can lose a key that `podssh ssh` appends at the same moment
 (T-029). Read the file again just before the rename, and refuse if it changed.
@@ -1316,7 +1316,7 @@ that crate as `russh::keys::ssh_key` (`crates/podssh-ssh/src/keygen.rs:11-13`).
    matcher of `known_hosts` (`crates/podssh-ssh/src/known_hosts.rs:311-333`).
    Print the lines and the exit codes of OpenSSH.
 4. Refuse `-r` (a key revocation list) by name until podssh reads one.
-5. Same commit: `docs/cli.md:3626-3813`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3628-3815`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfalls: read the signed file as bytes, never as text. A namespace that does
 not match is a failure, never a warning.
@@ -1439,7 +1439,7 @@ as plain keys (`docs/STATUS.md`, section "Components"). T-027 covers that side.
    `force-command=`, `source-address=`, and the `no-` and `permit-` options;
    refuse the others by name.
 5. `-L`: print the certificate as `ssh-keygen -L` does.
-6. Same commit: `docs/cli.md:3626-3813`, the notes of `keygen`, `docs/STATUS.md`.
+6. Same commit: `docs/cli.md:3628-3815`, the notes of `keygen`, `docs/STATUS.md`.
 
 ## Decision
 
@@ -1567,7 +1567,7 @@ keys/format/mod.rs, read in the local cargo registry).
    public key in that format, and write the OpenSSH line to stdout.
 4. `-m` with a new key and with `-p` (T-018): write the private key in that
    format; use `encode_pkcs8_pem_encrypted` when there is a passphrase.
-5. Same commit: `docs/cli.md:3626-3813`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3628-3815`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfalls: no new C dependency. A format that a key type does not have (PEM
 for Ed25519) is refused by name.
@@ -1764,7 +1764,7 @@ file); measured here on `3ee70dc`.
 A `PODSSH_RELAY` or `PODSSH_RELAY_ADDR` that cannot be used makes
 `podssh proxy`, `podssh ssh` and `podssh doctor` exit 64, the code of a usage
 error. The command line is correct; a setting of the environment is not.
-`docs/cli.md:7343-7344` and `docs/decisions.md` ("Exit codes") give 78
+`docs/cli.md:7345-7346` and `docs/decisions.md` ("Exit codes") give 78
 (`EX_CONFIG`) for a configuration error. A script that reads 64 looks for the
 fault in its arguments.
 
@@ -1879,7 +1879,7 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:256`, `crates/podssh-ssh/src/auth.rs:375`,
 `crates/podssh-ssh/src/keys.rs:367` and `crates/podssh-cli/src/keygen.rs:407`.
-Its refusals name the real remedies (`docs/cli.md:7480-7482`). Commands use
+Its refusals name the real remedies (`docs/cli.md:7482-7484`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
 `parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:398-419`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
@@ -5772,3 +5772,292 @@ By hand: `podssh funnel 127.0.0.1:99999` says `podssh funnel: 127.0.0.1:99999: "
 Drafted 2026-11-26 by a drafting agent;
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1024: `node --print-unit` prints a unit for a pair that is not stored, and for a node with no TARGET
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh node nosuchpair TARGET --print-unit` printed a unit, exit 0, for a pair that is not stored; so did `podssh
+node nosuchpair --print-unit`, with no TARGET. Such a unit is a service that fails at each start. `--install` of the
+same words refuses the pair (78).
+
+## Premise
+
+- Read, at `9574133`: the `prepare` of `crates/podssh-cli/src/node_install/mod.rs` read the pair only for this user's
+  own service that is installed (`own` was `Target::User && !print`), and checked no TARGET: `service_args`
+  (`crates/podssh-cli/src/node_install/text.rs:33`) copies the words as they are.
+- The node's own run refuses a missing TARGET with 64 (`crates/podssh-cli/src/node.rs:258`), and a pair not stored
+  with 78 (`crates/podssh-cli/src/pairs.rs:46`).
+
+## Approach
+
+1. `prepare` checks the TARGETs of a node of the pair's road as its run does (`check_targets`,
+   `crates/podssh-cli/src/node_install/mod.rs:346`), by `node::targets_of`, before the pair: 64. An exit, the relay
+   role, a quick tunnel and a `udp:` TARGET are left to their own checks, as each can serve with no TARGET.
+2. The pair is read for this user's unit, printed or installed (`crates/podssh-cli/src/node_install/mod.rs:319`):
+   78. A system unit's pair is in USER's cache, which this run does not read, as before.
+3. The manual's note of the unit and the help of `--print-unit` say both codes.
+4. Tests: `crates/podssh-cli/tests/node_install.rs` stores the pair of its printed unit and gains a table of the refusals (a pair not
+   stored, no TARGET, a TARGET that is no HOST:PORT); `crates/podssh-cli/tests/output_full.rs` stores its pair; the lib test of a
+   printed unit gives `--pair-file`.
+
+## Decision
+
+- Refuse, as `--install` does, and not print with a warning: `--print-unit` is "the unit that `--install` would
+  write", and `--install` writes none of these. The words "on any system" stay: they say that no service manager is
+  probed, not that the pair is not read. Lost: a unit printed on a host that holds no pair yet; `--pair-file`, or
+  `podssh relay pair NAME` first, gives it.
+- The TARGET is checked for the pair's road alone. The other roads (iroh, DERP, the tunnels, the exit, the relay
+  role) have rules of their own for a node with no TARGET, which their runs check; a second copy of each here would
+  drift.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_install
+cargo test -p podssh-cli --test output_full
+cargo test -p podssh-cli --test serve_install
+cargo test -p podssh-cli --lib node_install::
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/node_install/mod.rs`, `crates/podssh-cli/src/node_install/system_tests.rs`,
+  `crates/podssh-cli/src/man/notes_unit.rs`, `crates/podssh-cli/src/flags/node.rs`,
+  `crates/podssh-cli/tests/node_install.rs`, `crates/podssh-cli/tests/output_full.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1030: `doctor` says "TLS with the relay failed" for its handshake with github.com and with a hop
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh doctor`'s line "TLS reference github.com:443: TLS with the relay failed: ..." named the relay for a handshake
+with github.com, which is no relay. A `--hop ssh+tls://HOST` whose TLS failed said the same of HOST.
+
+## Premise
+
+- Read, at `9574133`: `ConnectError`'s words of a TLS failure are "TLS with the relay failed: WHY" (`pod-ws`'s
+  `client.rs`, at `v0.85.0`), as the relay is its usual peer; the reference check
+  (`crates/podssh-cli/src/doctor/diagnosis.rs:126`) and the hop's TLS (`crates/podssh-cli/src/doctor/hop.rs:144`)
+  said the error by `said` as it was.
+
+## Approach
+
+`diagnosis::tls_failed(host, e)` (`crates/podssh-cli/src/doctor/diagnosis.rs:135`): a TLS failure is "TLS with HOST
+failed: WHY", any other error its own words; the reference and the hop say it. A test: a TLS failure of each cut
+names the host and no relay; another error keeps its words.
+
+## Decision
+
+podssh's words at the two places that dial a host that is no relay, not a change of `pod-ws`'s: the crate's words are
+right for each connection to a relay, which is each other user. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib doctor::
+cargo test -p podssh-cli --test doctor_tls
+cargo test -p podssh-cli --test doctor_hop
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/doctor/diagnosis.rs`, `crates/podssh-cli/src/doctor/hop.rs`,
+  `crates/podssh-cli/src/doctor/diagnosis_tests.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1031: `status` does not say how it reads a destination of two @, and its `open_files.refused` ends with (os error N)
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`); the second part found in its review.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh status 'x@y@z'` took `x@y` as the user and `z` as the host, with no word of it in the manual. The tester
+asked whether that is OpenSSH's reading. In the same command, `open_files.refused` said the system's refusal of a
+raise of the limit by `io::Error`'s words, "(os error N)" included.
+
+## Premise
+
+- Measured 2026-11-26: OpenSSH 9.6p1's `ssh -G 'x@y@z'` prints `user x@y` and `hostname z`: its last @ ends the user.
+- Read, at `9574133`: `status` reads a destination by `parse_hop` (`crates/podssh-cli/src/ssh/hop.rs:45`), which
+  splits at the last @, as OpenSSH; the manual's note of `status` did not say so.
+- Read, at `9574133`: `open_files` (`crates/podssh-cli/src/status.rs:264`) wrote `refused` by `to_string()` of an
+  `io::Error`, which the scan of `crates/podssh-cli/tests/io_error_lines.rs` does not see (no `{e}`).
+
+## Approach
+
+1. No change of the reading: it matches OpenSSH. The note of `status` says that the destination is read as `podssh
+   ssh` reads it, and that x@y@z is the user x@y at the host z; `crates/podssh-cli/tests/status.rs` checks the host.
+2. `refused` is said by `podssh_ws::text::said`.
+
+## Decision
+
+- Keep OpenSSH's reading: `status` tells what `podssh ssh` would do with the same word, and `ssh` reads it as
+  OpenSSH does. A refusal of a user with an @ would differ from both. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test status
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test io_error_lines
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/status.rs`, `crates/podssh-cli/src/man/notes.rs`,
+  `crates/podssh-cli/tests/status.rs`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1032: The refusal of PODSSH_OFFLINE has three wordings across the commands
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With `PODSSH_OFFLINE` set, the commands said one fact three ways: "PODSSH_OFFLINE is set, so podssh does not connect
+anywhere" (`ping`, `ssh`'s roads, `proxy`), "PODSSH_OFFLINE is set, so no connection goes anywhere" (a relay's open
+through `pod-relay`), and "not attempted: PODSSH_OFFLINE is set" (`node`, `operator`, `chat` and `doctor`).
+
+## Premise
+
+- Read, at `9574133`: the second came from `podssh_relay::open::words` (`crates/podssh-relay/src/open.rs:66`), the
+  third from `pairs::online` (`crates/podssh-cli/src/pairs.rs:160`) and from each check of `doctor`, and the first was
+  written again at each of some thirty places of `podssh-cli`.
+
+## Approach
+
+1. `podssh_relay::open::offline_line()` (`crates/podssh-relay/src/open.rs:25`) is the one line: "PODSSH_OFFLINE is
+   set, so podssh does not connect anywhere". `open::words` and `pairs::online` say it.
+2. `doctor`'s checks say "not attempted: " and that line, or "not asked: " and it, by `not_attempted` and `not_asked`
+   (`crates/podssh-cli/src/doctor/mod.rs:382`).
+3. `ping`, and the roads of `ssh` (wstunnel, chisel, the forwarders, shadowsocks, vless, trojan, hysteria, tuic, turn,
+   via, `ssh/cloud`, Cloudflare and the transport), call it in place of their copy.
+4. The codes stay: 69, and 255 for `ssh` and `health`. The tests that read the old words read the one line.
+
+## Decision
+
+- The first wording: it was the most common, and it names the variable and what follows from it. "not attempted:"
+  stays in `doctor`, whose details each say what was done with a check.
+- Left with their own copy of the same words, for a worker who holds those files now: `pipe/remote.rs`, `pipe/ws.rs`,
+  `update/mod.rs`, `relay_serve.rs` and `proxy.rs` of `crates/podssh-cli/src/`. Their words are the one line already;
+  the merge, or a later change of those files, calls `offline_line()` there too.
+- `forwarder/fallback.rs`'s reason "PODSSH_OFFLINE is set" stays: it is a clause of another line, why no forwarder
+  was tried, not the refusal.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --lib open
+cargo test -p podssh-cli --lib doctor::
+cargo test -p podssh-cli --test doctor
+cargo test -p podssh-cli --test doctor_nat
+cargo test -p podssh-cli --test doctor_dns
+cargo test -p podssh-cli --test doctor_hop
+cargo test -p podssh-cli --test chat_cli
+cargo test -p podssh-cli --test iroh_cli
+cargo test -p podssh-cli --test serve_remote_forward
+cargo test -p podssh-cli --test net
+cargo test -p podssh-cli --test ping
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-relay/src/open.rs`, `crates/podssh-cli/src/pairs.rs`, `crates/podssh-cli/src/doctor/`
+  (`mod.rs`, `nat.rs`, `gsr.rs`, `dns_zone.rs`, `members.rs`, `tier.rs`, `hop.rs`, `stream/mod.rs`),
+  `crates/podssh-cli/src/ping/` (`mod.rs`, `node.rs`, `nodes.rs`), and the roads named in the Approach; the tests
+  `chat_cli`, `iroh_cli`, `serve_remote_forward`, `doctor_nat` and `doctor_dns`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.
+
+# T-1033: `doctor --json` gives an empty `diagnosis` beside a failed check, and the manual does not say why
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh doctor --json` gave `"diagnosis": []` in a run where a check said FAIL. A reader of the JSON took
+`diagnosis` for the list of what went wrong.
+
+## Premise
+
+- Read, at `9574133`: `diagnosis` holds the cases that the TLS handshakes of the roads show (`tls-names`,
+  `tls-reset`, `tls-dropped`, T-487), one object for each (`crates/podssh-cli/src/doctor/report.rs:183`); a failed
+  check is in `checks`, with its `status`. The manual's note (`crates/podssh-cli/src/man/notes_doctor.rs:62`) and
+  `docs/cli.md:3413` named its fields, not that it holds those cases alone.
+
+## Approach
+
+The note and `docs/cli.md` say that `diagnosis` holds those cases alone, so it is often empty, and that a failed
+check is in `checks` with the status FAIL. No change of the JSON.
+
+## Decision
+
+- Document, not fill: one entry for each failed check would say again what `checks` says, in a list whose objects
+  have `kind` and `evidence`, which a check has not; a reader of schema 1 that reads `kind` would meet objects of
+  another shape. Lost: a list of the failures alone, which a filter of `checks` by `status` gives.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test man_page
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/man/notes_doctor.rs`, `docs/cli.md`.
+-
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 381 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The record's citations were moved by `cargo todo remap` on `main`, in place of the worker's stand-in script. The planted run waits for T-251.

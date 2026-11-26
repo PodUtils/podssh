@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7467-7497`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7469-7499`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:129-146`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -1859,7 +1859,7 @@ both from the schema alone.
   `if !args.quick`. That section holds `udp_out` (`crates/podssh-cli/src/doctor/quick.rs:55`) and
   `edge_road` (`crates/podssh-cli/src/doctor/quick.rs:85`).
 - `crates/podssh-cli/src/doctor/stream/mod.rs:103` returns `Asked::Nothing` when `args.quick` holds.
-- `crates/podssh-cli/src/man/notes_doctor.rs:130-150` (`DOCTOR_STREAM`) says that `--full` runs the
+- `crates/podssh-cli/src/man/notes_doctor.rs:131-151` (`DOCTOR_STREAM`) says that `--full` runs the
   stream section. `crates/podssh-cli/src/man/notes_doctor.rs:17-22` (`DOCTOR_QUICK`) lists what
   `--quick` leaves out and names no probe of `--full`.
 - `crates/podssh-cli/src/mcp/tools.rs:86` repeats the QUIC handshake. Line 79 offers `quick`.

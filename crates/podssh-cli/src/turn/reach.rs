@@ -16,7 +16,7 @@ use crate::ssh::transport::{NotReached, Reached};
 /// The stream to `host:port` through `road`, in at most `rounds` tries.
 pub async fn reach(road: &Road, host: &str, port: u16, rounds: u32, log: &Arc<Log>) -> Result<Reached, NotReached> {
     if podssh_relay::open::offline() {
-        let line = format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV);
+        let line = podssh_relay::open::offline_line();
         return Err(NotReached { lines: vec![line], code: EX_UNAVAILABLE });
     }
     let (target, shown) = (podssh_ws::dial::authority(host, port), road.shown());

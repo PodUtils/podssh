@@ -20,6 +20,12 @@ pub fn offline() -> bool {
     std::env::var(OFFLINE_ENV).is_ok_and(|v| !v.is_empty() && v != "0")
 }
 
+/// The one line of each command that [`OFFLINE_ENV`] keeps from connecting
+/// (T-1032): one wording, from this one place.
+pub fn offline_line() -> String {
+    format!("{OFFLINE_ENV} is set, so podssh does not connect anywhere")
+}
+
 /// What to open.
 pub struct Request<'a> {
     pub relays: &'a RelayList,
@@ -57,7 +63,7 @@ pub fn words(failure: &Failure, target: &str) -> Vec<String> {
         .into_iter()
         .map(|line| {
             let line = line
-                .replace(GENERIC_OFFLINE, &format!("{OFFLINE_ENV} is set, so no connection goes anywhere"))
+                .replace(GENERIC_OFFLINE, &offline_line())
                 .replace(GENERIC_TOKEN, &format!("the token in {} was rejected", crate::token::TOKEN_ENV));
             // A dial's error of I/O ends in Rust's "(os error N)" inside the crate's line.
             podssh_ws::text::plain(&line)
@@ -74,6 +80,7 @@ mod words_tests {
         let failure = Failure { attempts: vec![(String::from("relay.example"), OpenError::Offline)] };
         let lines = words(&failure, "host:22");
         assert!(lines.iter().any(|l| l.contains("PODSSH_OFFLINE is set")), "{lines:?}");
+        assert!(lines.iter().any(|l| l.contains(&offline_line())), "the one wording (T-1032): {lines:?}");
         assert!(!lines.iter().any(|l| l.contains(GENERIC_OFFLINE)), "{lines:?}");
     }
 }

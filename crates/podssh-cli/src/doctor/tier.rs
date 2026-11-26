@@ -387,7 +387,7 @@ fn probe_resolver(host: &str) -> Resolver {
         return Resolver::Pins(pinned.len());
     }
     if podssh_relay::open::offline() {
-        return Resolver::Unknown("PODSSH_OFFLINE is set: no lookup was tried".to_string());
+        return Resolver::Unknown(crate::doctor::not_attempted());
     }
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,

@@ -3423,7 +3423,9 @@ session's own watch, which asks where a file goes, or which file goes, as it ask
   run (GitHub #9): `schema` (1), `podssh`, `os`, `arch`, `checks` (each
   with `section`, `check`, `status` and `detail`; `status` is `ok`, `FAIL`
   or `unknown`), `counts`, and `diagnosis` (each case after the counts, with
-  `kind`, `detail` and `evidence`; empty when none, T-487). The exit code does not change. `--json` is
+  `kind`, `detail` and `evidence`; empty when none, T-487). `diagnosis` holds
+  those cases of the handshakes alone: a check that failed is in `checks`, with
+  the `status` `FAIL`, and `diagnosis` can be empty beside it (T-1033). The exit code does not change. `--json` is
   for a report that ends; `--jsonl` stays for the events of a long run.
 - Each probe that connects (each `CONNECT`, and `direct TCP`) is tried nine
   times, 125 ms apart (GitHub #54, T-324): one time cannot tell a path that

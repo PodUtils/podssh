@@ -110,7 +110,7 @@ fn offline_the_line_is_one_unknown_and_quick_leaves_it_out() {
     assert_eq!(run.code, 0, "{}{}", run.out, run.err);
     let (section, status, detail) = nat_item(&run.out).expect("a line nat");
     assert_eq!((section.as_str(), status.as_str()), ("egress", "unknown"), "{detail}");
-    assert_eq!(detail, "not attempted: PODSSH_OFFLINE is set");
+    assert_eq!(detail, "not attempted: PODSSH_OFFLINE is set, so podssh does not connect anywhere");
     let quick = doctor(&["--json", "--quick"], &[("PODSSH_OFFLINE", "1")]);
     assert_eq!(nat_item(&quick.out), None, "{}", quick.out);
     // The text: the same line, with its label.

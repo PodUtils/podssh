@@ -260,7 +260,8 @@ fn relay_opened() -> Value {
 /// refusal of a raise; null on Windows, which has no such limit.
 fn open_files() -> Value {
     let Some(limits) = crate::nofile::limits() else { return Value::Null };
-    let refused = limits.refused.map(|errno| std::io::Error::from_raw_os_error(errno).to_string());
+    // The system's words with no "(os error N)" (T-1031).
+    let refused = limits.refused.map(|errno| podssh_ws::text::said(&std::io::Error::from_raw_os_error(errno)));
     json!({
         "soft": limits.soft,
         "hard": limits.hard_limit(),

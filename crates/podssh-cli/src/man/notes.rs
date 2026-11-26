@@ -388,7 +388,8 @@ const STATUS: &[&str] = &[
      the end-to-end channel, its framing included. The list is empty when no node of this host is an exit.",
     "It shows no token and no proxy credentials, opens no connection, asks no DNS and writes nothing. A \
      bad --relay-host or destination is a usage error (64), a bad PODSSH_RELAY a configuration error \
-     (78). podssh doctor is the report that measures.",
+     (78). The destination is read as podssh ssh reads it. Its last @ ends the user, as in OpenSSH: x@y@z is the \
+     user x@y at the host z. podssh doctor is the report that measures.",
 ];
 
 const AGENT: &[&str] = &[

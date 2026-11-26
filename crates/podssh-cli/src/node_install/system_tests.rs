@@ -319,9 +319,21 @@ fn the_places_of_the_installer_are_not_carried_into_a_system_unit() {
 #[test]
 fn a_printed_unit_writes_no_file() {
     let name = format!("t709-print-{}", std::process::id());
+    // The pair in a file of its own: a printed unit of a pair that is not
+    // there is refused, as its install is (T-1024).
+    let dir = std::env::temp_dir().join(format!("podssh-{name}-pair"));
+    podssh_relay::cache::private_dir(&dir).unwrap();
+    let (pair_name, token) = (format!("p-{}", "0".repeat(32)), "a".repeat(64));
+    let body = format!(
+        r#"{{"name":"{pair_name}","node_token":"{token}","connect_token":"{token}","stop_token":"{token}","expires":4102444800000}}"#
+    );
+    let relay = podssh_relay::relay::Relay { host: "relay.test".into(), port: 443 };
+    let pair = podssh_relay::pair::parse(&relay, body.as_bytes(), 0).unwrap();
+    let file = podssh_relay::pair::store_in_first(std::slice::from_ref(&dir), &name, &pair).unwrap();
     let args = crate::node::NodeArgs {
         name: Some(name.clone()),
         targets: vec!["127.0.0.1:22".into()],
+        pair_file: Some(file.display().to_string()),
         print_unit: true,
         ..Default::default()
     };
@@ -341,6 +353,7 @@ fn a_printed_unit_writes_no_file() {
         // A cache of none: the refusal, and nothing written either.
         Err(_) => assert_ne!(code, 0, "{out}"),
     }
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// A binary that the hardening hides, under a home or the temporary

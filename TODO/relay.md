@@ -2844,7 +2844,7 @@ session on 2026-11-03.
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:246-256`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
-  (`crates/podssh-cli/src/doctor/mod.rs:380-408`). THE RELAY in the manual
+  (`crates/podssh-cli/src/doctor/mod.rs:391-419`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-27`), `docs/relay.md` (step 5 of the selection) and
   `docs/cli.md` (`podssh status`).
 - Tests: in `PodUtils/podssh:crates/podssh-relay/src/failures_tests.rs`, the five of T-059 on the road, the round
@@ -3163,7 +3163,7 @@ URL written into each result, and a download target that is no test target of `A
 
 - Read: `podssh ping` times the token, the dial, TLS and the upgrade of one host, then its
   WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:107-155`), one host after another
-  (`crates/podssh-cli/src/ping/mod.rs:180-185`), with `--json`.
+  (`crates/podssh-cli/src/ping/mod.rs:176-181`), with `--json`.
 - Read: `doctor`'s `forward` proves both legs by one of GitHub's published host keys
   (`crates/podssh-cli/src/doctor/relay_checks.rs:218-254`); `--quick` keeps the relay's sections and
   `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:229-234`).
@@ -3318,7 +3318,7 @@ working hosts, which a measurement can make.
   latency.
 - Read: `podssh ping`'s leg times the token, the dial, TLS and the upgrade of one host, and its
   WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:107-155`), and `ping` runs the legs one after
-  another (`crates/podssh-cli/src/ping/mod.rs:180-185`); the module is private to `ping`
+  another (`crates/podssh-cli/src/ping/mod.rs:176-181`); the module is private to `ping`
   (`crates/podssh-cli/src/ping/mod.rs:9`).
 - Read: the record of failures is a file of the cache, `PodUtils/podssh:crates/podssh-relay/src/failures.rs:27`
   says "pub const FILE: &str", and `order` keeps the list's order within each of its groups
@@ -3835,10 +3835,10 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3903-3909`.
+  `docs/cli.md:3905-3911`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
-  3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:180-185`),
+  3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:176-181`),
   not the 37 hosts of the pool, which only `relay rank` measures.
 - Read: the order that a run of the default list takes, in a word, is `order_now`
   (`PodUtils/podssh:crates/podssh-relay/src/rank_list.rs:195-212`), and the list in that order `placed_now`
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:4040`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:4042`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,
@@ -6610,7 +6610,7 @@ Read at `60d5426` (the drafting agent, 2026-11-17), and at the cited lines, whic
   lost": `pod-relay` classifies a Close by its exact reason
   (`PodUtils/podcrates:crates/pod-relay/src/reverse/closes.rs:157`), and a reason of no row is `Unknown`, which
   neither reconnects nor resumes; podssh's own operator already reads the row as "the node's link to the relay
-  ended" (`crates/podssh-cli/src/pairs.rs:253`). The cause goes to the role's line instead.
+  ended" (`crates/podssh-cli/src/pairs.rs:254`). The cause goes to the role's line instead.
 - A silent node is let go after 30 s to 40 s, not 60 s to 80 s: under `pod-relay`'s `Settings::lost_hold` of 60 s,
   so that the node finds its name free before it gives the route up. A live node pings the role each 10 s
   (`pod_ws::LIVENESS_EVERY`) and answers each Ping, so it is heard well within that. Lost: the client's watch

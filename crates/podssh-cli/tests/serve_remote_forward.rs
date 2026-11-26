@@ -238,7 +238,7 @@ fn an_offline_serve_refuses_the_forward_and_says_why() {
     let (code, err) = finish(cmd);
     assert_eq!(code, Some(255), "{err}");
     assert!(err.contains("remote port forwarding failed"), "OpenSSH's words: {err}");
-    assert!(err.contains("refused: not attempted: PODSSH_OFFLINE is set"), "serve's: {err}");
+    assert!(err.contains("refused: PODSSH_OFFLINE is set, so podssh does not connect anywhere"), "serve's: {err}");
     assert!(found(&s.home, "pair-").is_none(), "no pair was made");
 }
 

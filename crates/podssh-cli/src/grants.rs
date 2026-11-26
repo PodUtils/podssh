@@ -54,7 +54,9 @@ pub fn ask(file: Option<&str>, no_e2e: bool) -> Result<(), Refusal> {
             "--grant {file}: a grant is a file, never a URL: it goes in the end-to-end channel alone"
         )));
     }
-    let cert = grant::read_file(Path::new(file)).map_err(|why| Refusal::config(format!("--grant {why}")))?;
+    // The crate's words of a file it could not read carry Rust's "(os error N)".
+    let cert = grant::read_file(Path::new(file))
+        .map_err(|why| Refusal::config(podssh_ws::text::plain(&format!("--grant {why}"))))?;
     *ASKED.lock().unwrap_or_else(|e| e.into_inner()) = Some(cert.blob());
     Ok(())
 }
@@ -395,6 +397,18 @@ mod tests {
     fn a_grant_in_a_url_is_refused_before_anything_is_read() {
         let refused = ask(Some("https://relay.example/v1/grant?grant=AAAA"), false).unwrap_err();
         assert_eq!(refused.code, crate::exit_codes::EXIT_USAGE);
+        assert!(!asked(), "nothing kept");
+    }
+
+    /// A grant file that is not there is a configuration error (78) in the
+    /// system's words once, with no "(os error N)" (T-1022).
+    #[test]
+    fn a_missing_grant_file_is_said_with_no_os_error() {
+        let file = std::env::temp_dir().join(format!("podssh-no-grant-{}", std::process::id()));
+        let refused = ask(Some(file.to_str().unwrap()), false).unwrap_err();
+        assert_eq!(refused.code, crate::exitmap::sysexits::EX_CONFIG, "{}", refused.message);
+        assert!(refused.message.starts_with(&format!("--grant {}: ", file.display())), "{}", refused.message);
+        assert!(!refused.message.contains("os error"), "{}", refused.message);
         assert!(!asked(), "nothing kept");
     }
 }

@@ -98,7 +98,7 @@ pub async fn open(
     say: &mut (dyn FnMut(&str) + Send),
 ) -> Result<End, i32> {
     if podssh_relay::open::offline() {
-        say(&format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV));
+        say(&podssh_relay::open::offline_line());
         return Err(EX_UNAVAILABLE);
     }
     let target = podssh_ws::dial::authority(host, port);

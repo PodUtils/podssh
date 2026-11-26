@@ -38,7 +38,10 @@ struct Outcome {
 }
 
 impl Outcome {
+    /// A node that was not measured; a refusal that names the node already
+    /// is said without that name, which the line's own prefix gives (T-1028).
     fn failed(shown: String, code: i32, error: String) -> Outcome {
+        let error = crate::each::unlabeled(&shown, &error).to_string();
         Outcome { shown, measures: None, code, error: Some(error) }
     }
 }
@@ -76,8 +79,7 @@ pub(super) fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> 
         })
         .collect();
     if podssh_relay::open::offline() {
-        let variable = podssh_relay::open::OFFLINE_ENV;
-        let _ = writeln!(err, "podssh ping: {variable} is set, so podssh does not connect anywhere");
+        let _ = writeln!(err, "podssh ping: {}", podssh_relay::open::offline_line());
         return EX_UNAVAILABLE;
     }
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {

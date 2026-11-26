@@ -107,7 +107,7 @@ async fn session(road: &Road, host: &str, port: u16, err: &mut dyn Write) -> i32
 /// once `say` has the line of the failure.
 pub async fn open(road: &Road, host: &str, port: u16, say: &mut dyn FnMut(&str)) -> Result<End, i32> {
     if podssh_relay::open::offline() {
-        say(&format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV));
+        say(&podssh_relay::open::offline_line());
         return Err(EX_UNAVAILABLE);
     }
     let target = podssh_ws::dial::authority(host, port);

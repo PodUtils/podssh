@@ -75,8 +75,7 @@ pub fn run(args: &ProxyArgs, err: &mut dyn Write) -> Option<i32> {
     };
     crate::session_log::target(&road.host(), Some(road.port()), road.word());
     if podssh_relay::open::offline() {
-        let _ =
-            writeln!(err, "podssh: {} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV);
+        let _ = writeln!(err, "podssh: {}", podssh_relay::open::offline_line());
         return Some(EX_UNAVAILABLE);
     }
     let trust = crate::settings::ca_file(args.ca_file.as_deref()).map_or(Trust::Default, |f| Trust::File(f.into()));

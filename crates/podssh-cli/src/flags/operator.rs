@@ -21,7 +21,7 @@ pub const PAIR_FLAGS: &[FlagRow] = &[
     row(None, "node-key", Some("KEY"), FlagKind::Supported,
         "the node's key, or its fingerprint SHA256:..., in place of the pins of known-nodes", None),
     row(None, "no-e2e", None, FlagKind::Supported,
-        "carry the bytes with no end-to-end channel, to a node that runs none either; the relay then sees them", None),
+        "carry the bytes with no end-to-end channel, to a node that runs none either; the relay then sees them; a node that runs the channel is refused (70), and its preamble never reaches stdout", None),
     super::node::OWN_DEADLINE,
     // A session that ends with its link (T-612).
     super::node::OPERATOR_NO_RESUME,

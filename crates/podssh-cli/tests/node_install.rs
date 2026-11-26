@@ -4,13 +4,15 @@
 //! is written; a flag that goes with no other is refused with 64 before
 //! anything is probed; a run with no root is refused with 77, and a user
 //! with no passwd entry with 69. No test needs root, and none writes a unit.
+//! A unit of this user's node is printed as `--install` would write it: a
+//! TARGET that the node refuses is 64, and a pair not stored 78 (T-1024).
 #![cfg(unix)]
 
 mod pair_harness;
 
 use std::path::Path;
 
-use pair_harness::{cache_dir, podssh, scratch};
+use pair_harness::{cache_dir, podssh, scratch, store};
 
 /// Each file under `dir`, for the check that nothing was written.
 fn files(dir: &Path) -> Vec<String> {
@@ -37,6 +39,7 @@ fn root() -> bool {
 #[test]
 fn a_printed_unit_of_a_node_is_on_stdout_and_nothing_is_written() {
     let home = scratch("t709-print");
+    store(&home, "lab", 0);
     let before = files(&home);
     let (rc, out, err) = podssh(&home, &["node", "lab", "127.0.0.1:22", "--print-unit"], &[]);
     assert_eq!(rc, 0, "{err}");
@@ -46,6 +49,25 @@ fn a_printed_unit_of_a_node_is_on_stdout_and_nothing_is_written() {
     assert!(out.contains("WantedBy=default.target"), "{out}");
     assert!(!env.exists(), "the file of the variables was written");
     assert_eq!(files(&home), before, "a printed unit writes nothing");
+}
+
+/// A unit is printed only where `--install` would write it: each case is
+/// refused with its code, its line names the cause, and stdout is empty.
+#[test]
+fn a_printed_unit_of_a_node_is_refused_where_its_install_would_be() {
+    let home = scratch("t1024-print");
+    store(&home, "lab", 0);
+    for (args, code, says) in [
+        (vec!["node", "nosuch", "127.0.0.1:22", "--print-unit"], 78, "no pair is stored under \"nosuch\""),
+        (vec!["node", "lab", "--print-unit"], 64, "missing TARGET"),
+        (vec!["node", "lab", "127.0.0.1:0x", "--print-unit"], 64, "TARGET 127.0.0.1:0x"),
+        (vec!["node", "nosuch", "--print-unit"], 64, "missing TARGET"),
+    ] {
+        let (rc, out, err) = podssh(&home, &args, &[]);
+        assert_eq!(rc, code, "{args:?}: {err}");
+        assert!(err.contains(says), "{args:?}: {err}");
+        assert!(out.is_empty(), "{args:?}: {out}");
+    }
 }
 
 #[test]

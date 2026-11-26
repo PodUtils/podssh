@@ -5,6 +5,10 @@
 
 #![cfg(target_os = "linux")]
 
+// A stored pair, which a printed unit of a node needs as its install does
+// (T-1024).
+mod pair_harness;
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
@@ -18,6 +22,8 @@ fn scratch(name: &str) -> PathBuf {
 fn podssh(home: &Path, args: &[&str]) -> Command {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_podssh"));
     cmd.args(args).env("HOME", home).env("PODSSH_SSH_CONFIG", "none").env("PODSSH_OFFLINE", "1");
+    // The cache of `pair_harness::store`.
+    cmd.env("XDG_CACHE_HOME", home.join("cache")).env_remove("PODSSH_CACHE_DIR");
     cmd.env_remove("SSH_AUTH_SOCK").env_remove("SSH_ASKPASS").stdin(Stdio::null());
     cmd
 }
@@ -30,6 +36,7 @@ fn to_full(mut cmd: Command) -> Output {
 #[test]
 fn each_command_says_that_its_output_could_not_be_written() {
     let home = scratch("full");
+    pair_harness::store(&home, "lab", 0);
     let key = home.join("k");
     let made = podssh(&home, &["keygen", "-q", "-t", "ed25519", "-N", "", "-f", key.to_str().unwrap()]).output();
     let made = made.unwrap();

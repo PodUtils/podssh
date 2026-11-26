@@ -101,7 +101,7 @@ fn a_stored_pair_reaches_the_network_and_no_token_is_shown() {
     for args in [vec!["lab"], vec!["node:lab", "--send", "hi"], vec!["--listen", "lab"]] {
         let (rc, out, err) = chat(&home, &args);
         assert_eq!(rc, 69, "{args:?}: {err}");
-        assert!(err.contains("not attempted: PODSSH_OFFLINE is set"), "{args:?}: {err}");
+        assert!(err.contains("PODSSH_OFFLINE is set, so podssh does not connect anywhere"), "{args:?}: {err}");
         no_token(&out);
         no_token(&err);
     }
@@ -218,7 +218,7 @@ fn the_irc_chat_reaches_the_network_and_no_further_offline() {
     {
         let (rc, out, err) = chat(&home, &args);
         assert_eq!(rc, 69, "{args:?}: {err}");
-        assert!(err.contains("not attempted: PODSSH_OFFLINE is set"), "{args:?}: {err}");
+        assert!(err.contains("PODSSH_OFFLINE is set, so podssh does not connect anywhere"), "{args:?}: {err}");
         assert!(out.is_empty());
     }
 }

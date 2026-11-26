@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use podssh_relay::e2e::{self, ends, hold, Ask as Asking, Refusal as NodeRefusal};
 use podssh_relay::identity::{allow, file, pins, Identity, KeyName, PublicKey};
-use podssh_relay::reverse::routes::{Grant, Routes};
+use podssh_relay::reverse::routes::Routes;
 use podssh_relay::reverse::{Handler, Opening, SessionId};
 use podssh_relay::session::OsEntropy;
 use tokio::io::{AsyncRead, AsyncWrite, DuplexStream};
@@ -384,16 +384,9 @@ pub fn admit_of(allow: Option<PathBuf>) -> Arc<ends::Admit> {
 /// Why a key that the net does not let out asks an exit in vain.
 const NO_KEY_EXIT: &str = "an exit lets out the members of its net alone, as its policy lets, never a key of --allow";
 
-/// Which routes each operator may use (T-089): those that its line of the
-/// allowlist at `allow` grants, read again for each session; with no
-/// allowlist, each route, as the relay's connect token decided who reaches
-/// the node.
-pub fn grant_of(allow: Option<PathBuf>) -> Arc<Grant> {
-    match allow {
-        Some(path) => Arc::new(move |key: &PublicKey, route: &str| allow::grants(&path, key, route)),
-        None => Arc::new(|_: &PublicKey, _: &str| Ok(())),
-    }
-}
+/// Which routes each operator may use (T-089), with a re-read's new lines
+/// that are not keys said (T-1025).
+pub use crate::allow_said::grant_of;
 
 /// Who may come in, as the node starts.
 pub fn who_may(allow: Option<&Path>) -> String {
@@ -408,7 +401,7 @@ pub fn who_may(allow: Option<&Path>) -> String {
             "{} operator keys may come in ({}); {}",
             list.len(),
             path.display(),
-            allow::bad_lines_said(list.bad_lines())
+            crate::allow_said::marked(path, list.bad_lines())
         ),
         Err(why) => format!("no operator may come in yet: {why}"),
     }

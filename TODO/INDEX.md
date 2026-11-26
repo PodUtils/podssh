@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**952 entries: 4 open, 33 partial, 15 blocked, 900 done.**
+**965 entries: 4 open, 33 partial, 16 blocked, 912 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
-| P2 | 0 | 20 | 3 | 346 | 369 |
-| P3 | 4 | 7 | 9 | 451 | 471 |
-| **All** | 4 | 33 | 15 | 900 | 952 |
+| P2 | 0 | 20 | 4 | 347 | 371 |
+| P3 | 4 | 7 | 9 | 462 | 482 |
+| **All** | 4 | 33 | 16 | 912 | 965 |
 
 ## Entries
 
@@ -1028,3 +1028,16 @@ repository and CI).
 | [T-1018](pipe.md) | P2 | S | backlog | defect | done | `pipe - relay:HOST:PORT` never ends when its target waits for the end of its input |
 | [T-1019](pipe.md) | P3 | S | backlog | defect | done | `pipe - fd:N` of a closed number ends in `(os error 9)`, and `tx send a b` gives the parser's generic lines |
 | [T-1020](cli.md) | P3 | S | backlog | defect | done | `funnel` says a bad TARGET in the words of `pipe`'s kinds, and `funnel` and `update` refuse offline before their usage's faults |
+| [T-1021](reverse.md) | P2 | S | backlog | defect | blocked | A node of a pair at the user's own relay also waits at the public last fallbacks, unasked |
+| [T-1022](reverse.md) | P3 | S | backlog | defect | done | `operator --grant` of a missing file and `operator` with the relay down end with Rust's (os error N) |
+| [T-1023](reverse.md) | P2 | S | backlog | defect | done | `operator --no-e2e` to a node that runs the channel writes the channel's preamble to stdout and exits 0 |
+| [T-1024](cli.md) | P3 | S | backlog | defect | done | `node --print-unit` prints a unit for a pair that is not stored, and for a node with no TARGET |
+| [T-1025](reverse.md) | P3 | S | backlog | defect | done | A node's allowlist read again for a session says nothing of its new lines that are not keys |
+| [T-1026](reverse.md) | P3 | S | backlog | defect | done | A second node of a pair that one serves can end "stopped", exit 0, after its 30 s of 409 |
+| [T-1027](reverse.md) | P3 | S | backlog | defect | done | EXIT STATUS does not say that `ssh node://NAME` of no stored pair is 255, where `operator` and `proxy` give 78 |
+| [T-1028](reverse.md) | P3 | S | backlog | defect | done | `ping --nodes` names a node twice in the line of its refusal |
+| [T-1029](reverse.md) | P3 | S | backlog | defect | done | A bad `--timeout` of `ping --nodes`, `ssh`, `job` and `session` is said on two lines |
+| [T-1030](cli.md) | P3 | S | backlog | defect | done | `doctor` says "TLS with the relay failed" for its handshake with github.com and with a hop |
+| [T-1031](cli.md) | P3 | S | backlog | defect | done | `status` does not say how it reads a destination of two @, and its `open_files.refused` ends with (os error N) |
+| [T-1032](cli.md) | P3 | S | backlog | defect | done | The refusal of PODSSH_OFFLINE has three wordings across the commands |
+| [T-1033](cli.md) | P3 | S | backlog | defect | done | `doctor --json` gives an empty `diagnosis` beside a failed check, and the manual does not say why |

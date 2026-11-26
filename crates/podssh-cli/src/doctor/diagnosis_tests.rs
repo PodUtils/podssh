@@ -165,3 +165,16 @@ fn the_resolvers_and_n0_s_relays_are_counted_as_roads() {
     let proxied = [reference(Met::Reset, Some("proxy.example:3128")), road(Of::Relay, "r", Met::Reset), completed];
     assert_eq!(diagnose(&proxied)[0].kind, "tls-reset");
 }
+
+/// A failed handshake with a host that is no relay names that host, never
+/// the relay (T-1030); any other failure keeps its words.
+#[test]
+fn a_failed_handshake_names_its_host() {
+    for cut in [None, Some(Cut::Reset)] {
+        let said = tls_failed("github.com", &tls(cut));
+        assert!(said.starts_with("TLS with github.com failed: "), "{said}");
+        assert!(!said.contains("relay"), "{said}");
+    }
+    let refused = ConnectError::Refused { status: 403, body: String::new() };
+    assert_eq!(tls_failed("github.com", &refused), podssh_ws::text::said(&refused));
+}

@@ -6,8 +6,9 @@
 
 /// The node's side: `--print-unit`, and `--install --system --run-as`.
 pub(super) const NODE: &str = "--print-unit prints the unit that --install would write, on stdout, and writes \
-     nothing. It does so on any system, so that the unit is read before it is installed. With --system --run-as \
-     USER, it is the system unit. --install --system --run-as USER writes \
+     nothing. It does so on any system, so that the unit is read before it is installed. It checks what \
+     --install checks first: a TARGET that the node refuses gives 64. A user unit of a pair not stored gives 78. \
+     With --system --run-as USER, it is the system unit. --install --system --run-as USER writes \
      /etc/systemd/system/podssh-node-NAME.service, then runs systemctl daemon-reload, enable and restart. It \
      probes first, in this order: root (else 77), systemd as the service manager (/run/systemd/system, else 69), \
      USER in /etc/passwd (else 69), and USER's cache of podssh (else 69). USER is no root (64). The unit runs as \

@@ -116,7 +116,7 @@ pub(super) fn asked(args: &DoctorArgs, relays: &RelayList) -> Result<Asked, Refu
 pub(super) fn only(mut report: Report<'_>, plan: &Plan, trust: &Trust) -> i32 {
     report.section("stream");
     if podssh_relay::open::offline() {
-        report.unknown("stream server", "not attempted: PODSSH_OFFLINE is set");
+        report.unknown("stream server", crate::doctor::not_attempted());
         return report.finish();
     }
     match tokio::runtime::Builder::new_current_thread().enable_all().build() {

@@ -22,6 +22,8 @@ use std::time::{Duration, Instant};
 const LIMIT: Duration = Duration::from_secs(120);
 /// The zone of each run.
 const ZONE: &str = "t.example";
+/// A check that PODSSH_OFFLINE kept from connecting, in the one wording (T-1032).
+const OFFLINE: &str = "not attempted: PODSSH_OFFLINE is set, so podssh does not connect anywhere";
 
 /// Every variable that could steer the doctor somewhere this test did not
 /// choose; the test sets the ones that it uses.
@@ -112,7 +114,7 @@ fn offline_the_section_is_one_unknown_and_nothing_is_sent() {
     let run = doctor(&["--json", "--quick", "--dns-zone", ZONE], &[("PODSSH_OFFLINE", "1")]);
     assert_eq!(run.code, 0, "{}{}", run.out, run.err);
     let (_, status, detail) = item(&run.out, "dns resolver").expect("a line dns resolver");
-    assert_eq!((status.as_str(), detail.as_str()), ("unknown", "not attempted: PODSSH_OFFLINE is set"));
+    assert_eq!((status.as_str(), detail.as_str()), ("unknown", OFFLINE));
     assert_eq!(item(&run.out, "dns edns0"), None, "{}", run.out);
     // Without the zone, no line of the section at all.
     let none = doctor(&["--json", "--quick"], &[("PODSSH_OFFLINE", "1")]);

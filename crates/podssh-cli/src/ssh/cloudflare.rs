@@ -152,7 +152,7 @@ pub(super) async fn reach(
     log: &Arc<Log>,
 ) -> Result<Reached, NotReached> {
     if podssh_relay::open::offline() {
-        let line = format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV);
+        let line = podssh_relay::open::offline_line();
         return Err(NotReached { lines: vec![line], code: sysexits::EX_UNAVAILABLE });
     }
     let access = access_from(&access::var).map_err(|why| NotReached { lines: vec![why], code: sysexits::EX_CONFIG })?;

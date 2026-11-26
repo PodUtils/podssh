@@ -68,7 +68,9 @@ pub(super) const NODE: &[&str] = &[
      fingerprint as it starts, and an operator pins it at the first sight. With --allow FILE, only the \
      operator keys of FILE come in, on each road: one key on each line, as podssh keygen -y prints it, or its \
      fingerprint, read again for each session; a refused operator gets no byte of TARGET, and its key is said on stderr, as the \
-     line to add. With no allowlist, each operator with the pair's connect token comes in, and its key \
+     line to add. The lines of FILE that are not keys are said by number as the node starts. A later read \
+     that finds other such lines says them once. With no allowlist, each operator with the pair's connect token \
+     comes in, and its key \
      is said. A node that is a member of a net, with no allowlist, lets in the net's members alone, and says \
      so. TARGET is dialled only once the operator's key is let in. --no-e2e carries the bytes with \
      no channel, to operators run with --no-e2e too: the relay then sees them.",

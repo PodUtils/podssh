@@ -38,7 +38,7 @@ pub(crate) fn who_may(allow: Option<&std::path::Path>) -> String {
             "{} client keys may connect ({}); {}",
             list.len(),
             path.display(),
-            allow::bad_lines_said(list.bad_lines())
+            crate::allow_said::marked(path, list.bad_lines())
         ),
         Err(why) => format!("no client may connect yet: {why}"),
     }
@@ -62,7 +62,12 @@ pub(crate) fn admits(
         say(format!("refused the client key {shown}: no --allow file"));
         return false;
     };
-    match allow::read(path) {
+    let read = allow::read(path);
+    // A re-read that finds new lines that are not keys says them (T-1025).
+    if let Some(line) = read.as_ref().ok().and_then(|list| crate::allow_said::seen(path, list.bad_lines())) {
+        say(line);
+    }
+    match read {
         Ok(list) if list.admits(&keys::identity_key(key)) => {
             say(format!("the client key {shown} connected"));
             true
