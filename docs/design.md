@@ -985,7 +985,8 @@ What podssh does not need, and why:
 - **Scrollback.** Mosh keeps the screen only, so the output of a `cat` of a
   large file is lost to the terminal's scrollback (paper §2; GitHub
   mobile-shell/mosh#122, open). podssh passes each byte, so the local
-  scrollback stays whole. The frames of T-303 lose it, so they come on
+  scrollback stays whole. The frames of T-303 keep one screen of the lines
+  that left the top for each frame and count the rest, so they come on
   request only (`--frames`).
 - **Forwarding.** Mosh has no port forwarding and no agent forwarding
   (GitHub mobile-shell/mosh#337 and #696, open); podssh has SSH's.

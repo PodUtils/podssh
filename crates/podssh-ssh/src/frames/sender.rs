@@ -14,6 +14,13 @@
 //! that is gone moves no base. A client that says it lost its base gets
 //! the whole screen.
 //!
+//! A frame also carries the lines that left the top of the screen after
+//! its base ([`Sender::since`]). Lines alone, under a screen that looks the
+//! same (a flood of `yes`), make a frame only while no frame waits for an
+//! acknowledgement, and that frame sets no pace: a change of the screen
+//! (the prompt after Ctrl-C) then never waits behind lines. Lines that no
+//! frame carried are counted at the client as skipped.
+//!
 //! SSH carries each frame in order, so frames that no one acknowledged wait
 //! in the link ahead of the next: while [`WINDOW`] wait, no frame goes,
 //! until an acknowledgement comes or [`PATIENCE`] passes. That bound is
@@ -63,11 +70,15 @@ pub struct Sender {
     last: Option<Instant>,
     /// When the screen first changed since the last frame.
     changed: Option<Instant>,
+    /// Lines alone waited for the frames on their way: the acknowledgement
+    /// that empties the window looks again.
+    lines_wait: bool,
 }
 
 impl Default for Sender {
     fn default() -> Self {
-        Sender { base: None, sent: VecDeque::new(), next: 1, round_trip: None, last: None, changed: None }
+        let (round_trip, last, changed) = (None, None, None);
+        Sender { base: None, sent: VecDeque::new(), next: 1, round_trip, last, changed, lines_wait: false }
     }
 }
 
@@ -117,24 +128,32 @@ impl Sender {
         // What the client shows once each frame sent has come: the last
         // one sent, else the base.
         let newest = self.sent.back().map(|sent| &sent.state).or(self.base.as_ref().map(|(_, state)| state));
-        if !bell && newest.is_some_and(|newest| newest.same(state)) {
+        let alone = !bell && newest.is_some_and(|newest| newest.same(state));
+        if alone && newest.is_some_and(|newest| newest.total == state.total) {
+            return None;
+        }
+        // Lines alone go only into an empty window, so that the next change
+        // of the screen never waits behind them.
+        if alone && !self.sent.is_empty() {
+            self.lines_wait = true;
             return None;
         }
         let (body, full) = diff(self.base.as_ref().map(|(_, base)| base), state);
-        Some((self.numbered(state, full, bell, now), body))
+        Some((self.numbered(state, full, bell, now, !alone), body))
     }
 
     /// The last frame, after the program's output ended: the whole screen,
     /// so that it shows whatever the client holds.
     pub fn last(&mut self, state: &State, bell: bool, now: Instant) -> (Head, Vec<u8>) {
         let (body, _) = diff(None, state);
-        let head = Head { last: true, ..self.numbered(state, true, bell, now) };
+        let head = Head { last: true, ..self.numbered(state, true, bell, now, true) };
         (head, body)
     }
 
     /// The header of the next frame, and its state kept for its
-    /// acknowledgement; past [`HELD`], the oldest kept goes.
-    fn numbered(&mut self, state: &State, full: bool, bell: bool, now: Instant) -> Head {
+    /// acknowledgement; past [`HELD`], the oldest kept goes. A `paced` frame
+    /// starts the time to the next one; a frame of lines alone does not.
+    fn numbered(&mut self, state: &State, full: bool, bell: bool, now: Instant, paced: bool) -> Head {
         let number = self.next;
         self.next += 1;
         let base = match (&self.base, full) {
@@ -145,9 +164,19 @@ impl Sender {
             self.sent.pop_front();
         }
         self.sent.push_back(Sent { number, state: state.clone(), at: now });
-        self.last = Some(now);
+        if paced || self.last.is_none() {
+            self.last = Some(now);
+        }
+        self.lines_wait = false;
         let (rows, cols) = state.size();
-        Head { full, bell, last: false, number, base, rows, cols }
+        Head { full, bell, last: false, number, base, rows, cols, total: state.total }
+    }
+
+    /// The count of lines at the base of the frames: a frame carries the
+    /// lines after it. 0 with no base: then the newest lines kept go, and
+    /// the client passes over those that its scrollback has.
+    pub fn since(&self) -> u64 {
+        self.base.as_ref().map_or(0, |(_, base)| base.total)
     }
 
     /// The client's acknowledgement, at `now`. A state that is kept
@@ -173,6 +202,10 @@ impl Sender {
             // The frames after the state that the client holds drew nothing
             // there: they are forgotten, and one goes again from that state.
             self.sent.clear();
+            self.changed(now);
+        }
+        if self.lines_wait && self.sent.is_empty() {
+            self.lines_wait = false;
             self.changed(now);
         }
     }

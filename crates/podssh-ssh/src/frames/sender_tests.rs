@@ -186,3 +186,47 @@ fn the_last_frame_is_the_whole_screen() {
     assert!(head.last && head.full && head.bell && head.base == 0 && head.number == 2, "{head:?}");
     assert!(String::from_utf8_lossy(&body).contains("the end"));
 }
+
+/// Lines alone (a flood that only scrolls, the screen the same) make a
+/// frame only while no frame waits for an acknowledgement, and that frame
+/// sets no pace: the first frame after a change of the screen goes at
+/// once, never behind lines.
+#[test]
+fn lines_alone_wait_for_an_empty_window_and_never_hold_a_change() {
+    let start = Instant::now();
+    let (mut model, mut sender) = (Model::new(4, 20, false), Sender::default());
+    let flood = |model: &mut Model, lines: usize| model.feed("y\r\n".repeat(lines).as_bytes());
+    flood(&mut model, 10);
+    sender.changed(start);
+    let (first, _) = sender.frame(&model.state(), false, start + COLLECT).expect("the first frame");
+    sender.acked(ack(first.number), start + ms(300));
+
+    // Lines alone into an empty window: a frame goes.
+    flood(&mut model, 5);
+    sender.changed(start + ms(1000));
+    let at = sender.due().expect("lines are a change");
+    let (lines, _) = sender.frame(&model.state(), false, at).expect("lines alone, the window empty");
+    assert!(lines.total > first.total && sender.waiting() == 1, "{lines:?}");
+
+    // More lines while that frame waits: none goes, however late, and
+    // nothing is due until the acknowledgement.
+    flood(&mut model, 5);
+    sender.changed(at + ms(5));
+    assert!(sender.frame(&model.state(), false, at + PATIENCE * 3).is_none(), "lines wait for the window");
+    assert_eq!(sender.due(), None, "no wait that wakes for nothing");
+    let acked = at + ms(300);
+    sender.acked(ack(lines.number), acked);
+    assert_eq!(sender.due(), Some(acked + COLLECT), "the acknowledgement looks again, at once");
+    let (again, _) = sender.frame(&model.state(), false, acked + COLLECT).expect("the lines that waited");
+    assert!(again.total > lines.total, "{again:?}");
+
+    // A change of the screen, 20 ms after a frame of lines that waits for
+    // its acknowledgement: it goes after the collection, not after the pace.
+    model.feed(b"^C\r\n$ ");
+    let changed = acked + COLLECT + ms(20);
+    sender.changed(changed);
+    assert_eq!(sender.due(), Some(changed + COLLECT), "lines set no pace");
+    let (prompt, body) = sender.frame(&model.state(), false, changed + COLLECT).expect("the change goes at once");
+    assert!(prompt.number == again.number + 1 && !body.is_empty(), "{prompt:?}");
+    assert_eq!(sender.waiting(), 2);
+}

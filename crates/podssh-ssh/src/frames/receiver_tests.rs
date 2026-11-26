@@ -8,7 +8,7 @@ use tokio::time::Instant;
 use super::*;
 use crate::frames::screen::Model;
 use crate::frames::sender::{Sender, COLLECT, PATIENCE};
-use crate::frames::wire::{encode, Head};
+use crate::frames::wire::{encode, Head, Version};
 
 const ROWS: u16 = 4;
 const COLS: u16 = 20;
@@ -32,7 +32,7 @@ impl Far {
         self.sender.changed(self.now);
         self.now += PATIENCE + COLLECT;
         let (head, body) = self.sender.frame(&self.model.state(), false, self.now).expect("a frame is due");
-        encode(head, &body)
+        encode(Version::Two, head, &self.model.lines_after(self.sender.since()), &body)
     }
 
     fn acked(&mut self, ack: Ack) {
@@ -135,10 +135,10 @@ fn a_frame_that_is_not_newer_never_moves_the_screen_back() {
     let old = Model::new(ROWS, COLS, false).state();
     for (number, full) in [(1u64, true), (2, true), (3, true), (3, false), (2, false)] {
         let base = if full { 0 } else { number - 1 };
-        let head = Head { full, bell: true, last: true, number, base, rows: ROWS, cols: COLS };
+        let head = Head { full, bell: true, last: true, number, base, rows: ROWS, cols: COLS, total: 0 };
         let whole = crate::frames::screen::diff(None, &old).0;
         let body: &[u8] = if full { &whole } else { b"x" };
-        let drawn = near.feed(&encode(head, body)).unwrap();
+        let drawn = near.feed(&encode(Version::Two, head, &[], body)).unwrap();
         assert!(drawn.is_empty(), "frame {number} (whole: {full}) drew {drawn:?}");
         assert!(near.state().is_some_and(|held| held.same(&want)), "frame {number} moved the state");
         assert!(!near.ended(), "a frame passed over ends nothing");
@@ -187,12 +187,12 @@ fn a_new_size_the_last_frame_a_bell_and_bytes_that_are_no_frame() {
     far.sender.changed(far.now);
     far.now += PATIENCE;
     let (head, body) = far.sender.frame(&far.model.state(), far.model.bell(), far.now).expect("a bell");
-    let rung = near.feed(&encode(head, &body)).unwrap();
+    let rung = near.feed(&encode(Version::Two, head, &[], &body)).unwrap();
     assert_eq!(rung, b"\x07", "the bell alone");
 
     let (head, body) = far.sender.last(&far.model.state(), false, far.now);
     assert!(!near.ended());
-    near.feed(&encode(head, &body)).unwrap();
+    near.feed(&encode(Version::Two, head, &[], &body)).unwrap();
     assert!(near.ended());
 
     let refused = Receiver::default().feed(b"SSH-2.0-not a frame at all, of any version").unwrap_err();

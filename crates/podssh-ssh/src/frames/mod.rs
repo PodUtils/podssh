@@ -13,14 +13,19 @@
 //! each one, as without frames.
 //!
 //! Only a far end that has the pty's bytes in clear can send frames:
-//! `podssh serve` with a pty, asked with `env frames@podssh v1`. Another
-//! server refuses the request, and the session carries each byte.
+//! `podssh serve` with a pty, asked with `env frames@podssh v1`; with
+//! `--frames-scroll`, with `v2` first, then `v1` for an older serve.
+//! Another server refuses the request, and the session carries each byte.
 //!
-//! A frame skips output, so the terminal's own scrollback gets none of the
-//! session's lines, and what a program writes for the terminal alone (a
-//! file of ZMODEM, a copy to the clipboard) does not arrive. A line of
-//! podssh's own on the terminal moves the cursor where no state knows it:
-//! the next frame then draws the whole screen again.
+//! A frame skips output. With version 2 it carries the lines that left the
+//! top of the screen since its base, one screen of them at most, and the
+//! client moves them into its terminal's scrollback before it draws
+//! ([`scroll`]); a run of lines that no frame carried is one dim line that
+//! says how many. Version 1 carries none, and costs the far end nothing
+//! for each line: it is the default. What a program writes for the
+//! terminal alone (a file of ZMODEM, a copy to the clipboard) does not
+//! arrive. A line of podssh's own on the terminal moves the cursor where no
+//! state knows it: the next frame then draws the whole screen again.
 
 use std::sync::{Arc, Mutex};
 
@@ -29,10 +34,11 @@ use russh::{Channel, ChannelMsg, ChannelWriteHalf};
 
 pub mod receiver;
 pub mod screen;
+pub mod scroll;
 pub mod sender;
 pub mod wire;
 
-pub use wire::{ACK, ENV, EXT, VERSION};
+pub use wire::{Version, ACK, ENV, EXT, VERSION};
 
 /// What gives the terminal back to its user, as the last frame left it:
 /// read at the session's end, however it ended.
@@ -143,29 +149,69 @@ pub(crate) fn not_asked(opts: &crate::options::Options, want_pty: bool, stdin_tt
     })
 }
 
-/// Ask the far end for frames, before the shell or the command; whether
-/// the ask went.
-pub(crate) async fn ask(channel: &Channel<Msg>) -> bool {
-    channel.set_env(true, ENV, VERSION).await.is_ok()
+/// The versions that a session asks for, the newest first: version 2 only
+/// with `--frames-scroll`.
+fn versions(scroll: bool) -> &'static [Version] {
+    if scroll {
+        &Version::ASKED
+    } else {
+        &[Version::One]
+    }
 }
 
-/// The far end's answer to [`ask`]: the frames of the session where it
-/// sends them, on a terminal that reads the sequences they are drawn with.
-/// A refusal says so in one line, and the session carries each byte.
+/// Ask the far end for frames, before the shell or the command: for each
+/// version of [`versions`], the newest first, at once with no wait
+/// between. The replies come in order; a far end that took one refuses
+/// each ask after it. How many asks went.
+pub(crate) async fn ask(channel: &Channel<Msg>, scroll: bool) -> usize {
+    let mut asked = 0;
+    for &version in versions(scroll) {
+        if channel.set_env(true, ENV, version.word()).await.is_err() {
+            break;
+        }
+        asked += 1;
+    }
+    asked
+}
+
+/// The line of a far end that refused each ask.
+const REFUSED: &str =
+    "--frames: the far end sends no frames (only podssh serve with a pty does); the session shows each byte";
+
+/// The far end's answers to the `asked` asks of [`ask`] (with `scroll`):
+/// the frames of the session where it sends them, on a terminal that reads
+/// the sequences they are drawn with. A refusal of each says so in one
+/// line, and the session carries each byte; frames of version 1 where
+/// version 2 was asked say at the verbose level that the scrollback gets
+/// no line.
 pub(crate) async fn answered(
     channel: &mut Channel<Msg>,
     early: &mut Vec<ChannelMsg>,
-    asked: bool,
+    (asked, scroll): (usize, bool),
     log: &crate::log::Log,
 ) -> Result<Option<Frames>, String> {
-    if !asked {
+    if asked == 0 {
         return Ok(None);
     }
-    if crate::session::wait_reply(channel, early).await? {
-        return Ok(Some(Frames::default()));
+    let mut taken = None;
+    // Each reply is read, also after the one that was taken.
+    for &version in versions(scroll).iter().take(asked) {
+        if crate::session::wait_reply(channel, early).await? && taken.is_none() {
+            taken = Some(version);
+        }
     }
-    log.info("--frames: the far end sends no frames (only podssh serve with a pty does); the session shows each byte");
-    Ok(None)
+    match taken {
+        Some(version) => {
+            if scroll && version == Version::One {
+                log.verbose("--frames: the far end sends frames of version 1, which carry no line for the scrollback");
+            }
+            Ok(Some(Frames::default()))
+        }
+        None => {
+            log.info(REFUSED);
+            Ok(None)
+        }
+    }
 }
 
 /// Send the acknowledgement that is due, with no reply asked. One goes for

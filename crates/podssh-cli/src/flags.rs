@@ -219,7 +219,7 @@ pub const SSH_FLAGS: &[FlagRow] = &[
         "with --persist: connect again after each loss, and after a first connection that failed, with no limit of attempts or of time", None),
     node::SSH_INSTALL, node::SSH_UNINSTALL, node::SSH_ENV_FILE, attach::ATTACH, attach::TAKE, attach::RESET, predict::PREDICT,
     // The far end's screen as frames, in place of each byte of its pty (T-303).
-    frames::FRAMES,
+    frames::FRAMES, frames::FRAMES_SCROLL,
     // The hosts that get the headers of Cloudflare Access on the relay's roads (T-718).
     node::ACCESS_HOST,
     expect::EXPECT, expect::SEND, expect::EXPECT_TIMEOUT,

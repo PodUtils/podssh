@@ -795,7 +795,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
    name the host that was kept. tokio's `select!` and `JoinSet` need no new crate and no C.
 7. Add the flag to `SSH_FLAGS`, `PROXY_FLAGS` and `DOCTOR_FLAGS`
    (`crates/podssh-cli/src/flags.rs:116-301`, 323-343) and to `ONCE`
-   (`crates/podssh-cli/src/ssh/args.rs:235-286`); the variable to VARIABLES and the modes to THE
+   (`crates/podssh-cli/src/ssh/args.rs:238-289`); the variable to VARIABLES and the modes to THE
    RELAY (`crates/podssh-cli/src/man/facts.rs:46-285`, 170-183); both to `docs/relay.md:107-353`.
 8. T-059 orders the hosts across runs; this entry shortens the wait in one run. GitHub #25 asks
    for a circuit breaker: retry policy, not overlap.
@@ -3835,7 +3835,7 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3905-3911`.
+  `docs/cli.md:3909-3915`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
   3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:176-181`),
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:4042`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:4046`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,
@@ -5677,7 +5677,7 @@ Podcrates T-120 takes the document at its import; podssh writes it first.
 - `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`: the forward contract, as the default relay
   gives it.
 - `docs/reverse.md`, `docs/design.md` (section 5): the reverse and layer frames, in prose.
-- `docs/design.md:1545`: a test vector exists for iroh's tickets only.
+- `docs/design.md:1546`: a test vector exists for iroh's tickets only.
 
 ## Approach
 
@@ -5750,7 +5750,7 @@ Plant: change one byte of a codec; the vector test fails.
   through those re-exports; podssh changes no codec here. The forward road's frames are `pod-ws`'s,
   through `podssh_ws::frame`. Only the relay role's tokens are podssh's own code
   (`crates/podssh-relay/src/serve/tokens.rs`).
-- "A test vector exists for iroh's tickets only" (`docs/design.md:1545`) held at the reading of the
+- "A test vector exists for iroh's tickets only" (`docs/design.md:1546`) held at the reading of the
   entry; since T-712, `docs/relay.md:2028` gives vectors of the liveness member too, and
   `pod-identity`'s tests pin the key of the seed `0x11` (which `grants.json` uses, so both agree).
 - The Approach's `HELLO` is the layer's `GREETING` and `OPEN` (`Hello` in `pod-session`): the page

@@ -5,13 +5,17 @@
 //! reads it. Nothing here does I/O.
 //!
 //! A state is the visible screen, the cursor, the modes of the keys (the
-//! application keypad and cursor keys, bracketed paste, the mouse), and the
-//! window's title. It holds no scrollback, and the alternate screen is the
-//! visible screen while a program has it: the client's terminal never
-//! enters it.
+//! application keypad and cursor keys, bracketed paste, the mouse), the
+//! window's title, and the count of lines that left the top of the screen.
+//! It holds no scrollback: the far end's model keeps the newest lines that
+//! left the top, one screen of them, for the frames to carry (`super::scroll`).
+//! The alternate screen is the visible screen while a program has it: the
+//! client's terminal never enters it.
 
 use std::num::NonZeroU16;
 use std::sync::Arc;
+
+use super::scroll::{tail, Lines};
 
 /// The longest title kept; the rest of a longer one is dropped.
 pub const TITLE_MOST: usize = 256;
@@ -34,6 +38,8 @@ pub struct Aside {
     /// Whether this model answers (the far end's does; the client's reads
     /// frames, which ask nothing).
     answering: bool,
+    /// The lines that left the top of the primary screen.
+    lines: Lines,
 }
 
 impl vt100::Callbacks for Aside {
@@ -78,6 +84,14 @@ impl vt100::Callbacks for Aside {
             self.answers.extend_from_slice(answer.as_bytes());
         }
     }
+
+    /// A row left the top of the screen. A terminal keeps no scrollback of
+    /// the alternate screen, so its rows are no lines.
+    fn on_scroll(&mut self, row: vt100::capture::RowContents<'_>, alternate_screen: bool) {
+        if !alternate_screen {
+            self.lines.push(&row);
+        }
+    }
 }
 
 /// One screen, as a frame carries it.
@@ -86,6 +100,9 @@ pub struct State {
     pub screen: vt100::Screen,
     /// The window's title, once a program set one.
     pub title: Option<Arc<[u8]>>,
+    /// The count of lines that left the top of the far end's screen, up to
+    /// this state: the frame's, at the client.
+    pub total: u64,
 }
 
 impl State {
@@ -96,7 +113,8 @@ impl State {
     }
 
     /// Whether `other` is the same screen: the same title, and nothing
-    /// that a terminal showing one would need to become the other.
+    /// that a terminal showing one would need to become the other. The
+    /// count of lines is not compared.
     pub fn same(&self, other: &State) -> bool {
         self.title == other.title && self.size() == other.size() && self.screen.state_diff(&other.screen).is_empty()
     }
@@ -109,25 +127,56 @@ pub struct Model {
 
 impl Model {
     /// An empty screen of `rows` by `cols`, as a new pty's terminal is.
-    /// With `answering`, it answers the questions of [`Aside`].
+    /// With `answering`, it answers the questions of [`Aside`]. It keeps the
+    /// newest `rows` lines that left the top of the screen.
     pub fn new(rows: u16, cols: u16, answering: bool) -> Model {
-        let aside = Aside { answering, ..Aside::default() };
+        let aside = Aside { answering, lines: Lines::new(usize::from(rows.max(1))), ..Aside::default() };
         Model { parser: vt100::Parser::new_with_callbacks(dim(rows), dim(cols), 0, aside) }
     }
 
-    /// The pty's output.
+    /// The pty's output. The rows that leave the top before the last part
+    /// of `bytes` that holds one screen of line feeds are counted alone; in
+    /// that part they are kept too (`super::scroll::tail`). The parser
+    /// keeps its state from one part to the next, inside a sequence or a
+    /// character too.
     pub fn feed(&mut self, bytes: &[u8]) {
-        self.parser.process(bytes);
+        let keep = self.parser.callbacks().lines.keep();
+        let split = if keep == 0 { 0 } else { tail(bytes, keep) };
+        if split > 0 {
+            self.parser.callbacks_mut().lines.keeping(false);
+            self.parser.process(&bytes[..split]);
+            self.parser.callbacks_mut().lines.keeping(true);
+        }
+        self.parser.process(&bytes[split..]);
     }
 
-    /// A new size of the pty.
+    /// The same model with no lines: it counts and keeps none, so its
+    /// states all say 0 (frames of version 1, which carry no line).
+    pub fn without_lines(mut self) -> Model {
+        self.parser.callbacks_mut().lines = Lines::default();
+        self
+    }
+
+    /// A new size of the pty. The rows that it moves off the screen are no
+    /// lines: the client's terminal moves its own at its new size.
     pub fn resize(&mut self, rows: u16, cols: u16) {
+        self.parser.callbacks_mut().lines.pause(true);
         self.parser.set_size(dim(rows), dim(cols));
+        let lines = &mut self.parser.callbacks_mut().lines;
+        lines.pause(false);
+        lines.set_keep(usize::from(rows.max(1)));
     }
 
     /// The screen now.
     pub fn state(&self) -> State {
-        State { screen: self.parser.screen().clone(), title: self.parser.callbacks().title.clone() }
+        let aside = self.parser.callbacks();
+        State { screen: self.parser.screen().clone(), title: aside.title.clone(), total: aside.lines.total() }
+    }
+
+    /// The lines after the line `since` that a frame carries
+    /// ([`Lines::after`]).
+    pub fn lines_after(&self, since: u64) -> Vec<Vec<u8>> {
+        self.parser.callbacks().lines.after(since)
     }
 
     /// Whether the bell rang since [`Model::clear_bell`].
@@ -183,7 +232,7 @@ pub fn diff(base: Option<&State>, new: &State) -> (Vec<u8>, bool) {
 
 /// The state that `body` makes of `base` in a model of `rows` by `cols`;
 /// with no base, of an empty screen. The caller holds the base's size to
-/// the frame's.
+/// the frame's, and sets the count of lines, which a body does not say.
 pub fn apply(base: Option<&State>, rows: u16, cols: u16, body: &[u8]) -> State {
     let aside = Aside { title: base.and_then(|base| base.title.clone()), ..Aside::default() };
     let mut parser = vt100::Parser::new_with_callbacks(dim(rows), dim(cols), 0, aside);
@@ -191,7 +240,21 @@ pub fn apply(base: Option<&State>, rows: u16, cols: u16, body: &[u8]) -> State {
         *parser.screen_mut() = base.screen.clone();
     }
     parser.process(body);
-    State { screen: parser.screen().clone(), title: parser.callbacks().title.clone() }
+    State { screen: parser.screen().clone(), title: parser.callbacks().title.clone(), total: 0 }
+}
+
+/// What a terminal that showed `shown` shows after `block` (the lines
+/// moved into its scrollback, `super::scroll::block`), as a state: what its
+/// draw starts from. Made from `shown`'s whole screen, which sets no
+/// scroll region, so the model moves the rows as the terminal does.
+pub fn after_block(shown: &State, block: &[u8]) -> State {
+    let (rows, cols) = shown.size();
+    let mut bytes = shown.screen.state_formatted().into_bytes();
+    bytes.extend_from_slice(block);
+    let mut state = apply(None, rows, cols, &bytes);
+    state.title = shown.title.clone();
+    state.total = shown.total;
+    state
 }
 
 /// What a terminal that shows `shown` needs to show `new`. With `repaint`

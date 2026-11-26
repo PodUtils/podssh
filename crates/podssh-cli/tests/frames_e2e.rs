@@ -8,9 +8,11 @@
 //! Pass: with `--frames`, the prompt after Ctrl-C shows within three round
 //! trips, and the session ends with the shell's status. The control: with
 //! no `--frames`, the same Ctrl-C shows its prompt only after the bytes of
-//! the flood that were on their way, later than three round trips. A host
-//! with no Python or openssl (the stand-in relay) or no pty says that the
-//! test did not run:
+//! the flood that were on their way, later than three round trips. And a
+//! session with `--frames-scroll --record`: the recording holds what the terminal
+//! was drawn with, and `podssh play` of it gives the terminal's screen. A
+//! host with no Python or openssl (the stand-in relay) or no pty says that
+//! the test did not run:
 //!
 //! ```sh
 //! cargo test -p podssh-cli --test frames_e2e
@@ -176,6 +178,38 @@ fn without_frames_the_prompt_waits_for_the_bytes_of_the_flood() {
     let after = interrupt(&mut term);
     eprintln!("no --frames: Ctrl-C to the prompt in {} ms", after.as_millis());
     assert!(after >= BAR, "the prompt showed {after:?} after Ctrl-C: the flood or the link was not there");
+    term.send(b"exit 5\r");
+    assert_eq!(term.wait(LIMIT), Some(5), "the shell's status: {:?}", term.text());
+}
+
+/// `--record` of a framed session: the far end's bytes never arrive, so
+/// the recording holds the frames' drawing, which is terminal output, and
+/// `podssh play` of it gives the screen that the terminal showed. Sixty
+/// lines on a screen of 24 rows: the lines that left its top are drawn
+/// into the recording too.
+#[test]
+fn a_framed_session_recorded_plays_as_its_terminal_showed_it() {
+    let Some((session, cell, port)) = setup("frames-e2e-record") else { return };
+    let file = session.home.join("framed.cast");
+    let record = file.display().to_string();
+    let mut term = client(&session, &cell, port, &["--frames-scroll", "--record", &record]);
+    until(&term, Instant::now(), LIMIT, "the first prompt", |row, _| row == PROMPT);
+    term.send(b"i=0; while [ $i -lt 60 ]; do i=$((i+1)); echo \"line $i\"; done; echo MARK-$((6*7))\r");
+    until(&term, Instant::now(), LIMIT, "the mark", |row, text| row == PROMPT && text.contains("MARK-42"));
+    // The screen is still, and each draw is in the file: it is flushed at
+    // each event, before the terminal gets it.
+    std::thread::sleep(Duration::from_secs(1));
+    let (_, showed) = shown(&term.bytes());
+    let played = Command::new(env!("CARGO_BIN_EXE_podssh"))
+        .args(["play", "--idle-limit", "0.001"])
+        .arg(&file)
+        .stdin(Stdio::null())
+        .output()
+        .expect("podssh play runs");
+    assert!(played.status.success(), "podssh play: {}", String::from_utf8_lossy(&played.stderr));
+    let (_, again) = shown(&played.stdout);
+    assert!(again.contains("MARK-42") && again.contains("line 60"), "the recording's last screen: {again:?}");
+    assert_eq!(again, showed, "the recording plays as the terminal showed it");
     term.send(b"exit 5\r");
     assert_eq!(term.wait(LIMIT), Some(5), "the shell's status: {:?}", term.text());
 }

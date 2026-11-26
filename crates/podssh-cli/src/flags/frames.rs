@@ -9,3 +9,9 @@ use super::{row, FlagKind, FlagRow};
 #[rustfmt::skip]
 pub const FRAMES: FlagRow = row(None, "frames", None, FlagKind::Supported,
     "show the far end's latest screen as frames, not each byte, so a flood does not hold back what follows Ctrl-C; only to podssh serve with a pty; the terminal's scrollback gets nothing", None);
+
+/// `--frames-scroll`: `--frames`, whose frames also carry the lines that
+/// leave the top of the far end's screen, for the terminal's scrollback.
+#[rustfmt::skip]
+pub const FRAMES_SCROLL: FlagRow = row(None, "frames-scroll", None, FlagKind::Supported,
+    "--frames, and the lines that leave the top of the far end's screen go into the terminal's scrollback, one screen for each frame at most", None);

@@ -6,10 +6,12 @@
 //! floods its terminal, Ctrl-C goes, and the prompt after it shows on the
 //! client's model within three round trips; then the client's model, made
 //! of each frame's difference, is the far end's whole screen, cell for
-//! cell. The second holds the negotiation: frames come only on a channel
-//! with a pty that asked, in place of each byte; each other ask is refused,
-//! and its channel carries bytes as before. Where no master opens on this
-//! host, each test says that it did not run.
+//! cell; and a terminal that read what the client drew holds each line of
+//! the flood in its scrollback once, in order, or counted as skipped. The
+//! second holds the negotiation: frames come only on a channel with a pty
+//! that asked, in place of each byte, in the version asked; each other ask
+//! is refused, and its channel carries bytes as before. Where no master
+//! opens on this host, each test says that it did not run.
 
 #![cfg(unix)]
 
@@ -126,6 +128,8 @@ async fn connect(shape: Option<(Duration, u64)>) -> client::Handle<Trusting> {
 struct Seen {
     /// The data of the channel: none with frames.
     out: Vec<u8>,
+    /// The first byte of the frames: their version.
+    first: Option<u8>,
     receiver: Receiver,
     /// What the receiver drew, as a client's terminal gets it.
     drawn: Vec<u8>,
@@ -143,6 +147,7 @@ impl Seen {
         match message {
             ChannelMsg::Data { data } => self.out.extend_from_slice(&data),
             ChannelMsg::ExtendedData { data, ext } if ext == EXT => {
+                self.first = self.first.or(data.first().copied());
                 self.framed += data.len();
                 let ended = self.receiver.ended();
                 let drawn = self.receiver.feed(&data).expect("frames of this version");
@@ -178,6 +183,47 @@ impl Seen {
         let (_, cols) = state.screen.size();
         state.screen.rows(0, cols.get()).nth(usize::from(row)).unwrap_or_default().trim_end().to_string()
     }
+}
+
+/// Each row that leaves the top of a terminal's primary screen, as text:
+/// the terminal's scrollback.
+#[derive(Default)]
+struct Kept(Vec<String>);
+
+impl vt100::Callbacks for Kept {
+    fn on_scroll(&mut self, row: vt100::capture::RowContents<'_>, alternate_screen: bool) {
+        if !alternate_screen {
+            let mut text = String::new();
+            let _ = row.write_formatted_basic(&mut text, &mut vt100::capture::BasicFormattedCaptureState::new());
+            self.0.push(vt100::capture::basic_formatted_to_plain(&text).collect());
+        }
+    }
+}
+
+/// The number of a row of the flood, `flood N of ...`.
+fn flood_number(row: &str) -> Option<u64> {
+    let rest = row.strip_prefix("flood ")?;
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    rest[digits.len()..].starts_with(" of").then(|| digits.parse().ok()).flatten()
+}
+
+/// Each line of the flood that `read` (the scrollback, then the screen)
+/// holds comes once and in order, and each gap between two of them is the
+/// count of the lines said skipped there. The count of lines of the flood.
+fn flood_once(read: &[String]) -> usize {
+    let (mut last, mut said, mut seen) = (None::<u64>, 0u64, 0);
+    for row in read {
+        let skipped = row.strip_prefix("[podssh: ").and_then(|rest| rest.split(' ').next()?.parse::<u64>().ok());
+        if let Some(count) = skipped {
+            said += count;
+        } else if let Some(n) = flood_number(row) {
+            if let Some(last) = last {
+                assert_eq!(n, last + 1 + said, "flood {n} after flood {last} and {said} said skipped");
+            }
+            (last, said, seen) = (Some(n), 0, seen + 1);
+        }
+    }
+    seen
 }
 
 /// Read until `done` holds, and acknowledge the frames once for each
@@ -258,9 +304,15 @@ async fn under_a_flood_ctrl_c_shows_the_prompt_within_three_round_trips() {
     assert!(whole.same(&made), "each cell, each attribute and each mode: {:?}", whole.screen.state_diff(&made.screen));
     // What the receiver drew gives a terminal that same screen.
     let cells = |n: u16| std::num::NonZeroU16::new(n).unwrap();
-    let mut terminal = vt100::Parser::new(cells(24), cells(80), 0);
+    let mut terminal = vt100::Parser::new_with_callbacks(cells(24), cells(80), 0, Kept::default());
     terminal.process(&seen.drawn);
     assert_eq!(terminal.screen().contents(), whole.screen.contents(), "what a terminal shows of the draws");
+    // Its scrollback holds the flood: each line once, or counted.
+    let mut read = terminal.callbacks().0.clone();
+    read.extend(terminal.screen().rows(0, 80));
+    let lines = flood_once(&read);
+    assert!(lines > 24, "the flood's lines in the scrollback: {lines}");
+    assert_eq!(seen.first, Some(2), "frames of version 2");
 
     channel.data(&b"exit 7\r"[..]).await.unwrap();
     read_until(&mut channel, &mut seen, |s| s.closed).await;
@@ -284,11 +336,11 @@ async fn frames_come_only_where_they_were_asked_on_a_pty() {
     let mut channel = handle.channel_open_session().await.unwrap();
     channel.set_env(true, ENV, VERSION).await.unwrap();
     channel.request_pty(true, "xterm", 80, 24, 0, 0, &[]).await.unwrap();
-    channel.set_env(true, ENV, "v2").await.unwrap();
+    channel.set_env(true, ENV, "v3").await.unwrap();
     channel.exec(true, "printf ready; read line").await.unwrap();
     let mut seen = Seen::default();
     read_until(&mut channel, &mut seen, |s| s.replies.len() == 4 && s.out.ends_with(b"ready")).await;
-    assert_eq!(seen.replies, vec![false, true, false, true], "no pty yet; the pty; v2; the command");
+    assert_eq!(seen.replies, vec![false, true, false, true], "no pty yet; the pty; v3; the command");
     channel.data(&b"x\r"[..]).await.unwrap();
     read_until(&mut channel, &mut seen, |s| s.closed).await;
     assert_eq!((seen.framed, seen.status), (0, Some(0)), "no frame without the ask taken");
@@ -302,6 +354,7 @@ async fn frames_come_only_where_they_were_asked_on_a_pty() {
     let mut seen = Seen::default();
     read_until(&mut channel, &mut seen, |s| s.replies.len() == 4 && s.text().contains("hello")).await;
     assert_eq!(seen.replies, vec![true, true, false, true], "the pty; the frames; once; the command");
+    assert_eq!(seen.first, Some(2), "frames of version 2");
     assert_eq!(seen.state().and_then(|state| state.title.as_deref()), Some(&b"a title"[..]));
     // One BEL ends the title's sequence; the other is the bell.
     let bells = seen.drawn.iter().filter(|b| **b == 0x07).count();
@@ -317,4 +370,16 @@ async fn frames_come_only_where_they_were_asked_on_a_pty() {
     assert_eq!(seen.status, Some(3));
     assert_eq!(seen.order, vec!["frame", "status"], "the last frame comes before the status");
     assert!(seen.out.is_empty(), "no byte of the pty as data to the end");
+
+    // An older client asks v1 alone, and gets frames of version 1.
+    let mut channel = handle.channel_open_session().await.unwrap();
+    channel.request_pty(true, "xterm", 80, 24, 0, 0, &[]).await.unwrap();
+    channel.set_env(true, ENV, "v1").await.unwrap();
+    channel.exec(true, "printf hello; read line").await.unwrap();
+    let mut seen = Seen::default();
+    read_until(&mut channel, &mut seen, |s| s.replies.len() == 3 && s.text().contains("hello")).await;
+    assert_eq!((seen.replies.clone(), seen.first), (vec![true, true, true], Some(1)), "version 1");
+    channel.data(&b"x\r"[..]).await.unwrap();
+    read_until(&mut channel, &mut seen, |s| s.closed).await;
+    assert_eq!(seen.status, Some(0));
 }

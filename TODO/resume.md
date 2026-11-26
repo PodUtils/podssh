@@ -839,10 +839,10 @@ Read: a read waits 90 s at most (`crates/podssh-ws/src/client.rs:31-33`, set at
 frame each 25 s. The ping watcher acts only after a first Pong
 (`PodUtils/podssh:crates/podssh-ws/src/session.rs:296-334`); Pongs and the idle cut on reverse
 sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
-the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:359-399`).
+the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:362-402`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
-`crates/podssh-cli/src/ssh/resolve.rs:349-359` (the `warnings` of keepalives), and `podssh ssh` exits 255.
+`crates/podssh-cli/src/ssh/resolve.rs:352-362` (the `warnings` of keepalives), and `podssh ssh` exits 255.
 
 ## Approach
 
@@ -856,7 +856,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 3. Carry the `ACK` of T-152 in each `PONG`. The cost is about 20 bytes each
    way each 10 s: under 0.2 MiB in 12 h.
 4. On the resumable road, do not print the warning of
-   `crates/podssh-cli/src/ssh/resolve.rs:349-359` (the `warnings` of keepalives).
+   `crates/podssh-cli/src/ssh/resolve.rs:352-362` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:394-409`,
    `crates/podssh-cli/src/man/facts.rs:429-438`), the note at
@@ -1199,7 +1199,7 @@ road, and the same faults end a session of the forward road with 255
 # T-157: Throughput on each road and relay, by a committed method
 
 **Source:** ROADMAP M6 (throughput on each road and relay, in and out of a
-sandbox, before a default depends on it); `docs/design.md:1672-1692`; the two
+sandbox, before a default depends on it); `docs/design.md:1673-1693`; the two
 sandbox reports of 2026-10-08; GitHub #18 (warren's method) and GitHub #23
 (sshping: throughput up and down).
 **Category:** measurement
@@ -1223,7 +1223,7 @@ proxy (4 runs). Read in the report, not verified here: the script's target
 (thinkbroadband) gave `1011 write failed` and 0 bytes, and the relay's
 `/trace` showed that the relay could not reach it.
 Read: no iroh figure exists for a relay through a CONNECT proxy
-(`docs/design.md:1672-1692`). A session carries 64 MiB at most, both directions
+(`docs/design.md:1673-1693`). A session carries 64 MiB at most, both directions
 together (`docs/relay.md:676`).
 
 ## Approach
@@ -1418,7 +1418,7 @@ the shell on a detach fails it.
   `env` requests of podssh's own names and a subsystem, which the handler
   sees (`crates/podssh-ssh/src/keep.rs`).
 - An escape needs a pty and a terminal on stdin
-  (`crates/podssh-ssh/src/session.rs:208`), so a test cannot type `~d`
+  (`crates/podssh-ssh/src/session.rs:210`), so a test cannot type `~d`
   through a pipe: the attach test types it in a pseudo console on Windows
   (`crates/podssh-cli/tests/conpty_harness/mod.rs`) and in a pty on Linux
   (`crates/podssh-cli/tests/pty_harness/mod.rs`, new).
@@ -2613,6 +2613,93 @@ See also the addition of the donor study (report 14) to T-161: the offset log is
     sender and the receiver do no I/O (`crates/podssh-ssh/src/frames/`), so they can move to podcrates when a sibling
     serves a pty; no ask is filed by this draft, as no second project needs them today.
 
+2026-11-26, the calls of the draft of items (d) and (e) of the Done's list.
+
+15. **(d) The lines that left the top of the screen are version 2 of the frames, asked first, and `v1` is asked after it
+    with no wait.** The client sends `env frames@podssh v2`, then `env frames@podssh v1`, each with a reply; the replies
+    come in order. A serve of version 2 takes the first and refuses the second (it takes one ask once); a serve of
+    version 1 refuses `v2` and takes `v1`, and sends frames with no line; another server refuses both. Each case costs
+    one round trip. Lost: `v1` asked only after a refusal of `v2` (a second round trip before the shell to each server
+    with no frames, OpenSSH's sshd among them); one value that lists both versions, which a serve of version 1 refuses
+    whole.
+16. **The wire of version 2: a header of 34 bytes that adds the count of lines, and a flag with which the body starts
+    with the lines.** The count is of the lines that left the top of the far end's primary screen since its start, up
+    to the frame's state; it goes in each frame, so the client knows the place of each line that it holds. The lines
+    of a frame are the last ones before its state, so their places follow from the count; each is a length and a row
+    of text (`crates/podssh-ssh/src/frames/wire.rs`). Lost: a number for each line (more bytes); a count only in frames
+    with lines (a whole screen after a refusal could not say where the client stands); a record of its own for the
+    lines, whose order against the frames would need a rule of its own.
+17. **The bound: at most one screen of lines in a frame, and 16 KiB, each line at most 4 KiB; the rest is counted.**
+    One screen is what the far end keeps; a run of lines that no frame carried is one dim line, `[podssh: N lines
+    skipped]`, at its place in the scrollback. Under a flood at 64 KiB/s, 16 KiB waits at most a quarter of a second
+    in the link, and one screen at 80 by 24 is 1 to 2 KiB. Lost: no bound, with which a flood would cross as its
+    bytes, which the frames are there to avoid; lines dropped with no word, where the user could not tell a gap from
+    the whole output; more than one screen kept at the far end, as a frame carries one screen at most.
+18. **A frame carries the lines after its base, the newest state acknowledged, not after the last frame sent; the
+    client counts what its scrollback got and writes each line once.** A refused frame, or a whole screen after a lost
+    base, then costs no line, and T-304's datagrams can lose a frame; two frames on their way may carry a line both,
+    and the second copy is passed over. Lost: the lines after the last frame sent, the least bytes on an ordered stream.
+    Lines alone, under a screen that looks the same (a flood of `yes`), make a frame only while no frame waits for an
+    acknowledgement, and that frame sets no pace; lines that no frame carried are counted at the client. The draft first
+    sent a frame for lines alone at the pace, and the lead measured Ctrl-C under a flood of `yes` at 1,351 ms (4.5 round
+    trips; 533 ms before): the window of two stayed full of frames of lines, and the prompt's frame waited behind them.
+    Lost with it: lines at the pace; lines that ride only on a change of the screen (a flood of `yes` would put none in
+    the scrollback until its end).
+19. **The client moves the lines into its terminal's scrollback itself: each written in a row from the top of the
+    screen, then as many line feeds from the last row, a screen at a time, with the cursor hidden; the draw then starts
+    from a model of what that left** (`crates/podssh-ssh/src/frames/scroll.rs`, `screen::after_block`). Each terminal
+    moves its top row into its scrollback at a line feed on its last row, so this works on any of them; the model is
+    made of the shown screen's whole state and the block, which sets no scroll region, so the draw after it is a
+    difference. Lost: `CSI S`, which not every terminal puts in its scrollback; the lines written at the bottom to
+    scroll through the screen, where the screen's own rows would go up first; a whole draw after each block, which a
+    slow `tail -f` would make flicker.
+20. **The far end counts only the rows that leave the top of the primary screen**, from `vt100`'s `on_scroll` with no
+    scrollback in the model, which would be copied for each state: not the rows of the alternate screen, of which a
+    terminal keeps no scrollback, and not those that a new size moves, as the client's terminal moves its own. A line
+    is a row of text with its colours (`vt100`'s basic format); the client keeps the SGR sequences of a line and no
+    other control, so a line never moves the cursor out of its row. The cost: the text of one screen of lines for a
+    channel that asked.
+21. **(e) `--record` of a framed session records what was drawn on the terminal.** The tap of the draft of step 2
+    already sat on the drawn bytes (`crates/podssh-ssh/src/io/msg.rs`, `frame`), before the notice of silence and the
+    console's filter, as for the bytes of a session with no frames; the lines of item 19 are among them. The far end's
+    bytes never arrive, so they cannot be recorded. `podssh play` plays the file as any recording. `podssh session
+    capture` does not apply: `podssh session` reads its output as bytes, so it asks for no frames (`frames::wanted`).
+    Lost: a recording of the frames themselves, which a player could show only with the receiver.
+22. **Nothing but the pty's pump waits for the far end's model** (`crates/podssh-ssh/src/server/frames.rs`). The
+    handler of the acknowledgements and of a new size runs on the SSH session's task, which also takes the client's
+    Ctrl-C to the pty; it puts what the client said beside the model, and the pump applies it at its next write, before
+    the output. The pump also makes the frame that is due at each write. The task that sends only tries the model's
+    lock, and while the pump holds it, looks again after 8 ms. The cause: under a flood the pump holds the model nearly
+    all the time, and the standard library's lock is not fair, so a task that waited for it could wait for seconds.
+    Before the lines, a flood of `yes` made no frame and so no acknowledgement, and nothing waited. With the frames of
+    lines, the session's task waited in the handler of an acknowledgement: the lead measured 1 or 2 frames drawn in 3 s
+    of flood, then about 1 KiB after the Ctrl-C, and the prompt after 1,436 ms against 587 ms. The Ctrl-C itself waited
+    there, behind the lock. Lost: a fair lock (tokio's, which a write of the pump, a `poll_write`, cannot wait for); a
+    pump that leaves the model at each write for a moment (no bound on the wait of the other side all the same).
+23. **The far end formats only the rows that can be the newest lines** (`crates/podssh-ssh/src/frames/scroll.rs`,
+    `tail`; `screen::Model::feed`). Each row that leaves the top is counted; of each write of the pty, only the rows
+    that leave in its last part that holds one screen of line feeds (LF, VT, FF) are formatted and kept, each with its
+    place in the count. A frame carries the newest kept lines in an unbroken run that ends at the count; a write whose
+    newest rows left before its last line feeds (a move of the cursor up, then line feeds) keeps none of them, and the
+    client says them skipped. The parser's state crosses the cut of a write, inside a sequence or a character too. A
+    flood that only scrolls then costs, for each byte, what it cost before the lines, and each write at most one
+    screen of formatting. The cause: the draft formatted each row as it left, and with the handler's wait gone (item
+    22) the lead measured 1,117 ms in a debug build against 412 ms in a release build, and `frames_e2e` failed in debug.
+    Lost: `vt100`'s own scrollback, read when a frame is made, which costs for each row that leaves a trim of its cells,
+    a new row and the drop of an old one, work for each line that the instruction ruled out; a row formatted as it
+    leaves, the draft's, whose cost is that of the row in each line of a flood.
+24. **The lines are the user's choice: `--frames-scroll`, which is `--frames` with them; `--frames` alone asks `v1`
+    only, and its far end keeps no line.** With item 23 the lead measured, in a debug build, 854 ms median (612 to
+    1,182) against 587 ms before the lines, and `frames_e2e`'s Ctrl-C test at 943.8 ms against its bar of 900 ms: the
+    gain stood in a release build (412 ms) but a test of the gate, which runs a debug build, would fail at random. What
+    is left of the cost is spread (a count and a frame of lines each round trip at the far end, the block and its draw
+    at the client), and nothing that this draft could read in the code removes it without a measure. So the far end of
+    a channel that took `v1` makes a model with no lines (`screen::Model::without_lines`): it counts none, a flood that
+    only scrolls makes no frame, and `--frames` is what was measured at 587 ms. `--frames-scroll` asks `v2`, then `v1`
+    for an older serve; `--frames-scroll` with `--predict` is a usage error, as `--frames` is. A flag, as `--frames`
+    is (item 1). Lost: the lines by default (the gate's test of the bar would fail at random); an `-o` keyword, which
+    `ssh_config` has none of; `--frames=scroll`, a flag with a value where `--frames` takes none today.
+
 ## Prove
 
 ```sh
@@ -2719,8 +2806,8 @@ draft that fails may have found a defect that the worker could not see, as nothi
 Left, in order: (a) measured (below); (b) frames from a kept shell and from a shell shared by name, each of which sends bytes today
 (T-159, T-837); (c) local echo's guesses drawn over frames, as Mosh's overlay, in place of the usage error; (d) the
 scrollback: a frame's lines that left the top of the screen could go to the terminal before the frame, which no part
-of this draft does; (e) `podssh session capture` and `--record` of a framed session record what was drawn, not the
-far end's bytes; (f) step 5, Mosh as a reference on a host of the operator's that has it; (g) the plant of the Prove,
+of this draft does (drafted below); (e) `podssh session capture` and `--record` of a framed session record what was
+drawn, not the far end's bytes (drafted below); (f) step 5, Mosh as a reference on a host of the operator's that has it; (g) the plant of the Prove,
 with T-251; (h) a control master's client and `podssh each`, which carry each byte.
 
 Merged 2026-11-26 and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 313 binaries passed,
@@ -2732,6 +2819,81 @@ target/debug/podssh --runs 3` (300 ms, 64 KiB/s, a flood of `yes`, then Ctrl-C):
 533 ms median (1.78 round trips; 436 to 789 ms), 11.6 times sooner than podssh's byte stream (6,181 ms, 20.6) and
 under the bar of three round trips; OpenSSH 18,494 ms (61.65); `--frames` to OpenSSH's sshd is refused and keeps the
 bytes (6,290 ms, one run). The window of 2 and the patience of 2 s stand. Left: (b) to (h) above.
+
+Drafted 2026-11-26 by a worker, on `main` at `5f09ae1`, not built and not run: items (d) and (e) above (the Decision,
+items 15 to 21). Each result is below, from the lead's merge.
+
+- (d), the code: `crates/podssh-ssh/src/frames/scroll.rs` (new: the far end's lines, the client's lines that wait and
+  the line of a gap, the cleaning of a line, the block that moves lines into the scrollback),
+  `crates/podssh-ssh/src/frames/wire.rs` (version 2: the count, the flag, the lines; both versions read; its tests
+  moved to `crates/podssh-ssh/src/frames/wire_tests.rs`), `crates/podssh-ssh/src/frames/screen.rs` (`on_scroll`, the
+  count of each state, `after_block`), `crates/podssh-ssh/src/frames/sender.rs` (`since`; a frame for a line under a
+  screen that looks the same), `crates/podssh-ssh/src/frames/receiver.rs` (the lines before the draw),
+  `crates/podssh-ssh/src/frames/mod.rs` (the two asks and their answers), `crates/podssh-ssh/src/session.rs`,
+  `crates/podssh-ssh/src/server/frames.rs` (the version of the channel, the lines of each frame),
+  `crates/podssh-ssh/src/server/frames_ask.rs` (`v2` or `v1`, once), `crates/podssh-ssh/src/server/channel.rs`.
+- (d), the tests: `crates/podssh-ssh/src/frames/scroll_tests.rs`, whose table of floods (a line at a time, a screen at
+  a time, more than a screen between two frames, no acknowledgement, the frames of one read, a flood acknowledged or
+  not) holds that each line the far end printed is in the terminal's scrollback or on its screen once and in order,
+  or counted as skipped, and the count skipped; frames of version 1, a disturbed terminal, the far end's count (not the
+  alternate screen, not a new size), the bound of bytes, the client's lines that wait, the cleaning of a line, and the
+  block against a terminal with its model. `crates/podssh-ssh/src/frames/wire_tests.rs`: both versions across any
+  cut, version 1 with no line, the lines refused. `server::frames::tests::the_frames_are_of_the_version_asked`. In
+  `crates/podssh-ssh/tests/frame_rate.rs`: the flood's scrollback through a real pty (each line once, or counted), and
+  the asks `v3` (refused) and `v1` (frames of version 1).
+- (e): no code; the test `a_framed_session_recorded_plays_as_its_terminal_showed_it` in
+  `crates/podssh-cli/tests/frames_e2e.rs`: a framed session with `--record` through the stand-in relay's link, sixty
+  lines on 24 rows, and `podssh play --idle-limit 0.001` of the file gives the screen that the terminal showed.
+- The manual's note (`crates/podssh-cli/src/man/notes_frames.rs`), `docs/terminal.md` ("The latest screen: frames"),
+  `docs/cli.md`, `docs/design.md`, a row of `docs/STATUS.md`.
+
+What the main session runs, in this order:
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib frames::
+cargo test -p podssh-ssh --lib server::frames
+cargo test -p podssh-ssh --test frame_rate
+cargo test -p podssh-ssh --test serve_predict --test serve_pty --test serve_keep --test serve_share
+cargo test -p podssh-cli --lib man
+cargo test -p podssh-cli --test words --test flag_table --test man_flag_parity
+cargo test -p podssh-cli --test frames_e2e --test ssh_record
+python3 scripts/feel_interrupt.py --frames --podssh target/debug/podssh --runs 3
+```
+
+The last one checks that the gain stands with the lines: the prompt after Ctrl-C under three round trips (900 ms),
+against 533 ms before them. The lead built and ran the draft (with two fixes of clippy in its tests): the tests passed,
+but the measure gave 1,351 ms median (998 to 1,404), as frames of lines alone kept the window full (the Decision, item
+18). The second draft, on top of it, sends lines alone only into an empty window and with no pace of their own, with
+the test `frames::sender::tests::lines_alone_wait_for_an_empty_window_and_never_hold_a_change`. The lead measured it
+at 1,436 ms (1,137 to 1,470) against 587 ms for `main` the same day: the cause was the lock of item 22, not the
+pace. The third draft, on top of both, makes the handler never wait for the model, with the tests
+`server::frames::tests::the_handler_never_waits_for_the_model` (it fails on the second draft: the acknowledgement
+waits for a model that another thread holds) and
+`server::frames::tests::under_a_flood_that_only_scrolls_the_prompt_shows_at_once` (on the test's paused clock, with one thread, it passes on the second draft too: it holds the rule of the pace, not
+the lock). The lead measured it at 1,117 ms in a debug build (1,104 to 1,310) and 412 ms in a release build (379 to
+1,159), and `frames_e2e`'s Ctrl-C test failed in debug: the cost left was the formatting of each row that left. The
+fourth draft formats only the rows of a write's last screen of line feeds (the Decision, item 23), with the tests
+`frames::scroll::tests::the_last_part_of_a_write_holds_one_screen_of_line_feeds` and
+`frames::scroll::tests::a_write_keeps_only_the_rows_that_can_be_the_newest`. The lead measured it at 854 ms in a debug
+build (612 to 1,182) against 587 ms before the lines, and `frames_e2e`'s test of the bar at 943.8 ms; the test of the
+write's last part counted 97 where vt100 scrolls a 98th row (the fourth line feed from the first row reaches the last
+row and scrolls), a fault of the test, now with line feeds that scroll nothing. The fifth draft makes the lines the
+choice of `--frames-scroll` (the Decision, item 24): `--frames` asks `v1` alone, and its far end keeps no line; its
+measure was to be back at the measure of `main` (587 ms), with `frames_e2e` under the bar. Then `podssh man --llms full > llms-full.txt` (the note changed), `cargo todo
+remap` of `docs/terminal.md`, `docs/cli.md`, `docs/design.md`, `docs/STATUS.md` and the sources named above, rustfmt
+and the gate's clippy. Left after these: (b), (c), (f), (g) and (h) above.
+
+Merged 2026-11-26 (the drafts 9bd9b07, b3ad096, 1f498f8, dd7a733 and aed2bc1, built and measured by the lead):
+`cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 315 binaries passed, `frames_e2e`'s bar of three round
+trips among them; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The measures, a debug build
+on this host, `python3 scripts/feel_interrupt.py --frames --runs N`: 1,351 ms with the lines in each frame; 1,436 ms with
+lines alone waiting for an empty window; 1,117 ms with the handler kept off the model's lock (a release build 412 ms);
+854 ms with one screen of rows formatted for each write; and `--frames` without the lines (aed2bc1) 896 ms median of 5
+(522 to 968), against `main`'s 782 ms median of 5 (571 to 947) the same hour: the host's own noise, as `main` measured
+587 ms earlier the same day. So `--frames` stays as it was, and the scrollback's lines are `--frames-scroll`'s (Decision
+24). Item (d) is done as `--frames-scroll`; item (e) is done (the recording tap held the drawn bytes; the test is
+`frames_e2e`'s record and play, with `--frames-scroll`). Left: (b), (c), (f), (g) and (h).
 
 
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
@@ -2775,7 +2937,7 @@ again: the next frame replaces it.
    also go through the Noise channel of T-088, or carry a MAC of their own, this entry decides.
 6. Only when both ends name it in the layer's features, after the UDP probe.
 
-**The donor study (2026-11-18, PodUtils/podssh#317), report 20.** (hashicorp/yamux at its pinned commit). Each session is its own QUIC stream with a lane by priority (`docs/design.md:1643-1651`), so no multiplexer of podssh's own owns a per-lane window, and yamux's credit rule (hashicorp/yamux:stream.go, the update at a half window) is not needed. If this entry puts screen frames and keys beside the session's bytes on one stream, three rules of yamux are the checks: a frame longer than what was advertised ends the session, with its own reason code (not a reset of one lane); the end of a lane is ordered behind its queued bytes; and a keepalive reply is written on a path that does not queue behind data, with the miss reported as a write stall (the 60 s bound of T-598) and not as a dead peer. Datagrams, as this entry plans them, need none of these. Revisit if a second ask for several lanes in one stream comes: it is an ask of podcrates (`pod-session`), not code of podssh.
+**The donor study (2026-11-18, PodUtils/podssh#317), report 20.** (hashicorp/yamux at its pinned commit). Each session is its own QUIC stream with a lane by priority (`docs/design.md:1644-1652`), so no multiplexer of podssh's own owns a per-lane window, and yamux's credit rule (hashicorp/yamux:stream.go, the update at a half window) is not needed. If this entry puts screen frames and keys beside the session's bytes on one stream, three rules of yamux are the checks: a frame longer than what was advertised ends the session, with its own reason code (not a reset of one lane); the end of a lane is ordered behind its queued bytes; and a keepalive reply is written on a path that does not queue behind data, with the miss reported as a write stall (the 60 s bound of T-598) and not as a dead peer. Datagrams, as this entry plans them, need none of these. Revisit if a second ask for several lanes in one stream comes: it is an ask of podcrates (`pod-session`), not code of podssh.
 
 ## Prove
 
@@ -2820,10 +2982,10 @@ then resumes over a new one. For those 30 s, an interactive session shows nothin
 ## Premise
 
 - Read: a link with nothing from the far end for 30 s is dead
-  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`; `docs/design.md:1059-1067`).
+  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`; `docs/design.md:1060-1068`).
 - Read: a resume can come while the far end still runs the old link; the old link stops, and the
-  new one goes on (`docs/design.md:1073-1075`). The far end lets the newest resume take a session
-  (`docs/design.md:1149-1151`).
+  new one goes on (`docs/design.md:1074-1076`). The far end lets the newest resume take a session
+  (`docs/design.md:1150-1152`).
 - Measured (T-156): a session on the layer and on the iroh road survives a new address of its
   client (`crates/podssh-cli/tests/m6_exit.rs:272`); the time that the resume took is not in the
   record.
@@ -3024,11 +3186,11 @@ session 10 minutes after its link was lost. A session of Mosh waits.
 ## Premise
 
 - Read: the deadline is 10 minutes at both ends (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`;
-  `docs/design.md:1068-1078`). T-153's Decision kept a deadline, as a node in a cage would keep
+  `docs/design.md:1069-1079`). T-153's Decision kept a deadline, as a node in a cage would keep
   connections for clients that never come back.
 - Read: a node keeps 64 MiB of replay buffers at most, a whole buffer for each session that it
-  keeps (`docs/design.md:1259-1262`); a pair expires after 72 h at most
-  (`docs/design.md:1180-1182`).
+  keeps (`docs/design.md:1260-1263`); a pair expires after 72 h at most
+  (`docs/design.md:1181-1183`).
 - Read: the client measures the deadline with `Instant`
   (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:332`). Not verified: whether `Instant` counts the
   time that the host slept, on Linux, macOS and Windows. If it does not, a client that wakes
@@ -4714,15 +4876,15 @@ same setting.
 
 ## Premise
 
-- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:339` decides `resumable` from
+- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:342` decides `resumable` from
   `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
   list.
-- The warning at `crates/podssh-cli/src/ssh/resolve.rs:351-356` sits inside `if resumable`.
+- The warning at `crates/podssh-cli/src/ssh/resolve.rs:354-359` sits inside `if resumable`.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:167` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:201` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/tries.rs:52` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:444` sets when the user
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:448` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:891-895`) says that the resumable

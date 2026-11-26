@@ -854,11 +854,15 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   screen and sends the difference of screens, at most one frame each half
   round trip (20 to 250 ms), so under a flood over a slow link the link
   holds a frame or two, and Ctrl-C shows its prompt without the bytes of
-  the flood before it. Keys go as before. A frame skips output: the
-  terminal's own scrollback gets none of the session's lines, and ZMODEM
-  and a copy to the clipboard do not cross. Another server refuses the
-  ask (OpenSSH's sshd, an older podssh): podssh says so in one line, and
-  the session shows each byte. A shell with frames is not kept;
+  the flood before it. Keys go as before. A frame skips output, and the
+  terminal's own scrollback gets none of its lines. **`--frames-scroll`**
+  is `--frames` whose frames also carry the lines that left the top of the
+  screen since their base, one screen at most, which podssh moves into the
+  terminal's own scrollback before the draw; the rest of a flood is one
+  dim line that counts them.
+  ZMODEM and a copy to the clipboard do not cross. `--record` keeps what
+  was drawn. Another server refuses the ask (OpenSSH's sshd, a podssh with
+  no frames): podssh says so in one line, and the session shows each byte. A shell with frames is not kept;
   `--attach`, `--expect`, `--sudo`, `--su` and a far end with `--share`
   carry each byte, with one line that says so. `--frames` with `--predict`
   is a usage error (64). The flag has no `-o` keyword and no key of the

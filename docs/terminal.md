@@ -1349,11 +1349,16 @@ built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
 
 - **The ask.** `podssh ssh --frames` asks with `env frames@podssh v1` and
   a reply, on a channel with a pty, after local echo's ask and before the
-  shell or the command. `podssh serve` takes it on a channel whose pty it
-  opened (`crates/podssh-ssh/src/server/frames_ask.rs`). Each other server
-  answers FAILURE, OpenSSH's sshd and an older podssh among them: podssh
-  says so in one line, and the session carries each byte, as with no
-  `--frames`. The flag is the whole spelling: no `-o` keyword, as
+  shell or the command. `podssh ssh --frames-scroll` asks with `v2` and a
+  reply, then at once with `v1` and a reply: version 2 carries the lines
+  that leave the top of the screen, for the terminal's scrollback. `podssh
+  serve` takes the first version that it knows, once, on
+  a channel whose pty it opened, and refuses the ask after it
+  (`crates/podssh-ssh/src/server/frames_ask.rs`); the replies come in
+  order, so the two asks cost one round trip. A serve of version 1 alone
+  refuses `v2` and takes `v1`. Each other server answers FAILURE to both,
+  OpenSSH's sshd and a podssh with no frames among them: podssh says so in
+  one line, and the session carries each byte, as with no `--frames`. The flag is the whole spelling: no `-o` keyword, as
   `ssh_config` has none, and no key of the settings file, which holds the
   relay's settings.
 - **The far end's model.** With the ask taken, serve sends no data on the
@@ -1362,18 +1367,34 @@ built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
   never waits, so the pty is read at its own pace whatever the link
   carries (`crates/podssh-ssh/src/server/frames.rs`). The model holds the
   visible screen, the cursor, the modes of the keys and the window's title,
-  and no scrollback. For a channel that asked, serve keeps at most five
-  screens: the screen now, the newest that the client acknowledged, and
-  three frames that wait; some 60 KiB each at 80 by 24.
+  and no scrollback: it counts each row that leaves the top of the primary
+  screen and keeps the text of the newest, one screen of them, with their
+  colours (`crates/podssh-ssh/src/frames/scroll.rs`). Of each write of the
+  pty it formats only the rows that leave in the write's last part that
+  holds one screen of line feeds, so a flood costs no more for each byte
+  than with no lines. The rows of the
+  alternate screen, and those that a new size moves, are not counted: a
+  terminal keeps no scrollback of the one, and moves its own for the
+  other. Under a flood the pump holds the model nearly all the time, so
+  nothing else waits for it: the client's acknowledgements and a new size
+  wait beside it for the pump's next write, and the pump makes each frame
+  that falls due. For a channel that asked, serve keeps at most five screens: the
+  screen now, the newest that the client acknowledged, and three frames
+  that wait; some 60 KiB each at 80 by 24, and the one screen of lines.
 - **A frame.** A record in extended data of the code `0xFE504F46`, in the
-  range that RFC 4250 leaves for private use: 26 bytes of header (the
-  version, the flags, the number of the state, the number of the state
-  that it starts from, the rows and columns, the body's length) and a
-  body, which is the terminal output that turns a model of the base into
-  the new state, as `vt100` writes the difference of two screens
-  (`crates/podssh-ssh/src/frames/wire.rs`,
+  range that RFC 4250 leaves for private use: a header (the version, the
+  flags, the number of the state, the number of the state that it starts
+  from, the rows and columns, the body's length; 26 bytes in version 1,
+  and 34 in version 2, which adds the count of lines that left the top of
+  the screen up to the state) and a body, which is the terminal output that
+  turns a model of the base into the new state, as `vt100` writes the
+  difference of two screens (`crates/podssh-ssh/src/frames/wire.rs`,
   `crates/podssh-ssh/src/frames/screen.rs`). The first frame, and each
-  frame after a new size, draws the whole screen from an empty one.
+  frame after a new size, draws the whole screen from an empty one. In
+  version 2, with its flag, the body starts with the last lines that left
+  the top since the frame's base: at most one screen of them and 16 KiB,
+  each at most 4 KiB, a row of text whose one kind of control is the SGR
+  sequence of its colours.
 - **The pace.** Mosh's (its paper, section 2.3): a frame at most each half
   round trip, never sooner than 20 ms after the last and never later than
   250 ms, and 8 ms after the first change, so that a burst is one frame.
@@ -1381,7 +1402,10 @@ built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
   carries the frames in order, so while two wait for an acknowledgement no
   frame goes, until one comes or 2 s pass: that bound is what keeps the
   link empty under a flood (`crates/podssh-ssh/src/frames/sender.rs`). A
-  screen that did not change makes no frame.
+  screen that did not change makes no frame. Lines that left its top
+  under a screen that looks the same (a flood of `yes`) make a frame only
+  while no frame waits for an acknowledgement, and that frame sets no
+  pace: the prompt after Ctrl-C never waits behind lines.
 - **The acknowledgement.** The client answers with `env frames-ack@podssh
   NUMBER`, with no reply asked, at most once for each pass of its loop:
   the number of the newest state that it holds. A frame starts from the
@@ -1393,20 +1417,39 @@ built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
   (`crates/podssh-ssh/src/frames/receiver.rs`).
 - **What the client draws.** The frames of one read are drawn once, as the
   newest state: the difference from what the terminal shows. Before the
-  first frame, the lines on the terminal go up into its scrollback. After a
+  first frame, the lines on the terminal go up into its scrollback. Before
+  each draw, the lines that left the far end's top since the state that
+  the terminal shows go into its scrollback: each one written in a row at
+  the top of the screen, then as many line feeds from the last row, so
+  that the terminal itself moves them up, in order; a screen at a time.
+  The client counts the lines that its scrollback got, so a line that two
+  frames carry goes up once, and a run of lines that no frame carried (a
+  flood between two frames, more than a screen) is one dim line, `[podssh:
+  N lines skipped]`. A line keeps its colours and no other control. After a
   line of podssh's own, the far end's stderr, or a new size of the window,
   the next frame draws the whole screen again from its first cell. At the
   end, however the session ended, the modes of the keys go back and the
   cursor shows; the last screen stays. Keys go as bytes, each one, as with
   no frames.
-- **What frames cost.** A frame skips output, so the terminal's own
-  scrollback gets none of the session's lines. What a program writes for
-  the terminal alone does not cross: a transfer of ZMODEM, a copy to the
+- **What frames cost.** A frame skips output: with `--frames` the
+  terminal's own scrollback gets none of the session's lines. With
+  `--frames-scroll`, under a flood, it gets one screen of lines for each
+  frame and a count of the rest, where each byte would give it each line;
+  a serve of version 1 sends no line. The lines are a choice: in a debug
+  build, a flood of `yes` at 300 ms and 64 KiB/s showed the prompt after
+  Ctrl-C about 270 ms later with them (854 ms against 587 ms), as the far
+  end counts and keeps lines and sends a frame of lines each round trip. What a program writes for the terminal alone does not cross: a transfer of ZMODEM, a copy to the
   clipboard. The alternate screen is the visible screen while a program
   has it; the client's terminal never enters it. The far end answers the
   questions that programs wait on (the cursor's place, the device's status
   and its primary attributes), as they never reach the client's terminal.
   The bell and the window's title cross with a frame.
+- **A recording.** `--record` of a framed session keeps what was drawn on
+  the terminal: the frames' drawing, the lines moved into the scrollback
+  among it, which is terminal output, as the far end's bytes never arrive
+  (`crates/podssh-ssh/src/io/msg.rs`). `podssh play` shows it as any
+  recording, and gives the screen that the terminal showed. `podssh
+  session` asks for no frames: it reads its output as bytes.
 - **Where there are none.** A shell with frames is not kept (`~d` is
   refused). `--attach`, a shell shared by name, `--expect`, `--sudo`,
   `--su`, `podssh each` and a session through a control master carry each

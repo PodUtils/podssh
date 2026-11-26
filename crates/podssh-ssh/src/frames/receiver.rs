@@ -9,10 +9,14 @@
 //! frame whose base is not held is refused, and the acknowledgement says
 //! so; a frame that is not newer than the state held is passed over, also
 //! a whole screen, so that a late one never moves the screen back.
+//!
+//! The lines that left the top of the far end's screen (version 2) go into
+//! the terminal's scrollback before the draw, each once (`super::scroll`).
 
 use std::collections::VecDeque;
 
-use super::screen::{apply, draw, leave, State};
+use super::screen::{after_block, apply, draw, leave, State};
+use super::scroll::{block, Pending};
 use super::wire::{Ack, Decoder, Frame};
 
 /// The most states kept as bases of later frames: more than the far end
@@ -45,6 +49,8 @@ pub struct Receiver {
     due: Option<bool>,
     /// The last frame came: the far end's output ended.
     ended: bool,
+    /// The lines that came, for the terminal's scrollback.
+    pending: Pending,
 }
 
 impl Receiver {
@@ -55,9 +61,9 @@ impl Receiver {
     pub fn feed(&mut self, bytes: &[u8]) -> Result<Vec<u8>, String> {
         let frames = self.decoder.feed(bytes)?;
         let (mut fresh, mut bell) = (false, false);
-        for frame in &frames {
+        for frame in frames {
             // Due before any check, so that a refused frame is answered too.
-            let taken = self.take(frame);
+            let taken = self.take(&frame);
             self.due = Some(match taken {
                 Taken::Lost => true,
                 Taken::Applied => false,
@@ -68,6 +74,7 @@ impl Receiver {
                 fresh = true;
                 bell |= frame.head.bell;
                 self.ended |= frame.head.last;
+                self.pending.insert(frame.head.total, frame.lines);
             }
         }
         if !fresh {
@@ -79,7 +86,19 @@ impl Receiver {
             Some(_) => Vec::new(),
             None => first(new),
         };
-        out.extend_from_slice(&draw(self.shown.as_ref(), new, self.repaint));
+        // The lines that left the top since the state shown go up into the
+        // scrollback first; the draw then starts from what that left.
+        // The newest state's size is the terminal's: the far end takes the
+        // window's.
+        let (height, cols) = new.size();
+        let lines = self.pending.take(new.total, cols);
+        let mut shown = self.shown.take();
+        if !lines.is_empty() {
+            let moved = block(&lines, height);
+            out.extend_from_slice(&moved);
+            shown = shown.map(|shown| after_block(&shown, &moved));
+        }
+        out.extend_from_slice(&draw(shown.as_ref(), new, self.repaint));
         if bell {
             out.push(0x07);
         }
@@ -101,7 +120,8 @@ impl Receiver {
                 _ => return Taken::Lost,
             }
         };
-        let state = apply(base, head.rows, head.cols, &frame.body);
+        let mut state = apply(base, head.rows, head.cols, &frame.body);
+        state.total = head.total;
         if self.held.len() >= KEPT {
             self.held.pop_front();
         }

@@ -57,7 +57,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 4. No prompts: BatchMode is on (`crates/podssh-cli/src/ssh/login.rs:86`).
    An unknown host key refuses that host and gives its fingerprint and
    `-o StrictHostKeyChecking=accept-new`. stdin is not read
-   (`crates/podssh-cli/src/ssh/resolve.rs:394`).
+   (`crates/podssh-cli/src/ssh/resolve.rs:397`).
 5. Get the token once, before the fan-out. Serialize `known_hosts::append`
    in the process with a mutex; T-029 covers two processes.
 6. The exit status: the largest status of the hosts, and 255 for a host that
@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:7351-7354`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:7355-7358`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:7567-7682`); they cannot define a group.
+  (`docs/cli.md:7571-7686`); they cannot define a group.
 
 ## Approach
 
@@ -1029,7 +1029,7 @@ that can be missing. `podssh doctor` checks only this host.
 ## Premise
 
 - Read: an exec request runs one command through the shell of the server
-  (`crates/podssh-ssh/src/session.rs:153-168`), and its output goes to stdout
+  (`crates/podssh-ssh/src/session.rs:155-170`), and its output goes to stdout
   (`crates/podssh-ssh/src/io/msg.rs:85-134`); podssh cannot read it.
 - Read: on Linux, `/proc/loadavg`, `/proc/meminfo`, `/proc/uptime` and
   `/proc/net/dev` hold the facts, and a POSIX shell reads them with `read`,
@@ -1177,7 +1177,7 @@ name is copied by hand.
 ## Premise
 
 - Read: `podssh ssh -t HOST -- docker exec -it NAME sh` works today, as a
-  remote command with a pty (`crates/podssh-cli/src/ssh/resolve.rs:240-248`,
+  remote command with a pty (`crates/podssh-cli/src/ssh/resolve.rs:243-251`,
   `crates/podssh-cli/src/ssh/hop.rs:103-120`). Only the list is missing.
 - Read: podssh starts a program only when the user names it or a probe
   finds it (`AGENTS.md:440-446`). Here the programs run on the server, for a
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:671`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:7351-7354`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:7355-7358`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-145`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:419-468`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:7351-7354`), which is not a failure of podssh.
+  status (`docs/cli.md:7355-7358`), which is not a failure of podssh.
 
 ## Approach
 
@@ -2851,7 +2851,7 @@ relay reaches; nothing reports the far side.
   (`crates/podssh-ssh/src/sftp/mod.rs:236-239`), the request of a remote forward
   (`crates/podssh-ssh/src/remote.rs:130-144`), a channel `direct-tcpip`
   (`crates/podssh-ssh/src/local.rs:79`), keepalives each 60 s by default
-  (`crates/podssh-ssh/src/options.rs:398-399`), and the relay's cap on a session
+  (`crates/podssh-ssh/src/options.rs:401-402`), and the relay's cap on a session
   (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:23-25`).
 - Read in the issue: a Go SSH server's keepalive reply ended each idle session at 60 s (#83); it
   refused `tcpip-forward` (#85) and had no `direct-tcpip` (#86); its SFTP server had no
@@ -3893,7 +3893,7 @@ while the summary still named port 1. The manual and the help say that `-p` is "
 
 - Read, at `07d7d9b`: `each` gives each host to the resolver of `podssh ssh` as its destination, with the command
   line's `-p` kept (line 51 of `crates/podssh-cli/src/each/host.rs`), and the resolver takes `-p` before the
-  destination's own port (`crates/podssh-cli/src/ssh/resolve.rs:169`).
+  destination's own port (`crates/podssh-cli/src/ssh/resolve.rs:172`).
 - Read: the help row says "port to connect to, for each host that names none" (`crates/podssh-cli/src/flags/each.rs`),
   and so does the manual's note of `each` (`crates/podssh-cli/src/man/notes_each.rs`).
 

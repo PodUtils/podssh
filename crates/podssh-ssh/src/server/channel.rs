@@ -92,8 +92,8 @@ pub(super) struct Open {
     /// `env predict@podssh v1` was taken: the pty's output carries local
     /// echo's reports (T-160).
     pub(super) predict: bool,
-    /// `env frames@podssh v1` was taken: the pty's screen goes as frames,
-    /// in place of its bytes (T-303).
+    /// `env frames@podssh v2` (or `v1`) was taken: the pty's screen goes as
+    /// frames, in place of its bytes (T-303).
     pub(super) frames: Option<Arc<super::frames::Shared>>,
 }
 

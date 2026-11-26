@@ -143,7 +143,9 @@ pub async fn attach(
     if let Some(why) = crate::frames::not_asked(opts, want_pty, stdin_tty) {
         log.info(why);
     }
-    let frames_asked = crate::frames::wanted(opts, want_pty, stdin_tty) && crate::frames::ask(&channel).await;
+    let scroll = opts.frames_scroll;
+    let frames_asked =
+        if crate::frames::wanted(opts, want_pty, stdin_tty) { crate::frames::ask(&channel, scroll).await } else { 0 };
     let mut elevated = None;
     let what = match &opts.request {
         Request::Shell => {
@@ -177,7 +179,7 @@ pub async fn attach(
         pty = granted(&mut channel, &mut early, log).await?;
     }
     let rtt = crate::predict::answered(&mut channel, &mut early, predict_at, log).await?;
-    let frames = crate::frames::answered(&mut channel, &mut early, frames_asked, log).await?;
+    let frames = crate::frames::answered(&mut channel, &mut early, (frames_asked, scroll), log).await?;
     if !wait_reply(&mut channel, &mut early).await? {
         return Err(format!("the server refused to start {what}"));
     }

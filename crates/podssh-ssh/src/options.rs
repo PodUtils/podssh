@@ -313,6 +313,9 @@ pub struct Options {
     /// its pty, where the far end sends them (`podssh serve` with a pty,
     /// T-303).
     pub frames: bool,
+    /// `--frames-scroll`: with the frames, the lines that leave the top of
+    /// the far end's screen, for the terminal's scrollback (T-303).
+    pub frames_scroll: bool,
     /// The destination's host key for the whole run, shared by each
     /// connection that a run opens again (`cp`, T-136); `None` for one
     /// connection.
@@ -421,6 +424,7 @@ impl Options {
             interrupt_signal: false,
             predict: false,
             frames: false,
+            frames_scroll: false,
             host_key_pin: None,
             host_key_fingerprints: Vec::new(),
             remembered: None,

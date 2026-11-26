@@ -162,6 +162,9 @@ pub struct SshArgs {
     /// `--frames`: the far end's screen as frames, where it sends them
     /// (T-303).
     pub frames: bool,
+    /// `--frames-scroll`: `--frames`, with the lines that leave the top of
+    /// the far end's screen (T-303).
+    pub frames_scroll: bool,
     /// `--resume-deadline TIME`: this client's own resume deadline, which
     /// only shortens the far end's (T-306), unparsed.
     pub resume_deadline: Option<String>,
@@ -430,6 +433,7 @@ impl SshArgs {
             no_signal: flag("no-signal"),
             predict: flag("predict"),
             frames: flag("frames"),
+            frames_scroll: flag("frames-scroll"),
             resume_deadline: one("resume-deadline"),
             no_resume: flag("no-resume"),
             grant: one("grant"),
