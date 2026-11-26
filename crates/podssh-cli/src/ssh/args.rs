@@ -159,6 +159,9 @@ pub struct SshArgs {
     /// `--predict`: local echo of the keys, where the far end reports them
     /// (T-160).
     pub predict: bool,
+    /// `--frames`: the far end's screen as frames, where it sends them
+    /// (T-303).
+    pub frames: bool,
     /// `--resume-deadline TIME`: this client's own resume deadline, which
     /// only shortens the far end's (T-306), unparsed.
     pub resume_deadline: Option<String>,
@@ -426,6 +429,7 @@ impl SshArgs {
             upgrade: flag("upgrade"),
             no_signal: flag("no-signal"),
             predict: flag("predict"),
+            frames: flag("frames"),
             resume_deadline: one("resume-deadline"),
             no_resume: flag("no-resume"),
             grant: one("grant"),

@@ -99,6 +99,10 @@ pub(super) fn resize_pty(open: &Open, cols: u32, rows: u32, pix_width: u32, pix_
     if let Some(granted) = open.pty.as_ref() {
         granted.resize(super::pty::size_of(cols, rows, pix_width, pix_height));
     }
+    // The model of the pty's screen takes the pty's size (T-303).
+    if let Some(frames) = open.frames.as_ref() {
+        frames.resize(super::pty::size_of(cols, rows, pix_width, pix_height));
+    }
     if let Some(line) = open.line.as_ref() {
         line.resize(cols, rows);
     }

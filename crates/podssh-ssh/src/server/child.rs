@@ -150,6 +150,12 @@ impl Running {
         self.tally.count(self.write.make_writer_ext(Some(1)))
     }
 
+    /// A writer of extended data of the code `ext`, each byte counted: the
+    /// frames of the pty's screen (T-303), which are its output.
+    pub(super) fn writer_of(&self, ext: u32) -> super::audit::Counted<impl AsyncWrite + Send + Unpin + 'static> {
+        self.tally.count(self.write.make_writer_ext(Some(ext)))
+    }
+
     /// A program's side of a channel that joined it later: a kept shell's
     /// (T-159), whose end goes to the channel that has it then, and to that
     /// channel's counts (T-116).

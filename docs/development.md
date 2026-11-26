@@ -1157,7 +1157,10 @@ back after the run, also when the run ended early.
 the reference, through the stand-in proxy with a link of `scripts/fake_shape.py`
 (150 ms each way and 64 KiB/s by default), `yes` for 3 s, then 0x03 and the time
 until the prompt shows, in ms and in round trips. It uses the bench of
-`scripts/feel-matrix.py`; no root. `--self-test` needs no podssh.
+`scripts/feel-matrix.py`; no root. `--self-test` needs no podssh. With
+`--frames` (step 2) it also measures `podssh ssh --frames` to the same serve,
+says the gain, and runs `podssh ssh --frames` once to OpenSSH's sshd, which
+must refuse the frames and show each byte.
 
 ```sh
 python3 scripts/feel_interrupt.py --podssh target/debug/podssh --runs 5

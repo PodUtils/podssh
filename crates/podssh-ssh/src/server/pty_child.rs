@@ -98,8 +98,10 @@ pub(super) fn spawn(
     let Some(slave) = granted.slave.take() else { return Err("a program ran on this pty already".into()) };
     let env = super::env::with_tty(env, &granted.term, granted.path.then_some(granted.name.as_str()));
     // A login shell that may be kept (T-159) knows its id, so that an
-    // attach from inside it is refused; with --share it is not kept.
-    let kept_id = open.keeper.as_ref().filter(|_| open.offer.is_none()).and_then(|_| super::kept_ask::new_id());
+    // attach from inside it is refused; with --share it is not kept, nor
+    // with frames (T-303), whose screen no ring of bytes replays.
+    let kept = open.offer.is_none() && open.frames.is_none();
+    let kept_id = open.keeper.as_ref().filter(|_| kept).and_then(|_| super::kept_ask::new_id());
     let env = match kept_id.as_deref() {
         Some(id) => super::kept_ask::with_id(env, id),
         None => env,
@@ -154,6 +156,7 @@ pub(super) fn spawn(
     // output to each seat too (T-837), with the reports of each seat that
     // asked, made by this pump after the output that it read (T-896); else
     // straight, as before.
+    let mut framing = None;
     let output = match open.offer.take() {
         Some(shares) => {
             let fd = master.clone();
@@ -177,17 +180,29 @@ pub(super) fn spawn(
             }
             // Local echo's reports, where the client asked for them (T-160).
             let reporter = open.predict.then(|| super::predict::Reporter::new(&running.write, master.clone()));
-            match reporter.as_ref() {
-                Some(r) => open.give_stdin(Box::new(r.applying(Master(master.clone())))),
-                None => open.give_stdin(Box::new(Master(master.clone()))),
+            if let Some(frames) = open.frames.clone() {
+                // The screen as frames, where the client asked (T-303): the
+                // pump feeds serve's model of the screen, and a second task
+                // sends the frames. It is waited for after the pump, so the
+                // last frame comes before the program's status.
+                open.give_stdin(Box::new(Master(master.clone())));
+                let out = running.writer_of(crate::frames::EXT);
+                framing = Some(tokio::spawn(frames.clone().run(out, Master(master.clone()))));
+                tokio::spawn(pump_told(motd.chain(Master(master)), frames.sink(), exited, None))
+            } else {
+                match reporter.as_ref() {
+                    Some(r) => open.give_stdin(Box::new(r.applying(Master(master.clone())))),
+                    None => open.give_stdin(Box::new(Master(master.clone()))),
+                }
+                tokio::spawn(pump_told(motd.chain(Master(master)), to, exited, reporter.map(Teller::Own)))
             }
-            tokio::spawn(pump_told(motd.chain(Master(master)), to, exited, reporter.map(Teller::Own)))
         }
     };
     // The files of the marks go when the session does.
     let (marks, closed) = (open.extras.marks.take(), open.closed.clone());
     tokio::spawn(async move {
-        running.finish(child, vec![output], exited_tx, closed).await;
+        let pumps = [Some(output), framing].into_iter().flatten().collect();
+        running.finish(child, pumps, exited_tx, closed).await;
         drop(marks);
     });
     Ok(())

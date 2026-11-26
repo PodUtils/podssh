@@ -138,6 +138,12 @@ pub async fn attach(
     // its answer comes after the pty's, which may wait as long.
     let wanted = crate::predict::wanted(opts, want_pty, stdin_tty);
     let predict_at = if wanted { crate::predict::ask(&channel).await } else { None };
+    // `--frames` (T-303): asked beside it, and answered after it. A session
+    // that cannot show frames says why, and carries each byte.
+    if let Some(why) = crate::frames::not_asked(opts, want_pty, stdin_tty) {
+        log.info(why);
+    }
+    let frames_asked = crate::frames::wanted(opts, want_pty, stdin_tty) && crate::frames::ask(&channel).await;
     let mut elevated = None;
     let what = match &opts.request {
         Request::Shell => {
@@ -171,6 +177,7 @@ pub async fn attach(
         pty = granted(&mut channel, &mut early, log).await?;
     }
     let rtt = crate::predict::answered(&mut channel, &mut early, predict_at, log).await?;
+    let frames = crate::frames::answered(&mut channel, &mut early, frames_asked, log).await?;
     if !wait_reply(&mut channel, &mut early).await? {
         return Err(format!("the server refused to start {what}"));
     }
@@ -188,6 +195,13 @@ pub async fn attach(
     } else {
         None
     };
+    // A frame is drawn with VT sequences, which an old Windows console
+    // shows as text, and the far end sends nothing else now (T-303).
+    if frames.is_some() && !terminal::vt_output() {
+        return Err("--frames: this console takes no VT sequences, which a frame is drawn with; run again \
+                    without --frames"
+            .into());
+    }
     // `~d` keeps a shell on a far end that keeps shells (T-158).
     let detach = opts.keep.detach_name(pty && stdin_tty && opts.request == Request::Shell);
     // `~C` where the caller can add forwards (T-291).
@@ -206,8 +220,10 @@ pub async fn attach(
             .ok()
     });
     // ZMODEM (T-148) only with a raw terminal and a terminal on stdout: with
-    // no terminal, nothing is ever received.
-    let zmodem = crate::zmodem::Zmodem::for_session(raw.is_some() && terminal::stdout_is_terminal());
+    // no terminal, nothing is ever received; nor with frames, which carry
+    // the screen and none of a transfer's bytes (T-303).
+    let zmodem =
+        crate::zmodem::Zmodem::for_session(raw.is_some() && terminal::stdout_is_terminal() && frames.is_none());
     let detaching = crate::keep::Detaching::new(detach);
     // The first rule's time starts with the session.
     let expect = opts.expect.as_ref().map(crate::expect::Expect::new);
@@ -224,6 +240,8 @@ pub async fn attach(
     // and that reads the VT moves of its drawing (T-896).
     let drawn = |_: &Duration| pty && raw.is_some() && crate::predict::drawable(log);
     let predict = rtt.filter(drawn).map(crate::predict::Predict::for_terminal);
+    // What the last frame leaves on the terminal, for the session's end.
+    let leave = frames.as_ref().map(crate::frames::Frames::leave);
     let through = io::Through {
         elevated,
         zmodem,
@@ -238,12 +256,18 @@ pub async fn attach(
         window_stall: !opts.silence.told_by_road(),
         count: counting.as_ref().map(|counting| counting.counter.clone()),
         predict,
+        frames,
     };
     // With no remote pty, Ctrl-C sends `signal INT` to a command or a shell
     // (T-293); a subsystem gets none, as sshd refuses it for one.
     let runs = matches!(opts.request, Request::Shell | Request::Exec(_));
     let interrupt = terminal::interrupt::Interrupt::for_session(!pty && runs && opts.interrupt_signal);
     let end = io::pump(handle, channel, early, escapes, pty, input, through, interrupt, log).await;
+    // The modes of the keys that the last frame set go back, however the
+    // session ended (T-303).
+    if let Some(leave) = &leave {
+        leave.restore();
+    }
     drop(raw);
     if let Some(counting) = &counting {
         counting.ended(&end);

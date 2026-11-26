@@ -50,7 +50,7 @@ core: the handshake, a host key that does not change, and key authentication.
    `$HOME/.ssh/authorized_keys`. Lines with options wait for T-114. No usable
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
-5. The verb: rows in `crates/podssh-cli/src/flags.rs:392-468` and
+5. The verb: rows in `crates/podssh-cli/src/flags.rs:395-471` and
    `crates/podssh-cli/src/positionals.rs:8-292`, an arm beside
    `crates/podssh-cli/src/dispatch.rs:396-398`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
@@ -226,7 +226,7 @@ and stderr apart, and an environment that a cage can give.
   lines 601-667). russh also gives each data message to the kept `Channel`,
   and waits when 100 wait unread (`Eugeny/russh:russh/src/server/encrypted.rs`,
   lines 1350-1356): an unread channel stops the whole connection.
-- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-88`;
+- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-96`;
   `crates/podssh-ssh/src/signals.rs:70-79` maps names to numbers only;
   `tokio` with `process` is a dependency (`crates/podssh-ssh/Cargo.toml:19`).
 
@@ -1943,8 +1943,8 @@ Correction):
   any channel holds some (`vendor/russh/src/server/session.rs:704` and `vendor/russh/src/server/session.rs:814`).
   But serve's output never puts data there: each output goes through a channel's writer, which waits
   for that channel's window (`vendor/russh/src/channels/io/tx.rs:82`, `poll_writable`), and T-108
-  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:249`) reads 32 KiB, and reads
-  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:283`). Approach items 1 and 2
+  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:255`) reads 32 KiB, and reads
+  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:289`). Approach items 1 and 2
   were done by T-108 and T-110; this entry proves them. A `Handle::data` loop is held too: russh's
   loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
   would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
@@ -2949,7 +2949,7 @@ no reason (`docs/target-environment.md:88-89`).
 ## Premise
 
 - Read: no source in `crates/` reads `SHELL` or selects a shell; `serve` is
-  not a verb (`crates/podssh-cli/src/flags.rs:392-468`). The line numbers in
+  not a verb (`crates/podssh-cli/src/flags.rs:395-471`). The line numbers in
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
@@ -4679,7 +4679,7 @@ which of two writers' bytes reach the pty.
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
   nothing (`crates/podssh-ssh/src/server/handler/auth.rs:101-110`,
-  `crates/podssh-ssh/src/server/handler.rs:349-372`); `--listen` is T-124, still open.
+  `crates/podssh-ssh/src/server/handler.rs:351-374`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -4845,8 +4845,8 @@ done; its planted defect waits for the release checks (T-251).
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:106-127`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:88`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:108-129`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:90`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 

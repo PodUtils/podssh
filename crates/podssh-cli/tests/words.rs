@@ -107,6 +107,12 @@ fn each_line_of_the_pass_is_true_and_clear() {
             vec!["--policy and --preflight cannot be used together"],
             vec!["give one"],
         ),
+        (
+            vec!["ssh", "--frames", "--predict", "host"],
+            64,
+            vec!["--frames and --predict cannot be used together: a guess of --predict"],
+            vec!["give one"],
+        ),
         // `help WORD` that names no verb is refused as that word, not as `help`.
         (vec!["help", "nosuchverb"], 64, vec!["unknown subcommand 'nosuchverb'"], vec!["'help'"]),
         // A name that never ran did not end.

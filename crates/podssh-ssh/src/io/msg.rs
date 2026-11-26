@@ -36,10 +36,18 @@ pub(super) async fn handle_msg(
         ChannelMsg::ExtendedData { data, ext } if ext == crate::predict::EXT && through.predict.is_some() => {
             crate::predict::reported(through.predict.as_mut(), &data).await;
         }
+        // A frame of the far end's screen, in place of its bytes (T-303).
+        ChannelMsg::ExtendedData { data, ext } if ext == crate::frames::EXT && through.frames.is_some() => {
+            return frame(&data, out, through, log).await;
+        }
         ChannelMsg::ExtendedData { data, ext } => {
             // serve says a reset, and a part that its ring dropped, here.
             if let (Some(count), 1) = (&through.count, ext) {
                 count.stderr(&data);
+            }
+            // Words beside the frames move the cursor under them (T-303).
+            if let Some(frames) = through.frames.as_mut() {
+                frames.disturbed();
             }
             let data = out.consoles.text(true, through.out(&data, true, log));
             let _ = write_out(out.sink.as_ref(), &data, true).await;
@@ -83,6 +91,37 @@ pub(super) async fn handle_msg(
         // may still come: a link lost after it cut no output (T-461).
         ChannelMsg::Eof => out.eof = true,
         _ => {}
+    }
+    None
+}
+
+/// The frames that `data` completes, drawn on stdout as the newest state
+/// (T-303), and into the recording as drawn. Bytes that are no frame end
+/// the session with one line: nothing that follows them can be shown.
+async fn frame(data: &[u8], out: &mut Out, through: &mut Through, log: &Log) -> Option<End> {
+    let drawn = match through.frames.as_mut()?.feed(data) {
+        Ok(drawn) => drawn,
+        Err(why) => {
+            log.error(&format!("--frames: the far end sent {why}; the session ends, as its screen cannot be shown"));
+            return Some(End::NoStatus);
+        }
+    };
+    if drawn.is_empty() {
+        return None;
+    }
+    let drawn = through.recorded(drawn, log);
+    // A notice of silence comes off before the far end's next screen, as
+    // before its next bytes (T-302).
+    let drawn = match through.notice.as_mut().map(|notice| notice.before_output(&drawn, false)) {
+        Some(mut first) if !first.is_empty() => {
+            first.extend_from_slice(&drawn);
+            first
+        }
+        _ => drawn,
+    };
+    let drawn = out.consoles.text(false, drawn);
+    if out.gone.is_none() && write_out(out.sink.as_ref(), &drawn, false).await.is_err() {
+        out.gone = Some(tokio::time::Instant::now());
     }
     None
 }

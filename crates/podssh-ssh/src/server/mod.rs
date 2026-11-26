@@ -45,6 +45,8 @@ mod channel;
 mod child;
 mod direct;
 pub mod env;
+// The pty's screen as frames, for a channel that asked (T-303).
+mod frames;
 pub mod gateway;
 mod handler;
 pub mod host_key;

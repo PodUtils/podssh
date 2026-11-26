@@ -36,6 +36,8 @@ use super::{env, share_ctl, share_view, Rules, Settings};
 
 #[path = "handler_forward.rs"]
 mod forward;
+#[path = "frames_ask.rs"]
+mod frames_ask;
 #[path = "handler_gate.rs"]
 mod gate;
 #[path = "kept_asks.rs"]
@@ -420,9 +422,10 @@ impl russh::server::Handler for Served {
         value: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        // Local echo's ask (T-160), and podssh's own names of the kept
-        // shells (T-159), before --accept-env.
-        if let Some(answered) = self.predict_env(channel, name, value, session) {
+        // Local echo's ask (T-160), the frames' requests (T-303), and podssh's
+        // own names of the kept shells (T-159), before --accept-env.
+        let own = self.predict_env(channel, name, value, session);
+        if let Some(answered) = own.or_else(|| self.frames_env(channel, name, value, session)) {
             return answered;
         }
         if let Some(answered) = self.keep_env(channel, name, value, session) {

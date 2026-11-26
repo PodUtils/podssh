@@ -98,6 +98,11 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
             (None, None) => parse_hop(destination)?,
         },
     };
+    // The far end's screen as frames (T-303) carries none of the bytes that
+    // local echo's guesses are drawn on.
+    if args.frames && args.predict {
+        return Err(crate::refuse::apart("--frames", "--predict").into());
+    }
     if args.iroh_ticket.is_some() && node.is_none() {
         return Err("--iroh-ticket is for a node://NAME destination, whose pair it races with".into());
     }
@@ -391,6 +396,8 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     options.interrupt_signal = !args.no_signal;
     // Local echo, asked of the far end at the session's start (T-160).
     options.predict = args.predict;
+    // The far end's screen as frames, asked the same way (T-303).
+    options.frames = args.frames;
     let stream = matches!(options.request, Request::StdioForward(_));
     let permit = settings.permit_local_command;
     options.local_command = super::local_command::plan(settings.local_command.as_deref(), permit, &tokens, stream)?;

@@ -58,6 +58,8 @@ pub mod kex_first;
 // `--expect` and `--send` of a session with a pty (T-191).
 pub mod expect;
 pub mod forward;
+// The far end's screen as frames, in place of each byte of its pty (T-303).
+pub mod frames;
 pub mod handler;
 // What a handshake saw, for its line when it does not finish (T-588).
 pub mod handshake;

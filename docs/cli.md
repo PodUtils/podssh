@@ -849,6 +849,20 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   Ctrl-C, or the end of the wait, ends podssh with 130. **`--no-signal`**
   keeps OpenSSH's behaviour: no request, and Ctrl-C ends podssh at once
   ([terminal.md](terminal.md), "Ctrl-C with no remote pty").
+- **`--frames` shows the far end's latest screen, not each byte** (T-303),
+  in a session with a pty to `podssh serve`: serve keeps a model of its
+  screen and sends the difference of screens, at most one frame each half
+  round trip (20 to 250 ms), so under a flood over a slow link the link
+  holds a frame or two, and Ctrl-C shows its prompt without the bytes of
+  the flood before it. Keys go as before. A frame skips output: the
+  terminal's own scrollback gets none of the session's lines, and ZMODEM
+  and a copy to the clipboard do not cross. Another server refuses the
+  ask (OpenSSH's sshd, an older podssh): podssh says so in one line, and
+  the session shows each byte. A shell with frames is not kept;
+  `--attach`, `--expect`, `--sudo`, `--su` and a far end with `--share`
+  carry each byte, with one line that says so. `--frames` with `--predict`
+  is a usage error (64). The flag has no `-o` keyword and no key of the
+  settings file ([terminal.md](terminal.md), "The latest screen: frames").
 - **`--result-file FILE` writes the result of the run as JSON** (T-054), at
   its end, also when it failed before it connected, so that a script tells
   the remote command's status from a failure of podssh with no parsing of

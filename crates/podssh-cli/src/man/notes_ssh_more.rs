@@ -243,4 +243,5 @@ pub(super) const MORE: &[&str] = &[
      PODSSH_SSH_CONFIG is your choice: its owner and mode are not checked, as OpenSSH does not check them. Each \
      file that it includes is checked.",
     super::notes_predict::SSH_PREDICT,
+    super::notes_frames::SSH_FRAMES,
 ];

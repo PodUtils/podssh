@@ -309,6 +309,10 @@ pub struct Options {
     /// `--predict`: local echo of the keys, where the far end tells it how
     /// (`podssh serve` with a pty) and the round trip is long (T-160).
     pub predict: bool,
+    /// `--frames`: the far end's screen as frames in place of each byte of
+    /// its pty, where the far end sends them (`podssh serve` with a pty,
+    /// T-303).
+    pub frames: bool,
     /// The destination's host key for the whole run, shared by each
     /// connection that a run opens again (`cp`, T-136); `None` for one
     /// connection.
@@ -416,6 +420,7 @@ impl Options {
             feed: None,
             interrupt_signal: false,
             predict: false,
+            frames: false,
             host_key_pin: None,
             host_key_fingerprints: Vec::new(),
             remembered: None,

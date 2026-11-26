@@ -32,6 +32,7 @@ mod input;
 mod msg;
 mod send;
 mod transfer;
+mod wait;
 
 use beside::beside;
 pub use feed::Feed;
@@ -40,6 +41,7 @@ use msg::{handle_msg, write_out};
 pub use send::WINDOW_STALL;
 use send::{send, Also};
 use transfer::zmodem_out;
+use wait::{answered, elevating, expecting, sleep_until, Ping};
 
 /// How a session ended.
 #[derive(Debug)]
@@ -149,6 +151,8 @@ pub struct Through {
     pub count: Option<crate::keep_count::Counter>,
     /// Local echo of the keys, for a far end that reports them (T-160).
     pub predict: Option<crate::predict::Predict>,
+    /// The far end's screen as frames, where it sends them (T-303).
+    pub frames: Option<crate::frames::Frames>,
 }
 
 impl Through {
@@ -249,6 +253,8 @@ pub async fn pump(
     loop {
         busy.at("the pump's turn before its wait");
         beside(expected(&mut through, &writer, &mut held, !reading), &mut reader, &mut aside, &mark).await;
+        // The frames that came are acknowledged, once for each pass (T-303).
+        beside(crate::frames::acknowledge(through.frames.as_mut(), &writer), &mut reader, &mut aside, &mark).await;
         let also = Also { stop: &mut stop, zmodem: Some((&mut *input, reading && !held)) };
         let channel = (&mut reader, &mut aside);
         let state = (&mut status, &mut out, &mut through);
@@ -345,7 +351,9 @@ pub async fn pump(
             msg = busy.polled(beside::next(&mut reader, &mut aside)) => match msg {
                 Some(m) => {
                     busy.at("the output of the channel");
-                    if pty && matches!(m, ChannelMsg::Data { .. }) {
+                    // A frame of the screen is a key's echo too (T-303).
+                    let frame = matches!(m, ChannelMsg::ExtendedData { ext: crate::frames::EXT, .. });
+                    if pty && (frame || matches!(m, ChannelMsg::Data { .. })) {
                         crate::pace::echo();
                     }
                     if let Some(end) = handle_msg(m, &mut status, &mut out, &mut through, log).await {
@@ -392,6 +400,10 @@ pub async fn pump(
             Some(size) = resize.next() => {
                 busy.at("a change of the terminal's size");
                 crate::predict::resized(through.predict.as_mut(), size).await;
+                // The terminal moved its rows: the next frame draws each (T-303).
+                if let Some(frames) = through.frames.as_mut() {
+                    frames.disturbed();
+                }
                 let change = writer.window_change(size.cols, size.rows, size.px_width, size.px_height);
                 let _ = beside(change, &mut reader, &mut aside, &mark).await;
                 if let Some(r) = through.record.as_mut() {
@@ -433,15 +445,6 @@ pub async fn pump(
     }
 }
 
-/// An elevated command's question and time (T-032): its answer, or its time
-/// that ran out; for ever with none.
-async fn elevating(elevated: &mut Option<Elevated>) -> Next {
-    match elevated {
-        Some(e) => e.next().await,
-        None => std::future::pending().await,
-    }
-}
-
 /// The end of input of a session with expect rules (T-191): the terminal's
 /// end of file, Ctrl-D, in the pty's own stream after the keys before it. A
 /// channel's EOF there let Dropbear close the pty and hang up the shell
@@ -461,36 +464,5 @@ async fn expected(through: &mut Through, writer: &ChannelWriteHalf<Msg>, held: &
         if ended {
             let _ = writer.data(&[EOF_KEY][..]).await;
         }
-    }
-}
-
-/// Until the expect rule that waits runs out of time: the words of its
-/// miss; for ever with none (T-191).
-async fn expecting(expect: Option<&Expect>) -> String {
-    match expect {
-        Some(x) => x.missed().await,
-        None => std::future::pending().await,
-    }
-}
-
-/// A keepalive that asks for a reply, as russh sends it (T-332).
-type Ping<'a> = std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), russh::Error>> + Send + 'a>>;
-
-/// Until the server replies to the keepalive; for ever with none. A reply
-/// of failure, from a server that knows no such request, is a reply too.
-async fn answered(ping: &mut Option<Ping<'_>>) {
-    match ping {
-        Some(ping) => {
-            let _ = ping.as_mut().await;
-        }
-        None => std::future::pending().await,
-    }
-}
-
-/// Until `at`, or for ever with none.
-async fn sleep_until(at: Option<tokio::time::Instant>) {
-    match at {
-        Some(at) => tokio::time::sleep_until(at).await,
-        None => std::future::pending().await,
     }
 }

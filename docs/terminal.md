@@ -1335,6 +1335,85 @@ terminal always reads those bytes on the screen that the far end wrote.
   no echo shows in any byte that podssh writes. Its control runs without
   `--predict`, where the same keys show only after the round trip.
 
+## The latest screen: frames (T-303)
+
+Under a flood (a `cat` of a large file, a loop that prints), each byte of
+the pty crosses the link in order, so what waits in the link and in the
+buffers on the way shows before the output that follows a Ctrl-C. Measured
+on 2026-11-26 through a link of 300 ms and 64 KiB/s
+(`scripts/feel_interrupt.py`): the prompt after Ctrl-C showed after 6.3 s
+through podssh and 18 s through OpenSSH. With `--frames`, `podssh serve`
+sends the latest screen, as Mosh does, not each byte, so the link holds a
+frame or two. The result with frames: UNVERIFIED (drafted 2026-11-26, not
+built; `python3 scripts/feel_interrupt.py --frames --runs 3`).
+
+- **The ask.** `podssh ssh --frames` asks with `env frames@podssh v1` and
+  a reply, on a channel with a pty, after local echo's ask and before the
+  shell or the command. `podssh serve` takes it on a channel whose pty it
+  opened (`crates/podssh-ssh/src/server/frames_ask.rs`). Each other server
+  answers FAILURE, OpenSSH's sshd and an older podssh among them: podssh
+  says so in one line, and the session carries each byte, as with no
+  `--frames`. The flag is the whole spelling: no `-o` keyword, as
+  `ssh_config` has none, and no key of the settings file, which holds the
+  relay's settings.
+- **The far end's model.** With the ask taken, serve sends no data on the
+  channel. The task that copies the pty's output feeds a model of the
+  screen (`vt100`, the model of the oracle below and of local echo) and
+  never waits, so the pty is read at its own pace whatever the link
+  carries (`crates/podssh-ssh/src/server/frames.rs`). The model holds the
+  visible screen, the cursor, the modes of the keys and the window's title,
+  and no scrollback. For a channel that asked, serve keeps at most five
+  screens: the screen now, the newest that the client acknowledged, and
+  three frames that wait; some 60 KiB each at 80 by 24.
+- **A frame.** A record in extended data of the code `0xFE504F46`, in the
+  range that RFC 4250 leaves for private use: 26 bytes of header (the
+  version, the flags, the number of the state, the number of the state
+  that it starts from, the rows and columns, the body's length) and a
+  body, which is the terminal output that turns a model of the base into
+  the new state, as `vt100` writes the difference of two screens
+  (`crates/podssh-ssh/src/frames/wire.rs`,
+  `crates/podssh-ssh/src/frames/screen.rs`). The first frame, and each
+  frame after a new size, draws the whole screen from an empty one.
+- **The pace.** Mosh's (its paper, section 2.3): a frame at most each half
+  round trip, never sooner than 20 ms after the last and never later than
+  250 ms, and 8 ms after the first change, so that a burst is one frame.
+  The round trip is measured from a frame to its acknowledgement. SSH
+  carries the frames in order, so while two wait for an acknowledgement no
+  frame goes, until one comes or 2 s pass: that bound is what keeps the
+  link empty under a flood (`crates/podssh-ssh/src/frames/sender.rs`). A
+  screen that did not change makes no frame.
+- **The acknowledgement.** The client answers with `env frames-ack@podssh
+  NUMBER`, with no reply asked, at most once for each pass of its loop:
+  the number of the newest state that it holds. A frame starts from the
+  newest state that was acknowledged, so a frame that a later road loses
+  (T-304) costs only itself. A client that does not hold a frame's base
+  refuses the frame and says `NUMBER lost`; the next frame is then the
+  whole screen. A frame that is not newer than the state held is passed
+  over, also a whole screen, so the screen never moves back
+  (`crates/podssh-ssh/src/frames/receiver.rs`).
+- **What the client draws.** The frames of one read are drawn once, as the
+  newest state: the difference from what the terminal shows. Before the
+  first frame, the lines on the terminal go up into its scrollback. After a
+  line of podssh's own, the far end's stderr, or a new size of the window,
+  the next frame draws the whole screen again from its first cell. At the
+  end, however the session ended, the modes of the keys go back and the
+  cursor shows; the last screen stays. Keys go as bytes, each one, as with
+  no frames.
+- **What frames cost.** A frame skips output, so the terminal's own
+  scrollback gets none of the session's lines. What a program writes for
+  the terminal alone does not cross: a transfer of ZMODEM, a copy to the
+  clipboard. The alternate screen is the visible screen while a program
+  has it; the client's terminal never enters it. The far end answers the
+  questions that programs wait on (the cursor's place, the device's status
+  and its primary attributes), as they never reach the client's terminal.
+  The bell and the window's title cross with a frame.
+- **Where there are none.** A shell with frames is not kept (`~d` is
+  refused). `--attach`, a shell shared by name, `--expect`, `--sudo`,
+  `--su`, `podssh each` and a session through a control master carry each
+  byte. `--frames` with `--predict` is a usage error (64): a guess is drawn
+  on the far end's bytes. A Windows console that takes no VT sequences
+  ends the session with one line (255), and so do bytes that are no frame.
+
 ## Tests
 
 Linux test hosts grant ptys, so a test must force the paths with no pty:
@@ -1383,6 +1462,21 @@ cursor and the attributes of cells:
   letter shows. `cargo test -p podssh-ssh --test serve_predict` reads
   serve's reports from a real pty, each after the echo of the keys it
   counts.
+- `cargo test -p podssh-ssh --test frame_rate`: the frames of the far
+  end's screen (T-303), with russh's client and podssh's receiver against
+  serve and a real pty. Through a link in the test of 300 ms and 64 KiB/s,
+  a shell floods, Ctrl-C goes, and the prompt shows on the client's model
+  within three round trips; then the client's state, made of each frame's
+  difference, is the far end's whole screen, cell for cell, and a model
+  that reads what the client drew shows the same text. A second test
+  holds the ask: frames come only on a channel with a pty that asked, and
+  a refused ask leaves the bytes. `cargo test -p podssh-cli --test
+  frames_e2e` runs `podssh ssh -tt --frames` in a pty through the stand-in
+  relay's link to `podssh serve --listen`, with a control that has no
+  `--frames`. The unit tests of `crates/podssh-ssh/src/frames/` hold the
+  difference on a table of screens (each pair a base and a new state),
+  the pace and the bases on a clock of the test, and the two halves
+  together. Results: UNVERIFIED (drafted 2026-11-26, not built).
 
 The model must agree with tmux before it judges podssh: each sequence of a
 fixed corpus (`PodUtils/podssh:crates/podssh-terminal/tests/screen/corpus.txt`) goes

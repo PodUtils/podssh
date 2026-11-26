@@ -12,9 +12,14 @@ as a terminal would, sends 0x03 (Ctrl-C), and times the prompt that comes
 after it. The entry builds its frames only when podssh's median is longer
 than three round trips.
 
+With --frames (T-303, step 2), `podssh ssh --frames` to the same serve is
+measured too, and the gain is said; and one run of `podssh ssh --frames` to
+OpenSSH's sshd checks the refusal: sshd takes no such request, podssh says
+so in one line, and the session shows each byte, as with no --frames.
+
 Usage: feel_interrupt.py [--podssh PATH] [--runs N] [--delay-ms MS]
                          [--rate BYTES_PER_S] [--queue BYTES] [--flood-s S]
-                         [--limit-s S] [--no-openssh]
+                         [--limit-s S] [--no-openssh] [--frames]
        feel_interrupt.py --self-test
 
 The far ends, their keys and the proxy are the bench of scripts/feel-matrix.py
@@ -50,6 +55,11 @@ PROMPT = b"FEELP> "
 SHELL_COMMAND = "exec env -u ENV PS1='FEELP> ' /bin/sh -i"
 # The first lines of the flood, as the far end's pty writes them.
 FLOOD = b"y\r\ny\r\n"
+# With --frames the client draws the screen's difference: the prompt's
+# letters come together, and its blank cell may come as an erase.
+PROMPT_DRAWN = b"FEELP>"
+# podssh's line when the far end refused the frames.
+NO_FRAMES = b"sends no frames"
 # Above this many round trips, step 2 of T-303 is built.
 THRESHOLD_TRIPS = 3
 # The waits of a session: its connect and its first prompt, the flood's
@@ -109,7 +119,9 @@ class Failed(Exception):
 class Session:
     """One client in a local pty of 80x24, read as a terminal reads it."""
 
-    def __init__(self, argv, env):
+    def __init__(self, argv, env, watch=None):
+        # WATCH: bytes whose coming is noted in `watched`, across the reads.
+        self.watch, self.watched = (Matcher(watch) if watch else None), False
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             try:
@@ -133,6 +145,8 @@ class Session:
         if not chunk:
             return None
         self.last = (self.last + chunk)[-400:]
+        if self.watch and self.watch.feed(chunk):
+            self.watched = True
         return chunk
 
     def until(self, needle, limit, what):
@@ -192,32 +206,38 @@ class Session:
         os.close(self.fd)
 
 
-def one_run(argv, env, flood_s, limit):
+def one_run(argv, env, flood_s, limit, prompt=PROMPT, watch=None):
     """One session: the prompt, the flood for `flood_s` seconds, then Ctrl-C
-    and the time until the prompt after it."""
+    and the time until the prompt after it. PROMPT is the prompt's bytes as
+    this client writes them; `watched` says whether WATCH came."""
     started = time.monotonic()
-    session = Session(argv, env)
+    session = Session(argv, env, watch)
     try:
-        prompted, _ = session.until(PROMPT, CONNECT_LIMIT, "the first prompt")
+        prompted, _ = session.until(prompt, CONNECT_LIMIT, "the first prompt")
         session.send(b"yes\r")
         flooding, _ = session.until(FLOOD, CONNECT_LIMIT, "the flood")
         flood = session.drain(flooding + flood_s)
         sent = time.monotonic()
         session.send(b"\x03")
-        shown, after = session.until(PROMPT, limit, "the prompt after Ctrl-C")
+        shown, after = session.until(prompt, limit, "the prompt after Ctrl-C")
         return {"interrupt_ms": round((shown - sent) * 1000, 1), "connect_ms": round((prompted - started) * 1000, 1),
-                "flood_bytes": flood, "after_bytes": after}
+                "flood_bytes": flood, "after_bytes": after, "watched": session.watched}
     finally:
         session.close()
 
 
-def measure(argv, env, runs, flood_s, limit, delay_ms):
+def measure(argv, env, runs, flood_s, limit, delay_ms, prompt=PROMPT, watch=None, watched=None):
     """The runs of one client, and their figures; the first failure ends
-    them, with its reason."""
+    them, with its reason. WATCHED: whether WATCH must come (True) or must
+    not (False) in each run; a run where it did otherwise is a failure."""
     doc = {"argv": argv, "runs": [], "error": None}
     for run in range(1, runs + 1):
         try:
-            doc["runs"].append(one_run(argv, env, flood_s, limit))
+            got = one_run(argv, env, flood_s, limit, prompt, watch)
+            if watched is not None and got["watched"] != watched:
+                came = "came" if got["watched"] else "did not come"
+                raise Failed(f"the line {watch.decode()!r} {came}")
+            doc["runs"].append(got)
         except (Failed, OSError) as e:
             doc["error"] = f"run {run} of {runs}: {e}"
             break
@@ -245,6 +265,37 @@ def start_proxy(bench, matrix, mode, maps):
     bench.spawn(argv, bench.work / "proxy.err")
     matrix.wait_until(lambda: port_file.exists() and port_file.read_text().strip(), 10, "the proxy did not start")
     return int(port_file.read_text().strip())
+
+
+def with_frames(argv):
+    """ARGV of `podssh ssh ...` with --frames after its verb."""
+    at = argv.index("ssh") + 1
+    return argv[:at] + ["--frames"] + argv[at:]
+
+
+def frames_runs(args, doc, bench, podssh_argv, env, sshd):
+    """The clients of --frames: podssh with frames to serve, which must
+    take the ask; and, where the bench has an sshd, one run to it, which
+    must refuse it and show each byte. The exit code of the two."""
+    took = measure(with_frames(podssh_argv), env, args.runs, args.flood_s, args.limit_s, args.delay_ms,
+                   PROMPT_DRAWN, NO_FRAMES, False)
+    doc["clients"]["podssh_frames"] = took
+    ours = doc["clients"]["podssh"]
+    if "median_ms" in took:
+        took["verdict"] = ("within three round trips" if took["median_trips"] <= THRESHOLD_TRIPS
+                           else "over three round trips")
+        if "median_ms" in ours and took["median_ms"] > 0:
+            doc["frames_gain"] = round(ours["median_ms"] / took["median_ms"], 1)
+    code = 1 if took["error"] else 0
+    if sshd:
+        port = ["-p", str(bench.sshd_port)]
+        at = podssh_argv.index("-p")
+        to_sshd = with_frames(podssh_argv[:at] + port + podssh_argv[at + 2:])
+        to_sshd = [f"{bench.user}@sshd.test" if a == f"{bench.user}@serve.test" else a for a in to_sshd]
+        refused = measure(to_sshd, env, 1, args.flood_s, args.limit_s, args.delay_ms, PROMPT, NO_FRAMES, True)
+        doc["clients"]["podssh_frames_to_sshd"] = refused
+        code = code or (1 if refused["error"] else 0)
+    return code
 
 
 def tail(path, lines=5):
@@ -306,6 +357,8 @@ def run(args):
         theirs = doc["clients"]["openssh"]
         if theirs["error"] and not theirs["error"].startswith("not run"):
             code = 1
+        if args.frames:
+            code = frames_runs(args, doc, bench, podssh_argv, env, not openssh_why) or code
     except matrix.Setup as e:
         doc["error"], code = str(e), 2
     finally:
@@ -334,6 +387,9 @@ def summary_line(doc):
             parts.append(f"{name}: {client['error']}")
     link_ = doc["link"]
     head = f"Ctrl-C to the prompt at {link_['round_trip_ms']} ms and {link_['rate_bytes_s']} B/s"
+    frames = doc["clients"].get("podssh_frames", {})
+    if "verdict" in frames:
+        parts.append(f"with --frames {frames['verdict']}, {doc.get('frames_gain', '-')} times sooner")
     return f"{head}: " + "; ".join(parts) + (f"; {doc['verdict']}" if "verdict" in doc else "")
 
 
@@ -371,10 +427,22 @@ def self_test():
     line = summary_line(doc)
     assert "podssh median 600 ms (2.0 round trips)" in line and "openssh: not run" in line, line
     assert load_matrix().Bench is not None
+    # --frames: the flag after the verb; the drawn prompt is in the typed
+    # one; and the summary says the verdict and the gain.
+    assert with_frames(["p", "ssh", "--direct", "-tt", "h"]) == ["p", "ssh", "--frames", "--direct", "-tt", "h"]
+    assert PROMPT_DRAWN in PROMPT and Matcher(PROMPT_DRAWN).feed(b"\x1b[24;1HFEELP>\x1b[K")
+    doc["clients"]["podssh_frames"] = {"runs": [{}] * 3, **stats([450.0, 300.0, 600.0], 150),
+                                       "verdict": "within three round trips"}
+    doc["frames_gain"] = 1.3
+    line = summary_line(doc)
+    assert "podssh_frames median 450 ms (1.5 round trips)" in line, line
+    assert "with --frames within three round trips, 1.3 times sooner" in line, line
     # The pty driver end to end on this host's own shell, no link and no
     # podssh: the prompt, the flood, Ctrl-C and the prompt again.
-    local = one_run(["/bin/sh", "-c", SHELL_COMMAND], dict(os.environ, TERM="xterm-256color"), 0.3, 10.0)
+    local = one_run(["/bin/sh", "-c", SHELL_COMMAND], dict(os.environ, TERM="xterm-256color"), 0.3, 10.0,
+                    PROMPT_DRAWN, b"^C")
     assert local["flood_bytes"] > 0 and 0 <= local["interrupt_ms"] < 5000, local
+    assert local["watched"], "the watch saw the echo of Ctrl-C"
     print("feel_interrupt: self-test ok")
     return 0
 
@@ -390,6 +458,8 @@ def main():
     parser.add_argument("--flood-s", type=float, default=3.0)
     parser.add_argument("--limit-s", type=float, default=180.0, help="the wait for the prompt after Ctrl-C")
     parser.add_argument("--no-openssh", action="store_true")
+    parser.add_argument("--frames", action="store_true",
+                        help="also measure podssh ssh --frames to serve, and its refusal by OpenSSH's sshd")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:

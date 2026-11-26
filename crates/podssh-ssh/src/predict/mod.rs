@@ -46,6 +46,12 @@ pub fn own_write() {
     OWN_WRITES.fetch_add(1, Ordering::Relaxed);
 }
 
+/// The count of podssh's own writes to the terminal so far: the frames of
+/// the far end's screen draw the whole screen again when it moved (T-303).
+pub(crate) fn own_writes() -> u64 {
+    OWN_WRITES.load(Ordering::Relaxed)
+}
+
 /// Local echo for one session: the model of the far end's screen, the
 /// guesses, and what is drawn now.
 pub struct Predict {

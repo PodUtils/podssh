@@ -839,10 +839,10 @@ Read: a read waits 90 s at most (`crates/podssh-ws/src/client.rs:31-33`, set at
 frame each 25 s. The ping watcher acts only after a first Pong
 (`PodUtils/podssh:crates/podssh-ws/src/session.rs:296-334`); Pongs and the idle cut on reverse
 sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
-the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:355-395`).
+the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:359-399`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
-`crates/podssh-cli/src/ssh/resolve.rs:344-354` (the `warnings` of keepalives), and `podssh ssh` exits 255.
+`crates/podssh-cli/src/ssh/resolve.rs:349-359` (the `warnings` of keepalives), and `podssh ssh` exits 255.
 
 ## Approach
 
@@ -856,7 +856,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 3. Carry the `ACK` of T-152 in each `PONG`. The cost is about 20 bytes each
    way each 10 s: under 0.2 MiB in 12 h.
 4. On the resumable road, do not print the warning of
-   `crates/podssh-cli/src/ssh/resolve.rs:344-354` (the `warnings` of keepalives).
+   `crates/podssh-cli/src/ssh/resolve.rs:349-359` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:393-408`,
    `crates/podssh-cli/src/man/facts.rs:428-437`), the note at
@@ -1355,7 +1355,7 @@ new SSH login to a far end that kept the shell (T-159). Read: podssh knows
 the escapes `~.`, `~R`, `~?` and `~~`, and another character after `~` goes
 to the server with the `~` (`crates/podssh-ssh/src/escape.rs:1-9`,
 `crates/podssh-ssh/src/escape.rs:90-138`). The flag table has 469 lines, near
-the limit of 500 (the table of `ssh`: `crates/podssh-cli/src/flags.rs:116-299`).
+the limit of 500 (the table of `ssh`: `crates/podssh-cli/src/flags.rs:116-301`).
 
 ## Approach
 
@@ -1418,7 +1418,7 @@ the shell on a detach fails it.
   `env` requests of podssh's own names and a subsystem, which the handler
   sees (`crates/podssh-ssh/src/keep.rs`).
 - An escape needs a pty and a terminal on stdin
-  (`crates/podssh-ssh/src/session.rs:194`), so a test cannot type `~d`
+  (`crates/podssh-ssh/src/session.rs:208`), so a test cannot type `~d`
   through a pipe: the attach test types it in a pseudo console on Windows
   (`crates/podssh-cli/tests/conpty_harness/mod.rs`) and in a pty on Linux
   (`crates/podssh-cli/tests/pty_harness/mod.rs`, new).
@@ -2538,6 +2538,81 @@ so Ctrl-C shows within a round trip.
 
 See also the addition of the donor study (report 14) to T-161: the offset log is an alternative to the screen model that this entry sends.
 
+## Decision
+
+2026-11-26, the calls of the draft of step 2 (each with what lost).
+
+1. **The spelling is the flag `--frames` of `podssh ssh`, and nothing else.** As `--predict`: no `-o` keyword
+   (`ssh_config` has none, and podssh's `-o` table is OpenSSH's), and no key of the settings file, which holds the
+   relay's settings alone (`crates/podssh-cli/src/settings.rs`). Lost: `--screen` and `--latest-screen` (the manual and
+   Mosh's paper say frames); a keyword `Frames`, which an `ssh_config` shared with OpenSSH would refuse.
+2. **The ask is `env frames@podssh v1` with a reply**, after local echo's ask and before the shell or the command, on a
+   channel with a pty; `podssh serve` takes it where it opened the pty, once. Each other server answers FAILURE
+   (OpenSSH's sshd for a name outside `AcceptEnv`, an older podssh by its `--accept-env`), and the session carries each
+   byte, with one line at the default level, as the user asked for frames by name. A server that takes the name as a
+   variable (an sshd with `AcceptEnv *`) answers SUCCESS and sends bytes: the client draws frames only from the
+   private code, so those bytes show as they are. Lost: a channel request of a new type (russh's server answers an
+   unknown type with FAILURE and gives it to no handler, `vendor/russh/src/server/encrypted.rs`, so serve would need
+   a patch of russh, where `env` needs none, and T-160 and T-159 ask the same way); a second channel for the frames (the order of its frames and of
+   the first channel's exit status is not defined, and a forward's limit would count it).
+3. **A frame rides extended data of the code `0xFE504F46`**, "POF" after 0xFE, in the private range of RFC 4250
+   (section 4.4.3, as T-160's Decision read it), beside local echo's `0xFE504F44`. Lost: a channel request from serve,
+   the entry's own word: russh's client answers a server's channel request with FAILURE and gives it to no handler
+   (T-160's Decision, item 1), so it needs a patch of russh; bytes inside the data stream, which the far end's program
+   could write itself, and which a client that did not ask would show.
+4. **The acknowledgement is `env frames-ack@podssh NUMBER`, with no reply asked**: its own record (the donor study,
+   rule a), the number of the newest state that the client holds, and ` lost` after it when the last frame's base was
+   not held. One is due once any frame came, a refused one too, and at most one goes for each pass of the client's loop
+   (rule b). Lost: extended data from the client, which serve's reader of a channel gives back to the window unread
+   today, and which waits on the channel's window where a request does not; the layer's byte ACK, which cannot say
+   which state was drawn, and which `--direct` does not have.
+5. **A frame's body is terminal output: what `vt100` writes to turn one screen into another** (`Screen::state_diff`,
+   and `state_formatted` for a whole screen), read by a `vt100` model at the client. The header carries the version,
+   the flags (whole screen, bell, last), the state's number, the base's number, the rows and columns and the body's
+   length (`crates/podssh-ssh/src/frames/wire.rs`). Lost: a codec of cells of podssh's own, as Mosh's: a second
+   encoder and decoder to hold to each other, where `vt100`'s difference is its author's and is tested there; and a
+   body of text lets a later model change with no change of the wire.
+6. **The base is the newest state that the client acknowledged**, as the entry says, though SSH carries each frame in
+   order: T-304's datagrams then need no new wire. The far end keeps the base and the last 3 states sent (`HELD`); an
+   acknowledgement of a state that is gone moves no base, and a client that lost its base gets the whole screen (the
+   donor study's faults: no state for each frame without a cap, and no snapshot applied over a newer state). The
+   client keeps its last 8 states. Lost: the difference from the last frame sent, the least code on an ordered stream.
+7. **The pace is Mosh's, and a window is added to it**: half the round trip within 20 and 250 ms, 8 ms after the first
+   change; the round trip from a frame to its acknowledgement, smoothed by an eighth, and 250 ms before the first
+   sample. While 2 frames wait for an acknowledgement (`WINDOW`) no frame goes, until one comes or 2 s pass
+   (`PATIENCE`). Lost: the pace alone, as over UDP: on SSH's ordered stream a frame waits behind each one before it,
+   so a link slower than the frames would fill as it fills with bytes; the donor's resend after 1.5 round trips, which
+   an ordered stream never needs (the patience is what is left of it: a client whose acknowledgements stopped still
+   gets the screen).
+8. **The last frame is the whole screen, marked, before the exit status**: it shows whatever the client holds, as no
+   later frame can repair it. Lost: a difference, which a client with another base would refuse with no second try.
+9. **The client draws the difference from what its terminal shows to the newest state, once for the frames of one
+   read.** Before the first frame the terminal's lines go up into its scrollback by line feeds. Lost: the alternate
+   screen (Mosh's default), which at the end would take the session's last screen away, where a byte session leaves it;
+   a plain clear, which erases the user's lines. After a line of podssh's own, the far end's stderr or a new size, the
+   next frame draws the whole screen again; lost: asking the terminal for its cursor, whose answer comes among the keys.
+   At the end, however the session ended, the modes of the keys go back and the cursor shows.
+10. **The far end's model answers the questions that programs wait on**: the device's status and the cursor's place
+    (`CSI 5 n`, `CSI 6 n`) and the primary device attributes (`CSI c`), written to the pty. With frames a question never
+    reaches the client's terminal. Lost: no answer (fish and each prompt that asks for the cursor wait for their time
+    limit); the question passed on to the client, whose answer would come a round trip late, for a cursor that moved.
+11. **The window's title and the bell cross; a transfer of ZMODEM and a copy to the clipboard do not**, and the
+    manual says so: a frame carries the screen.
+12. **Who gets no frames, each said in one line or in the manual**: a shell that is kept (a framed login shell is not
+    kept, as with `--share`, and `~d` is refused), `--attach`, a shell shared by name, `--expect`, `--sudo`, `--su`,
+    `podssh each` and a control master's client. `--frames` with `--predict` is a usage error (64). Lost for this
+    part: frames from a kept shell, whose ring replays bytes, and guesses drawn over frames (Mosh's overlay); both are
+    in the Done as what is left.
+13. **The model's cost, which the Correction of 2026-11-25 asks to name**: for a channel that asked, and for no
+    other, at most 5 screens (the screen now, the base, `HELD` frames), some 60 KiB each at 80 by 24, so about 300 KiB;
+    no scrollback is kept. The pty is read at its own pace, so a flood costs serve the processor time of its model
+    while it lasts, as it costs mosh-server; a budget of bytes for each frame's time lost, as nothing measured asks.
+14. **Shared code first.** Read at the pinned tag `v0.85.0` of PodUtils/podcrates: no crate holds a model of a screen
+    or a difference of screens (`pod-term` holds the grammar, the modes and the ring; `pod-testkit`'s `screen` is the
+    oracle's `vt100` for tests). The model is the `vt100` crate, podssh-ssh's dependency since T-160. The wire, the
+    sender and the receiver do no I/O (`crates/podssh-ssh/src/frames/`), so they can move to podcrates when a sibling
+    serves a pty; no ask is filed by this draft, as no second project needs them today.
+
 ## Prove
 
 ```sh
@@ -2566,6 +2641,20 @@ less and top their screen (`docs/terminal.md`, "Screen on attach"; `docs/design.
 model, so this entry starts when a user asks for frames of the screen (a slow link where the bytes of a flood are too
 many), with the model's cost then named in its Decision.
 
+2026-11-26, read before the draft of step 2, on `main` at `0f1f64b`:
+
+- Step 2's "in a channel request of podssh's own" holds for the ask and the acknowledgement, which are `env` requests
+  of podssh's own names; the frames ride extended data of a private code, as a request from serve reaches no handler of
+  russh's client (the Decision, item 3).
+- Step 2's "a model of the screen (T-161)" and step 3's "its model (T-160)": T-161 built no model on the far end (the
+  Correction above), and T-160's model is local echo's own. The draft makes one for each end from `vt100`
+  (`crates/podssh-ssh/src/frames/screen.rs`), with its cost in the Decision, item 13.
+- The Start condition's two parts hold: `podssh serve` has a pty (T-110, done), and the far end's model is this
+  entry's own. The Correction above waits for a user who asks for frames: the main session started step 2 on
+  2026-11-26 all the same, after step 1 measured 21 round trips against the bar of three.
+- The Prove's planted server "that sends each byte" is measured by the control of `frames_e2e` (the same session with
+  no `--frames`, which must take longer than three round trips); the plant itself waits for T-251.
+
 ## Done
 
 Drafted 2026-11-26: step 1's measure `scripts/feel_interrupt.py`, on the bench of `scripts/feel-matrix.py` (its
@@ -2581,6 +2670,70 @@ target/debug/podssh --runs 3` (fake_shape's `link:150:65536:1500000:0:1`, a floo
 18,034 to 18,406 ms). Each is far over the bar of three round trips (900 ms): step 2 is worth building. The bytes
 drawn after the Ctrl-C are those already in the link's queue and the buffers on the way, which only frames of the
 screen can skip. Step 2 waits for its parts: the far end's model of the screen (T-161) and `podssh serve`'s pty (T-110).
+
+Drafted 2026-11-26 by a worker, on `main` at `0f1f64b` and rebased onto `9574133` (T-989) with no conflict, not built
+and not run: steps 2, 3 and 4. Each result below is
+Built and run by the main session (below).
+
+- The frames, with no I/O: `crates/podssh-ssh/src/frames/wire.rs` (the records and the acknowledgement),
+  `crates/podssh-ssh/src/frames/screen.rs` (the model, the difference, what a terminal is drawn with, the answers),
+  `crates/podssh-ssh/src/frames/sender.rs` (the pace, the bases, the window), `crates/podssh-ssh/src/frames/receiver.rs`
+  (the client's states, one draw for each read, the acknowledgement), and their tests beside them, each on one table.
+- The far end: `crates/podssh-ssh/src/server/frames.rs` (the pump's sink, the task that sends, the last frame before
+  the status), `crates/podssh-ssh/src/server/frames_ask.rs` (the ask and the acknowledgements), and the hooks in
+  `crates/podssh-ssh/src/server/handler.rs`, `crates/podssh-ssh/src/server/pty_child.rs` (a framed shell is not kept),
+  `crates/podssh-ssh/src/server/pty_grant.rs` (a new size), `crates/podssh-ssh/src/server/channel.rs`,
+  `crates/podssh-ssh/src/server/child.rs` and `crates/podssh-ssh/src/server/predict_ask.rs` (no reports beside frames).
+- The client: `crates/podssh-ssh/src/frames/mod.rs` (the ask, the answer, the end), `crates/podssh-ssh/src/session.rs`,
+  `crates/podssh-ssh/src/io.rs` (the acknowledgement once for each pass, a new size; its waits moved to
+  `crates/podssh-ssh/src/io/wait.rs`, as the file stood at 496 lines), `crates/podssh-ssh/src/io/msg.rs` (a frame
+  drawn, the far end's stderr), `crates/podssh-ssh/src/options.rs`, `crates/podssh-ssh/src/predict/mod.rs` (the count
+  of podssh's own writes, read).
+- The command line and the manual: `crates/podssh-cli/src/flags/frames.rs`, `crates/podssh-cli/src/flags.rs`,
+  `crates/podssh-cli/src/ssh/args.rs`, `crates/podssh-cli/src/ssh/resolve.rs` (the refusal beside `--predict`, in the
+  table of `crates/podssh-cli/src/refuse.rs`), `crates/podssh-cli/src/man/notes_frames.rs`; a row of
+  `crates/podssh-cli/tests/words.rs`.
+- The documents: `docs/terminal.md` ("The latest screen: frames"), `docs/cli.md`, `docs/design.md`,
+  `docs/development.md`, a row of `docs/STATUS.md`; `scripts/feel_interrupt.py` has `--frames` (its `--self-test`
+  passed here, as it needs no podssh).
+
+What the main session runs, in this order:
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib frames::
+cargo test -p podssh-ssh --lib server::frames
+cargo test -p podssh-ssh --test frame_rate
+cargo test -p podssh-ssh --test serve_predict --test serve_pty --test serve_keep --test serve_share
+cargo test -p podssh-cli --lib man
+cargo test -p podssh-cli --test words --test flag_table --test man_flag_parity
+cargo test -p podssh-cli --test frames_e2e --test predict_e2e
+python3 scripts/feel_interrupt.py --frames --runs 3
+```
+
+Then `podssh man --llms index > llms.txt; podssh man --llms full > llms-full.txt` (the manual has a new flag and a new
+note), `cargo todo remap` of each file that the draft changed (`docs/terminal.md`, `docs/cli.md`, `docs/design.md`,
+`docs/development.md`, `docs/STATUS.md`, and the sources named above), rustfmt and the gate's clippy. A test of the
+draft that fails may have found a defect that the worker could not see, as nothing here was compiled.
+
+Left, in order: (a) measured (below); (b) frames from a kept shell and from a shell shared by name, each of which sends bytes today
+(T-159, T-837); (c) local echo's guesses drawn over frames, as Mosh's overlay, in place of the usage error; (d) the
+scrollback: a frame's lines that left the top of the screen could go to the terminal before the frame, which no part
+of this draft does; (e) `podssh session capture` and `--record` of a framed session record what was drawn, not the
+far end's bytes; (f) step 5, Mosh as a reference on a host of the operator's that has it; (g) the plant of the Prove,
+with T-251; (h) a control master's client and `podssh each`, which carry each byte.
+
+Merged 2026-11-26 and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 313 binaries passed,
+`frame_rate` and `frames_e2e` among them, once the tables of `frames::screen`'s tests kept the window's title of a
+base whose next screen set none (a terminal has no sequence that takes a title away; one stream never goes from a title
+to none, which two screens of the table can); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made
+again. Measured the same day on this cloud host, `python3 scripts/feel_interrupt.py --frames --podssh
+target/debug/podssh --runs 3` (300 ms, 64 KiB/s, a flood of `yes`, then Ctrl-C): with `--frames` the prompt shows after
+533 ms median (1.78 round trips; 436 to 789 ms), 11.6 times sooner than podssh's byte stream (6,181 ms, 20.6) and
+under the bar of three round trips; OpenSSH 18,494 ms (61.65); `--frames` to OpenSSH's sshd is refused and keeps the
+bytes (6,290 ms, one run). The window of 2 and the patience of 2 s stand. Left: (b) to (h) above.
+
+
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
 
 **Source:** T-171 (`docs/design.md:915-944`): each datagram of Mosh is an idempotent difference
@@ -4561,15 +4714,15 @@ same setting.
 
 ## Premise
 
-- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:334` decides `resumable` from
+- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:339` decides `resumable` from
   `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
   list.
-- The warning at `crates/podssh-cli/src/ssh/resolve.rs:346-351` sits inside `if resumable`.
+- The warning at `crates/podssh-cli/src/ssh/resolve.rs:351-356` sits inside `if resumable`.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:167` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:201` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/tries.rs:52` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:437` sets when the user
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:444` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:891-895`) says that the resumable
