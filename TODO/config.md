@@ -618,12 +618,12 @@ output. Planted defect: copy the password field into a comment; the secret test 
 ## Done
 
 2026-10-12. `podssh config import ansible FILE`: the verb at
-`crates/podssh-cli/src/config_import/mod.rs:72-202`, the inventory at
-`crates/podssh-cli/src/config_import/ansible.rs:1-285`, the blocks at
-`crates/podssh-cli/src/config_import/mod.rs:314-358`, with the secrets at
-`crates/podssh-cli/src/config_import/mod.rs:204-208` and the options of
+`crates/podssh-cli/src/config_import/mod.rs:72-209`, the inventory at
+`crates/podssh-cli/src/config_import/ansible.rs:1-308`, the blocks at
+`crates/podssh-cli/src/config_import/mod.rs:321-365`, with the secrets at
+`crates/podssh-cli/src/config_import/mod.rs:211-215` and the options of
 `ansible_ssh_common_args` at
-`crates/podssh-cli/src/config_import/mod.rs:210-263`; the verb in the
+`crates/podssh-cli/src/config_import/mod.rs:217-270`; the verb in the
 tables at `crates/podssh-cli/src/flags.rs:461-462`,
 `crates/podssh-cli/src/positionals.rs:249-254`,
 `crates/podssh-cli/src/tree.rs:368-374` and
@@ -1806,7 +1806,7 @@ that cannot be read; each other "not UTF-8" of podssh (`net`'s files, `sftp -b`)
 
 ## Approach
 
-1. `read` (`crates/podssh-cli/src/config_import/mod.rs:158`) tells a file that cannot be read (66) from bytes that
+1. `read` (`crates/podssh-cli/src/config_import/mod.rs:165`) tells a file that cannot be read (66) from bytes that
    are no text (65); `inventory` says each with its words.
 2. EXIT STATUS's row of 65, the note of `config import ansible` and `docs/cli.md` say so.
 
@@ -1831,3 +1831,64 @@ Drafted 2026-11-26 by a drafting agent;
 - Result:
 
 Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1060: `config import ansible` of a YAML or JSON inventory prints blocks of nonsense, where the manual refuses it
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 4.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh config import ansible y2.yml` of `all:` / `hosts:` / `web1:` exited 0 with `Host all:`, `Host hosts:` and
+`Host web1:`, "3 hosts from y2.yml"; a fuller YAML file ended 65 on its `ansible_host: 1.2.3.4`, and `{"all":{}}`
+gave `Host {all:{}}`, exit 0. The manual says that Ansible's YAML is refused by name (64), and only the format word
+`ansible-yaml`, which neither the usage, the list of formats nor the manual named, was refused.
+
+## Premise
+
+- Read, at `40a83e5`: `NOT_YET` (`crates/podssh-cli/src/config_import/mod.rs:41`) holds `ansible-yaml`, and
+  `inventory` gives each text to `ansible::read`, which takes each line outside a section for a host of
+  `ungrouped`, `name:` as a host with an empty port (`crates/podssh-cli/src/config_import/ansible.rs`).
+- Read: the last note of `podssh man config` (`crates/podssh-cli/src/man/notes_config.rs`) says "Ansible's YAML,
+  are refused by name (exit 64)".
+
+## Approach
+
+1. `ansible::other_form` tells YAML or JSON by the first line that is no comment: `---` or `%YAML`, a key of a
+   mapping at the top (`all:`, `name: value`) with no `=`, or `{`; `host:PORT` and an IPv6 address that ends in `::`
+   stay INI. `inventory` refuses it before reading: `FILE:LINE: an inventory in YAML, which import does not read
+   yet; give its INI form`, 64, no block.
+2. The manual and `docs/cli.md` name the word `ansible-yaml` and the files that are refused under `ansible`.
+3. A table of first lines (`an_inventory_in_yaml_or_json_is_told_by_its_first_line`), and three files through the
+   binary in `tests/config_import.rs`.
+
+## Decision
+
+- Refuse by the first line, 64, as the manual and the word `ansible-yaml` refuse it, rather than read Ansible's
+  YAML: a reader of it waits for a real export to test against (T-328), as FinalShell's and Termius'. The word
+  `ansible-yaml` stays, named now in the manual. Lost: an INI file whose first line is `name:`, a port with no
+  number, which is no good host line either.
+- 64 and not 65: the file may be a good inventory of a form that `import` does not read; nothing was done.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib config_import::
+cargo test -p podssh-cli --test config_import
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
+
+- Changed: `crates/podssh-cli/src/config_import/ansible.rs`, `crates/podssh-cli/src/config_import/ansible_tests.rs`,
+  `crates/podssh-cli/src/config_import/mod.rs`, `crates/podssh-cli/tests/config_import.rs`,
+  `crates/podssh-cli/src/man/notes_config.rs`, `docs/cli.md`.
+- Result: UNVERIFIED.

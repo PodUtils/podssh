@@ -280,6 +280,29 @@ fn outside(pattern: &str) -> usize {
         .count()
 }
 
+/// The form of an inventory that is not INI, told by its first line that is
+/// no comment: YAML for `---` or a key of a mapping at the top (`all:`,
+/// `name: value`, with no `=`), JSON for `{`; with that line's number. Read
+/// as INI, their lines would be taken for hosts (T-1060). `host:PORT` and
+/// an IPv6 address that ends in `::` stay INI's.
+pub fn other_form(text: &str) -> Option<(&'static str, usize)> {
+    let (i, line) = text.lines().enumerate().find(|(_, l)| {
+        let l = l.trim_start_matches('\u{feff}').trim();
+        !l.is_empty() && !l.starts_with('#') && !l.starts_with(';')
+    })?;
+    let line = line.trim_start_matches('\u{feff}').trim_end();
+    if line.trim_start().starts_with('{') {
+        return Some(("JSON", i + 1));
+    }
+    if line == "---" || line.starts_with("--- ") || line.starts_with("%YAML") {
+        return Some(("YAML", i + 1));
+    }
+    let body = line.split(" #").next().unwrap_or(line).trim_end();
+    let top = !line.starts_with(char::is_whitespace) && !line.starts_with('[') && !line.contains('=');
+    let key = (body.ends_with(':') && !body.ends_with("::")) || body.contains(": ");
+    (top && key).then_some(("YAML", i + 1))
+}
+
 #[cfg(test)]
 #[path = "ansible_tests.rs"]
 mod tests;

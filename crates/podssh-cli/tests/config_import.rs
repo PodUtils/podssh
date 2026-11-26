@@ -169,6 +169,18 @@ fn stdin_a_bad_line_a_bad_name_and_the_other_formats() {
     let _ = std::fs::remove_file(&latin);
     assert_eq!(code, Some(65), "{err}");
     assert!(err.contains("not UTF-8 text"), "{err}");
+    // An inventory in YAML or JSON is refused by name, 64, with no block
+    // (T-1060), as the word ansible-yaml is.
+    for (text, says) in [
+        ("all:\n  hosts:\n    web1:\n", "-:1: an inventory in YAML, which import does not read yet"),
+        ("---\nall:\n  hosts:\n    web1:\n      ansible_host: 1.2.3.4\n", "-:1: an inventory in YAML"),
+        ("{\"all\":{}}\n", "-:1: an inventory in JSON"),
+    ] {
+        let (code, out, err) = podssh(&["config", "import", "ansible", "-"], text);
+        assert_eq!(code, Some(64), "{text:?}: {err}");
+        assert!(err.contains(says) && err.lines().count() == 1, "{text:?}: {err}");
+        assert!(out.is_empty(), "{text:?}: {out}");
+    }
     for (words, says) in [
         (vec!["config", "import", "finalshell", "x.json"], "import finalshell: not yet"),
         (vec!["config", "import", "termius", "x"], "import termius: not yet"),

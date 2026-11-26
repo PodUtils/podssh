@@ -6387,7 +6387,7 @@ that a `Host` line cannot hold made one `-`, with the label itself in a
 comment above it, and a second label of the same name gets `-2`. FinalShell
 and Termius, and Ansible's YAML, are refused by name (64) until a real export
 of each, under such a license, is at hand to test against (T-328):
-FinalShell and Termius have no export.
+FinalShell and Termius have no export. Ansible's YAML is the word `ansible-yaml`, or an inventory whose first line that is no comment is `---`, a key at the top (`all:`) or `{` (JSON), given to `ansible`: `FILE:LINE: an inventory in YAML`, 64, with no block (T-1060).
 
 ## `podssh mcp`
 

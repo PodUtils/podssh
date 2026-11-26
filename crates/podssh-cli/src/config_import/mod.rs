@@ -137,6 +137,13 @@ fn inventory(file: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             return EX_DATAERR;
         }
     };
+    // Ansible's YAML or JSON is refused by name, as the word ansible-yaml
+    // is, not read as INI into blocks of nonsense (T-1060).
+    if let Some((form, line)) = ansible::other_form(&text) {
+        let why = format!("an inventory in {form}, which import does not read yet; give its INI form");
+        let _ = writeln!(err, "podssh config import: {file}:{line}: {why}");
+        return EXIT_USAGE;
+    }
     let hosts = match ansible::read(&text) {
         Ok(hosts) => hosts,
         Err(why) => {

@@ -65,3 +65,26 @@ fn a_bad_line_is_refused_with_its_number() {
     assert!(read("h1:0\n").unwrap_err().starts_with("1: "));
     assert!(read("[g]\nh1 ansible_port=2222\n").is_ok());
 }
+
+/// Each first line against the form it tells (T-1060): YAML and JSON are
+/// refused by name; an INI line, `host:PORT` and an IPv6 address stay INI.
+#[test]
+fn an_inventory_in_yaml_or_json_is_told_by_its_first_line() {
+    for (text, want) in [
+        ("all:\n  hosts:\n    web1:\n", Some(("YAML", 1))),
+        ("# hosts\n\n---\nall:\n", Some(("YAML", 3))),
+        ("web:  # the web tier\n  hosts: {}\n", Some(("YAML", 1))),
+        ("all: {}\n", Some(("YAML", 1))),
+        ("\u{feff}{\"all\":{}}\n", Some(("JSON", 1))),
+        ("; a comment\n  {\"all\": {}}\n", Some(("JSON", 2))),
+        ("[web]\nweb1 ansible_host=10.0.0.1\n", None),
+        ("web1:2222\n", None),
+        ("2001:db8::\n", None),
+        ("2001:db8::1 ansible_port=22\n", None),
+        ("web1 # note: here\n", None),
+        ("web1 ansible_ssh_common_args='-o A: b'\n", None),
+        ("", None),
+    ] {
+        assert_eq!(other_form(text), want, "{text:?}");
+    }
+}

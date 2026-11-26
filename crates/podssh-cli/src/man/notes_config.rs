@@ -37,6 +37,7 @@ pub const CONFIG: &[&str] = &[
      is refused by name (exit 65).",
     "A session's label becomes the name of its block, each run of characters that a Host line cannot hold made one \
      -. The label itself is in a comment above it; a session of another protocol gets a comment and no block. The \
-     formats of FinalShell and Termius, and Ansible's YAML, are refused by name (exit 64). They wait until a real \
-     export of each is at hand to test against.",
+     formats of FinalShell and Termius, and Ansible's YAML, are refused by name (exit 64). Ansible's YAML is the \
+     format word ansible-yaml, or an inventory in YAML or JSON given to ansible. They wait until a real export of \
+     each is at hand to test against.",
 ];
