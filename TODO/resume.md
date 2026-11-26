@@ -2498,7 +2498,7 @@ half round trip, so Ctrl-C stops a flood within a round trip (its paper, §2.3).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2566,6 +2566,21 @@ less and top their screen (`docs/terminal.md`, "Screen on attach"; `docs/design.
 model, so this entry starts when a user asks for frames of the screen (a slow link where the bytes of a flood are too
 many), with the model's cost then named in its Decision.
 
+## Done
+
+Drafted 2026-11-26: step 1's measure `scripts/feel_interrupt.py`, on the bench of `scripts/feel-matrix.py` (its
+throwaway keys, its sshd on a free loopback port) with `scripts/fake-proxy.py --shape link:150:65536:1500000:0:1` in
+front of both far ends: `podssh ssh -tt` to `podssh serve --listen 127.0.0.1:PORT --shell /bin/sh`, and OpenSSH's ssh
+to its sshd as the reference, each in a local pty, the far end `/bin/sh -i` with a known prompt; `yes` for 3 s, then
+0x03, and the time until the prompt shows, 5 runs, in ms and in round trips of 300 ms (JSON on stdout, one line on
+stderr). Its `--self-test` checks the link, the figures, the prompt's matcher and the pty driver on this host's
+`/bin/sh`, and passed. Run 2026-11-26 on this cloud host, a debug build of `58a21c1`, `python3 scripts/feel_interrupt.py --podssh
+target/debug/podssh --runs 3` (fake_shape's `link:150:65536:1500000:0:1`, a flood of `yes` for 3 s, then 0x03): podssh
+(`ssh --direct -tt` to `podssh serve --listen`) 6,316 ms median (21.05 round trips; 6,092 to 6,457 ms), with about
+360 KB drawn after the Ctrl-C; OpenSSH's `ssh -tt` to its sshd through the same link 18,035 ms (60.12 round trips;
+18,034 to 18,406 ms). Each is far over the bar of three round trips (900 ms): step 2 is worth building. The bytes
+drawn after the Ctrl-C are those already in the link's queue and the buffers on the way, which only frames of the
+screen can skip. Step 2 waits for its parts: the far end's model of the screen (T-161) and `podssh serve`'s pty (T-110).
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
 
 **Source:** T-171 (`docs/design.md:915-944`): each datagram of Mosh is an idempotent difference

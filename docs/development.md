@@ -1151,3 +1151,14 @@ against its `SHA256SUMS`, or from a run's artifact; osewa's release, pinned
 by its version and the SHA-256 of its file. It uploads the raw files as an
 artifact, writes the summary in the step summary, and puts the loopback
 back after the run, also when the run ended early.
+
+`scripts/feel_interrupt.py` measures a Ctrl-C under a flood (T-303, step 1):
+`podssh ssh -tt` to `podssh serve --listen`, and OpenSSH's ssh to its sshd as
+the reference, through the stand-in proxy with a link of `scripts/fake_shape.py`
+(150 ms each way and 64 KiB/s by default), `yes` for 3 s, then 0x03 and the time
+until the prompt shows, in ms and in round trips. It uses the bench of
+`scripts/feel-matrix.py`; no root. `--self-test` needs no podssh.
+
+```sh
+python3 scripts/feel_interrupt.py --podssh target/debug/podssh --runs 5
+```

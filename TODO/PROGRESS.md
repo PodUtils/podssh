@@ -82,7 +82,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 921 entries: 5 open, 32 partial, 15 blocked, 869 done.
+`TODO/INDEX.md` holds 921 entries: 4 open, 33 partial, 15 blocked, 869 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
