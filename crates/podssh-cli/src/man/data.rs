@@ -30,8 +30,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             crate::doctor::EXIT_FAILED,
             "podssh doctor: a check failed. podssh relay spec: a fact of the relay's document disagrees. \
              podssh relay conform: a check of the relay failed. podssh keygen: a key could not be made or read. podssh health --preflight: after the login, a \
-             check failed or the facts did not come. podssh play: the recording cannot be read, or its version is \
-             not one that it plays. podssh ping --nodes: some nodes answered and some did not (69 when none did).",
+             check failed or the facts did not come. podssh play: the recording cannot be read, its version is \
+             not one that it plays, or a line of it cannot be played. podssh ping --nodes: some nodes answered and some did not (69 when none did).",
         ),
         row(
             crate::exit_codes::EXIT_USAGE,

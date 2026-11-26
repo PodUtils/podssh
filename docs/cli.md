@@ -6297,7 +6297,7 @@ output (`r`, `i`, `m`) is passed over. A file of another version, and a
 line that is no event, are refused (exit 1, the line named), and so is an
 event whose time is below 0 (T-984). An event whose time is before the
 latest one's plays at once, as asciinema's player plays it, and the clock
-goes on from the latest; a missing
+goes on from the latest. A `--speed` so small that one second would wait past any clock is a usage error (64), and a wait that no clock can keep is a bad line (exit 1, T-1057); a missing
 FILE and a bad value are usage errors (64). The name is not `replay`, which
 is one edit from `relay` and would confuse the suggestion of a mistyped
 command. A recording sends its control sequences to the terminal again:

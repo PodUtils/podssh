@@ -6342,3 +6342,57 @@ Drafted 2026-11-26 by a drafting agent;
 - Result:
 
 Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live: `PODSSH_RELAY= podssh status` is refused, 78. The planted run waits for T-251.
+
+
+# T-1057: `podssh play --speed 1e-320` panics, where a wait cannot be a Duration
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 1.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh play --speed 1e-320 rec.cast` (also `5e-324`, and `--speed 1e-310 --idle-limit 1`) ended 101 with a panic
+of the standard library, "cannot convert float seconds to Duration", and its backtrace. The check of `--speed` took
+the value, as it is above 0 and finite.
+
+## Premise
+
+- Read, at `40a83e5`: `run` of `crates/podssh-cli/src/play.rs` refuses only a speed that is not finite or not above 0
+  (`positive`, line 97), and each wait is `start + Duration::from_secs_f64(clock)` (line 87), which panics for a
+  value that no Duration holds (`1.0 / 1e-320` is infinite), and `Instant + Duration` panics past the host's clock.
+
+## Approach
+
+1. `run` refuses a `--speed` under which one second of the recording is no Duration: one line, 64.
+2. `play` makes each wait by `deadline`, `Duration::try_from_secs_f64` and `Instant::checked_add`: a sum of waits that
+   neither holds is a bad line, named, exit 1, with what plays it (a larger `--speed`, an `--idle-limit`).
+3. The note of `play`, EXIT STATUS's row of 1 and `docs/cli.md` say so; a table-driven test of the speeds.
+
+## Decision
+
+- Refuse, not saturate. A wait saturated at `Duration::MAX` is a process that waits 584 billion years with no word,
+  which no user asked for; a refusal says what happened and what plays the file. Lost: a play that would never end.
+- 64 for the speed itself, as for each other bad value of the flag; 1 for a sum of good waits that grew past any
+  clock, as it depends on the file, as a bad line does.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib play::
+cargo test -p podssh-cli --test man_page --test man_json --test man_flag_parity
+```
+
+Then by hand: `podssh play --speed 1e-320 FILE` exits 64 with one line and no backtrace.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
+
+- Changed: `crates/podssh-cli/src/play.rs` (the test `a_wait_past_any_clock_is_refused_not_a_panic`),
+  `crates/podssh-cli/src/man/notes_play.rs`, `crates/podssh-cli/src/man/data.rs`, `docs/cli.md`.
+- Result: UNVERIFIED.
