@@ -866,8 +866,11 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   A shell with frames is kept as any shell (`~d`), and `podssh serve`
   keeps the model of its screen with it: `--attach NAME --frames` gets the
   whole screen first, then its changes, and a client without `--frames`
-  gets the bytes. `--expect`, `--sudo`, `--su` and a far end with
-  `--share` carry each byte, with one line that says so. With `--predict` too, the
+  gets the bytes. A shell that `podssh serve --share` shares by name has
+  one model of its screen, and its owner and each seat that asks get frames
+  of it, each at its own pace; only the owner's frames answer the program's
+  questions on the pty. `--expect`, `--sudo` and `--su` carry each byte,
+  with one line that says so. With `--predict` too, the
   guesses of local echo are drawn over the frames' screen, as Mosh's
   overlay. The flag has no `-o` keyword and no key of the
   settings file ([terminal.md](terminal.md), "The latest screen: frames").

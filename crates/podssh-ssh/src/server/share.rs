@@ -13,6 +13,9 @@
 //! owner among them, writes through one lease: the bytes of one writer
 //! reach the pty at a time, and the lease passes after [`LEASE_IDLE`] of
 //! silence. The pty's size is the least of each seat's.
+//!
+//! A seat that asked for frames (T-303) gets the frames of the shell's one
+//! model of its screen, from a view of its own (`share_frames.rs`).
 
 // Windows refuses each program (`podssh serve` is a Unix host's), so the
 // parts that share one are unused there.
@@ -20,7 +23,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::Duration;
 
 use bytes::Bytes;
@@ -30,6 +33,7 @@ use tokio::sync::broadcast;
 use tokio::time::Instant;
 
 use super::channel::Input;
+use super::frames::Shared;
 use super::share_told::{Said, Tells};
 use crate::terminal::Size;
 
@@ -235,6 +239,9 @@ pub(super) struct Hub {
     ended: AtomicBool,
     /// Local echo's reports of the seats that asked (T-896).
     pub(super) tells: Tells,
+    /// The model of the screen, once a seat asked for frames (T-303): fed
+    /// with the owner's output, under the output's lock, for the shell's life.
+    frames: OnceLock<Arc<Shared>>,
 }
 
 /// One seat at a shell: the owner's, or a login's under a name. Its size
@@ -242,6 +249,8 @@ pub(super) struct Hub {
 pub(super) struct Seat {
     pub(super) hub: Arc<Hub>,
     id: u64,
+    /// Its view of the shell's model, where it asked for frames (T-303).
+    framed: OnceLock<(Arc<Shared>, u64)>,
 }
 
 impl Hub {
@@ -260,6 +269,7 @@ impl Hub {
             table: table.clone(),
             ended: AtomicBool::new(false),
             tells: Tells::default(),
+            frames: OnceLock::new(),
         });
         hub.seat(Some(size))
     }
@@ -267,7 +277,7 @@ impl Hub {
     /// A new seat, of `size` where it asked for a pty.
     pub(super) fn seat(self: &Arc<Self>, size: Option<Size>) -> Arc<Seat> {
         let id = self.next.fetch_add(1, Ordering::SeqCst);
-        let seat = Arc::new(Seat { hub: self.clone(), id });
+        let seat = Arc::new(Seat { hub: self.clone(), id, framed: OnceLock::new() });
         if let Some(size) = size {
             seat.resize(size);
         }
@@ -303,6 +313,11 @@ impl Hub {
     /// that no item goes ahead of one made before it.
     pub(super) fn said(&self, bytes: &[u8]) {
         if let Some(output) = self.output.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            // The model first (T-303): a report made below finds the echo
+            // of its keys in it, and a model made under this lock misses no byte.
+            if let Some(frames) = self.frames.get() {
+                frames.fed(bytes);
+            }
             self.screen.lock().unwrap_or_else(|p| p.into_inner()).push(bytes, std::time::Instant::now());
             let told = self.tells.reports(true);
             let _ = output.send(Said { bytes: Bytes::copy_from_slice(bytes), told });
@@ -324,6 +339,10 @@ impl Hub {
     pub(super) fn end(&self) {
         self.ended.store(true, Ordering::SeqCst);
         self.output.lock().unwrap_or_else(|p| p.into_inner()).take();
+        // Each view's last frame; a model made under the output's lock is set by now.
+        if let Some(frames) = self.frames.get() {
+            frames.end();
+        }
         let names: Vec<String> = self.names.lock().unwrap_or_else(|p| p.into_inner()).drain(..).collect();
         for name in names {
             self.table.unshare(&name);
@@ -338,6 +357,10 @@ impl Hub {
         };
         if let Some(least) = least(sizes.values()) {
             (self.resize)(least);
+            // The model of the screen is the pty's size (T-303).
+            if let Some(frames) = self.frames.get() {
+                frames.resize(least);
+            }
         }
     }
 
@@ -399,10 +422,12 @@ impl Seat {
 }
 
 impl Drop for Seat {
-    // A seat that leaves no longer holds the size down, nor gets reports.
+    // A seat that leaves no longer holds the size down, nor gets reports
+    // or frames.
     fn drop(&mut self) {
         self.hub.set_size(self.id, None);
         self.hub.tells.leave(self.id);
+        self.unframe();
     }
 }
 
@@ -450,6 +475,10 @@ impl super::stop::Control {
         self.live.shares.len()
     }
 }
+
+// A seat's frames of the shell's model (T-303).
+#[path = "share_frames.rs"]
+pub(super) mod framed;
 
 #[cfg(test)]
 #[path = "share_tests.rs"]

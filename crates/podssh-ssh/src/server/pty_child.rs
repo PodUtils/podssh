@@ -23,6 +23,7 @@ use tokio::sync::watch;
 
 use super::channel::{Open, Program};
 use super::child::{command, pump_told, Running};
+use super::frames::FIRST_VIEW;
 use super::predict::Teller;
 use super::pty::{self, Pair};
 use super::share_told::Ticks;
@@ -168,6 +169,19 @@ pub(super) fn spawn(
             let telling = Telling { flags, at_read: false, owner: &running.write };
             let owner = open_hub(open, &shares, Box::new(Master(master.clone())), Box::new(resize), size, telling);
             open.give_stdin(owner.writer());
+            // With frames (T-303), the owner's screen goes as the frames of
+            // the shell's model, which the tee feeds, and its channel gets
+            // no byte of the output; the owner's view answers on the pty.
+            let to: super::share_view::Screen = match open.frames.clone() {
+                Some(frames) => {
+                    let out = running.writer_of(crate::frames::EXT);
+                    let reports = open.predict.then(|| running.writer_of(crate::predict::EXT));
+                    let answers = Master(master.clone());
+                    framing = Some(tokio::spawn(frames.run_epoch(FIRST_VIEW, out, answers, reports)));
+                    Box::new(tokio::io::sink())
+                }
+                None => Box::new(to),
+            };
             let tee = Tee::new(to, owner.hub.clone());
             let ticks = Teller::Shared(Ticks(owner.hub.clone()));
             tokio::spawn(pump_told(motd.chain(Master(master)), tee, exited, Some(ticks)))

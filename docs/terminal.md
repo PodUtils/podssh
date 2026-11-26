@@ -578,7 +578,9 @@ was the gap: its fresh attach showed nothing until the shell wrote, as bash
 does not draw its line again at a change of size; T-901 gives it the ring's
 last screenful, and the measure gives 3 of 3 rows since. A seat of
 `--share` that joins gets the screen so far the same way, from a ring of
-64 KiB of the owner's output that the shared shell keeps. A model on the far end
+64 KiB of the owner's output that the shared shell keeps; a seat with
+`--frames` gets it from the shell's model of its screen ("A shell shared by
+name with frames", below). A model on the far end
 would cost a cell of 32 bytes in `vt100` (the oracle's model): 60 KiB for a
 screen of 80 by 24, and 2.5 MB for 1,000 lines of scrollback, for each kept
 shell, beside the ring of 256 KiB.
@@ -1491,9 +1493,33 @@ build: the prompt after 533 ms median, 1.78 round trips
   none, nobody answers, as with bytes. A kept shell with a model costs a
   parse of each byte of its output for its life, beside the ring, and one
   grid of 60 KiB at 80 by 24 with the states of the frames that wait.
-- **Where there are none.** A shell shared by name (`--share`),
-  `--expect`, `--sudo`, `--su`, `podssh each` and a session through a
-  control master carry each byte. A Windows console that takes no VT sequences ends the session with
+- **A shell shared by name with frames.** With `podssh serve --share`
+  (T-837), the owner and each login under a name of the shell may ask for
+  frames, a name on a channel with a pty: the shell has one model of its
+  screen, and each seat that asked has a view of it
+  (`crates/podssh-ssh/src/server/share_frames.rs`). The model is made at
+  the first ask: the owner's, at the shell's start, or a name's, at its
+  attach, from the modes before the ring of the owner's output and that
+  ring, as a seat of bytes gets its screen so far. From then on the owner's
+  pump feeds it with each byte, for the shell's life, also when no seat with
+  frames is left; its size is the pty's, the least of each seat's. A view
+  is a sender of its own: its base, the acknowledgements of its client, its
+  pace, its queue and its task (`crates/podssh-ssh/src/server/frames_epoch.rs`),
+  so a seat on a slow road holds no other back, and its first frame is the
+  whole screen. A seat with frames gets no byte of the output; a seat
+  without them gets the screen so far and the bytes, as before. Only the
+  owner's view answers the program's questions, on the pty, as the owner's
+  terminal would with bytes; a name's view never does, so a question gets
+  one answer from the model, and none from it while the owner reads bytes,
+  whose terminal answers. A writer's local echo with frames rides the
+  shell's broadcast as before; its task puts each report into its view's
+  inbox, which the pump places after the frame that holds the echo of the
+  keys that it counts (`Shared::reported_aside`). A seat that leaves takes
+  its view with it at once, and never waits for the model. The cost: one
+  model for the shell, a parse of each byte for its life, and for each view
+  its base and at most three frames that wait, some 60 KiB each at 80 by 24.
+- **Where there are none.** `--expect`, `--sudo`, `--su`, `podssh each`
+  and a session through a control master carry each byte. A Windows console that takes no VT sequences ends the session with
   one line (255), and so do bytes that are no frame.
 
 ## Tests
