@@ -18,7 +18,10 @@ pub const MCP: &[&str] = &[
      command or a host; so ssh_exec reaches no host unless --allow-host names it, and is not offered with \
      none. Name each host, or the fewest patterns that hold them; !PATTERN excludes, and a pattern with \
      USER@ needs a destination that names that user. The host is matched as the call names it, before the \
-     HostName of your configuration.",
+     HostName of your configuration. --allow-command limits ssh_exec alone: job_start and session_start run any \
+     command, session_send types any text into a shell, and cp_put writes any file. For an agent that may run only \
+     the patterns, add --read-only too: it removes job_start, job_stop, cp_put and each session_ tool. A line on \
+     stderr names the tools that a pattern leaves open, at the start.",
     "For an agent that watches and must not change: --read-only offers no tool that changes a host, no job_start, \
      job_stop, cp_put or session_ tool, and refuses a call of one by name; ssh_exec is then offered only with \
      --allow-command. --allow-command PATTERN, repeated, names what ssh_exec may run: a pattern is words, the \

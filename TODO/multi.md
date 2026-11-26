@@ -3123,7 +3123,7 @@ the two failures at once fails.
 
 - The Decision's `stdout_base64` and `stderr_base64` are not `ssh_exec`'s form: `ssh_exec` gives
   `stdout` with `stdout_encoding` (`utf-8` or `base64`), and `stderr` with `stderr_encoding`
-  (`crates/podssh-cli/src/mcp/tools.rs:352`). The record takes that form, which a client of
+  (`crates/podssh-cli/src/mcp/tools.rs:364`). The record takes that form, which a client of
   `podssh mcp` reads already.
 - The Prove's `exit 3` on one host and `exit 0` on another: the test's server runs one command
   on each host, and its hosts differ by their users alone, so `cat` gives 0, and 127 for a user

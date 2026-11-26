@@ -6453,7 +6453,7 @@ The tools:
   `--allow-command`. A pattern is words, the program as typed and `*` for one word; a command matches
   when its words are as many and each the pattern's, and one with a character that the remote shell
   reads as more (`;`, `|`, `&`, `$`, a backtick, quotes, redirections, globs, `\`, a newline) is
-  refused, as the shell would run more than the pattern says (`crates/podssh-cli/src/mcp/commands.rs`).
+  refused, as the shell would run more than the pattern says (`crates/podssh-cli/src/mcp/commands.rs`). A pattern limits `ssh_exec` alone: `job_start` and `session_start` run any command, `session_send` types any text, `cp_put` writes any file; so an agent held to the patterns needs `--read-only` too, and a line on stderr names each tool that a pattern leaves open (T-1062).
 
 **The local side has a gate of its own.** `--allow-host` lets an agent reach
 a host, not read the files of this one: no tool read or wrote one before

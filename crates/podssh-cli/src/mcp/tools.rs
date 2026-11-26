@@ -103,6 +103,18 @@ pub fn list(settings: &Settings) -> Vec<Value> {
     tools
 }
 
+/// The tools offered that `--allow-command` does not limit, with patterns
+/// given: each runs a command, types into a shell or writes a file of its
+/// own (T-1062). Said at the start, so that a pattern is not taken for the
+/// whole gate; `--read-only` withholds each of them.
+pub(super) fn unconfined(settings: &Settings) -> Vec<String> {
+    if settings.commands.is_empty() {
+        return Vec::new();
+    }
+    let open = |name: &&str| matches!(*name, "job_start" | "session_start" | "session_send" | "cp_put");
+    list(settings).iter().filter_map(|tool| tool["name"].as_str()).filter(open).map(str::to_string).collect()
+}
+
 /// Whether the tool `name` changes a host, which `--read-only` withholds.
 pub(super) fn changes(name: &str) -> bool {
     matches!(name, "job_start" | "job_stop" | "cp_put") || name.starts_with("session_")

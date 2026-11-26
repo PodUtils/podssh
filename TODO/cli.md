@@ -6447,3 +6447,61 @@ Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
 - Changed: `crates/podssh-cli/src/play.rs` (two cases of `a_time_below_0_is_refused_and_one_out_of_order_plays_at_once`),
   `crates/podssh-cli/src/man/notes_play.rs`, `docs/cli.md`.
 - Result: UNVERIFIED.
+
+
+# T-1062: `mcp --allow-command` limits `ssh_exec` alone, and the manual's risk does not say that `job_start` runs any command
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 10.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh mcp --allow-host tbox --allow-command 'ls *'` refused `ssh_exec` of `ls; echo x`, and ran `job_start` of
+`echo x`. The help of `--allow-command` says that it names what `ssh_exec` may run, which is exact; but THE RISK of
+the manual did not say that the other tools that run a command are open, so an operator who wants "an agent that
+may only run `ls`" leaves `job_start` open unless he also reads that `--read-only` removes it.
+
+## Premise
+
+- Read, at `40a83e5`: `settings.commands.check` is called by `ssh_plan` alone (`crates/podssh-cli/src/mcp/tools.rs`);
+  `job_start` (`crates/podssh-cli/src/mcp/verbs.rs`) and `session_start` (`crates/podssh-cli/src/mcp/sessions.rs`)
+  take any `command`, `session_send` any text, and `cp_put` writes any path of the host.
+- Read: `changes` withholds `job_start`, `job_stop`, `cp_put` and each `session_` tool under `--read-only`.
+
+## Approach
+
+1. THE RISK (`crates/podssh-cli/src/man/notes_mcp.rs`) says that a pattern limits `ssh_exec` alone, which tools it
+   leaves open, and that `--read-only` removes them; `docs/cli.md` the same.
+2. At the start, with patterns given, a line on stderr names each tool offered that they leave open
+   (`tools::unconfined`), as each gate of T-488 says what it opened.
+3. A table test of `unconfined`: a host, each gate, `--read-only`, no pattern, no host.
+
+## Decision
+
+- Say it, and do not make `--allow-command` gate `job_start` and `session_start`: the patterns are words of one
+  command for `ssh_exec`, and a session's `session_send` types text that no pattern can judge; holding half the
+  tools would read as holding all. `--read-only` is the one switch that removes them, and both the manual and the
+  line at the start now name it. Lost: nothing; the line is one more on stderr when patterns are given.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib mcp::
+cargo test -p podssh-cli --test mcp --test man_page --test man_json
+```
+
+Then by hand: `podssh mcp --allow-host h --allow-command 'ls *' < /dev/null` names `job_start` on stderr; with
+`--read-only` it does not.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
+
+- Changed: `crates/podssh-cli/src/mcp/tools.rs`, `crates/podssh-cli/src/mcp/tools_tests.rs`,
+  `crates/podssh-cli/src/mcp/mod.rs`, `crates/podssh-cli/src/man/notes_mcp.rs`, `docs/cli.md`.
+- Result: UNVERIFIED.

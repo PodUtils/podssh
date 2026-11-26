@@ -766,23 +766,23 @@ session path; the test that parses each stdout line fails.
 
 ## Done
 
-2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:125-210`, its
-lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:217-303`,
-the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:307-333`, a
-call at `crates/podssh-cli/src/mcp/mod.rs:336-368`. The messages in
+2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:125-216`, its
+lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:223-309`,
+the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:313-339`, a
+call at `crates/podssh-cli/src/mcp/mod.rs:342-374`. The messages in
 `crates/podssh-cli/src/mcp/protocol.rs:70-108`, the two eras at
 `crates/podssh-cli/src/mcp/protocol.rs:118-173` and
 `crates/podssh-cli/src/mcp/protocol.rs:193-225`, the answers at
 `crates/podssh-cli/src/mcp/protocol.rs:237-250`. The tools at
-`crates/podssh-cli/src/mcp/tools.rs:55-156`, the command line of a call at
-`crates/podssh-cli/src/mcp/tools.rs:215-285`, with the options of each
-session at `crates/podssh-cli/src/mcp/tools.rs:185-203`, and its result at
-`crates/podssh-cli/src/mcp/tools.rs:330-372`. The child of a call at
+`crates/podssh-cli/src/mcp/tools.rs:55-168`, the command line of a call at
+`crates/podssh-cli/src/mcp/tools.rs:227-297`, with the options of each
+session at `crates/podssh-cli/src/mcp/tools.rs:197-215`, and its result at
+`crates/podssh-cli/src/mcp/tools.rs:342-384`. The child of a call at
 `crates/podssh-cli/src/mcp/child.rs:63-122`, its streams at
 `crates/podssh-cli/src/mcp/child.rs:125-157`. The patterns of
 `--allow-host` at `crates/podssh-cli/src/mcp/allow.rs:42-152`. The flags in
 `crates/podssh-cli/src/flags/mcp.rs`, the risk and the rest in the manual
-(`crates/podssh-cli/src/man/notes_mcp.rs:4-59`), and `docs/cli.md`.
+(`crates/podssh-cli/src/man/notes_mcp.rs:4-62`), and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/mcp.rs`, 4 tests, over the stdin and the
 stdout of `podssh mcp`, reads each line of stdout as one JSON-RPC answer:
@@ -1139,7 +1139,7 @@ Read, at `1769d79`, before this entry's work:
 - Read: the tools are `ssh_exec` (only when a host is allowed), `status`, `doctor` and `man`
   (`crates/podssh-cli/src/mcp/tools.rs`, lines 35-73 at `1769d79`); each call runs this binary
   again as a child (`crates/podssh-cli/src/mcp/mod.rs`, lines 6-11 at `1769d79`), whose command
-  line `plan` makes (`crates/podssh-cli/src/mcp/tools.rs:212-264`).
+  line `plan` makes (`crates/podssh-cli/src/mcp/tools.rs:224-276`).
 - Read: `ssh_exec` checks its destination against `--allow-host`
   (`crates/podssh-cli/src/mcp/tools.rs`, lines 170-173 at `1769d79`), and forces no prompt, a
   known host key, no forwarding and no shared connection, before the user's `-F`
@@ -1863,7 +1863,7 @@ both from the schema alone.
   stream section. `crates/podssh-cli/src/man/notes_doctor.rs:17-22` (`DOCTOR_QUICK`) lists what
   `--quick` leaves out and names no probe of `--full`.
 - `crates/podssh-cli/src/mcp/tools.rs:86` repeats the QUIC handshake. Line 79 offers `quick`.
-  `crates/podssh-cli/src/mcp/tools.rs:232-241` builds `--full --quick` when both are true.
+  `crates/podssh-cli/src/mcp/tools.rs:244-253` builds `--full --quick` when both are true.
 - `crates/podssh-cli/src/doctor/sections.rs:349-354` already names the quick tunnel's edge among the
   sections that `--quick` leaves out.
 - T-511's Decision (`TODO/machine.md:1368-1373`) records that `--quick` leaves the edge out.
