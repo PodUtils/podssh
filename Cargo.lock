@@ -1455,7 +1455,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -1563,7 +1563,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17933e749f2502cfcd1c27519292fbbea22e8fc64ce680e863f855e8cd8cce23"
 dependencies = [
  "heck",
- "indexmap 1.9.3",
+ "indexmap 2.14.2",
  "itertools 0.15.0",
  "proc-macro-crate",
  "proc-macro2",
@@ -2007,7 +2007,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2605,9 +2605,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.17.1"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+checksum = "735eaa21a6a5ffb2e84362faaeb90c05ba8e19797ca30428478cb6ea3a4921bc"
 dependencies = [
  "allocator-api2",
  "equivalent",
@@ -2620,7 +2620,7 @@ version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a596f1b20ed2cc5ecac41a164aaebc7258057060f06c0cf7a2ba3991ee7990fb"
 dependencies = [
- "hashbrown 0.17.1",
+ "hashbrown 0.17.2",
 ]
 
 [[package]]
@@ -3035,7 +3035,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
 dependencies = [
  "equivalent",
- "hashbrown 0.17.1",
+ "hashbrown 0.17.2",
  "serde",
  "serde_core",
 ]
@@ -3719,10 +3719,12 @@ dependencies = [
 
 [[package]]
 name = "libudx"
-version = "1.7.4"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19ad364afe8d2326f3cb1315c1c729fa62828ae88ba0cfa7bdc36f619d7244ca"
+checksum = "4921e98edcda3ef4c0ab70af10e18c20fce9bed89def9aaf2c0414778e4a1769"
 dependencies = [
+ "rustix",
+ "socket2",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -3774,7 +3776,7 @@ version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef9ac18847474e638e3702b76c65d4eb93428471a74778ef0f1be711717f89b5"
 dependencies = [
- "hashbrown 0.17.1",
+ "hashbrown 0.17.2",
 ]
 
 [[package]]
@@ -4746,9 +4748,9 @@ dependencies = [
 
 [[package]]
 name = "peeroxide"
-version = "1.7.4"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10990aef71ca02d81ce797121b96729625e67c6c9967a64be5fd9a574bd71085"
+checksum = "4f2c01d199f8640ac118f9212b1d8334176b59d4fe749854aa533422cbcc1304"
 dependencies = [
  "libudx",
  "peeroxide-dht",
@@ -4760,9 +4762,9 @@ dependencies = [
 
 [[package]]
 name = "peeroxide-dht"
-version = "1.7.4"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75f8debc144b0d2efebd0e49e7d0a933dcd9c3e7e7d32caa31d1d20a7c598dbf"
+checksum = "4a46aa99f991a26c17c2a56d94768e85fbe040c491dcf25145e41b0870121199"
 dependencies = [
  "blake2 0.10.6",
  "chacha20 0.9.1",
@@ -6210,7 +6212,7 @@ dependencies = [
  "derive-deftly",
  "libc",
  "paste",
- "thiserror 1.0.69",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -6829,7 +6831,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6922,7 +6924,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7976,10 +7978,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9568,7 +9570,7 @@ dependencies = [
 name = "ts_bart_packetfilter"
 version = "0.6.1"
 dependencies = [
- "hashbrown 0.17.1",
+ "hashbrown 0.17.2",
  "smallvec",
  "ts_array256",
  "ts_bart",
@@ -9857,7 +9859,7 @@ dependencies = [
 name = "ts_packetfilter"
 version = "0.6.1"
 dependencies = [
- "hashbrown 0.17.1",
+ "hashbrown 0.17.2",
  "ipnet",
  "static_assertions",
  "tracing",
@@ -10406,7 +10408,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
