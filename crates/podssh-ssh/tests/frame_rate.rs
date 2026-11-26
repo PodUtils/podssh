@@ -40,6 +40,13 @@ const BAR: Duration = Duration::from_millis(900);
 /// no echo of a typed line is it.
 const PROMPT: &str = "FRAMEP>";
 const SHELL: &str = "exec env PS1='FRAMEP> ' ENV= /bin/sh -i";
+/// The rows before the Ctrl-C's row where a gap may be no frame's: with
+/// `noflsh` off, the default, the pty's driver discards at Ctrl-C what the
+/// flood wrote and serve did not read yet (POSIX, `ISIG`), and the loop can
+/// print a line or two before the signal ends it, so those lines never reach
+/// the far end's screen and no count can say them (T-1056). A gap anywhere
+/// else is podssh's.
+const AT_THE_CTRL_C: usize = 4;
 const FLOOD: &[u8] = b"i=0; while :; do i=$((i+1)); echo \"flood $i of a loop that prints for ever\"; done\r";
 
 fn key() -> PrivateKey {
@@ -210,15 +217,26 @@ fn flood_number(row: &str) -> Option<u64> {
 /// Each line of the flood that `read` (the scrollback, then the screen)
 /// holds comes once and in order, and each gap between two of them is the
 /// count of the lines said skipped there. The count of lines of the flood.
+/// A failure names the rows around it, so that a gap at the Ctrl-C tells
+/// itself from one inside the flood.
 fn flood_once(read: &[String]) -> usize {
     let (mut last, mut said, mut seen) = (None::<u64>, 0u64, 0);
-    for row in read {
+    for (at, row) in read.iter().enumerate() {
         let skipped = row.strip_prefix("[podssh: ").and_then(|rest| rest.split(' ').next()?.parse::<u64>().ok());
         if let Some(count) = skipped {
             said += count;
         } else if let Some(n) = flood_number(row) {
             if let Some(last) = last {
-                assert_eq!(n, last + 1 + said, "flood {n} after flood {last} and {said} said skipped");
+                let around: Vec<&str> =
+                    read[at.saturating_sub(3)..(at + 4).min(read.len())].iter().map(|r| r.trim_end()).collect();
+                let rows = read.len();
+                let place = format!("at row {at} of {rows}: {around:?}");
+                // The row of the Ctrl-C's echo, `^C`, and how far this one is before it.
+                let ctrl_c = read.iter().position(|r| r.contains("^C")).unwrap_or(rows);
+                let discarded = ctrl_c > at && ctrl_c - at <= AT_THE_CTRL_C && n > last + 1 + said;
+                if !discarded {
+                    assert_eq!(n, last + 1 + said, "flood {n} after flood {last} and {said} said skipped, {place}");
+                }
             }
             (last, said, seen) = (Some(n), 0, seen + 1);
         }

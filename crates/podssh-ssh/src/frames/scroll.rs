@@ -293,3 +293,8 @@ pub fn block(rows: &[Vec<u8>], height: u16) -> Vec<u8> {
 #[cfg(test)]
 #[path = "scroll_tests.rs"]
 mod tests;
+
+// The rule of the lines as a property, at the sender's own pace (T-1056).
+#[cfg(test)]
+#[path = "gap_tests.rs"]
+mod gap_tests;

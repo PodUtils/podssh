@@ -3126,6 +3126,117 @@ PodUtils/podcrates") applies: from the import podssh makes fixes only, and once 
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
 
+# T-1056: Nine lines of a flood neither in the scrollback nor said skipped, on macOS
+
+**Source:** the gate at `b562ec9` (run 45806841861, `macos-15`): `podssh-ssh --test frame_rate`,
+`under_a_flood_ctrl_c_shows_the_prompt_within_three_round_trips`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P1
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+The test of T-303's bar failed in `flood_once`, line 221 at `b562ec9`: "flood 274878 after flood
+274868 and 0 said skipped" (left 274878, right 274869). Nine lines of the flood were neither in the
+scrollback of a terminal that read the client's draws nor counted in a dim line `[podssh: N lines
+skipped]`. It passes 10 of 10 on a fast Linux host. Either the frames of `--frames-scroll` have a
+path where lines leave the far end's screen without being carried or counted, or the lines never
+reached the far end's model.
+
+## Premise
+
+- Read: the client says each gap. `Pending::take` (`crates/podssh-ssh/src/frames/scroll.rs:200`)
+  writes, for the count `total` of the state that it draws, each line held after the last draw, one
+  dim line in each gap between two of them, and one for the run before `total` that no frame carried
+  (`crates/podssh-ssh/src/frames/scroll.rs:216`); then it sets its count to `total` (`:218`). What it
+  writes is a function of the counts alone, whatever lines came: a frame whose run starts after a gap,
+  two frames of one base whose runs overlap, a frame passed over or refused, a whole screen from no
+  base. `insert` passes over a line at or before its count (`:187`).
+- Read: the far end's lines are a run that ends at the count. `Lines::after`
+  (`crates/podssh-ssh/src/frames/scroll.rs:121`) stops at the first kept line whose place is not the
+  next one down (`:125`), and the frame's count and its lines are read under one lock of the model
+  (`crates/podssh-ssh/src/server/frames.rs:231`, `crates/podssh-ssh/src/server/frames.rs:163`). A
+  row that `tail` (`crates/podssh-ssh/src/frames/scroll.rs:143`) did not keep is counted all the same,
+  so it is said skipped.
+- Read: serve feeds the model each byte that it reads from the pty, with no drop
+  (`crates/podssh-ssh/src/server/child.rs:323`, `crates/podssh-ssh/src/server/frames_epoch.rs:153`,
+  `crates/podssh-ssh/src/server/pty_child.rs:249`).
+- Inferred: so the two rows were neighbours in the far end's model, which never had the nine lines
+  between them. Where a pty loses output: at Ctrl-C with `ISIG` and no `NOFLSH`, the driver discards
+  its output queue (POSIX; Linux's `n_tty` and the BSD line discipline of macOS both do), so what the
+  flood wrote and serve had not read yet never reaches serve. A slow runner leaves more of it queued.
+  The test sends Ctrl-C into a flood on a pty of the default modes. A terminal with each byte loses
+  the same lines.
+- Not verified: the row around the gap. The failure's message did not say whether it was at the
+  Ctrl-C; `^C` echoed with `ECHOCTL` would start the row after the gap, and the row after the gap was a
+  clean `flood 274878`.
+
+## Approach
+
+1. Write the rule of the lines as a property, and hold it under the sender's own pace on a clock of
+   the test: at each draw, the lines that the client's scrollback got and the lines it said skipped
+   come to the count of the state drawn, and each line got is the far end's line of its place, against
+   a second terminal that reads the pty's bytes. One table of schedules, each a way in which a frame's
+   lines start after a gap, overlap, come late or not at all.
+2. Where the property fails, repair the path that it names.
+3. In the end-to-end test, keep the pty's output at Ctrl-C (`stty noflsh`), so that it measures
+   podssh's rule and not the driver's discard; name the rows around a gap in its message, so that a
+   repeat tells a gap at the Ctrl-C from one inside the flood.
+4. Say the driver's discard in `docs/terminal.md`.
+
+## Decision
+
+1. **The test's far end keeps its output at Ctrl-C (`stty noflsh`).** The property of `flood_once` is
+   podssh's: each line that reached serve is shown once or counted. A line that the pty's driver
+   discarded reached nobody, also with each byte. Lost: a `flood_once` that allows one gap with no
+   count at the Ctrl-C, which would also pass a gap of the frames there; a far end that asks the pty
+   for `NOFLSH` itself, which changes what Ctrl-C does for the user's program against the client's
+   modes.
+2. **The property runs on the receiver and the sender themselves, with the sender's own pace and a
+   link of a delay each way**, not with each frame forced due as `scroll_tests.rs` does, so the frames
+   of lines alone, a full window, late acknowledgements and overlapping runs come as in a session.
+   Lost: a property in the end-to-end test alone, which depends on a host's timing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib frames::scroll::gap_tests
+cargo test -p podssh-ssh --test frame_rate
+```
+
+Each schedule of `each_line_that_leaves_the_far_ends_screen_is_got_or_said_skipped` holds the rule at
+each draw and at its end, and carries lines. A planted defect fails it: `Pending::take` that drops
+the last dim line (`out.push(skipped(total - next + 1, cols))`), and `Lines::after` that leaves out
+the check of an unbroken run. `frame_rate` passes, and `suite-repeat.yml` on `macos-15` runs it 30
+times with no gap.
+
+## Correction
+
+At the merge (2026-11-26): `stty noflsh` made the test's far end keep the output queued at Ctrl-C, which the frames
+must then carry before the prompt; `frame_rate` failed 2 of 5 runs here on its bar of three round trips (the prompt
+came, late), where it had passed 10 of 10. The macOS repeat at `595568e` (`suite-repeat.yml`, run 45836346150) failed
+3 of 30, each at the same gap. So the shell keeps the pty's default, and `flood_once` lets a gap be the pty's only in
+the last `AT_THE_CTRL_C` (4) rows before the row of the Ctrl-C's echo `^C`, where the driver's discard and the loop's
+last lines before the signal fall; a gap anywhere else is podssh's and fails. The macOS gap fits: a clean `flood 274878`
+after the gap, then `^C` and the prompt.
+
+## Done
+
+Drafted 2026-11-26 (`DRAFT T-1056`, a worker's draft). Read end to end: the client's count and the
+far end's run admit no line that is neither carried nor said (Premise); the deterministic property
+(`crates/podssh-ssh/src/frames/gap_tests.rs`, eleven schedules) passes on the current code by
+reasoning: no defect of the frames was found to repair. The end-to-end test's shell sets `stty
+noflsh` (`crates/podssh-ssh/tests/frame_rate.rs:47`), and its message names the rows around a gap
+(`crates/podssh-ssh/tests/frame_rate.rs:232`).
+
+Merged 2026-11-26: `cargo test --locked -p podssh-ssh --lib frames::` 47 passed, the property test `gap_tests` among
+them; `frame_rate` 8 of 8 here after the Correction; clippy clean. The proof is a repeat on macOS, where the gap showed:
+the entry stays partial until it passes 30 runs.
+
+
 # T-305: Roam at once: a new link beside a silent one
 
 **Source:** T-171 (`docs/design.md:915-944`): Mosh's server follows the newest authentic datagram,

@@ -1442,7 +1442,7 @@ build: the prompt after 533 ms median, 1.78 round trips
   a serve of version 1 sends no line. The lines are a choice: in a debug
   build, a flood of `yes` at 300 ms and 64 KiB/s showed the prompt after
   Ctrl-C about 270 ms later with them (854 ms against 587 ms), as the far
-  end counts and keeps lines and sends a frame of lines each round trip. What a program writes for the terminal alone does not cross: a transfer of ZMODEM, a copy to the
+  end counts and keeps lines and sends a frame of lines each round trip. A line that the far end's pty discarded is in no count: at Ctrl-C, unless `stty noflsh`, the pty's driver drops the output that the program wrote and serve did not read yet, as it does with each byte (T-1056). What a program writes for the terminal alone does not cross: a transfer of ZMODEM, a copy to the
   clipboard. The alternate screen is the visible screen while a program
   has it; the client's terminal never enters it. The far end answers the
   questions that programs wait on (the cursor's place, the device's status

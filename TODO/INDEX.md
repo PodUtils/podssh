@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**986 entries: 3 open, 33 partial, 16 blocked, 934 done.**
+**987 entries: 3 open, 34 partial, 16 blocked, 934 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 6 | 3 | 105 | 114 |
+| P1 | 0 | 7 | 3 | 105 | 115 |
 | P2 | 0 | 20 | 4 | 349 | 373 |
 | P3 | 3 | 7 | 9 | 479 | 498 |
-| **All** | 3 | 33 | 16 | 934 | 986 |
+| **All** | 3 | 34 | 16 | 934 | 987 |
 
 ## Entries
 
@@ -1062,3 +1062,4 @@ repository and CI).
 | [T-1053](cli.md) | P3 | S | backlog | defect | done | `--pair-file` names its file twice, and `net add` says "0 words given" for what it needs |
 | [T-1054](ws.md) | P3 | S | backlog | defect | done | A name that does not resolve is said with the TLS library's words of each DNS over HTTPS resolver |
 | [T-1055](cli.md) | P3 | S | backlog | defect | done | `status` with `PODSSH_RELAY` set and empty exits 0, where each other verb refuses it with 78 |
+| [T-1056](resume.md) | P1 | S | backlog | defect | partial | Nine lines of a flood neither in the scrollback nor said skipped, on macOS |
