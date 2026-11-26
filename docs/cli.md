@@ -7475,7 +7475,15 @@ pipe` (T-177): the socket is made mode 0600, and a client of another user
 is closed before a byte of it is read; on Windows it is an AF_UNIX socket
 whose clients must run as this user. `--socket PATH` names another place:
 also `\\.\pipe\NAME` on Windows, and `@NAME` in Linux's abstract namespace,
-which has no file and where the check of the user is the guard. No TCP: a
+which has no file and where the check of the user is the guard. A
+`--socket PATH` that cannot take a socket is refused before the session's
+podssh starts, so before any login, with 73 and one line that names it
+(T-1066): its directory is not there or is no directory, it is too long
+for the address of a socket, or a file that is no socket is there, which
+podssh never removes. A bind that still fails says the path, never the
+`unix-listen:` of `podssh pipe`, and is 73 too, but where this host refuses
+the listener (77, with the way with none) or a program serves the path
+(69). No TCP: a
 request types into a shell, and a TCP peer's user cannot be read. The bind
 is the probe: a host that refuses it gets the reason, and `start` exits 77;
 `PODSSH_LISTEN=no` refuses `start` and `serve` before any bind (78), and
@@ -7498,8 +7506,9 @@ that the client gives, and `error`. A line of another schema, or another
 session's name, is refused (64).
 
 Exit codes: 0; 64 a usage error; 69 no session of that name answers, or it
-ended; 70 an answer that this podssh cannot read; 75 the `--timeout` passed
-first; 77 the bind refused; 78 `PODSSH_LISTEN=no`, or no directory for the
+ended; 70 an answer that this podssh cannot read; 73 the path of
+`--socket` cannot take a socket; 75 the `--timeout` passed first; 77 the
+bind refused; 78 `PODSSH_LISTEN=no`, or no directory of the cache for the
 socket; 255 the connection or the login of `start` failed.
 
 ## `podssh update`

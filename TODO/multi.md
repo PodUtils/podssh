@@ -4419,3 +4419,70 @@ cargo test -p podssh-cli --test job
 ## Done
 
 UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.
+
+
+# T-1066: `session start --socket` in a directory that is not there says `unix-listen:` and the hint of `-tt`, with 69
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 7.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh session start s9 --socket DIR/nodir/x.sock HOST` said "podssh session: unix-listen:DIR/nodir/x.sock: No such
+file or directory", then "with no listener, podssh ssh -tt HOST COMMAND runs a command with a pty in one call", and
+exited 69. `unix-listen:` is a word of `podssh pipe`'s addresses that the user never typed, the second line is a
+hint for a host that refuses a listener, and one class of fault had three codes: 69 for a missing directory and a
+path too long, 64 for a `--socket` that names a directory.
+
+## Premise
+
+- Read, at `40a83e5`: `place::new` takes the path of `--socket` as it is (line 37 of
+  `crates/podssh-cli/src/session/place.rs`); the session's podssh binds it (line 171 of
+  `crates/podssh-cli/src/session/daemon.rs`) through `podssh pipe`'s listener, whose line begins with
+  `unix-listen:PATH` (line 192 of `crates/podssh-cli/src/pipe/listen.rs`), a file that is no socket is 64 there
+  (line 265), and each other failure keeps the code of the error (69, or 77 for a refusal); then the daemon writes
+  the hint of `-tt` after each failure (line 181).
+- Read, at `40a83e5`: the bind comes before the connection (line 208, `connect_and_run`), so no login comes before
+  the failure; the check still belongs before the child starts, where `start` makes `serve`'s other refusals.
+- EXIT STATUS gives 73 for a file of a run that cannot be made (T-1048), 77 for a bind that the host refuses, and
+  78 for no directory of the cache for the socket.
+
+## Approach
+
+1. `unfit` (`crates/podssh-cli/src/session/place.rs:79`) checks the path of `--socket` in `plan`, so before the
+   child starts in `start` and before the bind in `serve`: too long for the address of a socket, a directory that
+   is not there or is no directory (`no_place_for` of T-1048), or a file there that is no socket. Each is one line
+   that begins with `--socket PATH`, and 73. `@NAME` and a named pipe go on to the bind.
+2. A bind that still fails (`/proc`, a file system that refuses it) is said by `unbound_line`
+   (`crates/podssh-cli/src/session/daemon.rs:425`): the path, with `--socket` when it was given, never
+   `unix-listen:`, and the way with no listener in a session's words only at 77. `unbound_code`
+   (`crates/podssh-cli/src/session/daemon.rs:411`) makes it 73, but 77 for a refusal of the host and 69 for a path
+   that a program serves.
+3. The manual (THE SOCKET, and the row of 73 in EXIT STATUS) and `docs/cli.md` say it.
+
+## Decision
+
+- 73, against 64 and 78. A path of the command line that cannot take the file that the run makes is 73 in each
+  other verb (`--result-file`, `-E`, `--record`, `cp`'s destination, `job fetch`'s DIR); 64 would say a flag was
+  malformed, and 78 is a setting of the environment (the cache's directories, `PODSSH_LISTEN`), which `--socket`
+  is not. Lost: nothing; 69 told a missing directory from no session of that name with nothing.
+- 77 keeps its line and the way with no listener: the manual's "where this host refuses it, start exits 77 with the
+  reason". 69 stays for a path that a program serves: the place is good, and it is taken.
+- The check of a file that is no socket is the bind's own (it never removes one), made earlier; on Windows, whose
+  socket file reads as a reparse point, only a directory is refused before the bind.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib session::tests
+cargo test -p podssh-cli --test session a_bad_command_line_or_no_listener_refuses_before_anything_listens
+```
+
+## Done
+
+UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.

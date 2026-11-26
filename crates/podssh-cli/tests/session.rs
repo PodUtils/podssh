@@ -237,6 +237,17 @@ fn a_bad_command_line_or_no_listener_refuses_before_anything_listens() {
     let out = ran(cmd);
     assert_eq!(out.status.code(), Some(78));
     assert!(String::from_utf8_lossy(&out.stderr).contains("--socket"));
+    // T-1066: a --socket whose directory is not there is 73 before any
+    // login (127.0.0.1:9 is never reached), in one line of the path.
+    let missing = home.join("nodir").join("x.sock").display().to_string();
+    for sub in ["start", "serve"] {
+        let (code, out, err) = session(&home, &[sub, "w", "--socket", &missing, "--direct", "127.0.0.1", "-p", "9"]);
+        assert_eq!(code, 73, "{sub}: {err}");
+        assert!(out.is_empty(), "{sub}: {out}");
+        assert_eq!(err.lines().count(), 1, "{sub}: {err}");
+        assert!(err.contains(&format!("--socket {missing}: no such directory")), "{sub}: {err}");
+        assert!(!err.contains("unix-listen:") && !err.contains("-tt"), "{sub}: {err}");
+    }
 }
 
 #[test]

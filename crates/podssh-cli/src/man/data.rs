@@ -94,7 +94,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              podssh chat: the path of --accept-dir is not there, or is no directory. podssh each: a file of --output-dir \
              cannot be made; no host has run. podssh keygen: the directory of -f is not there, or is no directory. \
              podssh ssh: the directory of --result-file, -E or --record is not there, so nothing ran; or the file \
-             of -E or --record cannot be made. podssh job fetch: its DIR, or a file in it, cannot be made here.",
+             of -E or --record cannot be made. podssh job fetch: its DIR, or a file in it, cannot be made here. \
+             podssh session start and serve: the path of --socket cannot take a socket, so nothing connected.",
         ),
         row(
             sysexits::EX_IOERR,

@@ -1064,3 +1064,4 @@ repository and CI).
 | [T-1055](cli.md) | P3 | S | backlog | defect | done | `status` with `PODSSH_RELAY` set and empty exits 0, where each other verb refuses it with 78 |
 | [T-1056](resume.md) | P1 | S | backlog | defect | done | Nine lines of a flood neither in the scrollback nor said skipped, on macOS |
 | [T-1065](multi.md) | P3 | S | backlog | defect | open | `job fetch` into a DIR that cannot be made here exits 255, as a host out of reach |
+| [T-1066](multi.md) | P3 | S | backlog | defect | open | `session start --socket` in a directory that is not there says `unix-listen:` and the hint of `-tt`, with 69 |

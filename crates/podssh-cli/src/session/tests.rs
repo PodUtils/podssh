@@ -215,3 +215,54 @@ fn text_that_is_not_base64_names_its_byte() {
         assert!(!said.contains("Invalid") && !said.contains("offset"), "{text}: {said}");
     }
 }
+
+/// T-1066: a `--socket` that cannot take a socket is one class, refused
+/// with 73 before the session's podssh starts: a directory that is not
+/// there or is a file, a path too long for the address, and a file there
+/// that is no socket. `@NAME`, a named pipe and a free path in a directory
+/// go on to the bind.
+#[test]
+fn a_socket_path_that_cannot_take_a_socket_is_73_before_the_login() {
+    let root = std::env::temp_dir().join(format!("podssh-session-unfit-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let file = root.join("a-file");
+    std::fs::write(&file, b"x").unwrap();
+    let shown = |p: std::path::PathBuf| p.display().to_string();
+    let long = shown(root.join("x".repeat(crate::pipe::unix::SUN_PATH)));
+    for (path, says) in [
+        (shown(root.join("nodir").join("x.sock")), "no such directory"),
+        (shown(file.join("x.sock")), "is not a directory"),
+        (long, "too long for the address of a socket"),
+        (shown(root.clone()), "is not a socket"),
+    ] {
+        let refusal = place::new("w", Some(&path)).expect_err(&path);
+        assert_eq!(refusal.code, 73, "{path}: {}", refusal.message);
+        assert!(refusal.message.starts_with(&format!("--socket {path}")), "{}", refusal.message);
+        assert!(refusal.message.contains(says), "{path}: {}", refusal.message);
+        assert!(!refusal.message.contains("unix-listen:"), "{}", refusal.message);
+    }
+    for free in [shown(root.join("w.sock")), "@w".to_string(), r"\\.\pipe\w".to_string()] {
+        assert_eq!(place::new("w", Some(&free)).map_err(|r| r.message), Ok(free.clone()));
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// T-1066: the line of a bind that failed names the path as the user gave
+/// it, never `unix-listen:`, and the way with no listener only where this
+/// host refuses one (77), in a session's words.
+#[test]
+fn a_failed_bind_says_the_path_and_the_way_without_a_listener_only_at_77() {
+    let refused = "unix-listen:/s/w.sock: Permission denied; this host refuses the listener: stdio, fd:N and exec:CMD \
+                   need no listener";
+    for (line, code, given, want, hint) in [
+        ("unix-listen:/s/w.sock: No such file or directory", 73, true, "--socket /s/w.sock: No such", false),
+        ("unix-listen:/s/w.sock: a program listens on it already", 69, false, "/s/w.sock: a program", false),
+        (refused, 77, true, "--socket /s/w.sock: Permission denied", true),
+    ] {
+        let said = daemon::unbound_line(line, code, given);
+        assert!(said.starts_with(want), "{line}: {said}");
+        assert!(!said.contains("unix-listen:") && !said.contains("fd:N"), "{said}");
+        assert_eq!(said.contains("podssh ssh -tt"), hint, "{said}");
+    }
+}

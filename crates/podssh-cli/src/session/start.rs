@@ -2,7 +2,7 @@
 //! this binary that leaves this process's session (setsid; on Windows a
 //! process with no console), and its stdout and stderr once it is ready
 //! (`--detach`). Before the child starts, `start` makes the refusals of
-//! `serve` itself (64, 78), and refuses a name that runs already (69). Then
+//! `serve` itself (64, 73, 78), and refuses a name that runs already (69). Then
 //! it passes on what the child says on stderr until its line of ready, and
 //! exits 0 with the socket's path on stdout; or with the child's own code,
 //! when the child ended first: 77 for a bind that the host refuses, 255 for
