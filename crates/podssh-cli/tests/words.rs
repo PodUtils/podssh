@@ -107,6 +107,19 @@ fn each_line_of_the_pass_is_true_and_clear() {
             vec!["--policy and --preflight cannot be used together"],
             vec!["give one"],
         ),
+        // `each` refuses the frames by name, and says what to type (T-303).
+        (
+            vec!["each", "--frames", "h1,h2", "--", "true"],
+            64,
+            vec!["--frames is refused", "podssh ssh --frames HOST", "no pseudo-terminal"],
+            vec!["unknown flag"],
+        ),
+        (
+            vec!["each", "--frames-scroll", "h1,h2", "--", "true"],
+            64,
+            vec!["--frames-scroll is refused", "podssh ssh --frames-scroll HOST"],
+            vec!["unknown flag"],
+        ),
         // `help WORD` that names no verb is refused as that word, not as `help`.
         (vec!["help", "nosuchverb"], 64, vec!["unknown subcommand 'nosuchverb'"], vec!["'help'"]),
         // A name that never ran did not end.

@@ -63,4 +63,7 @@ pub const EACH_FLAGS: &[FlagRow] = &[
     super::vless::HYSTERIA,
     super::via::VIA, super::via::VIA_AUTH_FILE, super::via::WSTUNNEL, super::via::WSTUNNEL_SECRET_FILE,
     super::via::CHISEL, super::via::CHISEL_AUTH_FILE, super::via::TURN, super::via::TURN_AUTH_FILE,
+    // The frames of one far end's screen (T-303): refused by name, as each
+    // writes the output of many hosts as lines, with no pseudo-terminal.
+    super::frames::EACH_FRAMES, super::frames::EACH_FRAMES_SCROLL,
 ];

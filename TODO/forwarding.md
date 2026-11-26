@@ -458,7 +458,7 @@ command line in `crates/podssh-cli/src/ssh/x11.rs:1-167`, the flags at
   this Xvfb takes an untrusted cookie of `xauth` at all
   (`scripts/interop-x11.sh:37-51`): env when it does not, a failure when it
   does and podssh's `-X` fails.
-- `docs/cli.md:1187-1210`, a note of the manual and the variable `XAUTHORITY`
+- `docs/cli.md:1191-1214`, a note of the manual and the variable `XAUTHORITY`
   say what the flags do, and the risk of `-Y`.
 - `cargo test -p podssh-ssh`: 155 passed; `cargo test -p podssh-cli`:
   577 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -899,8 +899,8 @@ as a TCP host again, and the gate's check fails with the server's error.
 2026-10-11. The target of `-W` is `StdioTarget`, TCP or a socket
 (`crates/podssh-ssh/src/options.rs:164-181`), opened by `open_target`
 (`crates/podssh-ssh/src/forward.rs:23-45`); through a control master
-(`crates/podssh-ssh/src/mux/client.rs:180-195`,
-`crates/podssh-ssh/src/mux/msession.rs:281-288`). The command line reads a
+(`crates/podssh-ssh/src/mux/client.rs:190-205`,
+`crates/podssh-ssh/src/mux/msession.rs:355-362`). The command line reads a
 path at `crates/podssh-cli/src/ssh/hop.rs:92-95`, and the row of `-W` says so
 (`crates/podssh-cli/src/flags.rs:143-144`).
 - `cargo test -p podssh-cli --test ssh_stdio_socket`: 2 passed. The test of
@@ -1014,7 +1014,7 @@ and the lines of `-v` at `crates/podssh-ssh/src/run.rs:244`.
   -W` through OpenSSH's sshd to a TCP echo server, 262144 bytes each way) and
   `pty.forwards` (`scripts/interop-pty.py`, `~#` in a session with `-R
   0:127.0.0.1:2201`).
-- `docs/cli.md:967-974` and the manual's note of `-t` say what `~#` and `-v`
+- `docs/cli.md:971-978` and the manual's note of `-t` say what `~#` and `-v`
   print.
 - `cargo test -p podssh-ssh`: 158 passed; `cargo test -p podssh-cli`:
   578 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1023,8 +1023,8 @@ and the lines of `-v` at `crates/podssh-ssh/src/run.rs:244`.
   the escapes with no `~#`, and the build on Windows never compiled it. The
   repair: the session of a client of a control master lists the master's
   forwards with `~#`, as OpenSSH's `~#` lists the master's connections, and
-  its `~?` names it (`crates/podssh-ssh/src/mux/msession.rs:33-35` and
-  `crates/podssh-ssh/src/mux/msession.rs:182-187`). In the build image
+  its `~?` names it (`crates/podssh-ssh/src/mux/msession.rs:35-37` and
+  `crates/podssh-ssh/src/mux/msession.rs:218-221`). In the build image
   (`sh scripts/dev.sh run`), `cargo clippy --all-targets -p podssh-ssh -p
   podssh-cli -- -D warnings` passed.
 - Correction: at `f80e7f3` the gate failed both checks of this entry, each
@@ -1497,7 +1497,7 @@ ssh(1), ESCAPE CHARACTERS: `~C` opens a command line that takes `-L`, `-R`,
 - `~C` is an escape only where the caller gives a `Forwarder`
   (`podssh ssh`), and not in a session that a control master carries, as
   OpenSSH offers no `~C` to a client of its master: there `~C` goes to the
-  server as typed (`crates/podssh-ssh/src/mux/msession.rs:193`). Lost: a
+  server as typed (`crates/podssh-ssh/src/mux/msession.rs:227`). Lost: a
   `~C` of a client sent as `-O forward` to the master, which OpenSSH does
   not do.
 - `-R` and `-KR` wait for the server's answer, 20 s at most
@@ -1640,7 +1640,7 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
 
 - Read: `crates/podssh-cli/src/ssh/forward.rs` line 43 at `6f6eda2` says "a Unix socket is not
   carried yet", and its line 49 says "the server's SOCKS proxy (-R [bind_address:]port) is not
-  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1123-1124` and
+  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1127-1128` and
   `crates/podssh-cli/src/man/notes_ssh_more.rs:6-7` say so too. `TODO/forwarding.md:52-54` says
   "until a later step" of both, in T-035.
 - Read: `RemoteForward` holds a port and a `host:host_port` only

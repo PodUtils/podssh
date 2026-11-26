@@ -3,7 +3,8 @@
 //! and environment, copied to and from the descriptors that the client
 //! passed, until the channel closes. The client hears SESSION_OPENED or a
 //! failure, TTY_ALLOC_FAIL when no pty came, and EXIT_MESSAGE with the
-//! status, as OpenSSH's master sends them.
+//! status, as OpenSSH's master sends them. A client of podssh's that asked
+//! for frames gets them drawn on its terminal here ([`super::mframes`]).
 
 use std::os::fd::OwnedFd;
 use std::sync::Arc;
@@ -16,6 +17,7 @@ use tokio::net::UnixStream;
 use tokio::sync::watch;
 
 use super::afd::Passed;
+use super::mframes::{self, Framed};
 use super::proto::{Message, NewSession, NO_ESCAPE};
 use super::wire;
 use crate::escape::{Command, Escapes};
@@ -47,7 +49,7 @@ async fn failure(stream: &mut UnixStream, rid: u32, reason: String) {
 #[allow(clippy::too_many_arguments)]
 pub async fn session(
     handle: &Handle<Client>,
-    asked: NewSession,
+    mut asked: NewSession,
     fds: [OwnedFd; 3],
     sid: u32,
     stream: &mut UnixStream,
@@ -56,6 +58,9 @@ pub async fn session(
     log: &Arc<Log>,
 ) {
     let rid = asked.rid;
+    // The client's `--frames` (T-303): the master's to read, never a
+    // variable of the server's.
+    let frames_ask = mframes::Ask::take(&mut asked.env);
     let [stdin, stdout, stderr] = fds;
     let (mut input, mut out, mut err) = match (Passed::new(stdin), Passed::new(stdout), Passed::new(stderr)) {
         (Ok(input), Ok(out), Ok(err)) => (input, out, err),
@@ -93,12 +98,24 @@ pub async fn session(
     if asked.agent && agent {
         let _ = crate::agent_forward::request(&mut channel, &mut early, log).await;
     }
+    // The frames are asked last before the session's request, as a client
+    // of its own asks them; a subsystem is no terminal's session.
+    let frames_ask = frames_ask.filter(|_| !asked.subsystem);
+    let frames_asked = mframes::ask(&channel, frames_ask, pty, &mut err).await;
     let sent = if asked.subsystem {
         channel.request_subsystem(true, String::from_utf8_lossy(&asked.command)).await
     } else if asked.command.is_empty() {
         channel.request_shell(true).await
     } else {
         channel.exec(true, asked.command.clone()).await
+    };
+    // The replies come in order: the frames' before the session's.
+    let framed = match &sent {
+        Ok(()) => {
+            let asks = (frames_asked, frames_ask);
+            mframes::answered(&mut channel, &mut early, asks, &mut err).await.unwrap_or(None)
+        }
+        Err(_) => None,
     };
     let started = sent.is_ok() && crate::session::wait_reply(&mut channel, &mut early).await.unwrap_or(false);
     if !started {
@@ -115,7 +132,16 @@ pub async fn session(
         _ => None,
     };
     let winch = pty.then_some(winch);
-    let status = pump(channel, early, &mut input, &mut out, &mut err, escapes, winch).await;
+    // What the last frame leaves on the client's terminal, for the end.
+    let leave = framed.as_ref().map(Framed::leave);
+    let mut term = Term { out: &mut out, err: &mut err, framed };
+    let status = pump(channel, early, &mut input, &mut term, escapes, winch).await;
+    // The modes of the keys that the last frame set go back, and the
+    // cursor shows, however the session ended, before the client hears
+    // the status and writes its own line.
+    if let Some(bytes) = leave.map(|leave| leave.bytes()).filter(|bytes| !bytes.is_empty()) {
+        let _ = out.write_all(&bytes).await;
+    }
     let _ = out.flush().await;
     let _ = err.flush().await;
     if let Some(code) = status {
@@ -132,8 +158,7 @@ async fn pump(
     channel: Channel<Msg>,
     early: Vec<ChannelMsg>,
     input: &mut Passed,
-    out: &mut Passed,
-    err: &mut Passed,
+    term: &mut Term<'_>,
     mut escapes: Option<Escapes>,
     mut winch: Option<watch::Receiver<u64>>,
 ) -> Option<i32> {
@@ -145,8 +170,13 @@ async fn pump(
     let mut aside = Backlog::default();
     let no_watch = || {};
     for msg in early {
-        if let Some(()) = take(msg, &mut status, &mut eof, out, err).await {
-            return status;
+        match take(msg, &mut status, &mut eof, term).await {
+            Some(Stop::Closed) => return status,
+            Some(Stop::Unframed) => {
+                let _ = beside(writer.close(), &mut reader, &mut aside, &no_watch).await;
+                return None;
+            }
+            None => {}
         }
     }
     // A client's keys on a pty hold the master's bulk until their echo (T-661).
@@ -155,6 +185,12 @@ async fn pump(
     let mut reading = true;
     let mut last = terminal::size_of_fd(input.raw());
     loop {
+        // The frames that came are acknowledged, once for each pass, with
+        // no reply asked, as a client of its own does (T-303).
+        if let Some(value) = term.framed.as_mut().and_then(Framed::take_ack) {
+            let ack = writer.set_env(false, crate::frames::ACK, value);
+            let _ = beside(ack, &mut reader, &mut aside, &no_watch).await;
+        }
         tokio::select! {
             read = input.read(&mut buf), if reading => match read {
                 Ok(0) | Err(_) => {
@@ -181,14 +217,12 @@ async fn pump(
                                 let _ = beside(writer.close(), &mut reader, &mut aside, &no_watch).await;
                                 return status;
                             }
-                            Command::Help => {
-                                let _ = err.write_all(HELP).await;
-                            }
+                            Command::Help => term.note(HELP).await,
                             // The forwards are the master's, as OpenSSH's
                             // ~# lists the master's connections (T-041).
                             Command::List => {
                                 let listing = crate::tally::listing().replace('\n', "\r\n");
-                                let _ = err.write_all(listing.as_bytes()).await;
+                                term.note(listing.as_bytes()).await;
                             }
                             // A re-key is the whole connection's: the master's.
                             // A shared session learns no offer of kept shells,
@@ -198,20 +232,25 @@ async fn pump(
                             Command::Rekey | Command::Detach | Command::CommandLine => {}
                             // ZMODEM is watched in a session of podssh's own
                             // terminal, not in one that a master carries.
-                            Command::Zmodem => {
-                                let _ = err.write_all(ZMODEM_NOTE).await;
-                            }
+                            Command::Zmodem => term.note(ZMODEM_NOTE).await,
                         }
                     }
                 }
             },
             msg = beside::next(&mut reader, &mut aside) => match msg {
                 Some(msg) => {
-                    if pty && matches!(msg, ChannelMsg::Data { .. }) {
+                    // A frame of the screen is a key's echo too (T-303).
+                    let frame = matches!(msg, ChannelMsg::ExtendedData { ext: crate::frames::EXT, .. });
+                    if pty && (frame || matches!(msg, ChannelMsg::Data { .. })) {
                         crate::pace::echo();
                     }
-                    if let Some(()) = take(msg, &mut status, &mut eof, out, err).await {
-                        return status;
+                    match take(msg, &mut status, &mut eof, term).await {
+                        Some(Stop::Closed) => return status,
+                        Some(Stop::Unframed) => {
+                            let _ = beside(writer.close(), &mut reader, &mut aside, &no_watch).await;
+                            return None;
+                        }
+                        None => {}
                     }
                 }
                 None => return status.filter(|_| eof),
@@ -220,6 +259,10 @@ async fn pump(
                 true => {
                     let size = terminal::size_of_fd(input.raw());
                     if let (Some(s), true) = (size, size != last) {
+                        // The terminal moved its rows: the next frame draws each.
+                        if let Some(framed) = term.framed.as_mut() {
+                            framed.disturbed();
+                        }
                         let change = writer.window_change(s.cols, s.rows, s.px_width, s.px_height);
                         let _ = beside(change, &mut reader, &mut aside, &no_watch).await;
                         last = size;
@@ -231,6 +274,35 @@ async fn pump(
     }
 }
 
+/// The client's terminal: its output and its stderr, and the frames drawn
+/// on its output where the client asked for them (T-303).
+struct Term<'a> {
+    out: &'a mut Passed,
+    err: &'a mut Passed,
+    framed: Option<Framed>,
+}
+
+impl Term<'_> {
+    /// Words of the master's on the client's stderr: they move the cursor
+    /// under the frames, so the next one draws the whole screen.
+    async fn note(&mut self, bytes: &[u8]) {
+        let _ = self.err.write_all(bytes).await;
+        if let Some(framed) = self.framed.as_mut() {
+            framed.disturbed();
+        }
+    }
+}
+
+/// Why the copy stops.
+enum Stop {
+    /// The channel closed.
+    Closed,
+    /// The far end sent bytes that are no frame: nothing after them can be
+    /// shown, so the master closes the channel, and the session has no
+    /// status (T-303).
+    Unframed,
+}
+
 /// The next change of the window, or pending with none to watch.
 async fn changed(winch: &mut Option<watch::Receiver<u64>>) -> bool {
     match winch {
@@ -239,26 +311,28 @@ async fn changed(winch: &mut Option<watch::Receiver<u64>>) -> bool {
     }
 }
 
-/// One message of the channel: `Some` once it closed. `eof`: the output ended.
-async fn take(
-    msg: ChannelMsg,
-    status: &mut Option<i32>,
-    eof: &mut bool,
-    out: &mut Passed,
-    err: &mut Passed,
-) -> Option<()> {
+/// One message of the channel: `Some` once the copy stops. `eof`: the
+/// output ended.
+async fn take(msg: ChannelMsg, status: &mut Option<i32>, eof: &mut bool, term: &mut Term<'_>) -> Option<Stop> {
     match msg {
         ChannelMsg::Data { data } => {
-            let _ = out.write_all(&data).await;
+            let _ = term.out.write_all(&data).await;
         }
-        ChannelMsg::ExtendedData { data, .. } => {
-            let _ = err.write_all(&data).await;
+        // A frame of the far end's screen, in place of its bytes (T-303).
+        ChannelMsg::ExtendedData { data, ext } if ext == crate::frames::EXT && term.framed.is_some() => {
+            let Term { out, err, framed } = term;
+            if let Some(framed) = framed.as_mut() {
+                if !framed.draw(&data, out, err).await {
+                    return Some(Stop::Unframed);
+                }
+            }
         }
+        ChannelMsg::ExtendedData { data, .. } => term.note(&data).await,
         ChannelMsg::ExitStatus { exit_status } => *status = Some(crate::io::status_code(exit_status)),
         ChannelMsg::ExitSignal { signal_name, .. } => {
             *status = Some(crate::signals::number(&signal_name).map_or(255, |n| 128 + n));
         }
-        ChannelMsg::Close => return Some(()),
+        ChannelMsg::Close => return Some(Stop::Closed),
         ChannelMsg::Eof => *eof = true,
         _ => {}
     }

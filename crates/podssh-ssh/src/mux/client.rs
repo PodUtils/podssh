@@ -51,6 +51,8 @@ pub struct SessionRequest {
 pub struct MuxClient {
     stream: UnixStream,
     rid: u32,
+    /// The extensions of the master's hello: podssh's offers (T-303).
+    extensions: Vec<(String, String)>,
 }
 
 /// The master on `path`, after the hellos.
@@ -60,7 +62,7 @@ pub async fn connect(path: &Path) -> Result<MuxClient, Unreached> {
         |e: io::Error| Unreached::Broken(format!("the control master broke the hello: {}", podssh_ws::text::said(&e)));
     wire::write(&mut stream, &Message::Hello { version: VERSION, extensions: Vec::new() }).await.map_err(broken)?;
     match wire::read(&mut stream).await.map_err(broken)? {
-        Some(Message::Hello { version: VERSION, .. }) => Ok(MuxClient { stream, rid: 0 }),
+        Some(Message::Hello { version: VERSION, extensions }) => Ok(MuxClient { stream, rid: 0, extensions }),
         Some(Message::Hello { version, .. }) => {
             Err(Unreached::Broken(format!("the control master speaks version {version}, not {VERSION}")))
         }
@@ -69,6 +71,12 @@ pub async fn connect(path: &Path) -> Result<MuxClient, Unreached> {
 }
 
 impl MuxClient {
+    /// Whether the master offers frames (T-303): a podssh master of this
+    /// release or later; OpenSSH's offers none.
+    pub fn offers_frames(&self) -> bool {
+        super::mframes::offered(&self.extensions)
+    }
+
     fn next(&mut self) -> u32 {
         let rid = self.rid;
         self.rid = self.rid.wrapping_add(1);
@@ -169,7 +177,9 @@ impl MuxClient {
             }
         };
         crate::outcome::shared();
-        let mut raw = if request.tty { crate::terminal::RawMode::enter().ok() } else { None };
+        // Raw mode is of this process's own terminal, which is the
+        // session's only when its stdin is the one passed.
+        let mut raw = if request.tty && fds[0] == 0 { crate::terminal::RawMode::enter().ok() } else { None };
         let code = self.wait(sid, pid, &mut raw, log).await;
         drop(raw);
         if request.tty {

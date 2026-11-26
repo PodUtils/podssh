@@ -1726,18 +1726,22 @@ podssh ssh
   its screen with it. --attach with --frames gets the whole screen first, then
   its changes; a client without --frames gets the bytes. --expect, --sudo and
   --su show each byte, and so does a far end that shares its shell by name; one
-  line says so. ZMODEM and a copy to the clipboard do not cross: a frame
-  carries the screen alone. The far end itself answers a program that asks its
-  terminal for the cursor's place or the device's attributes. The window's
-  title and the bell cross with a frame. After a line of podssh's own on the
-  terminal, the next frame draws the whole screen again. For the frames the far
-  end holds at most five copies of the screen, each some 60 KiB at 80 by 24.
-  With --frames-scroll it also keeps the text of one screen of lines. A kept
-  shell holds its model for its life, also with no client. With --predict, the
-  guesses are drawn over the frames' screen. A guess goes once a frame shows
-  its echo, or the far end's report finds it wrong. A Windows console that
-  takes no VT sequences ends the session with one line (exit 255). So do bytes
-  of the far end that are no frame.
+  line says so. Through a control master of podssh's, the master asks for the
+  frames and draws them on the client's terminal. A master of OpenSSH's, or an
+  older podssh, carries none: one line says so, and the session shows each
+  byte. podssh each refuses --frames (exit 64): it writes each host's output as
+  lines, with no terminal. ZMODEM and a copy to the clipboard do not cross: a
+  frame carries the screen alone. The far end itself answers a program that
+  asks its terminal for the cursor's place or the device's attributes. The
+  window's title and the bell cross with a frame. After a line of podssh's own
+  on the terminal, the next frame draws the whole screen again. For the frames
+  the far end holds at most five copies of the screen, each some 60 KiB at 80
+  by 24. With --frames-scroll it also keeps the text of one screen of lines. A
+  kept shell holds its model for its life, also with no client. With --predict,
+  the guesses are drawn over the frames' screen. A guess goes once a frame
+  shows its echo, or the far end's report finds it wrong. A Windows console
+  that takes no VT sequences ends the session with one line (exit 255). So do
+  bytes of the far end that are no frame.
 
   POLICY: with --policy FILE, podssh ssh judges the destination's algorithms by
   an algorithm policy. The verdict falls at the server's host key, before
@@ -2202,7 +2206,8 @@ podssh ssh
     --frames
         show the far end's latest screen as frames, not each byte, so a flood
         does not hold back what follows Ctrl-C; only to podssh serve with a
-        pty; the terminal's scrollback gets nothing.
+        pty, also through a podssh control master; the terminal's scrollback
+        gets nothing.
     --frames-scroll
         --frames, and the lines that leave the top of the far end's screen go
         into the terminal's scrollback, one screen for each frame at most.
@@ -2872,6 +2877,14 @@ podssh each
         the credential of the server of --turn, in FILE, a private file:
         USER:PASSWORD on one line, or auth-secret SECRET for a coturn of
         use-auth-secret; never in the URI; also env PODSSH_TURN_AUTH_FILE.
+    --frames
+        frames draw one terminal's screen, and each writes each host's output
+        as lines, with no pseudo-terminal. Refused. Use podssh ssh --frames
+        HOST.
+    --frames-scroll
+        frames draw one terminal's screen, and each writes each host's output
+        as lines, with no pseudo-terminal. Refused. Use podssh ssh
+        --frames-scroll HOST.
     --help
         Print help for this subcommand and exit.
 

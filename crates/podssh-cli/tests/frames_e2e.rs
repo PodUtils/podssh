@@ -8,7 +8,9 @@
 //! Pass: with `--frames`, the prompt after Ctrl-C shows within three round
 //! trips, and the session ends with the shell's status. The control: with
 //! no `--frames`, the same Ctrl-C shows its prompt only after the bytes of
-//! the flood that were on their way, later than three round trips. And a
+//! the flood that were on their way, later than three round trips. The
+//! same bar holds for a client of a control master (`-M -N -S CTL`), whose
+//! master draws the frames on the client's terminal. And a
 //! session with `--frames-scroll --record`: the recording holds what the terminal
 //! was drawn with, and `podssh play` of it gives the terminal's screen. A
 //! host with no Python or openssl (the stand-in relay) or no pty says that
@@ -167,6 +169,48 @@ fn with_frames_ctrl_c_shows_the_prompt_within_three_round_trips() {
     assert!(!term.text().contains("sends no frames"), "the far end took the ask: {:?}", term.text());
     term.send(b"exit 5\r");
     assert_eq!(term.wait(LIMIT), Some(5), "the shell's status: {:?}", term.text());
+}
+
+/// A control master `-M -N -S CTL` through the cell to serve's port, kept
+/// until the session ends; returned once its socket is there. A client
+/// that comes before the master's login waits in the hello.
+fn master(session: &Session, cell: &Cell, port: u16, ctl: &Path) {
+    let mut args = cell.args.clone();
+    if let Some(at) = args.iter().position(|a| a == "-p") {
+        args[at + 1] = port.to_string();
+    }
+    let destination = args.pop().expect("the cell's destination");
+    args.extend(["-M", "-N", "-S"].map(String::from));
+    args.push(ctl.display().to_string());
+    args.push("-i".to_string());
+    args.push(session.home.join("id").display().to_string());
+    args.push(destination);
+    let mut cmd = without_proxy(session.command(&args));
+    cmd.env_remove("PODSSH_LISTEN").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    session.keep(cmd.spawn().expect("the master starts"));
+    let deadline = Instant::now() + LIMIT;
+    while !ctl.exists() {
+        assert!(Instant::now() < deadline, "no control socket at {} within {LIMIT:?}", ctl.display());
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
+/// Through a control master of podssh's (T-303, item h): the master asks
+/// serve for the frames and draws them on the client's terminal, so
+/// Ctrl-C shows the prompt within three round trips, as with no master.
+#[test]
+fn through_a_control_master_ctrl_c_shows_the_prompt_within_three_round_trips() {
+    let Some((session, cell, port)) = setup("frames-e2e-master") else { return };
+    let ctl = session.home.join("ctl");
+    master(&session, &cell, port, &ctl);
+    let mut term = client(&session, &cell, port, &["-S", ctl.to_str().expect("a path of text"), "--frames"]);
+    let after = interrupt(&mut term);
+    eprintln!("--frames through a master: Ctrl-C to the prompt in {} ms", after.as_millis());
+    assert!(after < BAR, "the prompt showed {after:?} after Ctrl-C, over three round trips ({BAR:?})");
+    let text = term.text();
+    assert!(!text.contains("sends no frames") && !text.contains("does not carry them"), "frames came: {text:?}");
+    term.send(b"exit 5\r");
+    assert_eq!(term.wait(LIMIT), Some(5), "the shell's status through the master: {:?}", term.text());
 }
 
 /// The control: the flood and the link were there. Without `--frames` the

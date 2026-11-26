@@ -1491,9 +1491,38 @@ build: the prompt after 533 ms median, 1.78 round trips
   none, nobody answers, as with bytes. A kept shell with a model costs a
   parse of each byte of its output for its life, beside the ring, and one
   grid of 60 KiB at 80 by 24 with the states of the frames that wait.
+- **Through a control master.** A client of a control master passes its
+  terminal to the master, which holds the channel and writes the far end's
+  output to that terminal itself; the client never sees a byte of it. So
+  the master asks for the frames and runs the receiver
+  (`crates/podssh-ssh/src/mux/mframes.rs`, `crates/podssh-ssh/src/mux/msession.rs`).
+  OpenSSH's protocol has no field for the ask, so podssh's two sides use
+  the places that it lets grow: a podssh master names `frames@podssh` among
+  the extensions of its hello, which OpenSSH's client passes over, and a
+  podssh client with `--frames` that read it puts `frames@podssh=v1` (`v2`
+  with `--frames-scroll`; ` quiet` after it with `-q`) among the session's
+  environment. The master takes that entry out, so no server sees it as a
+  variable; it then asks as a client of its own does, draws each frame on
+  the client's terminal, acknowledges once for each pass of its copy, and
+  at the end gives the terminal back before the client hears the status.
+  Its own words on the client's terminal (`~?`, `~#`) and the far end's
+  stderr make the next frame draw the whole screen. A refusal of the far
+  end, or no pty, is one line on the client's terminal, as without a
+  master, unless the client is quiet. A master that did not offer
+  (OpenSSH's, or a podssh master before this) gets no entry: OpenSSH's
+  master would pass it on as a variable, and its channel writes no
+  extended data but stderr's, so a frame would show nothing. The client
+  then says in one line that the master does not carry them, and the
+  session shows each byte. The keys and the size go as without frames.
+- **`podssh each`.** `--frames` and `--frames-scroll` are refused by name
+  (64), with `podssh ssh --frames HOST` named in their place: `each`
+  writes each host's output as lines with its label, with no pty and no
+  terminal of its own, so there is no screen to draw
+  (`crates/podssh-cli/src/flags/frames.rs`). `--interactive` sends lines to
+  shells with no pty, and takes no frames either.
 - **Where there are none.** A shell shared by name (`--share`),
-  `--expect`, `--sudo`, `--su`, `podssh each` and a session through a
-  control master carry each byte. A Windows console that takes no VT sequences ends the session with
+  `--expect`, `--sudo` and `--su` carry each byte, with one line that says
+  so. A Windows console that takes no VT sequences ends the session with
   one line (255), and so do bytes that are no frame.
 
 ## Tests

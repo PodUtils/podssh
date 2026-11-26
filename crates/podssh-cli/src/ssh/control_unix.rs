@@ -10,6 +10,7 @@ use std::sync::Arc;
 use podssh_ssh::local::{LocalForward, Target};
 use podssh_ssh::mux::client::{self, MuxClient, SessionRequest, Unreached};
 use podssh_ssh::mux::master::{self, Binder, Control};
+use podssh_ssh::mux::mframes;
 use podssh_ssh::mux::proto::{Fwd, FwdKind, PORT_STREAMLOCAL};
 use podssh_ssh::mux::ControlSlot;
 use podssh_ssh::{Agent, Log, RemoteForward, Request, RequestTty, EXIT_FAILURE};
@@ -167,7 +168,15 @@ async fn through(mut mux: MuxClient, resolved: &Resolved, log: &Arc<Log>) -> i32
                 Request::Subsystem(name) => (name.as_bytes().to_vec(), true),
                 _ => (Vec::new(), false),
             };
-            let env = podssh_ssh::session::environment(opts).into_iter().map(|(n, v)| format!("{n}={v}")).collect();
+            let mut env: Vec<String> =
+                podssh_ssh::session::environment(opts).into_iter().map(|(n, v)| format!("{n}={v}")).collect();
+            // `--frames` (T-303): a master that offers them asks the far
+            // end, and draws them on this terminal; with another, one line.
+            match mframes::for_client(opts, tty, stdin_tty, mux.offers_frames(), log.level()) {
+                Ok(Some(entry)) => env.push(entry),
+                Ok(None) => {}
+                Err(line) => log.info(line),
+            }
             let asked = SessionRequest {
                 tty,
                 agent: opts.forward_agent != Agent::Off,

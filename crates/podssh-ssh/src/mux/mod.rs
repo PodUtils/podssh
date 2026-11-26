@@ -15,6 +15,10 @@ pub mod client;
 mod fwd;
 #[cfg(unix)]
 pub mod master;
+// `--frames` through a master (T-303): its offer, the client's ask, and
+// the receiver that the master runs on the client's terminal.
+#[cfg(unix)]
+pub mod mframes;
 #[cfg(unix)]
 mod msession;
 #[cfg(unix)]
@@ -94,3 +98,8 @@ mod unix {
 #[cfg(unix)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[cfg(unix)]
+#[path = "frames_tests.rs"]
+mod frames_tests;

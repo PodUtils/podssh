@@ -16,6 +16,8 @@
 //! `podssh serve` with a pty, asked with `env frames@podssh v1`; with
 //! `--frames-scroll`, with `v2` first, then `v1` for an older serve.
 //! Another server refuses the request, and the session carries each byte.
+//! Through a control master of podssh's, the master asks, and draws the
+//! frames on the terminal that its client passed (`mux::mframes`).
 //!
 //! A frame skips output. With version 2 it carries the lines that left the
 //! top of the screen since its base, one screen of them at most, and the
@@ -137,6 +139,10 @@ pub(crate) fn wanted(opts: &crate::options::Options, want_pty: bool, stdin_tty: 
         && !matches!(opts.keep.ask, Some(Ask::List))
 }
 
+/// The line of a session with no terminal on a side, or no pty.
+pub(crate) const NO_TERMINAL: &str =
+    "--frames: no frames: they need a terminal on each side and a pseudo-terminal at the far end";
+
 /// Why a session that has `--frames` does not ask for them, in one line;
 /// `None` where it asks, or has no `--frames`.
 pub(crate) fn not_asked(opts: &crate::options::Options, want_pty: bool, stdin_tty: bool) -> Option<&'static str> {
@@ -144,7 +150,7 @@ pub(crate) fn not_asked(opts: &crate::options::Options, want_pty: bool, stdin_tt
         return None;
     }
     Some(if !want_pty || !stdin_tty || !crate::terminal::stdout_is_terminal() {
-        "--frames: no frames: they need a terminal on each side and a pseudo-terminal at the far end"
+        NO_TERMINAL
     } else {
         "--frames: no frames: this session's output is read as bytes"
     })
@@ -176,8 +182,27 @@ pub(crate) async fn ask(channel: &Channel<Msg>, scroll: bool) -> usize {
 }
 
 /// The line of a far end that refused each ask.
-const REFUSED: &str =
+pub(crate) const REFUSED: &str =
     "--frames: the far end sends no frames (only podssh serve with a pty does); the session shows each byte";
+
+/// The far end's replies to the `asked` asks of [`ask`] (with `scroll`):
+/// the version that it took, if it took one. Each reply is read, also
+/// after the one that was taken, so that the next reply read is the next
+/// request's. `Err` where the channel ended.
+pub(crate) async fn taken(
+    channel: &mut Channel<Msg>,
+    early: &mut Vec<ChannelMsg>,
+    asked: usize,
+    scroll: bool,
+) -> Result<Option<Version>, String> {
+    let mut taken = None;
+    for &version in versions(scroll).iter().take(asked) {
+        if crate::session::wait_reply(channel, early).await? && taken.is_none() {
+            taken = Some(version);
+        }
+    }
+    Ok(taken)
+}
 
 /// The far end's answers to the `asked` asks of [`ask`] (with `scroll`):
 /// the frames of the session where it sends them, on a terminal that reads
@@ -194,14 +219,7 @@ pub(crate) async fn answered(
     if asked == 0 {
         return Ok(None);
     }
-    let mut taken = None;
-    // Each reply is read, also after the one that was taken.
-    for &version in versions(scroll).iter().take(asked) {
-        if crate::session::wait_reply(channel, early).await? && taken.is_none() {
-            taken = Some(version);
-        }
-    }
-    match taken {
+    match taken(channel, early, asked, scroll).await? {
         Some(version) => {
             if scroll && version == Version::One {
                 log.verbose("--frames: the far end sends frames of version 1, which carry no line for the scrollback");

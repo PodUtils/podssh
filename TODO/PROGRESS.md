@@ -48,7 +48,10 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). No draft waits (2026-11-25):
+8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). Drafts that wait (2026-11-26),
+   in the order of their merge: T-303 (h), `worktree-agent-aca08f7d45b1649d2` at `75424e1` (merging); T-303 (b),
+   `worktree-agent-ade3a8393f4cc44e2` at `ac6a7c4`; the fixes of the tenth black-box pass (`.work/qa10/findings.md`),
+   with an entry for each, two workers drafting. Before (2026-11-25):
    merged: T-952's sweep, T-953 to T-962 (the SSH client), T-963 to T-975 (the local tools; T-967 and T-975 blocked), T-976 to T-986 (run, each, job, mcp and play), and
    the drafts of T-834, T-846/T-788/T-753, T-906 to T-912, T-913 to T-917 and T-919 to T-922 were merged. A read-only
    advisor on T-627, T-780 and T-796 stopped at a usage limit; its report goes into those entries. Each `draft/*`,

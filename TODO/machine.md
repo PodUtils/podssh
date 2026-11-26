@@ -619,9 +619,9 @@ failure at `crates/podssh-ssh/src/run.rs:152-163` and
 `crates/podssh-ssh/src/run.rs:207`, a new connection at
 `crates/podssh-ssh/src/run.rs:173`, the relay's close first at
 `crates/podssh-ssh/src/run.rs:77-84`; a control master at
-`crates/podssh-ssh/src/mux/client.rs:171`,
-`crates/podssh-ssh/src/mux/client.rs:205` and
-`crates/podssh-ssh/src/mux/client.rs:271-278`. The object in
+`crates/podssh-ssh/src/mux/client.rs:179`,
+`crates/podssh-ssh/src/mux/client.rs:215` and
+`crates/podssh-ssh/src/mux/client.rs:281-288`. The object in
 `crates/podssh-cli/src/ssh/result.rs:18-66`, the channel's verdict at
 `crates/podssh-cli/src/ssh/result.rs:153-163`, the file at
 `crates/podssh-cli/src/ssh/result.rs:165-193`, written at the end of
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7496-7526`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7505-7535`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:156-173`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
