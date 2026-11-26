@@ -1065,3 +1065,4 @@ repository and CI).
 | [T-1056](resume.md) | P1 | S | backlog | defect | done | Nine lines of a flood neither in the scrollback nor said skipped, on macOS |
 | [T-1065](multi.md) | P3 | S | backlog | defect | open | `job fetch` into a DIR that cannot be made here exits 255, as a host out of reach |
 | [T-1066](multi.md) | P3 | S | backlog | defect | open | `session start --socket` in a directory that is not there says `unix-listen:` and the hint of `-tt`, with 69 |
+| [T-1067](multi.md) | P3 | S | backlog | docs | open | `session send`, `capture` and `stop` exit 75 at no answer, which EXIT STATUS gives only to `start` and `wait` |

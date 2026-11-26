@@ -99,7 +99,7 @@ async fn ask(socket: &str, line: &str) -> Asked {
         Err(e) if client::unserved(&e) => return Asked::Unserved,
         Err(e) => return Asked::Failed(format!("{socket}: {}", podssh_ws::text::said(&e))),
     };
-    match client::exchange(socket, end, line, LIST_WAIT).await {
+    match client::exchange(socket, end, line, LIST_WAIT, None).await {
         Ok(fields) => Asked::Answer(fields),
         Err((_, why)) => Asked::Failed(why),
     }

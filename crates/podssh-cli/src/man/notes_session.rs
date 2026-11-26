@@ -24,7 +24,8 @@ pub const SESSION: &[&str] = &[
     "capture NAME writes the screen as a terminal of the pty's size shows it: its rows, with no blank at their ends \
      and no empty row at the end. --raw writes the last 64 KiB of the output as it came, from a place where a \
      terminal can start to read it. It never starts inside a sequence or a character. stop NAME ends the session and \
-     its podssh.",
+     its podssh. send, wait, capture and stop exit 75 when the session's podssh gives no answer within 30 s, past a \
+     wait's own --timeout. The line says each time apart; the podssh may be stopped or stuck.",
     "list writes a line for each session of the directories of the cache: its name, running or ended and the status, \
      and its host, with a tab between them. A session whose podssh takes the connection and gives no answer within 2 \
      s is listed with the state no-answer and no host. stderr says why: it is there, busy or stuck. A socket that \

@@ -38,7 +38,7 @@ pub fn run(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
 async fn start(args: &SessionArgs, timeout: Duration, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let name = args.name();
     if let Some(path) = place::find(name, args.socket.as_deref()) {
-        if let Ok(fields) = super::client::ask(&path, &wire::request(name, &wire::Op::Info), ASK_WAIT).await {
+        if let Ok(fields) = super::client::ask(&path, &wire::request(name, &wire::Op::Info), ASK_WAIT, None).await {
             let state = fields.get("state").and_then(|s| s.as_str()).unwrap_or("running");
             let _ = writeln!(err, "podssh session: {name} is there already ({state}), at {path}: stop it first");
             return EX_UNAVAILABLE;

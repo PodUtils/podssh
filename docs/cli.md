@@ -7445,7 +7445,11 @@ output stops, and reads its screen, each with a call of its own.
   writes the last 64 KiB of the output as it came, from a place where a
   terminal can start to read it: the ring of T-221, never inside a
   sequence or a character.
-- `stop NAME` ends the session and its podssh. `list` writes a line for
+- `stop NAME` ends the session and its podssh. `send`, `wait`, `capture`
+  and `stop` exit 75 when the session's podssh gives no answer within 30 s,
+  after a wait's own `--timeout` (T-1067); the line says the two apart ("no
+  answer within 30 s after the wait's --timeout of 3 s"), as a podssh that
+  was stopped (SIGSTOP) or is stuck gives none. `list` writes a line for
   each session of the cache: its name, `running` or `ended` and the
   status, and its host, with a tab between them (T-506). A session whose
   podssh takes the connection and gives no answer within 2 s is a line
@@ -7507,7 +7511,8 @@ session's name, is refused (64).
 
 Exit codes: 0; 64 a usage error; 69 no session of that name answers, or it
 ended; 70 an answer that this podssh cannot read; 73 the path of
-`--socket` cannot take a socket; 75 the `--timeout` passed first; 77 the
+`--socket` cannot take a socket; 75 the `--timeout` passed first, or no
+answer of the session's podssh within 30 s after it; 77 the
 bind refused; 78 `PODSSH_LISTEN=no`, or no directory of the cache for the
 socket; 255 the connection or the login of `start` failed.
 

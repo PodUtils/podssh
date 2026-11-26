@@ -4486,3 +4486,55 @@ cargo test -p podssh-cli --test session a_bad_command_line_or_no_listener_refuse
 ## Done
 
 UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.
+
+
+# T-1067: `session send`, `capture` and `stop` exit 75 at no answer, which EXIT STATUS gives only to `start` and `wait`
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 8.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+With the session's podssh stopped (SIGSTOP), `podssh session send sz hi` and `stop sz` said "podssh session: sz:
+no answer within 30 s" and exited 75; the row of 75 in EXIT STATUS names `session start and wait` alone. And `wait
+--timeout 3s` of such a session said "no answer within 33 s": the wait's 3 s and the 30 s of its answer as one
+number, which reads as a wait longer than the one asked.
+
+## Premise
+
+- Read, at `40a83e5`: each request of `crates/podssh-cli/src/session/client.rs` waits 30 s for its answer
+  (`ANSWER_WAIT`, line 20), a wait its `--timeout` first (line 32), and a time that passes is 75 with "no answer
+  within N s" of the sum (line 85), for send, wait, capture and stop alike.
+- Read, at `40a83e5`: the row of 75 (line 114 of `crates/podssh-cli/src/man/data.rs`) and the exit codes of
+  `docs/cli.md`'s section of `podssh session` name only the `--timeout` of start and wait.
+
+## Approach
+
+1. `no_answer` (`crates/podssh-cli/src/session/client.rs:115`) writes the line: "no answer within 30 s after the
+   wait's --timeout of 3 s: the session's podssh may be stopped or stuck" for a wait, and "no answer within N s"
+   for the others, as before (`list`'s 2 s stays). Each time in `cp`'s words of a bound (`3 s`, `500 ms`).
+2. The row of 75, the notes of `podssh man session`, and `docs/cli.md` name send, wait, capture and stop at no
+   answer. `list` stays 0: it lists such a session as `no-answer`, as the manual says.
+
+## Decision
+
+Document the 75 and keep it: no answer within a limit is the code of a limit that passed, as for `cp --timeout`, and
+a later try can work (a session that was stopped goes on). Lost: 69, which says that there is no session, where one
+is there and silent. The line keeps one sentence and names both times, not the sum: the sum is true, and the user
+asked for neither of its parts alone.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib session::tests
+cargo test -p podssh-cli --test session
+```
+
+## Done
+
+UNVERIFIED: drafted 2026-11-26 by a drafting worker, not built. The results of the Prove go here.

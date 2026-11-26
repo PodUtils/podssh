@@ -216,6 +216,23 @@ fn text_that_is_not_base64_names_its_byte() {
     }
 }
 
+/// T-1067: the line of an answer that did not come says the time of the
+/// answer apart from a wait's own, never their sum as one wait.
+#[test]
+fn no_answer_says_the_wait_apart_from_the_answer() {
+    let (s, ms) = (Duration::from_secs, Duration::from_millis);
+    for (limit, waited, want) in [
+        (s(30), None, "no answer within 30 s"),
+        (s(2), None, "no answer within 2 s"),
+        (s(33), Some(s(3)), "no answer within 30 s after the wait's --timeout of 3 s"),
+        (s(30) + ms(500), Some(ms(500)), "within 30 s after the wait's --timeout of 500 ms"),
+    ] {
+        let said = client::no_answer(limit, waited);
+        assert!(said.contains(want), "{limit:?} {waited:?}: {said}");
+        assert!(!said.contains("33"), "{said}");
+    }
+}
+
 /// T-1066: a `--socket` that cannot take a socket is one class, refused
 /// with 73 before the session's podssh starts: a directory that is not
 /// there or is a file, a path too long for the address, and a file there
