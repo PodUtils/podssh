@@ -106,7 +106,10 @@ async fn session_over(form: Form, cut: bool) {
     }
     round(&mut app, &big).await.unwrap_or_else(|e| panic!("{form:?}: a large write: {e}"));
     let opened = if form == Form::One { "http one open layer" } else { "http open layer" };
-    assert!(role.said(opened), "{form:?}: {:?}", role.events.lock().unwrap());
+    // The link's lines name the client of the road and the target (T-1035).
+    let at = format!("127.0.0.1:{target}");
+    let named = [("client", "127.0.0.1"), ("target", at.as_str())];
+    role.assert_named(opened, &named);
     if cut {
         let ended = sessions::end_each(&role.cfg, 1001, "a test cut the link");
         assert_eq!(ended, 1, "{form:?}: one session of the road carried the link");
@@ -114,7 +117,7 @@ async fn session_over(form: Form, cut: bool) {
         let seen = notes.lock().unwrap().clone();
         after.unwrap_or_else(|e| panic!("{form:?} after the cut: {e}; notes {seen:?}"));
         assert!(seen.iter().any(|n| matches!(n, Note::Resumed { .. })), "{form:?}: {seen:?}");
-        assert!(role.said("layer resumed"), "{form:?}: {:?}", role.events.lock().unwrap());
+        role.assert_named("layer resumed", &named);
     }
     assert_eq!(dials.load(Ordering::SeqCst), 1, "{form:?}: the role dialed the target once for the session");
     drop(app);

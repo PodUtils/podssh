@@ -16,6 +16,7 @@ use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 use tokio::time::Instant;
 
+use super::super::said::Of;
 use super::super::usage::Meter;
 use super::super::Config;
 use crate::http_road::window::{self, Up};
@@ -73,6 +74,8 @@ pub struct Session {
     /// The digest of the session's key, which a request's key is held to.
     key: [u8; 32],
     pub cfg: Arc<Config>,
+    /// Whose lines it says: its client and target (T-1035).
+    pub of: Of,
     started: Instant,
     state: Mutex<State>,
     /// Woken at each change: a batch stored or written, bytes read or
@@ -110,8 +113,9 @@ pub enum Stored {
 
 impl Session {
     /// A new session of `cfg`, its id and its key drawn, its bytes counted
-    /// by `meter`: the session, and the key that its client is given.
-    pub fn open(cfg: Arc<Config>, meter: Meter) -> Result<(Arc<Session>, String), String> {
+    /// by `meter`, its lines of `of`: the session, and the key that its
+    /// client is given.
+    pub fn open(cfg: Arc<Config>, meter: Meter, of: Of) -> Result<(Arc<Session>, String), String> {
         let id: String = random(16)?.iter().map(|b| format!("{b:02x}")).collect();
         let key = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(random(32)?);
         let now = Instant::now();
@@ -131,7 +135,7 @@ impl Session {
         };
         meter.start();
         let (state, changed) = (Mutex::new(state), Notify::new());
-        let session = Session { id, key: digest(&key), cfg, started: now, state, changed, meter };
+        let session = Session { id, key: digest(&key), cfg, of, started: now, state, changed, meter };
         Ok((Arc::new(session), key))
     }
 
@@ -170,7 +174,7 @@ impl Session {
         let Some(tasks) = stopped else { return };
         tasks.iter().for_each(AbortHandle::abort);
         self.changed.notify_waiters();
-        self.cfg.event(&format!("http close {code}"));
+        self.cfg.event_of(&self.of, &format!("http close {code}"));
         // Its one charge, at its end, not when the table forgets it.
         self.meter.settle();
     }

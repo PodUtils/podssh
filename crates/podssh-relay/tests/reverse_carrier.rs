@@ -16,6 +16,7 @@ use std::time::Duration;
 use podssh_relay::relay::Relay;
 use podssh_relay::reverse::{self, operator, End, Handler, Opening, OperatorConfig, OperatorLimits, Outcome};
 use podssh_relay::reverse::{wire::Carrier, RelayClose, SessionId, Settings, Wire};
+use podssh_relay::serve;
 use podssh_relay::serve::reverse::carrier::{self, Again, Door, Link, Role, NAME};
 use podssh_ws::client::ConnectError;
 use podssh_ws::{ProxyChoice, Trust};
@@ -176,7 +177,14 @@ async fn two_sessions_of_2_mib_each_way_cross_a_carrier_whole() {
     assert!(matches!(&end, End::Closed(RelayClose { code: 1000, .. })), "{end:?}");
     let said = said.lock().unwrap();
     assert!(!said.iter().any(|l| l.starts_with("reverse node closed")), "no fault of the node: {said:?}");
-    assert_eq!(said.iter().filter(|l| *l == "reverse open").count(), 2, "{said:?}");
+    let opens: Vec<&String> = said.iter().filter(|l| serve::said::words(l) == "reverse open").collect();
+    assert_eq!(opens.len(), 2, "{said:?}");
+    // A carrier's client is the process's own, so none is named; the pair is
+    // (T-1035).
+    for line in opens {
+        assert_eq!(serve::said::field(line, "client"), Some("-"), "{line}");
+        assert!(serve::said::field(line, "pair").is_some(), "{line}");
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -235,7 +243,7 @@ async fn a_node_that_goes_with_a_session_open_ends_the_stream() {
     tokio::time::timeout(LIMIT, opened.notified()).await.expect("the node opens the session");
     node.abort();
     let gone = tokio::time::timeout(Duration::from_secs(5), async {
-        while !said.lock().unwrap().iter().any(|l| l == "reverse node gone") {
+        while !said.lock().unwrap().iter().any(|l| serve::said::words(l) == "reverse node gone") {
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     })

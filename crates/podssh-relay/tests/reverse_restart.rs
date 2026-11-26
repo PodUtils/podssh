@@ -115,7 +115,7 @@ impl Run {
 
     /// How many lines of the role are `line`.
     fn count(&self, line: &str) -> usize {
-        self.said.lock().unwrap().iter().filter(|(_, said)| said == line).count()
+        self.said.lock().unwrap().iter().filter(|(_, said)| serve::said::words(said) == line).count()
     }
 
     /// Until the role said `line` `n` times, [`LIMIT`] at most.
@@ -364,6 +364,12 @@ async fn a_planned_stop_closes_each_socket_with_1012_and_the_sessions_resume_on_
     assert!(took < AT_ONCE, "online again {took:?} after the restart: {lines:?}");
     again.until_said("reverse node", 1).await;
     assert!(again.count("reverse open") >= 2, "each session resumed on the role again: {:?}", again.said);
+    // Each line names the operator's client and the pair (T-1035).
+    let opens: Vec<String> = again.said.lock().unwrap().iter().map(|(_, l)| l.clone()).collect();
+    for line in opens.iter().filter(|l| serve::said::words(l) == "reverse open") {
+        assert_eq!(serve::said::field(line, "client"), Some("127.0.0.1"), "{line}");
+        assert!(serve::said::field(line, "pair").is_some(), "{line}");
+    }
     for (name, carried) in [("a", &a), ("b", &b)] {
         assert!(carried.whole, "session {name}'s echo came back whole across the stop");
         let ended = matches!(&carried.outcome, Outcome::Layer(ended) if matches!(ended.end, End::LocalEnd));

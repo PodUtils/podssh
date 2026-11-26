@@ -41,6 +41,7 @@ pub mod spares;
 
 pub use pairs::Pairs;
 
+use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -49,6 +50,7 @@ use serde_json::json;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use self::pairs::{NotMade, Role};
+use super::said::Of;
 use super::{answer, docs, Config, Mint};
 use crate::reverse::{control::PROTO, framing::SessionId};
 
@@ -84,9 +86,16 @@ pub fn serves(path: &str) -> bool {
     path == "/v1/pair" || socket_or_pair.iter().chain(&halting).any(|p| path.starts_with(p))
 }
 
-/// Serve one request of the reverse road on `stream`.
-pub async fn request<S>(mut stream: S, head: Request, pending: Vec<u8>, cfg: Arc<Config>, sni: Option<String>)
-where
+/// Serve one request of the reverse road on `stream`, of a client at `from`
+/// whom its lines name, with its pair once it has one (T-1035).
+pub async fn request<S>(
+    mut stream: S,
+    head: Request,
+    pending: Vec<u8>,
+    cfg: Arc<Config>,
+    sni: Option<String>,
+    from: Option<IpAddr>,
+) where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let path = head.target.split('?').next().unwrap_or_default().to_string();
@@ -102,7 +111,7 @@ where
         }
     };
     if path == "/v1/pair" {
-        return pair(&mut stream, &head, &sent, &cfg, sni.as_deref()).await;
+        return pair(&mut stream, &head, &sent, &cfg, sni.as_deref(), from).await;
     }
     let mut parts = path.trim_start_matches('/').splitn(3, '/');
     let (Some("v1"), Some(kind), Some(name)) = (parts.next(), parts.next(), parts.next()) else {
@@ -130,6 +139,8 @@ where
     let Some(pair) = found else {
         return answer(&mut stream, request::refusal(403, "reverse: forbidden", &[])).await;
     };
+    // Each line from here on is this pair's.
+    let of = Of::client(from).with_pair(&pair.name);
     // A dialect that the role does not read, said once the token passed and
     // before a token of `once` or of one leg is spent (T-643).
     if matches!(kind, "node" | "connect") && proto::refused(&mut stream, &head, kind).await {
@@ -143,7 +154,7 @@ where
     // It takes this upgrade and no other; a planned stop refuses it below, as
     // it refuses each socket.
     if let (Some(digest), false) = (leg, cfg.pairs.stopping()) {
-        return leg_upgrade(stream, head, pending, pair, digest, cfg).await;
+        return leg_upgrade(stream, head, pending, pair, digest, cfg, of).await;
     }
     let method = head.method.clone();
     match (kind, method.as_str()) {
@@ -160,26 +171,26 @@ where
         }
         ("stop", "POST") => {
             let (stopped, sessions) = cfg.pairs.end(name, 1001, "operator stopped reverse relay").unwrap_or((false, 0));
-            cfg.event("reverse stop");
+            cfg.event_of(&of, "reverse stop");
             answer(&mut stream, docs::json(&json!({ "stopped": stopped, "sessions": sessions }))).await
         }
-        ("renew", "POST") => renew(&mut stream, name, &cfg).await,
-        ("rotate", "POST") => rotate(&mut stream, name, &sent, &cfg).await,
-        ("halt", "POST") => halt::serve_halt(&mut stream, name, &sent, &cfg).await,
-        ("resume", "POST") => halt::serve_resume(&mut stream, name, &cfg).await,
+        ("renew", "POST") => renew(&mut stream, name, &cfg, &of).await,
+        ("rotate", "POST") => rotate(&mut stream, name, &sent, &cfg, &of).await,
+        ("halt", "POST") => halt::serve_halt(&mut stream, name, &sent, &cfg, &of).await,
+        ("resume", "POST") => halt::serve_resume(&mut stream, name, &cfg, &of).await,
         // A planned stop closes each socket: one that would join now would
         // be cut with no Close, so it waits for the role that comes back.
         ("node" | "connect", _) if cfg.pairs.stopping() => {
             let why = format!("reverse: {RESTARTING}");
             answer(&mut stream, request::refusal(503, &why, &[("Retry-After", "1")])).await
         }
-        ("node", _) => node::join(stream, head, pending, pair, cfg).await,
+        ("node", _) => node::join(stream, head, pending, pair, cfg, of).await,
         // A connect token of `once` takes this upgrade, and no other (T-226).
         ("connect", _) if !cfg.pairs.spend_connect(&pair) => {
-            cfg.event("reverse connect token spent");
+            cfg.event_of(&of, "reverse connect token spent");
             answer(&mut stream, request::refusal(403, "reverse: forbidden", &[])).await
         }
-        ("connect", _) => operator::join(stream, head, pending, pair, cfg, None).await,
+        ("connect", _) => operator::join(stream, head, pending, pair, cfg, None, of).await,
         (_, method) => {
             let allow = if matches!(kind, "stop" | "renew" | "rotate" | "halt" | "resume") { "POST" } else { "GET" };
             let why = format!("{path}: not {method}, but {allow}");
@@ -189,8 +200,8 @@ where
 }
 
 /// `POST /v1/pair`: `{name, node_token, connect_token, stop_token, expires}`,
-/// for whom the role mints tokens.
-async fn pair<S>(stream: &mut S, head: &Request, body: &[u8], cfg: &Config, sni: Option<&str>)
+/// for whom the role mints tokens; its line names the pair made.
+async fn pair<S>(stream: &mut S, head: &Request, body: &[u8], cfg: &Config, sni: Option<&str>, from: Option<IpAddr>)
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
@@ -230,7 +241,7 @@ where
         }
         // The key's own count and share, and no word of another key's.
         Err(NotMade::Share { holds, share }) => {
-            cfg.event(&format!("/v1/pair: a key past its share of {share} pairs"));
+            cfg.event_of(&Of::client(from), &format!("/v1/pair: a key past its share of {share} pairs"));
             let why = format!("/v1/pair: this key holds {holds} pairs, past its share of {share} while others wait");
             return answer(stream, request::refusal(429, &why, &[("Retry-After", "60")])).await;
         }
@@ -238,7 +249,7 @@ where
             return answer(stream, request::refusal(503, &format!("/v1/pair: {why}"), &[])).await;
         }
     };
-    cfg.event("reverse pair");
+    cfg.event_of(&Of::client(from).with_pair(&made.name), "reverse pair");
     let mut body = json!({
         "name": made.name, "node_token": made.node, "connect_token": made.connect,
         "stop_token": made.stop, "expires": made.expires_ms,
@@ -255,13 +266,13 @@ where
 /// ends 72 h from now, never earlier than it did, with its three tokens, so
 /// that each operator's file keeps working; `{"expires": ...}`. A pair that
 /// ended meanwhile gets the `403` of each failed authentication.
-async fn renew<S>(stream: &mut S, name: &str, cfg: &Config)
+async fn renew<S>(stream: &mut S, name: &str, cfg: &Config, of: &Of)
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     match cfg.pairs.renew(name, super::tokens::now_ms()) {
         Ok(Some(expires)) => {
-            cfg.event("reverse renew");
+            cfg.event_of(of, "reverse renew");
             answer(stream, docs::json(&json!({ "expires": expires }))).await
         }
         Ok(None) => answer(stream, request::refusal(403, "reverse: forbidden", &[])).await,
@@ -281,6 +292,7 @@ async fn leg_upgrade<S>(
     pair: Arc<pairs::Pair>,
     digest: [u8; 32],
     cfg: Arc<Config>,
+    of: Of,
 ) where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -290,15 +302,15 @@ async fn leg_upgrade<S>(
     }
     match cfg.pairs.spend_leg(&pair, &digest, super::tokens::now_ms()) {
         pairs::Leg::Taken => {
-            cfg.event("reverse leg token");
-            operator::join(stream, head, pending, pair, cfg, Some(digest)).await
+            cfg.event_of(&of, "reverse leg token");
+            operator::join(stream, head, pending, pair, cfg, Some(digest), of).await
         }
         pairs::Leg::NoNode => {
             let why = "reverse: node unavailable";
             answer(&mut stream, request::refusal(503, why, &[("Retry-After", "1")])).await
         }
         pairs::Leg::Refused => {
-            cfg.event("reverse leg token refused");
+            cfg.event_of(&of, "reverse leg token refused");
             answer(&mut stream, request::refusal(403, "reverse: forbidden", &[])).await
         }
     }
@@ -308,7 +320,7 @@ async fn leg_upgrade<S>(
 /// checked (T-615): HEX, the SHA-256 of a stop token that the node drew, is
 /// the one to come, whose first use makes it the pair's and ends each before
 /// it; `{"rotated": true}`. The new token crosses no wire before its use.
-async fn rotate<S>(stream: &mut S, name: &str, body: &[u8], cfg: &Config)
+async fn rotate<S>(stream: &mut S, name: &str, body: &[u8], cfg: &Config, of: &Of)
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
@@ -320,7 +332,7 @@ where
     };
     match cfg.pairs.rotate(name, next, super::tokens::now_ms()) {
         Ok(Some(())) => {
-            cfg.event("reverse rotate");
+            cfg.event_of(of, "reverse rotate");
             answer(stream, docs::json(&json!({ "rotated": true }))).await
         }
         Ok(None) => answer(stream, request::refusal(403, "reverse: forbidden", &[])).await,
@@ -381,119 +393,5 @@ fn close(id: &SessionId, why: Option<&str>) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::reverse::control::{self, NodeInbound, NodeLimits};
-
-    fn head(target: &str, token: Option<&str>) -> Request {
-        let header = token.map(|t| format!("X-Relay-Token: {t}\r\n")).unwrap_or_default();
-        let text = format!("GET {target} HTTP/1.1\r\nHost: relay-a.test\r\n{header}\r\n");
-        request::parse_request(text.as_bytes()).unwrap()
-    }
-
-    #[test]
-    fn the_paths_of_the_reverse_road_are_its_own() {
-        for path in ["/v1/pair", "/v1/node/p-a", "/v1/connect/p-a", "/v1/status/p-a", "/v1/stop/p-a"] {
-            assert!(serves(path), "{path}");
-        }
-        assert!(serves("/v1/renew/p-a"), "the role's renewal (T-592)");
-        assert!(serves("/v1/rotate/p-a"), "the role's rotation of a stop token (T-615)");
-        assert!(serves("/v1/halt/p-a") && serves("/v1/resume/p-a"), "the owner's halt (T-647)");
-        for path in ["/v1/mint", "/v1/pairs", "/connect/h/22", "/health", "/v1/nodes/p-a"] {
-            assert!(!serves(path), "{path}");
-        }
-    }
-
-    #[test]
-    fn a_token_comes_from_its_header_first_then_from_the_query() {
-        assert_eq!(token_of(&head("/v1/status/p-a", Some("aaaa"))).as_deref(), Some("aaaa"));
-        assert_eq!(token_of(&head("/v1/status/p-a?x=1&token=bbbb", None)).as_deref(), Some("bbbb"));
-        assert_eq!(token_of(&head("/v1/status/p-a?token=bbbb", Some("aaaa"))).as_deref(), Some("aaaa"));
-        assert_eq!(token_of(&head("/v1/status/p-a", None)), None);
-    }
-
-    #[test]
-    fn podssh_s_node_reads_each_frame_that_the_role_sends_it() {
-        let mut limits = NodeLimits::conservative();
-        match control::parse_inbound(hello(true).as_bytes()).unwrap() {
-            NodeInbound::Hello(hello) => {
-                limits.apply(&hello);
-                assert!(crate::e2e::legs::offered(&hello.extra), "the tokens of one leg (T-615)");
-                assert!(crate::reverse::legs::says_rotation(&hello), "the stop token's rotation (T-615)");
-            }
-            other => panic!("{other:?}"),
-        }
-        assert_eq!(limits, NodeLimits { max_sessions: 64, max_frame_bytes: 65536 });
-        match control::parse_inbound(hello(false).as_bytes()).unwrap() {
-            NodeInbound::Hello(hello) => assert!(!crate::e2e::legs::offered(&hello.extra), "a carrier's offers none"),
-            other => panic!("{other:?}"),
-        }
-        let digest = [7u8; 32];
-        let told = control::parse_inbound(spent(&digest).as_bytes()).unwrap();
-        assert!(matches!(&told, NodeInbound::Spent { digest: d } if *d == pairs::hex(&digest)), "{told:?}");
-        let id = new_id().unwrap();
-        assert!(
-            matches!(control::parse_inbound(open(&id).as_bytes()).unwrap(), NodeInbound::Open { id: i } if i == id.as_str())
-        );
-        let closed = control::parse_inbound(close(&id, Some("relay backpressure")).as_bytes()).unwrap();
-        assert!(matches!(closed, NodeInbound::Close { reason: Some(r), .. } if r == "relay backpressure"));
-        assert!(matches!(
-            control::parse_inbound(close(&id, None).as_bytes()).unwrap(),
-            NodeInbound::Close { reason: None, .. }
-        ));
-        assert_ne!(new_id().unwrap(), id, "each id is drawn");
-    }
-
-    /// A role that mints for anyone, with no listener: its requests come on
-    /// pipes.
-    fn config() -> Arc<Config> {
-        Arc::new(Config {
-            version: "podssh test".into(),
-            mint: Mint::Anyone,
-            tokens: super::super::tokens::Tokens::new([5; 32]),
-            policy: Default::default(),
-            egress: Default::default(),
-            limits: Default::default(),
-            pairs: Arc::default(),
-            resumes: Default::default(),
-            answered: Default::default(),
-            brake: Default::default(),
-            usage: Default::default(),
-            cover: None,
-            events: None,
-        })
-    }
-
-    /// T-255: while a planned stop closes each socket, a node or an operator
-    /// that would join gets `503` and a second to wait, not a socket that the
-    /// stop cuts with no Close; once it is over, the role takes them again.
-    #[tokio::test]
-    async fn while_a_planned_stop_runs_no_socket_joins() {
-        use tokio::io::AsyncReadExt;
-        let cfg = config();
-        let made = cfg.pairs.make(super::super::tokens::now_ms()).unwrap();
-        let held = cfg.pairs.hold_joins();
-        let sockets =
-            [(format!("/v1/node/{}", made.name), &made.node), (format!("/v1/connect/{}", made.name), &made.connect)];
-        for (path, token) in sockets {
-            let text = format!(
-                "GET {path} HTTP/1.1\r\nHost: relay-a.test\r\nX-Relay-Token: {token}\r\nUpgrade: websocket\r\n\
-                 Connection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
-                 Sec-WebSocket-Version: 13\r\n\r\n"
-            );
-            let head = request::parse_request(text.as_bytes()).unwrap();
-            let (mut near, far) = tokio::io::duplex(4096);
-            // Each wait is bounded: a socket that joined would be served on.
-            let asked = request(far, head, Vec::new(), cfg.clone(), None);
-            let _ = tokio::time::timeout(Duration::from_secs(5), asked).await;
-            let mut answer = Vec::new();
-            let _ = tokio::time::timeout(Duration::from_secs(5), near.read_to_end(&mut answer)).await;
-            let answer = String::from_utf8_lossy(&answer);
-            assert!(answer.starts_with("HTTP/1.1 503 "), "{path}: {answer}");
-            assert!(answer.contains("Retry-After: 1\r\n"), "{path}: {answer}");
-            assert!(answer.ends_with("reverse: relay restarting\n"), "{path}: {answer}");
-        }
-        drop(held);
-        assert!(!cfg.pairs.stopping(), "the role takes sockets again once the stop is over");
-    }
-}
+#[path = "mod_tests.rs"]
+mod tests;

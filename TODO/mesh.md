@@ -3771,7 +3771,7 @@ first after the minute passes. Planted, the brake removed, and the test fails.
 
 2026-11-02 (the drafting agent). The Premise holds; the Approach needs two facts that it does not
 name. `/v1/pair` is answered in the reverse road, where `serve/mod.rs` routes it:
-`crates/podssh-relay/src/serve/reverse/mod.rs:193` says "async fn pair". And the role had no
+`crates/podssh-relay/src/serve/reverse/mod.rs:204` says "async fn pair". And the role had no
 address to count by: at `33ccb11`,
 `podssh relay serve` dropped the peer of each connection that it accepted
 (`let Ok((tcp, _)) = accepted` in `crates/podssh-cli/src/relay_serve.rs`). So the brake stands in
@@ -14219,7 +14219,7 @@ a hop of a chain, so a person cannot chain a node and a second jump host. `podss
 - `crates/podssh-cli/src/ssh/jump.rs:105`-`148`: the first hop can be `cf://`, `iap://`, `eice://`,
   `upterm://` as a `Tunnel`; a node is not a variant.
 - `crates/podssh-cli/src/ssh/node.rs:1`-`40`: `node://[user@]NAME[/ROUTE]` already makes a stream through
-  the operator's leg (`reach`, T-084), and `docs/relay.md:647` names `-J node://NAME` for IPv6 egress.
+  the operator's leg (`reach`, T-084), and `docs/relay.md:655` names `-J node://NAME` for IPv6 egress.
 - `crates/podssh-cli/src/mcp/allow.rs:1`-`40`: `--allow-host` patterns match `[USER@]HOST`; no rule
   names the `node://` form.
 

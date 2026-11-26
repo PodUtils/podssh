@@ -17,7 +17,7 @@ mod quick_relay_harness;
 use http_road_harness::{each_way, open, raw, road, MIB};
 use podssh_relay::http_road::client::End;
 use podssh_relay::http_road::Form;
-use podssh_relay::serve::{tokens, Mint};
+use podssh_relay::serve::{said, tokens, Mint};
 use quick_relay_harness::{banner_target, Tunnel, BANNER, NAME};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -31,7 +31,18 @@ async fn both_forms_carry_20_mib_each_way_through_a_quick_tunnel_s_node() {
         let end = each_way(opened, BANNER, 20 * MIB, seed).await;
         assert_eq!(end, Some(End::Closed { code: 1000, reason: "target closed".into() }), "{form:?}");
     }
-    assert!(tunnel.said("http open") && tunnel.said("http close 1000"));
+    // Behind the node each line still names a client field and the target
+    // (T-1035); the visitor's address is the node's to give, so any value.
+    let at = format!("127.0.0.1:{target}");
+    for words in ["http open", "http close 1000"] {
+        let lines: Vec<String> =
+            tunnel.events.lock().unwrap().iter().filter(|l| said::words(l) == words).cloned().collect();
+        assert!(!lines.is_empty(), "the role said no {words:?}: {lines:?}");
+        for line in &lines {
+            assert!(said::field(line, "client").is_some(), "{line:?}");
+            assert_eq!(said::field(line, "target"), Some(at.as_str()), "{line:?}");
+        }
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

@@ -20,6 +20,7 @@ pub mod one;
 pub mod pumps;
 pub mod sessions;
 
+use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -30,6 +31,7 @@ use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use super::egress::{self, Missed, Plan};
 use super::forward::Asked;
 use super::policy::shown;
+use super::said::Of;
 use super::{forward, tokens, Config};
 use crate::http_road::window::Refusal;
 use crate::http_road::{
@@ -94,12 +96,14 @@ pub fn limits() -> serde_json::Value {
 
 /// Serve the road's requests on `stream`, `head` the first, `pending` the
 /// bytes after its head; the stream and a request of another path, when one
-/// came on a connection that the road kept.
+/// came on a connection that the road kept. The lines of its sessions name
+/// the client at `from` and the target (T-1035).
 pub async fn serve<S>(
     mut stream: S,
     mut head: Request,
     mut pending: Vec<u8>,
     cfg: Arc<Config>,
+    from: Option<IpAddr>,
 ) -> Option<(S, Request, Vec<u8>)>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
@@ -116,7 +120,7 @@ where
         };
         // The one-POST form takes the connection: its body is the way up.
         if asked == Some(Route::One) {
-            one::serve(stream, head, pending, cfg, layer).await;
+            one::serve(stream, head, pending, cfg, layer, from).await;
             return None;
         }
         let max = match asked {
@@ -134,7 +138,7 @@ where
         };
         let kept = match asked {
             None => write(&mut stream, refuse(404, &format!("{path}: not found"), &[], keep), keep).await,
-            Some(Route::Open) => open(&mut stream, &head, &cfg, keep, layer).await,
+            Some(Route::Open) => open(&mut stream, &head, &cfg, keep, layer, from).await,
             // Served above, before a body is read.
             Some(Route::One) => Some(false),
             Some(Route::Session(id, kind)) => match sessions::find(&id, head.header(KEY), &cfg) {
@@ -172,22 +176,29 @@ where
 /// the target checked and dialed, then a new session. With `layer`, `POST
 /// /v1/http/open-layer/HOST/PORT`: the target checked, and the session's
 /// bytes one link of the layer, which dials the target itself.
-async fn open<S>(stream: &mut S, head: &Request, cfg: &Arc<Config>, keep: bool, layer: bool) -> Option<bool>
+async fn open<S>(
+    stream: &mut S,
+    head: &Request,
+    cfg: &Arc<Config>,
+    keep: bool,
+    layer: bool,
+    from: Option<IpAddr>,
+) -> Option<bool>
 where
     S: AsyncWrite + Unpin,
 {
     let at = if layer { OPEN_LAYER } else { OPEN };
-    let (far, meter) = match reach(stream, head, cfg, at, keep).await {
+    let (far, meter, of) = match reach(stream, head, cfg, at, keep, from).await {
         Ok(reached) => reached,
         Err(kept) => return kept,
     };
-    let (session, key) = match Session::open(cfg.clone(), meter) {
+    let (session, key) = match Session::open(cfg.clone(), meter, of.clone()) {
         Ok(opened) => opened,
         Err(why) => return write(stream, refuse(503, &format!("http: {why}"), &[], keep), keep).await,
     };
     sessions::insert(session.clone());
     pumps::start(&session, far);
-    cfg.event(if layer { "http open layer" } else { "http open" });
+    cfg.event_of(&of, if layer { "http open layer" } else { "http open" });
     let doc = json!({
         "session": session.id,
         "key": key,
@@ -203,27 +214,27 @@ where
 /// `path` (its prefix before `HOST/PORT`), once [`checked`]: the target
 /// dialed as the forward road dials it; at a path of the layer, a new link
 /// of the layer, which dials the target after its handshake, as a link of
-/// `/v1/layer/` does. A refusal is written, and `Err` holds what its write
-/// gave.
+/// `/v1/layer/` does. With the connection's [`Of`], which names its client
+/// and target. A refusal is written, and `Err` holds what its write gave.
 async fn reach<S>(
     stream: &mut S,
     head: &Request,
     cfg: &Arc<Config>,
     path: &str,
     keep: bool,
-) -> Result<(Far, super::usage::Meter), Option<bool>>
+    from: Option<IpAddr>,
+) -> Result<(Far, super::usage::Meter, Of), Option<bool>>
 where
     S: AsyncWrite + Unpin,
 {
-    let (asked, plan, meter) = checked(stream, head, cfg, path, keep).await?;
-    if path == OPEN_LAYER || path == ONE_LAYER {
-        // The road's lines name no client yet: its target alone (T-1016).
-        let of = super::said::Of::default().to(&shown(&asked.host, asked.port));
-        let (from, to) = tokio::io::split(super::layer::link(cfg, asked.host, plan, of));
-        let far: Far = (Box::new(from), Box::new(to));
-        return Ok((far, meter));
-    }
+    let (asked, plan, meter) = checked(stream, head, cfg, path, keep, from).await?;
     let target = shown(&asked.host, asked.port);
+    let of = Of::client(from).to(&target);
+    if path == OPEN_LAYER || path == ONE_LAYER {
+        let (up, down) = tokio::io::split(super::layer::link(cfg, asked.host, plan, of.clone()));
+        let far: Far = (Box::new(up), Box::new(down));
+        return Ok((far, meter, of));
+    }
     // As the forward road dials: through the host's proxy when one is set,
     // the owner told of the proxy's fault, and the unsent bytes bounded.
     let tcp = match egress::dial(&asked.host, &plan, &cfg.egress, &cfg.policy.ipv6, cfg.limits.connect).await {
@@ -234,14 +245,14 @@ where
             }
             let reach = super::egress::cannot_reach(&target, &said);
             let why = format!("relay: {reach}");
-            cfg.event(&format!("refused 502 {reach}"));
+            cfg.event_of(&of, &format!("refused 502 {reach}"));
             return Err(write(stream, refuse(502, &why, &[], keep), keep).await);
         }
     };
     super::sockets::bound_unsent(&tcp);
-    let (from, to) = tcp.into_split();
-    let far: Far = (Box::new(from), Box::new(to));
-    Ok((far, meter))
+    let (up, down) = tcp.into_split();
+    let far: Far = (Box::new(up), Box::new(down));
+    Ok((far, meter, of))
 }
 
 /// The checks of a new session of the road at the path `path`: the token
@@ -255,6 +266,7 @@ async fn checked<S>(
     cfg: &Arc<Config>,
     path: &str,
     keep: bool,
+    from: Option<IpAddr>,
 ) -> Result<(Asked, Plan, super::usage::Meter), Option<bool>>
 where
     S: AsyncWrite + Unpin,
@@ -287,7 +299,7 @@ where
         Ok(plan) => plan,
         Err(refused) => {
             if let Some(line) = refused.logged() {
-                cfg.event(&line);
+                cfg.event_of(&Of::client(from).to(&shown(&asked.host, asked.port)), &line);
             }
             // The policy's refusal is the role's `not allowed`; another
             // status (a target that cannot be reached) keeps its own words.

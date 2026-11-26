@@ -156,6 +156,28 @@ impl Role {
         self.events.lock().unwrap().iter().any(|line| line.contains(text))
     }
 
+    /// The role's lines whose words are `words`, before their fields
+    /// (T-1035).
+    pub fn lines(&self, words: &str) -> Vec<String> {
+        self.events.lock().unwrap().iter().filter(|l| serve::said::words(l) == words).cloned().collect()
+    }
+
+    /// The role said `words` at least once, and each such line holds each
+    /// of `fields` as `KEY=VALUE` (a value of `*` is any value): the line
+    /// names its client, and its target or pair. The count of the lines.
+    pub fn assert_named(&self, words: &str, fields: &[(&str, &str)]) -> usize {
+        let lines = self.lines(words);
+        assert!(!lines.is_empty(), "the role said no {words:?}: {:?}", self.events.lock().unwrap());
+        for line in &lines {
+            for (key, want) in fields {
+                let got = serve::said::field(line, key);
+                let ok = if *want == "*" { got.is_some() } else { got == Some(*want) };
+                assert!(ok, "{line:?} names {key}={got:?}, not {want:?}");
+            }
+        }
+        lines.len()
+    }
+
     /// Until the role says `text`, `LIMIT` at most.
     pub async fn until_said(&self, text: &str) {
         let deadline = Instant::now() + LIMIT;

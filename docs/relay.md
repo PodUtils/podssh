@@ -119,8 +119,9 @@ Each event of the role is one line on stdout (T-1016). Its own words come
 first, unchanged, so that an owner greps a line by its first word and a
 harness counts them; then its fields, each one `KEY=VALUE` with no space:
 `client=ADDR`, the client's address (`-` where the role does not know it),
-and `target=HOST:PORT` where the event has one; last, `at=TIME`, the time
-of the line in UTC (RFC 3339, to the second), on each line:
+`pair=NAME` where the event is a reverse pair's, and `target=HOST:PORT`
+where the event has one; last, `at=TIME`, the time of the line in UTC
+(RFC 3339, to the second), on each line:
 
 ```text
 h2 client=203.0.113.7 at=2026-11-26T10:00:00Z
@@ -129,15 +130,22 @@ end gone: the client went with no Close client=203.0.113.7 target=github.com:22 
 ```
 
 The lines that name a client and a target are a session's of the forward
-road and of the resumable layer: `upgrade`, `upgrade layer`, `layer
-resumed`, `close CODE`, `end client`, `end gone: ...`, `end close CODE
-REASON`, `refused 502 ...` and a refusal of the policy. `h2`, `quic`,
-`mint`, `mint once` and `relays.json` name the client alone. A link of the
-layer that the HTTP road carries names its target, with `client=-`. The
-other lines (the HTTP road's, the reverse road's, `iroh:`, `derp:`, `sshd
-from ...`, `publish ...`) keep their words, which name what they name, and
-end with the time. A field's value never holds a space: a space or a
-control character in a target is shown as `?`. A reader takes the words
+road, of the resumable layer and of the HTTP road: `upgrade`, `upgrade
+layer`, `layer resumed`, `close CODE`, `end client`, `end gone: ...`, `end
+close CODE REASON`, `refused 502 ...`, a refusal of the policy, and the
+road's `http open`, `http open layer`, `http close CODE`, `http one open`,
+`http one open layer` and `http one close: ...`. A link of the layer that
+the road carries names the road's client. The reverse road's lines
+(`reverse node`, `reverse open`, `reverse spare taken`, `reverse pair`,
+`reverse stop`, `reverse renew`, `reverse rotate`, `reverse halt`, `reverse
+leg token` and the others) name the client and the pair, never a target:
+a pair's name is no `HOST:PORT`. A node or an operator that comes by a
+carrier of the client's own process has `client=-`. `h2`, `quic`, `mint`,
+`mint once` and `relays.json` name the client alone. The other lines
+(`iroh:`, `derp:`, `sshd from ...`, `publish ...`, `cleartext ...`, `leg
+drawn`) keep their words, which name what they name, and end with the
+time. A field's value never holds a space: a space or a control character
+in a target is shown as `?`. A reader takes the words
 as the line before its last fields, and a field by its key
 (`podssh_relay::serve::said`); a line of the stand-in relay
 (`scripts/fake-relay.py`), which has no fields, reads the same way. A

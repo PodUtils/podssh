@@ -50,7 +50,11 @@ async fn the_split_form_carries_20_mib_each_way_straight_to_the_role() {
     let opened = open(&road(role.relay.port, "127.0.0.1"), target, &token, Some(Form::Split)).await;
     assert_eq!(opened.form, Form::Split);
     assert_eq!(each_way(opened, b"", 20 * MIB, 1).await, target_closed());
-    assert!(role.said("http open") && role.said("http close 1000"), "{:?}", role.events.lock().unwrap());
+    // Each line of the session names its client and its target (T-1035).
+    let at = format!("127.0.0.1:{target}");
+    let named = [("client", "127.0.0.1"), ("target", at.as_str())];
+    role.assert_named("http open", &named);
+    role.assert_named("http close 1000", &named);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -60,6 +64,10 @@ async fn the_serial_form_carries_20_mib_each_way_straight_to_the_role() {
     let opened = open(&road(role.relay.port, "127.0.0.1"), target, &token, Some(Form::Serial)).await;
     assert_eq!(opened.form, Form::Serial);
     assert_eq!(each_way(opened, b"", 20 * MIB, 2).await, target_closed());
+    let at = format!("127.0.0.1:{target}");
+    let named = [("client", "127.0.0.1"), ("target", at.as_str())];
+    role.assert_named("http open", &named);
+    role.assert_named("http close 1000", &named);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

@@ -3,6 +3,8 @@
 //! its fields follow, each one `KEY=VALUE` with no space in it: `client=`
 //! the client's address (`-` where the role does not know it, as on the
 //! owner's control socket or behind a tunnel that names no visitor), then
+//! `pair=NAME` where the event is a reverse pair's (its name is no
+//! `HOST:PORT`, so it has a key of its own, T-1035), then
 //! `target=HOST:PORT` where the event has one. `podssh relay serve` ends
 //! each line on its stdout with `at=` its time in UTC ([`stamped`]). A
 //! reader takes the words with [`words`] and a field with [`field`]; a line
@@ -11,34 +13,45 @@
 use std::net::IpAddr;
 
 /// The keys of the fields that end a line, in their order.
-pub const KEYS: [&str; 3] = ["client", "target", "at"];
+pub const KEYS: [&str; 4] = ["client", "pair", "target", "at"];
 
 /// Whom a connection's lines are of: its client and, once its request
-/// named one, its target.
+/// named one, its target; on the reverse road, the pair that its node or
+/// operator joined.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Of {
     pub client: Option<IpAddr>,
     pub target: Option<String>,
+    pub pair: Option<String>,
 }
 
 impl Of {
     /// A connection of `client`, with no target yet.
     pub fn client(client: Option<IpAddr>) -> Of {
-        Of { client, target: None }
+        Of { client, target: None, pair: None }
     }
 
     /// The same client, to `target` (`HOST:PORT`, as the policy shows it).
     pub fn to(&self, target: &str) -> Of {
-        Of { client: self.client, target: Some(target.to_string()) }
+        Of { client: self.client, target: Some(target.to_string()), pair: self.pair.clone() }
     }
 
-    /// `WORDS client=ADDR[ target=HOST:PORT]`.
+    /// The same client, on the reverse road's pair `name`.
+    pub fn with_pair(&self, name: &str) -> Of {
+        Of { client: self.client, target: self.target.clone(), pair: Some(name.to_string()) }
+    }
+
+    /// `WORDS client=ADDR[ pair=NAME][ target=HOST:PORT]`.
     pub fn line(&self, words: &str) -> String {
         let client = self.client.map_or_else(|| "-".to_string(), |ip| ip.to_canonical().to_string());
-        match &self.target {
-            Some(target) => format!("{words} client={client} target={}", one_token(target)),
-            None => format!("{words} client={client}"),
+        let mut line = format!("{words} client={client}");
+        if let Some(pair) = &self.pair {
+            line.push_str(&format!(" pair={}", one_token(pair)));
         }
+        if let Some(target) = &self.target {
+            line.push_str(&format!(" target={}", one_token(target)));
+        }
+        line
     }
 }
 
@@ -126,6 +139,11 @@ mod tests {
             assert_eq!(words(line), line);
             assert_eq!(field(line, "client"), None);
         }
+        // A pair's lines name it between the client and the target (T-1035).
+        let paired = Of::client(None).with_pair("p-a1");
+        assert_eq!(paired.line("reverse node"), "reverse node client=- pair=p-a1");
+        assert_eq!(field(&stamped(&paired.line("reverse open"), "t"), "pair"), Some("p-a1"));
+        assert_eq!(words(&paired.line("reverse node gone")), "reverse node gone");
         // An IPv4 client of a socket of both families is shown as IPv4.
         let mapped: IpAddr = "::ffff:192.0.2.1".parse().unwrap();
         assert_eq!(Of::client(Some(mapped)).line("h2"), "h2 client=192.0.2.1");

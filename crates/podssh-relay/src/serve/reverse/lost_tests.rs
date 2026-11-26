@@ -84,7 +84,7 @@ where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let (near, far) = tokio::io::duplex(64 * 1024);
-    tokio::spawn(serve(ours(far), upgrade(path, token), Vec::new(), cfg.clone(), None));
+    tokio::spawn(serve(ours(far), upgrade(path, token), Vec::new(), cfg.clone(), None, None));
     near
 }
 

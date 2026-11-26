@@ -57,7 +57,8 @@ pub async fn carry(mut visitor: TcpStream, routed: Routed, cfg: Arc<Config>) {
     // A TLS record goes on at once, as the visitor's own socket sends it.
     let _ = visitor.set_nodelay(true);
     let (near, far) = tokio::io::duplex(LEG_PIPE);
-    tokio::spawn(operator::leg(Arc::new(server::session(far, Vec::new(), None)), pair, cfg.clone()));
+    let visitor_ip = visitor.peer_addr().ok().map(|at| at.ip());
+    tokio::spawn(operator::leg_of(Arc::new(server::session(far, Vec::new(), None)), pair, cfg.clone(), visitor_ip));
     let leg = Arc::new(RelaySession::new(near, Vec::new(), None, WRITE_TIMEOUT).naming("a published name's leg"));
     let (mut frames, reader) = frames_of(leg.clone());
     let started = Instant::now();

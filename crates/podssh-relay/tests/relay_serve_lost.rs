@@ -62,7 +62,14 @@ async fn a_node_whose_tcp_reset_is_taken_again_at_once_and_reached() {
         Err(e) => panic!("the node's next socket after a reset: {e}; the role said {:?}", role.events.lock().unwrap()),
     };
     assert_eq!(next_text(&node).await["type"], "hello");
-    assert!(role.said("reverse node lost: "), "{:?}", role.events.lock().unwrap());
+    // Its line names the node's client and the pair (T-1035).
+    let said = role.events.lock().unwrap().clone();
+    let lost: Vec<&String> = said.iter().filter(|l| l.starts_with("reverse node lost: ")).collect();
+    assert!(!lost.is_empty(), "{said:?}");
+    for line in lost {
+        assert_eq!(podssh_relay::serve::said::field(line, "client"), Some("127.0.0.1"), "{line}");
+        assert_eq!(podssh_relay::serve::said::field(line, "pair"), Some(pair.name.as_str()), "{line}");
+    }
 
     let operator =
         role.socket(&format!("/v1/connect/{}", pair.name), pair.connect_token()).await.expect("the operator's socket");

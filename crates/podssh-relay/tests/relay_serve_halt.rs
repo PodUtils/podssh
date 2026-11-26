@@ -85,7 +85,7 @@ async fn a_halted_pair_refuses_an_operator_before_the_upgrade_and_says_why() {
     let (status, answer) = owner(&role, "halt", &name, pair.stop_token(), &body).await;
     let halted = (status, answer["halted"].as_bool(), answer["sessions"].as_u64());
     assert_eq!(halted, (200, Some(true), Some(0)), "{answer}");
-    assert!(role.said("reverse halt"), "{:?}", role.events.lock().unwrap());
+    role.assert_named("reverse halt", &[("client", "127.0.0.1"), ("pair", name.as_str())]);
 
     let refused = refused_upgrade(&role, &name, pair.connect_token()).await;
     assert!(refused.starts_with("HTTP/1.1 503 "), "{refused}");

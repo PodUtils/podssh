@@ -37,7 +37,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
   (`crates/podssh-ssh/src/known_hosts.rs:335-412`).
 - Read: with no cached token, each session mints one
   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:135-180`); the relay allows 120 attempts
-  with no token for each minute and address (`docs/relay.md:669`).
+  with no token for each minute and address (`docs/relay.md:677`).
 
 ## Approach
 
@@ -1545,7 +1545,7 @@ of the command.
    changed.
 3. Then one exec on the same SSH connection: `cd DIR && COMMAND`, with DIR
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
-   (`docs/relay.md:663`), run the exec on a new session (T-137).
+   (`docs/relay.md:671`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
    (`docs/cli.md:7351-7354`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
@@ -1997,7 +1997,7 @@ queue, no wait for a result, and no way to get the output back.
   queue on the client dies with it, and a client that waits must not need a
   listener (`docs/target-environment.md:89-93`).
 - Read: the output comes back with `cp` (T-134), within 64 MiB for each
-  relay session (`docs/relay.md:663`); T-137 opens a new session.
+  relay session (`docs/relay.md:671`); T-137 opens a new session.
 - Read in the report: GPU-Share places jobs by idle time and free VRAM. No
   such logic here: a count of slots is the only limit.
 

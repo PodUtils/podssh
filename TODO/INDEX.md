@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**968 entries: 4 open, 33 partial, 16 blocked, 915 done.**
+**968 entries: 3 open, 33 partial, 16 blocked, 916 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 103 | 112 |
 | P2 | 0 | 20 | 4 | 347 | 371 |
-| P3 | 4 | 7 | 9 | 464 | 484 |
-| **All** | 4 | 33 | 16 | 915 | 968 |
+| P3 | 3 | 7 | 9 | 465 | 484 |
+| **All** | 3 | 33 | 16 | 916 | 968 |
 
 ## Entries
 
@@ -1042,5 +1042,5 @@ repository and CI).
 | [T-1032](cli.md) | P3 | S | backlog | defect | done | The refusal of PODSSH_OFFLINE has three wordings across the commands |
 | [T-1033](cli.md) | P3 | S | backlog | defect | done | `doctor --json` gives an empty `diagnosis` beside a failed check, and the manual does not say why |
 | [T-1034](repo.md) | P3 | M | M10 | defect | done | 40 of the 326 planted defects no longer apply to the tree |
-| [T-1035](relay.md) | P3 | S | M10 | defect | open | The relay role's HTTP road and reverse road lines name their client and target, as T-1016 did for the others |
+| [T-1035](relay.md) | P3 | S | M10 | defect | done | The relay role's HTTP road and reverse road lines name their client and target, as T-1016 did for the others |
 | [T-1036](repo.md) | P1 | S | M10 | defect | done | The gate's step ssh passed its job's limit of 45 min at `2a37826` |

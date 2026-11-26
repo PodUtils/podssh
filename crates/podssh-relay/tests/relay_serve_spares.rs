@@ -96,8 +96,8 @@ impl Node {
     /// Ask again, and wait for the role's line of it: each frame that the
     /// node sent before it was taken, as the role reads them in order.
     async fn settle(&self, role: &Role, want: u64) {
-        let said = format!("reverse spares {want}");
-        let count = || role.events.lock().unwrap().iter().filter(|line| **line == said).count();
+        let line = format!("reverse spares {want}");
+        let count = || role.lines(&line).len();
         let before = count();
         self.ask(want).await;
         let until = Instant::now() + LIMIT;
@@ -160,7 +160,9 @@ async fn a_leg_takes_a_readied_spare_and_its_first_byte_reaches_the_node_with_no
             }
         }
     }
-    assert!(role.said("reverse spare taken"), "{:?}", role.events.lock().unwrap());
+    // The line names the operator's client and the pair (T-1035).
+    role.assert_named("reverse spare taken", &[("client", "127.0.0.1"), ("pair", pair.name.as_str())]);
+    role.assert_named("reverse spares 1", &[("client", "127.0.0.1"), ("pair", pair.name.as_str())]);
     assert!(!role.said("reverse open"), "an open for the leg: {:?}", role.events.lock().unwrap());
 }
 
@@ -434,7 +436,7 @@ async fn podssh_s_node_asks_and_its_operators_carry_their_bytes_through_the_spar
         let (each, exit) = tokio::time::timeout(4 * LIMIT, both).await.expect("in time");
         assert!(each.iter().all(Outcome::is_success), "{each:?}");
         assert!(matches!(exit, Exit::Stopped), "{exit:?}");
-        let taken = role.events.lock().unwrap().iter().filter(|line| *line == "reverse spare taken").count();
+        let taken = role.lines("reverse spare taken").len();
         match asked {
             0 => assert!(taken == 0 && !role.said("reverse spares"), "{:?}", role.events.lock().unwrap()),
             _ => assert!(taken >= 1 && role.said("reverse spares 2"), "{:?}", role.events.lock().unwrap()),

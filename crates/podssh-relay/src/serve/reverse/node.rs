@@ -32,6 +32,7 @@ use super::{close, hello, CLOSE_WAIT, PINGS_ALLOWED, PING_EVERY};
 use crate::reverse::control;
 use crate::reverse::framing::legs::decode_node_frame;
 use crate::reverse::framing::{CodecError, SessionId, CONTROL_FRAME_MAX};
+use crate::serve::said::Of;
 use crate::serve::{answer, tokens, Config};
 
 /// A fault of the node's bytes: the code and the reason of the table's row.
@@ -50,7 +51,7 @@ enum Came {
 }
 
 /// Join the node of `pair` on `stream`, and serve its socket until it ends.
-pub async fn join<S>(mut stream: S, head: Request, pending: Vec<u8>, pair: Arc<Pair>, cfg: Arc<Config>)
+pub async fn join<S>(mut stream: S, head: Request, pending: Vec<u8>, pair: Arc<Pair>, cfg: Arc<Config>, of: Of)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -82,7 +83,7 @@ where
         outbox.close(1001, "pair expired");
         return;
     }
-    socket(session, outbox, pair, cfg, serial, Came::Upgraded).await
+    socket(session, outbox, pair, cfg, serial, Came::Upgraded, of).await
 }
 
 /// A node's socket that is a WebSocket from its first byte, with no upgrade
@@ -107,7 +108,8 @@ where
         return Err("the carrier's role ended".into());
     }
     // A carrier's legs take no token: its `hello` offers none (T-615).
-    Ok(tokio::spawn(socket(session, outbox, pair, cfg, serial, Came::Carried)))
+    let of = Of::client(None).with_pair(&pair.name);
+    Ok(tokio::spawn(socket(session, outbox, pair, cfg, serial, Came::Carried, of)))
 }
 
 /// Give the node's socket under `serial` its writer, unless the pair ended,
@@ -133,6 +135,7 @@ async fn socket<S>(
     cfg: Arc<Config>,
     serial: u64,
     came: Came,
+    of: Of,
 ) where
     S: AsyncRead + AsyncWrite + Send + 'static,
 {
@@ -143,7 +146,7 @@ async fn socket<S>(
     if let Some(halt) = pair.halted() {
         outbox.text(halt.frame());
     }
-    cfg.event("reverse node");
+    cfg.event_of(&of, "reverse node");
 
     let (mut frames, reader) = frames_of(session.clone());
     let watched = session.clone();
@@ -170,13 +173,13 @@ async fn socket<S>(
             read = frames.recv() => match read {
                 Some(Ok(f)) if cause.is_none() => {
                     let fault = match f.opcode {
-                        frame::OPCODE_TEXT => control_frame(&pair, &f.payload, &cfg),
-                        frame::OPCODE_BINARY => data(&pair, &outbox, &f.payload, &cfg),
+                        frame::OPCODE_TEXT => control_frame(&pair, &f.payload, &cfg, &of),
+                        frame::OPCODE_BINARY => data(&pair, &outbox, &f.payload, &cfg, &of),
                         frame::OPCODE_CLOSE => break,
                         _ => Ok(()),
                     };
                     if let Err((code, why)) = fault {
-                        cfg.event(&format!("reverse node closed {code} {why}"));
+                        cfg.event_of(&of, &format!("reverse node closed {code} {why}"));
                         // Before what waits: a node whose bytes broke the
                         // contract hears why at once.
                         outbox.abort(code, why);
@@ -208,7 +211,7 @@ async fn socket<S>(
                     None => {
                         expired = true;
                         cfg.pairs.end(&pair.name, 1001, "pair expired");
-                        cfg.event("reverse expired");
+                        cfg.event_of(&of, "reverse expired");
                     }
                 }
             }
@@ -232,9 +235,9 @@ async fn socket<S>(
     detach(&pair, serial, cause);
     outbox.abort(1011, "socket error");
     if let Some(why) = lost {
-        cfg.event(&format!("reverse node lost: {why}"));
+        cfg.event_of(&of, &format!("reverse node lost: {why}"));
     }
-    cfg.event("reverse node gone");
+    cfg.event_of(&of, "reverse node gone");
 }
 
 async fn sleep_until(at: Option<Instant>) {
@@ -275,7 +278,7 @@ fn detach(pair: &Pair, serial: u64, cause: Option<Fault>) {
 
 /// A text frame of the node: `ready`, `reject` or `close`, each with a
 /// session's id.
-fn control_frame(pair: &Pair, text: &[u8], cfg: &Config) -> Result<(), Fault> {
+fn control_frame(pair: &Pair, text: &[u8], cfg: &Config, of: &Of) -> Result<(), Fault> {
     if text.len() > CONTROL_FRAME_MAX {
         return Err((1009, "control frame byte cap"));
     }
@@ -288,7 +291,7 @@ fn control_frame(pair: &Pair, text: &[u8], cfg: &Config) -> Result<(), Fault> {
     // The sessions that the node asks the role to ready ahead (T-650).
     if kind == super::spares::ASK {
         let want = super::spares::asked(pair, &message)?;
-        cfg.event(&format!("reverse spares {want}"));
+        cfg.event_of(of, &format!("reverse spares {want}"));
         return Ok(());
     }
     if !matches!(kind, "ready" | "reject" | "close") {
@@ -309,7 +312,7 @@ fn control_frame(pair: &Pair, text: &[u8], cfg: &Config) -> Result<(), Fault> {
             // A `ready` that crossed the relay's close of its session.
             return match state.in_flight(&id) {
                 Some(first) => {
-                    in_flight(first, 0, cfg);
+                    in_flight(first, 0, cfg, of);
                     Ok(())
                 }
                 None => Err((1003, "unknown session id")),
@@ -365,7 +368,7 @@ fn register(pair: &Pair, message: &Value) -> Result<(), Fault> {
 
 /// A binary frame of the node: the session's id, then its payload, for the
 /// session's operator.
-fn data(pair: &Pair, node: &Outbox, wire: &[u8], cfg: &Config) -> Result<(), Fault> {
+fn data(pair: &Pair, node: &Outbox, wire: &[u8], cfg: &Config, of: &Of) -> Result<(), Fault> {
     let (id, payload) = decode_node_frame(wire).map_err(|e| match e {
         CodecError::FrameTooShort { .. } | CodecError::FrameTooLong { .. } => (1009, "bad multiplex frame"),
         _ => (1003, "bad multiplex id"),
@@ -379,7 +382,7 @@ fn data(pair: &Pair, node: &Outbox, wire: &[u8], cfg: &Config) -> Result<(), Fau
         return match state.in_flight(&id) {
             // On its way before the node heard of the close (T-421).
             Some(first) => {
-                in_flight(first, payload.len(), cfg);
+                in_flight(first, payload.len(), cfg, of);
                 Ok(())
             }
             None => Err((1003, "unknown session id")),
@@ -412,14 +415,14 @@ fn data(pair: &Pair, node: &Outbox, wire: &[u8], cfg: &Config) -> Result<(), Fau
             session.operator.abort(1011, "relay backpressure");
         }
         node.text_after(id, close(&id, Some("relay backpressure")));
-        cfg.event("reverse backpressure");
+        cfg.event_of(of, "reverse backpressure");
     }
     Ok(())
 }
 
 /// A frame of a session closed in the last seconds: said once.
-fn in_flight(first: bool, bytes: usize, cfg: &Config) {
+fn in_flight(first: bool, bytes: usize, cfg: &Config, of: &Of) {
     if first {
-        cfg.event(&format!("reverse in flight: a frame of a closed session dropped ({bytes} bytes)"));
+        cfg.event_of(of, &format!("reverse in flight: a frame of a closed session dropped ({bytes} bytes)"));
     }
 }

@@ -159,7 +159,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   (`crates/podssh-cli/src/proxy.rs:94-316`).
 - Read: `crates/podssh-ssh/src/relay_stream.rs:221-224` sends Close 1000 when
   its write side ends. That is right for SSH and wrong for a pipe: the relay
-  has no half-close (`docs/relay.md:560-566`), so a Close cuts a reply on its
+  has no half-close (`docs/relay.md:568-574`), so a Close cuts a reply on its
   way. Measured live for proxy: the full reply after stdin closed
   (`docs/STATUS.md:441`).
 - Read: `-W` opens its stream with `crates/podssh-ssh/src/forward.rs:14-21`
@@ -586,7 +586,7 @@ running on the server (`docs/design.md:860-864`).
   (`crates/podssh-ssh/src/session.rs:39-41`). Raw mode is entered once for
   each session (`crates/podssh-ssh/src/session.rs:187-271`).
 - Read: the relay ends a session at 64 MiB (1009) or 12 h (1001)
-  (`docs/relay.md:746-752`). Sandbox A measured the cap at 67,107,943 bytes,
+  (`docs/relay.md:754-760`). Sandbox A measured the cap at 67,107,943 bytes,
   and one close `1011` in 180 short sessions (`docs/STATUS.md:544-545`).
 - Read: tmux is never assumed (`docs/target-environment.md:116-118`).
 
@@ -728,8 +728,8 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
   `connect()` itself needs a listener (`docs/design.md:1427-1430`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
-  (`docs/relay.md:668`), then Close 1009 (`docs/relay.md:750`); public
-  targets only (`docs/relay.md:670`). Through the proxy of sandbox A: 0.5 to
+  (`docs/relay.md:676`), then Close 1009 (`docs/relay.md:758`); public
+  targets only (`docs/relay.md:678`). Through the proxy of sandbox A: 0.5 to
   0.7 MB/s (`docs/STATUS.md:543`).
 - Not measured: no RDP, VNC or Telnet client ran through podssh. Each claim
   about a client below is to verify.
@@ -899,14 +899,14 @@ and sandhole. Read in the reports, not verified here.
 
 A developer in a sandbox runs a web application and wants a URL for it. The
 relay carries TCP to public targets and reverse sessions to named nodes
-(`docs/relay.md:828-870`). It has no endpoint that takes public HTTPS for a
+(`docs/relay.md:836-878`). It has no endpoint that takes public HTTPS for a
 name, and podssh alone cannot add one.
 
 ## Premise
 
 - Read: the relay is the operator's Cloudflare Worker, another project, and
   its document is the contract (`docs/relay.md:3-16`). It has no publish
-  endpoint (`docs/relay.md:544-581`, `docs/relay.md:828-893`).
+  endpoint (`docs/relay.md:552-589`, `docs/relay.md:836-901`).
 - Read: on the measured sandbox, `connect()` to loopback fails with EACCES
   (`docs/target-environment.md:22`). A node there cannot reach a server on
   127.0.0.1; it can reach a Unix socket (T-176) or a program (`exec:`,
@@ -922,7 +922,7 @@ When the relay's operator adds the endpoint:
 
 1. The relay's operator publishes it in the contract first: a name, a public
    host name, and each incoming connection as a reverse session
-   (`open {id}`, `ready {id}`; `docs/relay.md:836-856`).
+   (`open {id}`, `ready {id}`; `docs/relay.md:844-864`).
 2. podssh uses the node runner (T-079) and `podssh node` (T-083):
    `podssh node NAME TARGET --publish`, TARGET each address of T-174 to
    T-176. podssh parses no HTTP: the bytes pass, WebSocket upgrades too.
@@ -957,7 +957,7 @@ read, moved here as `cargo todo check` refuses a Blocker on an open entry:
 
 Lifted on 2026-11-02 by Q63: see below.
 
-The Premise holds for the default deployment (`docs/relay.md:828-893`), and for the measured
+The Premise holds for the default deployment (`docs/relay.md:836-901`), and for the measured
 sandbox (`docs/target-environment.md:22`). By Q63 (2026-11-02, `docs/decisions.md`;
 docs/mesh.md, section 5) this entry is podssh's work, and becomes `podssh funnel TARGET`,
 Tailscale's funnel in podssh: a local HTTP service at a public `https://` name, through the quick
@@ -1220,7 +1220,7 @@ and with which limits.
   SSH exec channel, and says that USB/IP needs kernel modules on the server.
 - Read: an exec channel carries binary data with equal digests
   (`docs/STATUS.md:259`), and `pipe` carries a TCP stream (T-174, T-175).
-- Read: through the relay, a session ends at 64 MiB (`docs/relay.md:668`);
+- Read: through the relay, a session ends at 64 MiB (`docs/relay.md:676`);
   the traffic of a USB disk reaches that in seconds.
 - Read: podssh cannot load a module or attach a device, and never assumes a
   privilege (`AGENTS.md:402-403`). The recipe uses the user's own `usbip` and
@@ -1427,7 +1427,7 @@ the request's target, would be the proxy that such a program points at.
   gate's scan of listeners allows the listener of `pipe` (`scripts/check-repo.py:100-124`).
 - Read: the SOCKS side of `-D` answers once the server's channel opened, so that a client learns
   whether its target was reached (`crates/podssh-ssh/src/socks.rs:1-5`). The relay refuses a target
-  of its policy with a `403` that names it, `not in the ALLOW list` (`docs/relay.md:649-654`).
+  of its policy with a `403` that names it, `not in the ALLOW list` (`docs/relay.md:657-662`).
 - Read: a secret of the resumable layer is compared in constant time
   (`PodUtils/podssh:crates/podssh-relay/src/session/secret.rs:218-222`).
 
@@ -1532,7 +1532,7 @@ live relay behind it.
 2026-10-31: three citations of the Premise name other lines, as they did when the entry was
 written (read at `8207d29`). The ruling on a listener that the user asks for is
 `docs/decisions.md:96`; `docs/decisions.md:91` is the ruling on `exec:`. The relay's `403` of its
-policy is `docs/relay.md:657-659`; `docs/relay.md:649-654` is the form of a token and its header.
+policy is `docs/relay.md:665-667`; `docs/relay.md:657-662` is the form of a token and its header.
 The rest reads as cited. Nothing in the Approach changes.
 
 ## Done
@@ -1919,7 +1919,7 @@ Read at `2042200`:
 - Its reason phrases: `PodUtils/podssh:crates/podssh-ws/src/http/request.rs:244-267` has no arm for 404, 409, 411, 413
   or 429, so each reads "Error"; the relay role sends four of them through it (`404` in
   `crates/podssh-relay/src/serve/reverse/mod.rs:105`, `409` and `429` in
-  `crates/podssh-relay/src/serve/reverse/mod.rs:208-212`, `413` in
+  `crates/podssh-relay/src/serve/reverse/mod.rs:219-223`, `413` in
   `crates/podssh-relay/src/serve/mod.rs:438`). A small defect, found here (rule 8 of `AGENTS.md`).
 - The check reads no path (`PodUtils/podssh:crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
   no upgrade, whatever its path, as the issue corrects itself.
@@ -2064,7 +2064,7 @@ Read at `2042200`:
   carries raw bytes (`crates/podssh-cli/src/pipe/serve.rs:52`).
 - The relay role's roads call the same check, and their contract is framed:
   `crates/podssh-relay/src/serve/forward.rs:88`, `crates/podssh-relay/src/serve/layer.rs:182`,
-  `crates/podssh-relay/src/serve/reverse/node.rs:57` and `crates/podssh-relay/src/serve/reverse/operator.rs:53`;
+  `crates/podssh-relay/src/serve/reverse/node.rs:58` and `crates/podssh-relay/src/serve/reverse/operator.rs:56`;
   they keep it.
 - No TLS on `ws-listen:`: a WebTunnel client of a bridge speaks `https://`, so a front that ends TLS is
   needed before this listener, as the issue says.

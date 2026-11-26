@@ -106,11 +106,10 @@ async fn curl_carries_20_mib_each_way_in_one_post_straight_to_the_role() {
     let (mark, got, want) = curl_each_way(role.relay.port, target, &token, 20 * MIB).await;
     assert_eq!(mark, MARK);
     assert_eq!(got, want, "the echo's digest is the body's");
-    assert!(
-        role.said("http one open") && role.said("http one close: the target ended"),
-        "{:?}",
-        role.events.lock().unwrap()
-    );
+    let at = format!("127.0.0.1:{target}");
+    let named = [("client", "127.0.0.1"), ("target", at.as_str())];
+    role.assert_named("http one open", &named);
+    role.assert_named("http one close: the target ended", &named);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -212,7 +211,9 @@ async fn podssh_s_client_opens_the_one_post_form_first_and_carries_20_mib_each_w
     assert_eq!(opened.form, Form::One, "the form first where the host is not known to refuse it");
     let ended = each_way(opened, b"", 20 * MIB, 5).await;
     assert!(ended.is_none() || ended == target_closed(), "{ended:?}");
-    assert!(role.said("http one open"), "{:?}", role.events.lock().unwrap());
+    let at = format!("127.0.0.1:{target}");
+    let named = [("client", "127.0.0.1"), ("target", at.as_str())];
+    role.assert_named("http one open", &named);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

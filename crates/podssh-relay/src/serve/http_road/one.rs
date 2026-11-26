@@ -16,6 +16,7 @@
 //! resumable layer: the open's checks, then the bytes go to a new link of
 //! the layer, not to a dial of the target.
 
+use std::net::IpAddr;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -88,8 +89,14 @@ impl Moved {
 /// Serve the form's request `head` on `stream`, `pending` the bytes after
 /// its head; with `layer`, a link of the resumable layer. The connection
 /// ends with the session.
-pub async fn serve<S>(mut stream: S, head: Request, pending: Vec<u8>, cfg: Arc<Config>, layer: bool)
-where
+pub async fn serve<S>(
+    mut stream: S,
+    head: Request,
+    pending: Vec<u8>,
+    cfg: Arc<Config>,
+    layer: bool,
+    from: Option<IpAddr>,
+) where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let chunked = head.header("transfer-encoding").is_some_and(|v| v.eq_ignore_ascii_case("chunked"));
@@ -100,7 +107,8 @@ where
         return;
     }
     let at = if layer { ONE_LAYER } else { ONE };
-    let Ok(((from_target, to_target), meter)) = super::reach(&mut stream, &head, &cfg, at, false).await else {
+    let Ok(((from_target, to_target), meter, of)) = super::reach(&mut stream, &head, &cfg, at, false, from).await
+    else {
         let _ = stream.shutdown().await;
         return;
     };
@@ -114,7 +122,7 @@ where
         meter.settle();
         return;
     }
-    cfg.event(if layer { "http one open layer" } else { "http one open" });
+    cfg.event_of(&of, if layer { "http one open layer" } else { "http one open" });
     let meter = Arc::new(meter);
     let moved = Arc::new(Moved { bytes: AtomicU64::new(0), heard: Mutex::new(Instant::now()) });
     let (from_client, to_client) = tokio::io::split(stream);
@@ -128,7 +136,7 @@ where
         Ok(Err(why)) = &mut up => why,
     };
     up.abort();
-    cfg.event(&format!("http one close: {ended}"));
+    cfg.event_of(&of, &format!("http one close: {ended}"));
     meter.settle();
 }
 

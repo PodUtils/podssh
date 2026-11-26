@@ -116,7 +116,7 @@ async fn serve_surface<S>(
     // back a request of another path that came on it (T-319): that request
     // is served from the top, so the cover gates it too.
     if http_road::serves(&head.target) {
-        if let Some((stream, next, bytes)) = http_road::serve(stream, head, pending, cfg.clone()).await {
+        if let Some((stream, next, bytes)) = http_road::serve(stream, head, pending, cfg.clone(), from).await {
             let path = next.target.split('?').next().unwrap_or_default().to_string();
             return Box::pin(serve_surface(stream, cfg, sni, from, surface, exporter, Some((next, bytes, path)))).await;
         }
@@ -167,7 +167,7 @@ async fn serve_surface<S>(
         Some(surface::Id::Mailbox) => mailbox::request(stream, head, pending, cfg).await,
         // A leg for a member of the net, by the node's key (T-434).
         Some(surface::Id::Leg) => leg::request(stream, head, pending, cfg, sni).await,
-        Some(surface::Id::Reverse) => reverse::request(stream, head, pending, cfg, sni).await,
+        Some(surface::Id::Reverse) => reverse::request(stream, head, pending, cfg, sni, from).await,
         // DERP for a node of `podssh ts`, where its owner named the keys (T-106).
         #[cfg(feature = "derp")]
         Some(surface::Id::Derp) => derp::request(stream, head, pending, cfg).await,

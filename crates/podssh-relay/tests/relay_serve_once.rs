@@ -143,7 +143,8 @@ async fn a_token_of_one_leg_takes_one_upgrade_and_its_node_hears_which() {
     node.send_text(&register(&second, 0)).await.expect("a withdrawal");
     until("the role withdrew the second token", || !live(&second)).await;
     assert!(role.socket(&path, &second).await.is_err(), "a withdrawn token");
-    assert!(role.said("reverse leg token"), "{:?}", role.events.lock().unwrap());
+    // The line names the operator's client and the pair (T-1035).
+    role.assert_named("reverse leg token", &[("client", "127.0.0.1"), ("pair", &name)]);
 }
 
 /// T-615: while no node is joined, a token of one leg gets `503` and is not
@@ -195,7 +196,7 @@ async fn a_rotated_stop_token_ends_the_one_before_at_the_first_use_of_the_new_on
     assert_eq!(role.http("POST", &renew, Some(old)).await.0, 403, "the one before, after the new one's use");
     assert_eq!(role.http("POST", &stop, Some(old)).await.0, 403);
     assert_eq!(role.http("POST", &renew, Some(next.as_str())).await.0, 200, "the new one");
-    assert!(role.said("reverse rotate"), "{:?}", role.events.lock().unwrap());
+    role.assert_named("reverse rotate", &[("client", "127.0.0.1"), ("pair", name)]);
 }
 
 /// The layer's settings on the pair's road, as podssh's node and client run.
@@ -413,7 +414,7 @@ async fn a_resume_takes_the_next_token_that_the_node_gave_and_a_replayed_one_is_
     );
     assert!(reached, "the channel reached the node");
     assert!(matches!(exit, Exit::Stopped), "{exit:?}");
-    assert!(role.said("reverse leg token"), "the resume took a token of one leg: {:?}", role.events.lock().unwrap());
+    role.assert_named("reverse leg token", &[("client", "127.0.0.1"), ("pair", &name)]);
     let path = format!("/v1/connect/{name}");
     let replayed = role.socket(&path, &replay).await;
     assert!(matches!(replayed, Err(ConnectError::Refused { status: 403, .. })), "{:?}", replayed.err());

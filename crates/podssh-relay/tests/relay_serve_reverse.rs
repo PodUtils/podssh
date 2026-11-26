@@ -187,6 +187,11 @@ async fn two_sessions_carry_their_bytes_whole_through_the_role() {
     assert!(a.is_success() && b.is_success(), "{a:?} {b:?}");
     assert!(matches!(exit, Exit::Stopped), "{exit:?}");
     assert!(!role.said("reverse node closed"), "{:?}", role.events.lock().unwrap());
+    // Each line of the node and of the two sessions names its client and
+    // its pair (T-1035).
+    let named = [("client", "127.0.0.1"), ("pair", name.as_str())];
+    role.assert_named("reverse node", &named);
+    role.assert_named("reverse open", &named);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -261,7 +266,7 @@ async fn a_renewal_by_the_stop_token_extends_the_pair_and_keeps_its_tokens() {
     assert_eq!(renewed.0, 200, "{}", renewed.1);
     let until = serde_json::from_str::<serde_json::Value>(&renewed.1).unwrap()["expires"].as_u64().unwrap();
     assert!(until >= now + lifetime, "72 h from the renewal: {}", renewed.1);
-    assert!(role.said("reverse renew"), "{:?}", role.events.lock().unwrap());
+    role.assert_named("reverse renew", &[("client", "127.0.0.1"), ("pair", name.as_str())]);
     assert!(!role.said("reverse expired"), "the role ended the renewed pair at its old end");
     assert_eq!(status, 200, "the connect token past the old end: {body}");
     let presence: serde_json::Value = serde_json::from_str(&body).unwrap();
@@ -282,7 +287,7 @@ async fn after_a_planned_stops_1012_the_node_joins_its_pair_again() {
         // The node connects again to the pair it holds: at once, or after
         // its backoff when the stop's `503` met it (T-255).
         let deadline = std::time::Instant::now() + LIMIT;
-        while role.events.lock().unwrap().iter().filter(|l| *l == "reverse node").count() < 2 {
+        while role.lines("reverse node").len() < 2 {
             assert!(std::time::Instant::now() < deadline, "{:?}", role.events.lock().unwrap());
             tokio::time::sleep(Duration::from_millis(50)).await;
         }

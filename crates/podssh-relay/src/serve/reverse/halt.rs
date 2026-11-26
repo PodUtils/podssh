@@ -18,6 +18,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use super::close;
 use super::pairs::{Pair, Pairs, Session};
 use crate::reverse::framing::SessionId;
+use crate::serve::said::Of;
 use crate::serve::{answer, docs, tokens, Config};
 
 // The longest words of a halt, which go into a refusal's body and the
@@ -185,7 +186,7 @@ impl Pairs {
 /// "sessions": N, "since": MS}`, and `"already": true` for a pair halted
 /// before. A body that is not `{}` or a reason gets `400`; a pair that
 /// ended meanwhile, the `403` of each failed authentication.
-pub(super) async fn serve_halt<S>(stream: &mut S, name: &str, body: &[u8], cfg: &Config)
+pub(super) async fn serve_halt<S>(stream: &mut S, name: &str, body: &[u8], cfg: &Config, of: &Of)
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
@@ -195,7 +196,7 @@ where
     };
     match cfg.pairs.halt(name, why, tokens::now_ms()) {
         Some(halted) => {
-            cfg.event("reverse halt");
+            cfg.event_of(of, "reverse halt");
             answer(stream, docs::json(&halted.answer())).await
         }
         None => answer(stream, request::refusal(403, "reverse: forbidden", &[])).await,
@@ -205,14 +206,14 @@ where
 /// `POST /v1/resume/<name>`, whose stop token was checked: `{"resumed":
 /// true}`, or `false` for a pair that was not halted; a pair that ended
 /// meanwhile gets `403`.
-pub(super) async fn serve_resume<S>(stream: &mut S, name: &str, cfg: &Config)
+pub(super) async fn serve_resume<S>(stream: &mut S, name: &str, cfg: &Config, of: &Of)
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     match cfg.pairs.resume(name) {
         Some(was) => {
             if was {
-                cfg.event("reverse resume");
+                cfg.event_of(of, "reverse resume");
             }
             answer(stream, docs::json(&json!({ "resumed": was }))).await
         }

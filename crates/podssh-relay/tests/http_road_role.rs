@@ -143,7 +143,9 @@ async fn a_total_that_differs_from_the_bytes_stored_fails_the_session() {
     let close = header(&text, "X-Close").unwrap_or_default();
     assert!(close.starts_with("1002 count mismatch"), "{text}");
     assert_eq!(header(&text, "X-Total"), None, "no count of a clean end: {text}");
-    assert!(role.said("http close 1002"), "{:?}", role.events.lock().unwrap());
+    let at = format!("127.0.0.1:{target}");
+    let named = [("client", "127.0.0.1"), ("target", at.as_str())];
+    role.assert_named("http close 1002", &named);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

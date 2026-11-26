@@ -172,10 +172,10 @@ pub const RELAY: &[&str] = &[
      /relays.json says. --mint anyone mints a token for each client; by default it mints for no one (503), as its \
      tokens are given another way. A token lives until the relay stops. Each mint, upgrade and refusal is a \
      line on stdout, and so is each session's end: end client, end gone, or end close CODE REASON. Each \
-     line begins with the event's words, then client=ADDR, and target=HOST:PORT where the event has one. Each \
-     line ends with at=TIME, in UTC. The first word names the event, so grep finds it. A client that the relay \
-     cannot name is client=-. It listens because you ask it to, and PODSSH_LISTEN=no refuses it; Ctrl-C or SIGTERM stops \
-     it.",
+     line begins with the event's words, then client=ADDR, and target=HOST:PORT where the event has one. A \
+     line of a pair names its client and pair=NAME. Each line ends with at=TIME, in UTC. The first word names the \
+     event, so grep finds it. A client that the relay cannot name is client=-. It listens because you ask it to, \
+     and PODSSH_LISTEN=no refuses it; Ctrl-C or SIGTERM stops it.",
     "--cover DIR answers the role's own TLS name as a static site from DIR while the tunnel keeps the same \
      name: index.html for /, each asset with its type, robots.txt, the site's own 404.html, and a Server header \
      of --cover-server VALUE (default nginx). A request that is no route of the contract, an unknown Host and a \

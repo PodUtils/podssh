@@ -9,6 +9,7 @@
 //! (T-615). A leg takes a session that the node readied ahead first, where
 //! the node asked for them, with no `open` (T-650, `super::spares`).
 
+use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -25,6 +26,7 @@ use super::pairs::Pair;
 use super::{close, new_id, open, CLOSE_WAIT, OPEN_WAIT, PINGS_ALLOWED, PING_EVERY};
 use crate::reverse::framing::legs::encode_node_frame;
 use crate::reverse::framing::{SessionId, OPERATOR_PAYLOAD_MAX};
+use crate::serve::said::Of;
 use crate::serve::{answer, tokens, Config};
 
 /// Where a session stands.
@@ -39,7 +41,7 @@ enum Phase {
 
 /// Join an operator of `pair` on `stream`, and carry its session until it
 /// ends; `spent`, the digest of the token of one leg that its upgrade took
-/// (T-615).
+/// (T-615); its lines are `of`'s, its client and pair (T-1035).
 pub async fn join<S>(
     mut stream: S,
     head: Request,
@@ -47,6 +49,7 @@ pub async fn join<S>(
     pair: Arc<Pair>,
     cfg: Arc<Config>,
     spent: Option<[u8; 32]>,
+    of: Of,
 ) where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -57,21 +60,33 @@ pub async fn join<S>(
     if stream.write_all(&server::switching(&key)).await.is_err() {
         return;
     }
-    leg_spent(Arc::new(server::session(stream, pending, None)), pair, cfg, spent).await
+    leg_spent(Arc::new(server::session(stream, pending, None)), pair, cfg, spent, of).await
 }
 
 /// An operator's socket that is a WebSocket already, carried until its
-/// session ends: the role's after the upgrade, and a carrier's leg (T-595).
+/// session ends: the role's after the upgrade, and a carrier's leg (T-595),
+/// whose client is the process's own, so its lines name none.
 pub async fn leg<S>(session: Arc<RelaySession<S>>, pair: Arc<Pair>, cfg: Arc<Config>)
 where
     S: AsyncRead + AsyncWrite + Send + 'static,
 {
-    leg_spent(session, pair, cfg, None).await
+    let of = Of::client(None).with_pair(&pair.name);
+    leg_spent(session, pair, cfg, None, of).await
+}
+
+/// [`leg`] of a visitor that `client` names, as a published name's leg is
+/// (T-649): its lines name the visitor and the pair.
+pub async fn leg_of<S>(session: Arc<RelaySession<S>>, pair: Arc<Pair>, cfg: Arc<Config>, client: Option<IpAddr>)
+where
+    S: AsyncRead + AsyncWrite + Send + 'static,
+{
+    let of = Of::client(client).with_pair(&pair.name);
+    leg_spent(session, pair, cfg, None, of).await
 }
 
 /// [`leg`], whose upgrade took the token of one leg of `spent` (T-615): the
 /// node hears it before the session's `open`, and registers the next.
-async fn leg_spent<S>(session: Arc<RelaySession<S>>, pair: Arc<Pair>, cfg: Arc<Config>, spent: Option<[u8; 32]>)
+async fn leg_spent<S>(session: Arc<RelaySession<S>>, pair: Arc<Pair>, cfg: Arc<Config>, spent: Option<[u8; 32]>, of: Of)
 where
     S: AsyncRead + AsyncWrite + Send + 'static,
 {
@@ -101,7 +116,7 @@ where
     if !spare {
         node.text(open(&id));
     }
-    cfg.event(if spare { "reverse spare taken" } else { "reverse open" });
+    cfg.event_of(&of, if spare { "reverse spare taken" } else { "reverse open" });
     // The spare that the take used, or one more for a leg that found none.
     super::spares::refill(&pair);
 
