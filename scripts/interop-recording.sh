@@ -26,10 +26,11 @@ mode=$(stat -c %a "$W/s.cast" 2>/dev/null)
     && ok recording.session "--record: exit 3, each line JSON of asciicast v2, the file of mode 600" \
     || bad recording.session "--record: exit $rc, JSON check $read_ok, mode $mode" "$W/cast.check"
 cp "$W/s.cast" "$W/s.cast.before"
+# A recording that cannot be made is 73, EX_CANTCREAT (T-1048).
 # shellcheck disable=SC2086
 p 2201 $K -o BatchMode=yes -tt --record "$W/s.cast" "$T" 'printf again' </dev/null >"$W/out" 2>"$W/err"
 rc=$?
-[ "$rc" = 255 ] && cmp -s "$W/s.cast" "$W/s.cast.before" \
+[ "$rc" = 73 ] && cmp -s "$W/s.cast" "$W/s.cast.before" \
     && ok recording.no_overwrite "--record onto a file that exists: refused, and the file is as it was" \
     || bad recording.no_overwrite "--record onto a file that exists: exit $rc" "$W/err"
 "$BIN" play --speed 100 "$W/s.cast" >"$W/out" 2>"$W/err"

@@ -7172,3 +7172,5 @@ Drafted 2026-11-26 by a drafting agent;
 - Result:
 
 Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+The release gate of `037aafb` then failed `recording.no_overwrite` of `scripts/interop-recording.sh`, which held 255 for a recording that exists; it holds 73 now, as `ssh_record` does.
