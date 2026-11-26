@@ -1298,7 +1298,7 @@ session starts with the size of its start
   refusals. Planted, each restored: the data cut at a byte boundary (the
   Prove's plant) failed the UTF-8 test; a quote left unescaped failed the
   test of the escapes; a file written over failed the session's test.
-- `scripts/interop-recording.sh:1-39`, a new harness of three checks against
+- `scripts/interop-recording.sh:1-40`, a new harness of three checks against
   OpenSSH's sshd in the box: `recording.session` (exit 3, Python's
   `json.loads` reads each line, mode 600), `recording.no_overwrite` and
   `recording.play`. The gate runs them at this push.
