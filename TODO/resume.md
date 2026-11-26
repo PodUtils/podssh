@@ -3134,7 +3134,7 @@ moved code then runs there.
 **Milestone:** backlog
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3228,13 +3228,18 @@ after the gap, then `^C` and the prompt.
 Drafted 2026-11-26 (`DRAFT T-1056`, a worker's draft). Read end to end: the client's count and the
 far end's run admit no line that is neither carried nor said (Premise); the deterministic property
 (`crates/podssh-ssh/src/frames/gap_tests.rs`, eleven schedules) passes on the current code by
-reasoning: no defect of the frames was found to repair. The end-to-end test's shell sets `stty
-noflsh` (`crates/podssh-ssh/tests/frame_rate.rs:47`), and its message names the rows around a gap
-(`crates/podssh-ssh/tests/frame_rate.rs:233`).
+reasoning: no defect of the frames was found to repair. The draft's `stty noflsh` gave way to a tolerance at the
+Ctrl-C (Correction); the test's message names the rows around a gap.
 
 Merged 2026-11-26: `cargo test --locked -p podssh-ssh --lib frames::` 47 passed, the property test `gap_tests` among
 them; `frame_rate` 8 of 8 here after the Correction; clippy clean. The proof is a repeat on macOS, where the gap showed:
-the entry stays partial until it passes 30 runs.
+the entry stayed partial until it passed 30 runs.
+
+The repeat of `037aafb` (`suite-repeat.yml`, `macos-15`, `frame_rate`, `under_a_flood`, 30 runs) failed 3: each gap
+lay on the row of the `^C` itself or one after it (`^Cflood 141360`, then 141361, after 141338), not before it, as
+the tolerance first read; the pty's driver discards at the signal what the loop wrote after the echo too. The
+tolerance is now `AT_THE_CTRL_C` rows on either side of that row (`d7e05ab`). The repeat at `d7e05ab` passed 30 of 30
+(run 45862065650, 2026-11-26). Done.
 
 
 # T-305: Roam at once: a new link beside a silent one
