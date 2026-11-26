@@ -1,29 +1,40 @@
 # Hand-off
 
-The facts that change from day to day, as of 2026-11-25, for a session with no memory of the last
+The facts that change from day to day, as of 2026-11-26, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 This page keeps no history: git does.
 
 ## The state of `main`
 
-- **The gate** is green at `1d39c43` (2026-11-25, run 45626673455, each job), after red runs at
-  `13623b3` and `c6fa76a` on the job `windows` alone (T-465's `pipe` test, now closed). Read the
-  gate of the last push first.
+- **The gate:** the last read was the release lane at `037aafb` (2026-11-26, run 45853636350), red on one interop
+  check, `recording.no_overwrite`, which held 255 for what T-1048 makes 73; `3aed42c` repairs it. Each later push
+  cancelled the gate before it; read the gate of the last push first.
 - **The record agrees** (`cargo todo check`), and `python scripts/check-repo.py` passes.
-- **The last whole suite** (2026-11-24, a cloud container, Rust 1.99.1, `cargo test --workspace
-  --no-fail-fast`): 427 suites, 4272 passed, 3 failed. The 3 are `job_far`, at this container's
-  stand-in of `rm`.
+- **The last suites** (2026-11-26, a cloud container, Rust 1.99.0, `cargo test --locked -p podssh-ssh -p podssh-cli
+  --no-fail-fast` with the merge of T-303 (h)): 318 binaries passed, none failed. Run it with the session's `rm`
+  guard out of `PATH` (`job_far` links `rm`).
+- **T-1056** (the flood's test on macOS) is done: `suite-repeat.yml` on `macos-15`, 30 of 30 at `d7e05ab`.
 - **Releases:** the newest beta is `v1.1.0-beta.3`; the newest stable is `v1.0.1`. No release until the
   migration to PodUtils/podcrates is done (T-684, T-446).
 
 ## Drafts that wait
 
-None waits: `draft/d-t831` was merged on 2026-11-25 (T-831 done).
+Each is on GitHub as a `wip/*` branch (the owner, 2026-11-26: "backup everything & push to main/wip"), to merge in
+this order, as "Drafting agents" of `AGENTS.md` says (`git diff main...BRANCH | git apply --3way`, then build and
+test):
 
-`TODO/PROGRESS.md`, "Drafts", is the record. A draft lives on one machine until its branch is on
-GitHub as `draft/<branch>`. Merged on 2026-11-25: `d-t877`, `d-t836`, `d-t902`, `d-t831`; the take of `v0.84.0` went
-straight to `main` (`806e0a4`).
+1. `wip/t303-b-shared-frames` (`ac6a7c4`): T-303 (b), frames from a shell shared by name; complete, not built. Its
+   worker's notes: run the tests named in T-303's Done, and `scripts/feel_interrupt.py --frames --no-openssh --runs
+   5`, as it rewrites the one-view path that the bar measures (it must stay under 900 ms, near 782 ms).
+2. `wip/qa10-t1057-t1064`: the entries of findings 1 to 5, 10 and 11 drafted (play, run, each, config, mcp,
+   status), 14 a WIP; the pass's findings are its file docs/research/qa10-findings.md (keep it out of `main`).
+3. `wip/qa10-t1065-t1072`: the entries of findings 6 to 9 drafted (job fetch, session's socket, 75, the lock), 12
+   a WIP, 13 and 15 not begun, nor the 200 ms of the lease in `notes_serve.rs` against `LEASE_IDLE`'s 400 ms.
+   The ids run from 1057 (finding 1) to 1072 (the lease), as the branches' names say.
+
+Neither QA branch has its entries in `TODO/INDEX.md` of `main` yet: each draft commit adds its own. Merged on
+2026-11-26: T-303 (h) (`wip/t303-h-master-frames`), whose clippy and interop wait.
 
 ## Open COORD issues
 

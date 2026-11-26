@@ -49,9 +49,11 @@ Read on 2026-11-25.
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
 8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). Drafts that wait (2026-11-26),
-   in the order of their merge: T-303 (h), `worktree-agent-aca08f7d45b1649d2` at `75424e1` (merging); T-303 (b),
-   `worktree-agent-ade3a8393f4cc44e2` at `ac6a7c4`; the fixes of the tenth black-box pass (`.work/qa10/findings.md`),
-   with an entry for each, two workers drafting. Before (2026-11-25):
+   each pushed as a `wip/*` branch, in the order of their merge: T-303 (b), `wip/t303-b-shared-frames` at `ac6a7c4`
+   (complete, not built); the fixes of the tenth black-box pass, `wip/qa10-t1057-t1064` (the entries of findings
+   1 to 5, 10 and 11 drafted, 14 a WIP; the findings are its file docs/research/qa10-findings.md) and `wip/qa10-t1065-t1072` (the entries of findings
+   6 to 9 drafted, 12 a WIP, 13, 15 and the lease's words not begun). Both workers stopped at a usage limit; a new worker resumes
+   each branch. T-303 (h) is merged (`wip/t303-h-master-frames`, `75424e1`). Before (2026-11-25):
    merged: T-952's sweep, T-953 to T-962 (the SSH client), T-963 to T-975 (the local tools; T-967 and T-975 blocked), T-976 to T-986 (run, each, job, mcp and play), and
    the drafts of T-834, T-846/T-788/T-753, T-906 to T-912, T-913 to T-917 and T-919 to T-922 were merged. A read-only
    advisor on T-627, T-780 and T-796 stopped at a usage limit; its report goes into those entries. Each `draft/*`,

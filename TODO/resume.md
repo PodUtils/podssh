@@ -3128,7 +3128,7 @@ same day: `--frames` keeps its bar. Items (c) and (b) for kept shells are done; 
 (f), (g) and (h) are left.
 
 Drafted 2026-11-26 by a worker, on `main` at `3aed42c`, not built and not run: item (h), a control master's client and
-`podssh each` (the Decision, items 36 to 44). Each result below is UNVERIFIED until the lead's merge.
+`podssh each` (the Decision, items 36 to 44). Each result is below, from the lead's merge.
 
 - The master and the client of the control socket: `crates/podssh-ssh/src/mux/mframes.rs` (new: the offer, the
   client's entry and its reading, the client's choice `decide` and `for_client`, the master's ask and answer, `Framed`
@@ -3159,6 +3159,14 @@ cargo test -p podssh-cli --lib refuse
 cargo test -p podssh-cli --test words --test flag_table --test man_flag_parity --test man_json
 cargo test -p podssh-cli --test ssh_control --test frames_e2e
 ```
+
+Merged 2026-11-26 (local branch `merge-303h`) and built with no change to the draft: the listed tests passed
+(`mux::` 14, `frames::` 51, `refuse` 9, `words`, `flag_table`, `man_flag_parity`, `man_json`, `ssh_control` 4 and
+`frames_e2e` 2, the bar through `-M -N -S CTL` among them); then `cargo test --locked -p podssh-ssh -p podssh-cli
+--no-fail-fast`, 318 binaries passed, none failed; `llms-full.txt` made again; rustfmt. Waits: clippy (also for
+`x86_64-pc-windows-gnu`), the interop of `scripts/interop-control.sh` in the build image (T-251), and the manual check
+of a podssh client `--frames` through OpenSSH's master. Left on T-303: (b) for a shell shared by name (drafted:
+`wip/t303-b-shared-frames` at `ac6a7c4`, not merged), (f) and (g).
 
 Then, in the build image, `scripts/interop-control.sh` through `scripts/interop.sh` (OpenSSH 10.3p1's client and its
 `-O check` against a podssh master whose hello now carries an extension; its rows `control.podssh_master.*` must pass
