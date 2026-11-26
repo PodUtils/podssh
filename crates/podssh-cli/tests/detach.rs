@@ -467,6 +467,24 @@ fn status_and_stop_read_the_lock_not_the_pid() {
     let out = ran(s.detached(&["stop", "ghost"]));
     assert_eq!(out.status.code(), Some(69), "{}", String::from_utf8_lossy(&out.stderr));
     assert!(String::from_utf8_lossy(&out.stderr).contains("(ended)"), "{}", String::from_utf8_lossy(&out.stderr));
+    // A record that is no record: list and status say alike that it is
+    // unreadable. A record with its end says the code and the time.
+    std::fs::write(dir.join("broken.json"), "not json").unwrap();
+    std::fs::write(dir.join("broken.lock"), "").unwrap();
+    let out = ran(s.detached(&["list"]));
+    let list = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert!(list.lines().any(|l| l.starts_with("broken\tended, its record unreadable\t")), "{list}");
+    let out = ran(s.detached(&["status", "broken"]));
+    let text = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert_eq!(out.status.code(), Some(69), "{text}{}", String::from_utf8_lossy(&out.stderr));
+    assert!(text.contains("state: ended, its record unreadable") && text.contains("not a record of podssh"), "{text}");
+    let ended = "{\"name\":\"done\",\"verb\":\"ssh\",\"pid\":1,\"started\":1700000000,\"ended\":1700000060,\"exit\":3}";
+    std::fs::write(dir.join("done.json"), format!("{ended}\n")).unwrap();
+    let out = ran(s.detached(&["status", "done"]));
+    let text = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert_eq!(out.status.code(), Some(69), "{text}");
+    assert!(text.contains("state: ended, exit 3") && text.contains("exit: 3"), "{text}");
+    assert!(text.contains("ended: 2023-11-14"), "the time of the end: {text}");
     // A name that never ran is not known, and did not end (T-868).
     let out = ran(s.detached(&["stop", "never-was"]));
     let said = String::from_utf8_lossy(&out.stderr).into_owned();

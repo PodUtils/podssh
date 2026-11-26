@@ -119,6 +119,27 @@ fn restrict_refuses_a_forward() {
     assert_eq!(code, Some(4), "{err}");
 }
 
+/// A command that a rule or a flag refuses reaches OpenSSH's client as the
+/// reason on the channel's stderr and the status 1; serve's own stderr says
+/// it with the key. One table: the key's options, serve's flags, the words.
+#[test]
+fn a_refused_command_shows_its_reason_to_openssh() {
+    let cases = [
+        ("sftp-alone", r#"command="internal-sftp""#, "", r#"command="internal-sftp": this key is for SFTP alone"#),
+        ("no-shell", "", " --no-shell", "--no-shell: this server runs no command and no shell"),
+    ];
+    for (tag, options, serve, words) in cases {
+        let Some(dir) = home(&format!("opt-refused-{tag}"), options) else { return };
+        let (code, err) = finish(openssh_with(&dir.0, &dir.0.join("id"), "accept-new", serve, &[], &["echo ran"]));
+        assert_eq!(code, Some(1), "{tag}: {err}");
+        assert!(!err.contains("request failed"), "{tag}: {err}");
+        // The channel's line, as the client shows it; then serve's, with the key.
+        let channel = format!("podssh serve: {words}");
+        assert!(err.lines().any(|l| l.trim_end() == channel), "{tag}: the client shows the reason: {err}");
+        assert!(err.lines().any(|l| l.contains("key ") && l.ends_with(&format!("refused: {words}"))), "{tag}: {err}");
+    }
+}
+
 #[test]
 fn a_past_expiry_time_refuses_the_login() {
     let Some(dir) = home("opt-expired", r#"expiry-time="20200101Z""#) else { return };

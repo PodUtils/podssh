@@ -4,7 +4,8 @@
 
 /// `--listen ADDR`: the addresses, and who can connect.
 pub const LISTEN: &str = "podssh serve --listen ADDR is the same server on a listener that you ask for. PORT alone \
-     listens on 127.0.0.1. ADDR:PORT takes an address of this host, and [ADDR]:PORT an IPv6 one; no name is resolved. \
+     listens on 127.0.0.1. ADDR:PORT takes an address of this host, and [ADDR]:PORT an IPv6 one. The name localhost \
+     means 127.0.0.1, and no other name is resolved. \
      unix:PATH is a socket of mode 0600: a client of another user is closed. --listen may be repeated; each address \
      binds at the start, in order. Port 0 lets the system choose, and serve's line names the port. Each connection \
      is served as one of --stdio, with the same keys, host key and flags. On a TCP socket, the client's address meets \

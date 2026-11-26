@@ -4439,8 +4439,8 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 ## Premise
 
 - Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
-  (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`). It refuses a key before a signature
-  (`crates/podssh-ssh/src/server/handler/auth.rs:75-92`), which is the check that sshpiper lacks.
+  (`crates/podssh-ssh/src/server/handler/auth.rs:101-110`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler/auth.rs:81-98`), which is the check that sshpiper lacks.
 - Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
   would be a second table.
 - Read in the report, not verified here: sshpiper stops the downstream handshake after the service
@@ -4678,8 +4678,8 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`,
-  `crates/podssh-ssh/src/server/handler.rs:348-371`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler/auth.rs:101-110`,
+  `crates/podssh-ssh/src/server/handler.rs:349-372`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -5894,3 +5894,259 @@ old refusal of a key of routes alone that asks no route, which T-945 now refuses
 `node_net_url`'s new case of a node that holds a net needed a target that answers, as a node dials its target before its
 door's lines; three sentences of the manual over 25 words were split. Clippy (`-D warnings`) and rustfmt clean; the
 Windows check clean; `llms.txt` and `llms-full.txt` written again.
+
+
+# T-990: `serve`'s file flags say a missing file each in its own words, and `--audit-log` names a lock file
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- `serve --stdio --policy MISSING` exited 78 with "No such file or directory (os error 2)", where `--shell`,
+  `--motd`, `--gateway` and `--authorized-keys` say "no such file".
+- `serve --audit-log /nonexdir/a.log` exited 78 with "opening the lock file /nonexdir/a.log: ... (os error 2)": a
+  lock file that the user never named, and not the missing directory.
+- `serve --totp-new /nonexdir/t` exited 73 with "(os error 2)".
+
+## Premise
+
+- Read, at `58a21c1`: `--policy` says the system's words of an open (line 15 of `crates/podssh-cli/src/policy.rs`),
+  which 58a21c1 freed of the suffix but not made "no such file".
+- Read, at `58a21c1`: the log is its own lock, and the lock's failure is shown whole, pod-core's "opening the lock
+  file" in it (line 110 of `crates/podssh-ssh/src/server/audit/mod.rs`); an append's failures show `{e}` too.
+- Read, at `58a21c1`: `--totp-new`'s failure shows the `io::Error` whole (line 83 of
+  `crates/podssh-ssh/src/server/totp/mod.rs`); `--audit-verify` says the system's words (line 48 of
+  `crates/podssh-cli/src/serve_audit.rs`).
+
+## Approach
+
+1. `podssh_ws::text::file_said(path, e)`: "no such file", or "the directory D does not exist" where the file's
+   directory is missing, else `said(e)`; a table-driven test.
+2. `--policy`, `--audit-verify` and `--totp-new` take it; `Audit::open` takes the I/O cause of the lock's failure
+   (`Failure::io_cause`) and says it of the log, never of a lock file; an append's failures go through `said`.
+3. Tests: `policy::tests` (the missing file's words), `serve_audit::tests`, `serve_totp::tests` (a missing directory,
+   no os error), and `server::audit::tests::a_log_in_a_missing_directory_names_the_directory`.
+
+## Decision
+
+One helper in `podssh-ws` beside `said`, as each crate of podssh already takes `said` there; a missing directory is
+named, as it is what the user must make. `PODSSH_SETTINGS` with an absolute missing path already says the system's
+words with no suffix since 58a21c1, so it is left as it is. The rest of `podssh-ssh`'s `(os error N)` is T-989's.
+Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ws --lib text
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- policy serve_audit serve_totp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::audit
+```
+
+By hand: `podssh serve --stdio --policy /x/none` says "--policy /x/none: the directory /x does not exist" (78);
+`--audit-log /nonexdir/a.log` names `/nonexdir`, no lock file (78); `--totp-new /nonexdir/t` names it (73).
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-991: A forward that `serve` cannot dial reaches the client with "(os error N)"
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A direct-tcpip open that `serve --listen` could not dial reached OpenSSH's client as "open failed: connect failed:
+podssh serve: could not connect to 127.0.0.1:1: Connection refused (os error 111)"; the manual shows the line with no
+suffix.
+
+## Premise
+
+- Read, at `58a21c1`: the dial's failure is shown by `to_string` (line 147 of
+  `crates/podssh-ssh/src/server/direct.rs`), and the gateway's dial of a route too (line 148 of
+  `crates/podssh-ssh/src/server/gateway/upstream.rs`).
+
+## Approach
+
+Both go through `podssh_ws::text::said`; the audit log's reason is the same line.
+
+## Decision
+
+The two dials of serve alone; each other line of `podssh-ssh` is T-989's. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::direct
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_forward_openssh w_to_a_closed_port
+```
+
+`w_to_a_closed_port_is_255_with_the_system_s_reason` asks that OpenSSH's line has no "os error" (an OpenSSH client
+here, else it says that it did not run).
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-992: `serve --listen localhost:PORT` listens though the manual says no name is resolved, and a bad host is called a bad port
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- `serve --listen localhost:2222` listened on 127.0.0.1, where the manual says "no name is resolved".
+- `serve --listen badaddr` said "PORT is a number from 0 to 65535": a host with no port read as a bad port.
+
+## Premise
+
+- Read, at `58a21c1`: `localhost` is taken as 127.0.0.1 on purpose, with no lookup (line 237 of
+  `crates/podssh-cli/src/pipe/address.rs`), and the manual does not say it (line 7 of
+  `crates/podssh-cli/src/man/notes_serve_listen.rs`).
+- Read, at `58a21c1`: a value with no colon is a port, whatever it holds (line 234 of
+  `crates/podssh-cli/src/pipe/address.rs`).
+
+## Approach
+
+1. The manual and `docs/cli.md` name `localhost` as the one name taken, as 127.0.0.1, with no lookup.
+2. A value with no colon and no digit is a host with no port: "no port: an address takes one after it, as
+   127.0.0.1:2222; PORT is a number from 0 to 65535" (64), for `serve --listen` and `pipe`'s `tcp-listen:` alike.
+3. Rows of the table of `serve_listen_tests`.
+
+## Decision
+
+`localhost` stays taken, as `pipe`'s `tcp-listen:` and the bind's error already name it, and no lookup is made: a
+refusal (64) would break each script that names it, for no gain. A word with a digit and no colon stays a bad port:
+`22x` is a typed port. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- serve_listen pipe::address
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-993: A command or shell that `serve` refuses reaches OpenSSH's client with no reason
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A key with `command="internal-sftp"` that asked for a command, and `serve --no-shell` asked for a command or a shell:
+OpenSSH's client said only "exec request failed on channel 0" (or "shell request failed"), and serve's stderr had no
+reason for `--no-shell`. The manual says a refusal by a rule goes "with its line on the channel's stderr".
+
+## Premise
+
+- Read, at `58a21c1`: serve sends the line on the channel's stderr, then the failure (line 224 of
+  `crates/podssh-ssh/src/server/handler.rs`, and `refuse_for` at line 115). OpenSSH's client ends at once on the
+  failure of its session's request (`fatal` in `client_status_confirm` of its `clientloop.c`), before it writes the
+  stderr that came first, so the line is lost; russh's client keeps it, so serve's own tests saw it.
+- Read, at `58a21c1`: `--no-shell`'s refusal is never said on serve's stderr (line 205 of
+  `crates/podssh-ssh/src/server/handler.rs`).
+
+## Approach
+
+1. A refused command, shell or `sftp` of a channel that runs nothing yet is taken: SUCCESS, the line on the channel's
+   stderr (CR LF on a pty), `exit-status` 1, EOF and close, as a kept shell that cannot be joined already ends
+   (`ended_with`, beside `join_kept`, which takes it too).
+2. The same line goes to serve's stderr with the key, for `--no-shell` and a shell that does not run too.
+3. Tests: `serve_exec` (a shell that does not run, and `--no-shell`: taken, the line, status 1, in order),
+   `serve_options` (`command="internal-sftp"`), `serve_share` (a name's command), and OpenSSH's client in
+   `serve_options_openssh::a_refused_command_shows_its_reason_to_openssh` (status 1, the line, no "request failed").
+
+## Decision
+
+Taken and ended with 1, not failed: the one answer that shows the reason to OpenSSH's client, as a program that
+cannot run would; podssh's own client and russh's see the same. 1, as a kept shell's refusal already ends. A
+`pty-req` is still refused, as OpenSSH's client goes on after it and shows the line. A second request on a channel
+that runs is still a failure. Lost: a client that tells a refused request from a program that failed by the reply
+alone sees status 1 instead; the line says which.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_exec a_shell_that_does_not_run
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_options a_forced_internal_sftp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_share
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_options_openssh a_refused_command
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Against OpenSSH's client: `a_refused_command_shows_its_reason_to_openssh` passes. The planted run waits for T-251.
+
+
+# T-994: A key that no line lists is said nowhere but the audit log
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A client whose key no line lists: serve's stderr said only "the client closed the connection before it logged in
+(early eof)", and the audit log alone had `serve.auth.refused`. The manual says that a key refused at login is said on
+serve's stderr.
+
+## Premise
+
+- Read, at `58a21c1`: a key that lines refuse is said with each reason, and an unlisted key is not (line 64 of
+  `crates/podssh-ssh/src/server/handler/auth.rs`).
+
+## Approach
+
+An unlisted key is said as a refused one is: "key SHA256:... refused: not an authorized key"; a test of
+`serve_options` reads it.
+
+## Decision
+
+One line for each key offered, as the client offers each of its keys: russh's bound of tries for a connection (10)
+bounds the lines, and the listener's caps bound the connections. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_options an_unlisted_key
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

@@ -129,7 +129,7 @@ pub fn run_edit(args: &EditArgs, tty: Tty, err: &mut dyn Write) -> i32 {
     };
     // The editor before the terminal: each refuses before anything is
     // attempted, and so a test of the binary with no terminal reaches both.
-    let editor = match editor::choose(&editor::EditorEnv::from_process()) {
+    let editor = match editor::choose(&editor::EditorEnv::from_process(), !args.no_terminal) {
         Ok(editor) => editor,
         Err(why) => return refuse(err, Fault::Config, &why),
     };

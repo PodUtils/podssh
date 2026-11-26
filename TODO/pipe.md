@@ -198,7 +198,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7333`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7339`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:860-864`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7460-7462`). After the attach, send the window size again.
+   (`docs/cli.md:7466-7468`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-195`), `docs/design.md:860-864`,
    `docs/STATUS.md`, and tmux in the interop image
@@ -1612,7 +1612,7 @@ user who needs `websocat` must bring it, and a cage may not run it.
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:48-55`); `validate` refuses a query other than the relay's
   knobs, as a query goes into the logs of proxies (`:74-113`); `connect` takes a token and sends it
   in `X-Relay-Token` (`:185-209`); the name of the certificate has no bypass (`:63-65`); the upgrade
-  is generic over its stream (`:241-247`).
+  is generic over its stream (`:244-250`).
 - Read: the token never goes in a URL, and the request has no query
   (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:1-8`); `accept_key` gives the server's value (`:82`), tested
   on the vector of RFC 6455 (`PodUtils/podssh:crates/podssh-ws/tests/rfc6455.rs:259`).
@@ -2469,7 +2469,7 @@ and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh
   (`crates/podssh-cli/src/pipe/address.rs:164`).
 - Read: `datagram::open_node` opened the node's session with `node::open`, whose lines are `node:{label}`
   (`crates/podssh-cli/src/pipe/node.rs:79` is the new `open_as`).
-- Read: `words` gave `a {q} that does not close` (`crates/podssh-cli/src/pipe/address.rs:333` is the new line).
+- Read: `words` gave `a {q} that does not close` (`crates/podssh-cli/src/pipe/address.rs:336` is the new line).
 - Read: `BAUDS` is the list of 22 rates that Linux has a code for (`crates/podssh-cli/src/pipe/address.rs:100`);
   the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:137`).
 - Read: the lines of an end that did not open name its address (`node:x:`, `relay:HOST:PORT:`, `exec:PROG:`, and

@@ -80,12 +80,12 @@ impl Totp {
         let text = code::encode_base32(&bytes[..]);
         let mut file = pod_core::files::create_new_private(path).map_err(|e| match e.kind() {
             std::io::ErrorKind::AlreadyExists => format!("{shown} exists: serve never writes over a secret"),
-            _ => format!("{shown}: {e}"),
+            _ => format!("{shown}: {}", podssh_ws::text::file_said(path, &e)),
         })?;
         file.write_all(text.as_bytes())
             .and_then(|()| file.write_all(b"\n"))
             .and_then(|()| file.sync_all())
-            .map_err(|e| format!("{shown}: {e}"))
+            .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))
     }
 
     /// The secret's file.

@@ -231,6 +231,7 @@ async fn down_task(
 pub async fn up(
     handle: &Connection,
     source: &Path,
+    target: &str,
     temp: &str,
     size: u64,
     tasks: usize,
@@ -241,7 +242,7 @@ pub async fn up(
     let shown = source.display().to_string();
     let local = std::fs::File::open(source).map_err(|e| Failed::new(Fault::NoInput, format!("{shown}: {e}")))?;
     let (shared, tasks) = Shared::new(&shown, size, tasks, progress, meter);
-    let each = (0..tasks).map(|_| up_task(handle, &local, &shown, temp, &shared, pipe));
+    let each = (0..tasks).map(|_| up_task(handle, &local, &shown, target, temp, &shared, pipe));
     futures_util::future::join_all(each).await;
     shared.end()
 }
@@ -251,6 +252,7 @@ async fn up_task(
     handle: &Connection,
     local: &std::fs::File,
     shown: &str,
+    target: &str,
     temp: &str,
     shared: &Shared<'_>,
     pipe: Pipeline,
@@ -270,7 +272,7 @@ async fn up_task(
         let mut pos = at;
         let copied = loop {
             if pos >= at + len {
-                break writes.finish().await.map(|_| ()).map_err(|e| transfer::from_sftp(e, Side::Destination));
+                break writes.finish().await.map(|_| ()).map_err(|e| transfer::write_failed(target, e));
             }
             let want = ((at + len - pos) as usize).min(buf.len());
             match read_at(local, pos, &mut buf[..want]) {
@@ -280,7 +282,7 @@ async fn up_task(
             }
             super::rate::take(want as u64).await;
             if let Err(e) = writes.send(buf[..want].to_vec()).await {
-                break Err(transfer::from_sftp(e, Side::Destination));
+                break Err(transfer::write_failed(target, e));
             }
             pos += want as u64;
             shared.moved(want as u64);

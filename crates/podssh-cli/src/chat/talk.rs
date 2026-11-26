@@ -248,8 +248,15 @@ impl Talk {
             }
             Event::Offered { id, name, size } => {
                 self.files.offered.insert(id, (name.clone(), size));
-                if self.opts.accept_dir.is_some() {
+                if let Some(dir) = self.opts.accept_dir.clone() {
                     if let Err(why) = self.accept(id, None, out).await {
+                        // The peer hears why as a message first: a decline
+                        // record holds no reason, and an older peer reads
+                        // no record of another shape.
+                        let told = format!("declined your file {id}: {}", files::declined_words(&name, &dir));
+                        if let Ok((_, record)) = self.session.text(&told) {
+                            self.send(record);
+                        }
                         let _ = self.session.decline(id).map(|record| self.send(record));
                         self.files.offered.remove(&id);
                         let line = format!("declined file {id}: {why}");

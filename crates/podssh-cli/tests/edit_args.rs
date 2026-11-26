@@ -115,6 +115,11 @@ fn no_terminal_needs_a_bound_and_gets_past_the_terminal() {
     let (rc, out, err) = edit(&["--no-terminal", "--timeout", "5s", "host:notes.txt"], &with_editor());
     assert_eq!(rc, 78, "past the terminal, to the copy's directory: {err}");
     assert!(out.is_empty() && err.contains("PODSSH_CACHE_DIR is none") && !err.contains("terminal"), "{err}");
+    // With no terminal, vi on PATH is never the choice; an empty EDITOR is unset.
+    let empty = vec![("EDITOR", OsString::new())];
+    let (rc, out, err) = edit(&["--no-terminal", "--timeout", "5s", "host:notes.txt"], &empty);
+    assert_eq!(rc, 78, "{err}");
+    assert!(out.is_empty() && err.contains("--no-terminal runs the editor of EDITOR or VISUAL"), "{err}");
 }
 
 #[test]
@@ -239,13 +244,19 @@ fn the_editor_is_visual_then_editor_then_vi() {
         editor: editor.map(OsString::from),
         vi: vi.then(|| PathBuf::from("/usr/bin/vi")),
     };
-    let from = |e: &EditorEnv| choose(e).map(|c| (c.shown(), c.from));
+    let from = |e: &EditorEnv| choose(e, true).map(|c| (c.shown(), c.from));
     assert_eq!(from(&env(Some("emacs -nw"), Some("nano"), true)), Ok(("emacs -nw".to_string(), "VISUAL")));
     assert_eq!(from(&env(None, Some("nano -w"), true)), Ok(("nano -w".to_string(), "EDITOR")));
     assert_eq!(from(&env(Some(""), None, true)), Ok(("/usr/bin/vi".to_string(), "PATH")));
-    let none = choose(&env(Some(" "), Some(""), false)).expect_err("no editor");
+    let none = choose(&env(Some(" "), Some(""), false), true).expect_err("no editor");
     assert!(none.contains("EDITOR"), "{none}");
+    // With no terminal, vi on PATH is no choice (T-998): only a variable names
+    // an editor that needs none, and an empty one is unset.
+    let no_tty = choose(&env(Some(""), None, true), false).expect_err("vi needs a terminal");
+    assert!(no_tty.contains("--no-terminal") && no_tty.contains("vi needs a terminal"), "{no_tty}");
+    let named = choose(&env(None, Some("sed -i s/a/b/"), true), false).expect("a variable's editor");
+    assert_eq!(named.from, "EDITOR");
     // The words go to the program, with no shell: a quote is a character.
-    let words = choose(&env(None, Some("code --wait 'x y'"), false)).expect("an editor").words;
+    let words = choose(&env(None, Some("code --wait 'x y'"), false), true).expect("an editor").words;
     assert_eq!(words, ["code", "--wait", "'x", "y'"].map(OsString::from));
 }

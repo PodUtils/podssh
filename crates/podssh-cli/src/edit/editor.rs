@@ -54,13 +54,20 @@ impl Editor {
 }
 
 /// `VISUAL`, else `EDITOR`, else `vi` on `PATH`. An empty value is no
-/// value. With none, the refusal names `EDITOR`.
-pub fn choose(env: &EditorEnv) -> Result<Editor, String> {
+/// value. With none, the refusal names `EDITOR`. With no terminal
+/// (`--no-terminal`), `vi` is never the choice: it would draw its screen
+/// for no one, and only a variable names an editor that needs none.
+pub fn choose(env: &EditorEnv, terminal: bool) -> Result<Editor, String> {
     for (from, value) in [("VISUAL", &env.visual), ("EDITOR", &env.editor)] {
         let words = value.as_deref().map(words).unwrap_or_default();
         if !words.is_empty() {
             return Ok(Editor { words, from });
         }
+    }
+    if !terminal {
+        return Err("no editor: --no-terminal runs the editor of EDITOR or VISUAL, and neither is set (an empty \
+                    value counts as unset); vi needs a terminal"
+            .into());
     }
     match &env.vi {
         Some(vi) => Ok(Editor { words: vec![vi.clone().into_os_string()], from: "PATH" }),
@@ -203,13 +210,25 @@ mod tests {
 
     #[test]
     fn visual_wins_then_editor_then_vi() {
-        let chosen = |e: &EditorEnv| choose(e).map(|c| (c.shown(), c.from));
+        let chosen = |e: &EditorEnv| choose(e, true).map(|c| (c.shown(), c.from));
         assert_eq!(chosen(&env(Some("emacs -nw"), Some("nano"), true)), Ok(("emacs -nw".into(), "VISUAL")));
         assert_eq!(chosen(&env(None, Some("nano"), true)), Ok(("nano".into(), "EDITOR")));
         assert_eq!(chosen(&env(Some(""), Some("nano"), true)), Ok(("nano".into(), "EDITOR")));
         assert_eq!(chosen(&env(Some("  "), Some(""), true)), Ok(("/usr/bin/vi".into(), "PATH")));
-        let none = choose(&env(None, None, false)).unwrap_err();
+        let none = choose(&env(None, None, false), true).unwrap_err();
         assert!(none.contains("EDITOR") && none.contains("vi"), "{none}");
+    }
+
+    /// With no terminal, a variable names the editor or nothing does: vi
+    /// on PATH is passed over, and an empty value counts as unset.
+    #[test]
+    fn with_no_terminal_only_a_variable_names_the_editor() {
+        let chosen = |e: &EditorEnv| choose(e, false).map(|c| (c.shown(), c.from));
+        assert_eq!(chosen(&env(None, Some("sed -i s/a/b/"), true)), Ok(("sed -i s/a/b/".into(), "EDITOR")));
+        for unset in [env(None, None, true), env(Some(""), Some(""), true), env(None, Some("  "), false)] {
+            let why = choose(&unset, false).unwrap_err();
+            assert!(why.contains("--no-terminal") && why.contains("empty value counts as unset"), "{why}");
+        }
     }
 
     #[test]

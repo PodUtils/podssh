@@ -83,6 +83,21 @@ pub fn said(e: &dyn std::fmt::Display) -> String {
     plain(&e.to_string())
 }
 
+/// What a user line shows of an error on a file that a flag names: "no such
+/// file", or the directory that is missing where the file's own is, or
+/// [`said`] of the rest. One set of words for each file flag.
+pub fn file_said(path: &std::path::Path, e: &std::io::Error) -> String {
+    if e.kind() != std::io::ErrorKind::NotFound {
+        return said(e);
+    }
+    match path.parent().filter(|dir| !dir.as_os_str().is_empty()) {
+        // A file under a directory that is not there: the directory is what
+        // the user must make.
+        Some(dir) if !dir.exists() => format!("the directory {} does not exist", dir.display()),
+        _ => "no such file".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,5 +152,25 @@ mod tests {
         ] {
             assert_eq!(plain(given), want, "{given}");
         }
+    }
+
+    /// A missing file, a missing directory, and another error, each in one
+    /// set of words.
+    #[test]
+    fn a_file_flag_says_what_is_missing() {
+        use std::io::{Error, ErrorKind};
+        let missing = Error::from(ErrorKind::NotFound);
+        let denied = Error::from_raw_os_error(13);
+        let here = std::env::temp_dir();
+        let gone = here.join(format!("podssh-file-said-{}-none", std::process::id()));
+        for (path, e, want) in [
+            (here.join("none-such-file"), &missing, "no such file".to_string()),
+            (std::path::PathBuf::from("bare"), &missing, "no such file".to_string()),
+            (gone.join("a.log"), &missing, format!("the directory {} does not exist", gone.display())),
+            (here.join("x"), &denied, said(&denied)),
+        ] {
+            assert_eq!(file_said(&path, e), want, "{}", path.display());
+        }
+        assert!(!file_said(&here, &denied).contains("os error"));
     }
 }

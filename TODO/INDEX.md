@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**921 entries: 4 open, 33 partial, 15 blocked, 869 done.**
+**939 entries: 4 open, 33 partial, 15 blocked, 887 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
-| P2 | 0 | 20 | 3 | 341 | 364 |
-| P3 | 4 | 7 | 9 | 425 | 445 |
-| **All** | 4 | 33 | 15 | 869 | 921 |
+| P2 | 0 | 20 | 3 | 342 | 365 |
+| P3 | 4 | 7 | 9 | 442 | 462 |
+| **All** | 4 | 33 | 15 | 887 | 939 |
 
 ## Entries
 
@@ -997,3 +997,21 @@ repository and CI).
 | [T-987](cli.md) | P3 | S | backlog | defect | done | `node --print-unit` exits 73 when its stdout write fails, where an output that cannot be written is 74 |
 | [T-988](cli.md) | P3 | S | backlog | defect | done | A bad word of `--early-data` is said with the variable's name |
 | [T-989](robustness.md) | P3 | M | none | defect | open | `(os error N)` leaves each user line of `podssh-ssh`, as T-952 did for `podssh-cli` |
+| [T-990](serve.md) | P3 | S | backlog | defect | done | `serve`'s file flags say a missing file each in its own words, and `--audit-log` names a lock file |
+| [T-991](serve.md) | P3 | S | backlog | defect | done | A forward that `serve` cannot dial reaches the client with "(os error N)" |
+| [T-992](serve.md) | P3 | S | backlog | defect | done | `serve --listen localhost:PORT` listens though the manual says no name is resolved, and a bad host is called a bad port |
+| [T-993](serve.md) | P3 | S | backlog | defect | done | A command or shell that `serve` refuses reaches OpenSSH's client with no reason |
+| [T-994](serve.md) | P3 | S | backlog | defect | done | A key that no line lists is said nowhere but the audit log |
+| [T-995](copy.md) | P3 | S | backlog | defect | done | `sftp`'s `rm` and `rename` of a missing path exit 73, where a missing path is 66 |
+| [T-996](copy.md) | P3 | S | backlog | defect | done | A write that fails on the server names no file, and a full disk is said as "Failure" |
+| [T-997](copy.md) | P3 | S | backlog | defect | done | A batch file of `sftp -b` that is not text is 66 with the library's words |
+| [T-998](copy.md) | P3 | S | backlog | defect | done | `edit --no-terminal` with no editor variable runs `vi` with no terminal |
+| [T-999](irc.md) | P3 | S | backlog | defect | done | A file that `--accept-dir` declines reaches the sender with no reason |
+| [T-1000](irc.md) | P3 | S | backlog | defect | done | `chat --accept-dir` of a path that does not exist says "not a directory" |
+| [T-1001](irc.md) | P3 | S | backlog | defect | done | A refused certificate of `chat --irc`, `ping` and `doctor` is said in rustls's Debug words |
+| [T-1002](multi.md) | P2 | S | backlog | defect | done | `health` with a refused login names the destination twice |
+| [T-1003](multi.md) | P3 | S | backlog | defect | done | `containers --exec NAME` that no list has says the tools as if they were the reason |
+| [T-1004](multi.md) | P3 | S | backlog | defect | done | `containers` checks the environment before the destination, and a road not built is 64 there |
+| [T-1005](cli.md) | P3 | S | backlog | defect | done | `config import mremoteng` of a file that is not XML says the parser's words |
+| [T-1006](cli.md) | P3 | S | backlog | defect | done | A record of `detached` that cannot be read is listed as ended, and its status says it is not known |
+| [T-1007](cli.md) | P3 | S | backlog | defect | done | `detached status` and `list` do not say how an ended run ended |

@@ -6640,7 +6640,8 @@ podssh chat
   against the SHA-256 that the peer offered, and only then given its name;
   never over a file that is there, and never out of the directory, as the name
   is the last part of the offered one. The peer hears whether each file was
-  kept.
+  kept. A file that --accept-dir declines, as one of that name is there, goes
+  with its reason: over IRC in the decline, else as a message.
 
   The peer acknowledges each message, and a message with no acknowledgement
   when a conversation ends is said, as not delivered. A run ends once stdin
@@ -7911,9 +7912,11 @@ podssh edit
   with no time limit: no relay session waits while a person edits.
 
   The editor is VISUAL, else EDITOR, else vi when PATH has it; with none,
-  podssh edit exits 78 and names EDITOR. A value is a program and its words,
-  split at blanks with no shell, or one program whose path has a blank. podssh
-  edit needs a terminal on stdin and stdout (else 64, and the refusal names
+  podssh edit exits 78 and names EDITOR. An empty value counts as unset. With
+  --no-terminal, vi is never chosen, as it needs a terminal: with neither
+  variable set, podssh edit exits 78. A value is a program and its words, split
+  at blanks with no shell, or one program whose path has a blank. podssh edit
+  needs a terminal on stdin and stdout (else 64, and the refusal names
   --no-terminal). While the editor runs, SIGINT and SIGQUIT are the editor's,
   and on Windows so is Ctrl-C.
 
@@ -11210,13 +11213,14 @@ podssh serve
 
   podssh serve --listen ADDR is the same server on a listener that you ask for.
   PORT alone listens on 127.0.0.1. ADDR:PORT takes an address of this host, and
-  [ADDR]:PORT an IPv6 one; no name is resolved. unix:PATH is a socket of mode
-  0600: a client of another user is closed. --listen may be repeated; each
-  address binds at the start, in order. Port 0 lets the system choose, and
-  serve's line names the port. Each connection is served as one of --stdio,
-  with the same keys, host key and flags. On a TCP socket, the client's address
-  meets from= of a key line; on a socket of unix:, no from= matches. --stdio,
-  NAME and --listen are one of the three (64).
+  [ADDR]:PORT an IPv6 one. The name localhost means 127.0.0.1, and no other
+  name is resolved. unix:PATH is a socket of mode 0600: a client of another
+  user is closed. --listen may be repeated; each address binds at the start, in
+  order. Port 0 lets the system choose, and serve's line names the port. Each
+  connection is served as one of --stdio, with the same keys, host key and
+  flags. On a TCP socket, the client's address meets from= of a key line; on a
+  socket of unix:, no from= matches. --stdio, NAME and --listen are one of the
+  three (64).
 
   The bind is the probe: serve makes no other socket to test it. A bind that
   the host refuses ends the start with 77. Its line names the address, the
@@ -11291,9 +11295,11 @@ podssh serve
   and any option that serve does not know make the line unused, named. Of the
   lines of one key, the first that lets it in now holds. Each refusal by a rule
   goes to the client: a forward refused as administratively prohibited, a pty
-  or a command with its line on the channel's stderr. It also goes to serve's
-  stderr, with the key's fingerprint and the option; a key refused at login is
-  said there alone, as the client hears Permission denied.
+  or a command with its line on the channel's stderr. A refused command or
+  shell is taken, then ends with status 1 after its line, so OpenSSH shows it.
+  It also goes to serve's stderr, with the key's fingerprint and the option; a
+  key refused at login is said there alone, as the client hears Permission
+  denied.
 
   The host key is --host-key FILE, else serve_host_ed25519_key in the cache
   (see FILES): made at the first start, an Ed25519 key of mode 0600, and read
@@ -11494,9 +11500,9 @@ podssh serve
   passed over is said with its reason (not executable (noexec mount), for one).
   No shell at all refuses the start (78), as does a --shell that does not run;
   --no-shell skips the search, and refuses each command and shell. In a
-  session, the same line goes to the channel's stderr, and the request fails
-  (OpenSSH: exec request failed). podssh doctor's line shell names the shell
-  that serve would run, and each candidate passed over.
+  session, the same line goes to the channel's stderr and to serve's, and the
+  session ends with status 1. podssh doctor's line shell names the shell that
+  serve would run, and each candidate passed over.
 
   A client that reads slowly slows the child: its output is read 32 KiB at a
   time, and read again only once that went out within the client's window. So a
@@ -11882,13 +11888,16 @@ podssh detached
   user started with -f or --detach. The runs are of podssh ssh, pipe and node,
   by their name: the name, its state (running; running, its supervisor gone,
   for a run of --restart whose supervisor ended; or ended), its pid and its
-  words, with a tab between them. A run's name is its --detach-name, else its
+  words, with a tab between them. An ended run's state also names its exit
+  code, where the run wrote one. A record that cannot be read is listed as
+  ended, its record unreadable. A run's name is its --detach-name, else its
   verb and its pid (ssh-4242), which no other running run has. So a run with no
   name is never refused. With no run, stdout stays empty and one line on stderr
   says that no run is known and names the directory read (none with -q). list
   --json writes one object instead: runs (each with its name, state, pid, a
   number or null, and words; [] for none) and dir, the directory read (null
-  with no directory of the cache). The exit is 0.
+  with no directory of the cache). Each run's exit is a number, or null where
+  the run wrote none. The exit is 0.
 
   Each run holds the lock of its name, NAME.lock in the directory detached of
   the cache (see FILES), from before its connection to its end; with --restart
@@ -11909,7 +11918,10 @@ podssh detached
   supervisor first; on Windows it ends each at once (TerminateProcess), the
   supervisor first. It exits 0 once each lock of the name is free, and 69 when
   nothing of that name runs. It exits 75 when a lock is still held after the
-  kill.
+  kill. A run writes its end into its record as it exits: status then gives the
+  time of the end and the exit code. A run that was killed writes neither, and
+  status shows a dash for each. A record that cannot be read is said so, with
+  its path, and the exit is 69.
 
   Each reads the locks, never a pid alone: a run's record (NAME.json) stays
   after it ended, and the system gives its pid to another process, which a
@@ -13751,15 +13763,17 @@ EXIT STATUS
       signature that fails; add of a key that another member has; take of a
       document that the rule of the store refuses; policy test: a case is
       false; policy diff --exit-code: the new policy widens the old. podssh
-      agent: a key file that is no key, or lock passwords that differ.
+      agent: a key file that is no key, or lock passwords that differ. podssh
+      sftp: the file of -b is not UTF-8 text.
   66
       podssh cp and mv: a source is missing or cannot be read. podssh mv: a
       source that changed during the move, which stays. podssh chat: the file
       of --file or --sendfile cannot be read. podssh edit: the file is not on
-      the host. podssh sftp: the file of -b cannot be read. podssh net: the
-      FILE of take, policy set, test or diff, or gateway set is missing or
-      cannot be read. podssh agent: a key file is missing or cannot be read, or
-      no passphrase or password came.
+      the host. podssh sftp: the file of -b cannot be read, or a path that a
+      command names is not on the server. podssh net: the FILE of take, policy
+      set, test or diff, or gateway set is missing or cannot be read. podssh
+      agent: a key file is missing or cannot be read, or no passphrase or
+      password came.
   69
       podssh proxy: no relay host could be reached, or the relay ended the
       session abnormally. podssh node, operator and relay: the relay or TARGET
@@ -13797,9 +13811,9 @@ EXIT STATUS
   73
       podssh cp and mv: the destination cannot be written. podssh edit: the far
       file changed since it was fetched, so nothing was sent and the copy here
-      stays, or no cache directory takes the copy. podssh chat: the directory
-      of --accept-dir is not there. podssh each: a file of --output-dir cannot
-      be made; no host has run.
+      stays, or no cache directory takes the copy. podssh chat: the path of
+      --accept-dir is not there, or is no directory. podssh each: a file of
+      --output-dir cannot be made; no host has run.
   74
       The output of a command could not be written, as to a full disk or a
       device that refuses it. That holds for podssh keygen, doctor, man,

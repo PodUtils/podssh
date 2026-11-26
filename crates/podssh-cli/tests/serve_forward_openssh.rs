@@ -97,6 +97,7 @@ fn w_to_a_closed_port_is_255_with_the_system_s_reason() {
     assert!(err.contains("connect failed: podssh serve: "), "the refusal's words: {err}");
     assert!(err.contains(&target), "the target in the words: {err}");
     assert!(err.contains("Connection refused"), "the system's reason: {err}");
+    assert!(!err.contains("os error"), "the system's words once, with no suffix of Rust's: {err}");
 }
 
 #[test]

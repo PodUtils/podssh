@@ -145,7 +145,7 @@ async fn log_in_now(route: &Route, user: &str, who: &str) -> Result<Upstream, St
     let certificate = certificate(route, fresh.public_key(), &key_id(route, user, who), now)?;
     let tcp = dial::dial(&route.host, route.port, &ProxyChoice::FromEnvironment, DIAL_LIMIT)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| podssh_ws::text::said(&e))?;
     // Each keystroke of a session goes at once.
     let _ = tcp.set_nodelay(true);
     let (alive, gone) = watch::channel(());

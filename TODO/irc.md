@@ -1341,3 +1341,138 @@ scripts/plant-each.sh --here t489-linger-ignored`): caught,
 each exit 0; the listener printed both messages, said "the peer left; podssh waits for the next"
 after each, and ended "the --timeout passed" with exit 0; the pair was revoked (exit 0) and the
 scratch removed.
+
+
+# T-999: A file that `--accept-dir` declines reaches the sender with no reason
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A file offered under a name that the receiver's `--accept-dir` holds already: the sender heard "declined" (77), with
+no reason; the receiver's own line said that the file exists.
+
+## Premise
+
+- Read, at `58a21c1`: the receiver sends a bare decline (line 253 of `crates/podssh-cli/src/chat/talk.rs`), and the
+  decline record of chat's protocol holds an id alone, which a reader of version 1 takes as exactly 8 bytes (line 207
+  of `crates/podssh-core/src/chat/record.rs`). Over IRC the deny line has a reason, which was "declined" (the
+  `decline` of `crates/podssh-cli/src/chat/irc/files.rs`).
+
+## Approach
+
+1. `chat::files::declined_words(name, dir)`: why, with no path of the receiver's host ("NAME is in the receiver's
+   --accept-dir already, and podssh writes over no file").
+2. On the roads of podssh, the receiver sends it as a message ("declined your file N: ...") before the decline; over
+   IRC, it is the deny's reason (a `|` made `/`, as the field ends at one).
+3. `chat_converse::an_accepted_file_never_goes_over_a_file_that_is_there` asks that the sender sees the reason and no
+   path of the receiver's.
+
+## Decision
+
+A message before the decline, not a longer decline record: a peer of an earlier podssh refuses a decline of more than
+8 bytes as malformed and would end the conversation, and it reads a message. The reason names no path of the
+receiver's host. Lost: the reason is a message of the peer's, so `--json` gives it as a message, not as a field of the
+decline.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test chat_converse an_accepted_file_never_goes_over
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test chat_irc_files
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1000: `chat --accept-dir` of a path that does not exist says "not a directory"
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`chat --listen --accept-dir MISSING` said "not a directory" of a path that does not exist.
+
+## Premise
+
+- Read, at `58a21c1`: one test, `is_dir`, for both (line 245 of `crates/podssh-cli/src/chat/args.rs`).
+
+## Approach
+
+The metadata of the path: "does not exist", "not a directory", or the system's words; 73 for each, as before. Rows of
+`chat_cli`'s table; EXIT STATUS names both.
+
+## Decision
+
+73 stays for each: nothing can be written into either. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test chat_cli the_files_that_it_names
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1001: A refused certificate of `chat --irc`, `ping` and `doctor` is said in rustls's Debug words
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A TLS failure said "invalid peer certificate: Other(OtherError(CaUsedAsEndEntity))", the Debug text that T-944 put in
+words on the other roads.
+
+## Premise
+
+- Read, at `58a21c1`: `tls::connect_over`, the TLS over a stream that is open already, gives `pod-tls`'s text as it
+  is (line 115 of `crates/podssh-ws/src/tls.rs`), where `connect_error` and `handshake_failure` pass it through
+  `tls_words::plain`; `chat --irc`, `ping`'s relay, `doctor`'s address and the quick tunnel's edge call it.
+  `tls_words` has `CaUsedAsEndEntity`'s words and a plain fallback for any other name already (T-944).
+
+## Approach
+
+`connect_over` passes its text through `text::plain` and `tls_words::plain`, as the other roads do.
+
+## Decision
+
+The one place where the words were skipped; the table of names stays T-944's. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ws --lib tls_words
+```
+
+By hand: `podssh chat --irc` to a server whose certificate is a CA's says "a CA's certificate served as the server's
+own".
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

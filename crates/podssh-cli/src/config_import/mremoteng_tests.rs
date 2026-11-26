@@ -89,5 +89,20 @@ fn a_file_encrypted_whole_and_another_xml_are_refused() {
     let other = read(&input("<?xml version=\"1.0\"?><sessions/>")).unwrap_err();
     assert!(other.contains("no Connections element"), "{other}");
     let broken = read(&input("<Connections><Node")).unwrap_err();
-    assert!(broken.contains("not the XML of mRemoteNG's connections"), "{broken}");
+    assert!(broken.contains("so not mRemoteNG's connections"), "{broken}");
+}
+
+/// A file that is not XML is said in podssh's words, with where it breaks;
+/// no text of the parser is shown.
+#[test]
+fn a_file_that_is_not_xml_says_where_it_breaks() {
+    for (text, words) in [
+        ("hello, not XML", "not well-formed XML at line 1, column 1, so not mRemoteNG's connections"),
+        ("<Connections>\n</Other>", "not well-formed XML at line 2"),
+        ("<!DOCTYPE x><Connections/>", "XML with a DTD, which podssh does not read"),
+    ] {
+        let why = read(&input(text)).unwrap_err();
+        assert!(why.contains(words), "{text:?}: {why}");
+        assert!(!why.contains("token") && !why.contains(" at 1:1"), "{text:?}: the parser's words: {why}");
+    }
 }

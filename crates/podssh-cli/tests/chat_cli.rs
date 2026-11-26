@@ -55,11 +55,13 @@ fn the_files_that_it_names_are_checked_before_any_pair() {
     let home = scratch("chat-files");
     let missing = home.join("missing");
     let missing = missing.to_str().unwrap();
+    std::fs::write(home.join("a-file"), b"").unwrap();
     for (args, code, says) in [
         (vec!["--file", missing, "lab"], 66, "--file"),
         (vec!["--file", home.to_str().unwrap(), "lab"], 66, "not a regular file"),
         (vec!["--sendfile", missing, "lab"], 66, "--sendfile"),
-        (vec!["--accept-dir", missing, "lab"], 73, "not a directory"),
+        (vec!["--accept-dir", missing, "lab"], 73, "missing: does not exist"),
+        (vec!["--accept-dir", home.join("a-file").to_str().unwrap(), "lab"], 73, "a-file: not a directory"),
     ] {
         let (rc, out, err) = chat(&home, &args);
         assert_eq!(rc, code, "{args:?}: {err}");

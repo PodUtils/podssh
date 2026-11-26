@@ -221,17 +221,20 @@ pub(crate) fn socket_name(kind: &str, rest: &str) -> Result<String, Refusal> {
     Ok(rest.to_string())
 }
 
+/// The words for a host given with no port, which a bare number's would mislead.
+const NO_PORT: &str = "no port: an address takes one after it, as 127.0.0.1:2222; PORT is a number from 0 to 65535";
+
 /// `tcp-listen:PORT` on 127.0.0.1, or `tcp-listen:ADDR:PORT` on an address
 /// of this host: an IP literal (an IPv6 one in brackets) or `localhost`.
 /// Port 0 asks the system for a free one, and podssh says which. `kind` is
 /// the address's, for its lines: `http-listen:` takes a port so too.
 pub(crate) fn tcp_port(kind: &str, rest: &str) -> Result<Address, Refusal> {
     let bad = |why: &str| Refusal::usage(format!("{kind}:{rest}: {why}"));
-    let (host, port) = match rest.rsplit_once(':') {
-        None => ("127.0.0.1", rest),
-        Some((host, port)) => (host, port),
-    };
-    let port: u16 = port.parse().map_err(|_| bad("PORT is a number from 0 to 65535"))?;
+    let (host, port) = rest.rsplit_once(':').unwrap_or(("127.0.0.1", rest));
+    // A word with no colon and no digit is a host with no port, not a port.
+    let host_alone = !rest.contains(':') && !rest.is_empty() && !rest.bytes().any(|b| b.is_ascii_digit());
+    let why = if host_alone { NO_PORT } else { "PORT is a number from 0 to 65535" };
+    let port: u16 = port.parse().map_err(|_| bad(why))?;
     let host = match host.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
         Some(v6) => v6.parse::<std::net::Ipv6Addr>().map_err(|_| bad("not an IPv6 address"))?.to_string(),
         None if host.eq_ignore_ascii_case("localhost") => "127.0.0.1".to_string(),

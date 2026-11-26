@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:7329-7332`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:7335-7338`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:7545-7660`); they cannot define a group.
+  (`docs/cli.md:7551-7666`); they cannot define a group.
 
 ## Approach
 
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:633`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:7329-7332`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:7335-7338`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-145`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:419-468`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:7329-7332`), which is not a failure of podssh.
+  status (`docs/cli.md:7335-7338`), which is not a failure of podssh.
 
 ## Approach
 
@@ -2017,7 +2017,7 @@ queue, no wait for a result, and no way to get the output back.
    gives one object.
 4. `job wait HOST ID [--timeout D]` reads `state` every 5 s until it is
    `done`, and exits with the job's status. When the limit passes first, it
-   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-170`.
+   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-171`.
 5. `job fetch HOST ID [DIR]` copies `out`, and the files that `--files GLOB`
    names, with the engine of T-134; DIR is `./podssh-job-ID` by default.
 6. With a list of hosts (T-184), `submit` picks the host with the fewest
@@ -2086,7 +2086,7 @@ one running and two queued must fail.
 ## Correction
 
 2026-10-09 (T-134): 75 (`EX_TEMPFAIL`) is in the table of exit codes
-already (`crates/podssh-cli/src/man/data.rs:17-170`), for a `--timeout` of
+already (`crates/podssh-cli/src/man/data.rs:17-171`), for a `--timeout` of
 `cp` that passed; this entry adds its sentence for `job wait`.
 
 2026-10-13 (the draft of T-197): T-193 runs a job under tmux only; the
@@ -2845,7 +2845,7 @@ relay reaches; nothing reports the far side.
   `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:134-135`), so the
   issue's `doctor --via HOST` names a flag that exists.
 - Read: `podssh health` resolves the host as `ssh` does, logs in on the same road, and runs one
-  exec (`crates/podssh-cli/src/health/mod.rs:180-224`, the login and the exec as this entry's
+  exec (`crates/podssh-cli/src/health/mod.rs:180-230`, the login and the exec as this entry's
   change split them).
 - Read: what a preflight asks is in podssh already: the SFTP server's extensions
   (`crates/podssh-ssh/src/sftp/mod.rs:234-237`), the request of a remote forward
@@ -3032,7 +3032,7 @@ failure's words, no signal and no time. The other surfaces give one object (`ssh
 
 - Read: the rows of `each` have no `--json` and no `--result-file`
   (`crates/podssh-cli/src/flags/each.rs`); its summary is lines for people on stderr, above the
-  level quiet only (`crates/podssh-cli/src/each/mod.rs:192-196`,
+  level quiet only (`crates/podssh-cli/src/each/mod.rs:196-200`,
   `crates/podssh-cli/src/each/fan.rs:75-93`).
 - Read: a host ends with its status, the first line of its failure, or not started
   (`crates/podssh-cli/src/each/fan.rs:10-20`); its signal, its end, the class of its failure, its
@@ -3350,7 +3350,7 @@ host runs nothing anywhere.
 - Read: `podssh ssh` takes a word that is no pattern as one host
   (`crates/podssh-cli/src/hosts.rs:29-33`), so `a b` goes to the name check of the road (T-503).
 - Read: the hosts are expanded, then each is resolved, before anything connects
-  (`crates/podssh-cli/src/each/mod.rs:149-159`); the resolve of the direct road takes `a`, and the
+  (`crates/podssh-cli/src/each/mod.rs:153-163`); the resolve of the direct road takes `a`, and the
   relay road takes it too, so the blank is the only fault, and it is lost.
 
 ## Approach
@@ -3436,11 +3436,11 @@ read.
   the sockets are found in the directories that it can read, and one that it cannot is skipped
   (`crates/podssh-cli/src/session/place.rs:70-84`, `:73`).
 - Read, at `582b1bf`: `detached list` writes a line for each run of its directory, and none for
-  none (`crates/podssh-cli/src/detach/control.rs:143-150`); a directory that cannot be read gives
-  none (`crates/podssh-cli/src/detach/control.rs:128-139`).
+  none (`crates/podssh-cli/src/detach/control.rs:164-171`); a directory that cannot be read gives
+  none (`crates/podssh-cli/src/detach/control.rs:149-160`).
 - Read, against the report: `job list` prints no header either
   (`crates/podssh-cli/src/job/list.rs:58-67`), and has `--json` (T-197); `containers` says on
-  stderr that a host has none (`crates/podssh-cli/src/containers/mod.rs:299`).
+  stderr that a host has none (`crates/podssh-cli/src/containers/mod.rs:314`).
 
 ## Approach
 
@@ -4225,3 +4225,136 @@ Drafted 2026-11-25 (a worker's draft, not built): `lost_line` and the end of `fe
 (`crates/podssh-cli/src/man/notes_job.rs`) and `docs/cli.md`.
 
 Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 309 binaries passed, and the lib (1374) once a note of mcp named no code as a flag and `llms-full.txt` was made again; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+
+# T-1002: `health` with a refused login names the destination twice
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh health --direct nobody@127.0.0.1` with a refused login said "podssh: health nobody@127.0.0.1:
+nobody@127.0.0.1: Permission denied (...)": the destination twice, also in `--json`'s `error` and in the preflight's
+line of the login. T-981 repaired the same in `each`.
+
+## Premise
+
+- Read, at `58a21c1`: the login's refusal names `user@host` as OpenSSH's does, and `health` puts the destination
+  before it (line 161 of `crates/podssh-cli/src/health/mod.rs`); the failure goes to `--json` and to the preflight as
+  it came (line 206).
+
+## Approach
+
+The failure of the login loses the destination where it starts with it, by `each`'s `unlabeled` (re-exported from
+`crate::each`, not copied), before the line, the JSON and the preflight take it. A test of the binary against the
+test's server, a user that must give a key and has none.
+
+## Decision
+
+At the failure of the login, so that the three places that show it agree. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test health a_refused_login_names_the_destination_once
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live, against this host's sshd: `health --direct ... nobody@127.0.0.1` says "podssh: health nobody@127.0.0.1: Permission denied (publickey)." (255), the destination once. The planted run waits for T-251.
+
+
+# T-1003: `containers --exec NAME` that no list has says the tools as if they were the reason
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh containers --exec nonex HOST` said "no container nonex on 127.0.0.1: docker": the tool reads as the reason,
+not as the lists that were read.
+
+## Premise
+
+- Read, at `58a21c1`: the line puts the tools that answered after a colon (line 222 of
+  `crates/podssh-cli/src/containers/mod.rs`).
+
+## Approach
+
+"no container NAME in the lists of docker and kubectl on HOST"; with no tool at all, the line before ("none of ... is
+on the PATH of a command") stays. The test of `containers` asks for the new words.
+
+## Decision
+
+The words of the list's own line ("no container in the lists of ..."). Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test containers
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1004: `containers` checks the environment before the destination, and a road not built is 64 there
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- `PODSSH_RELAY=... podssh containers node://foo` exited 78, "PODSSH_RELAY does not apply to node://foo"; with no
+  variable it is 64, "is for podssh ssh". A destination that `containers` does not take is the command line's fault
+  first.
+- `containers iroh:abc` in a build with no iroh exited 64, "the iroh road is not in this build", where `AGENTS.md`
+  says that a road not built refuses with 70.
+
+## Premise
+
+- Read, at `58a21c1`: `containers` resolves the destination as `ssh` does, the environment in it, and refuses
+  node://, iroh: and derp: after (lines 114 and 115 of `crates/podssh-cli/src/containers/mod.rs`). `podssh ssh
+  iroh:abc` in a build with no iroh says it before anything else, with 70 (line 180 of
+  `crates/podssh-cli/src/ssh/mod.rs`).
+
+## Approach
+
+Before the resolve: a destination of `node://`, `iroh:` or `derp:` is 64, "a node://, iroh: or derp: destination is
+for podssh ssh", in each build; after it, the same for a member of the net by its bare name. Rows of `containers`'
+table, and `PODSSH_RELAY` set with `node://foo`.
+
+## Decision
+
+64, not 70: `containers` takes none of these roads in any build, so the build is not why it refuses; 70 stays the
+code of a command that would take the road (`podssh ssh`), as `AGENTS.md` means it. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test containers a_bad_command_line_is_64
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

@@ -203,7 +203,13 @@ async fn login(resolved: &Resolved, log: &Arc<Log>) -> Result<(Vec<Connection>, 
 async fn ask(resolved: &Resolved, destination: &str, log: &Arc<Log>, preflight: bool) -> Asked {
     let (handles, road) = match login(resolved, log).await {
         Ok(logged_in) => logged_in,
-        Err(failure) => return Asked::not_logged_in(failure, preflight),
+        Err(mut failure) => {
+            // The destination once, in the line, in --json's error and in
+            // the preflight's line: a login's refusal names it too, as
+            // OpenSSH's does (each's helper, T-981).
+            failure.why = crate::each::unlabeled(destination, &failure.why).to_string();
+            return Asked::not_logged_in(failure, preflight);
+        }
     };
     let handle = handles.last().expect("the destination");
     log.verbose("reading the facts: one exec of sh, which only reads");

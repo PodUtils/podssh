@@ -134,6 +134,19 @@ impl Open {
         self.write.is_none()
     }
 
+    /// Whether a pty was granted, the kernel's or serve's line discipline:
+    /// the client's terminal is then raw, and a line ends with CR LF.
+    pub(super) fn on_pty(&self) -> bool {
+        #[cfg(unix)]
+        {
+            self.pty.is_some() || self.line.is_some()
+        }
+        #[cfg(not(unix))]
+        {
+            false
+        }
+    }
+
     /// Give the child's input to the reading task, with what came early.
     pub(super) fn give_stdin(&mut self, input: Input) {
         if let Some(to) = self.stdin.take() {

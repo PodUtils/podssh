@@ -187,3 +187,17 @@ fn a_failed_write_is_said_once() {
     assert_eq!(said.len(), 1, "{said:?}");
     assert!(said[0].contains("could not be written") && said[0].contains("the sessions go on"), "{said:?}");
 }
+
+/// A log under a directory that is not there names that directory, not a
+/// lock file, and carries no "(os error N)".
+#[cfg(unix)]
+#[test]
+fn a_log_in_a_missing_directory_names_the_directory() {
+    use super::Audit;
+    let dir = Scratch::new("nodir");
+    let gone = dir.0.join("none");
+    let refused = Audit::open(&gone.join("a.log"), false, None).expect_err("no directory");
+    let want = format!("the directory {} does not exist", gone.display());
+    assert!(refused.starts_with("--audit-log ") && refused.ends_with(&want), "{refused}");
+    assert!(!refused.contains("lock file") && !refused.contains("os error"), "{refused}");
+}

@@ -332,7 +332,10 @@ impl Talk<'_> {
             }
             Err(why) => {
                 if self.opts.accept_dir.is_some() {
-                    if let Ok(denied) = self.files.decline(id) {
+                    // The peer hears why, with no path of this host; a | would end the field.
+                    let name = self.files.described(id).map(|(_, name, _)| name).unwrap_or_default();
+                    let reason = crate::chat::files::declined_words(&name, &dir).replace('|', "/");
+                    if let Ok(denied) = self.files.decline(id, &reason) {
                         self.send(&denied);
                     }
                 }
@@ -367,7 +370,7 @@ impl Talk<'_> {
                 self.offer(&path, out).await;
             }
             Ok(Act::Accept { id, to }) => self.take(id, to.as_deref(), out).await,
-            Ok(Act::Decline(id)) => match self.files.decline(id) {
+            Ok(Act::Decline(id)) => match self.files.decline(id, "declined") {
                 Ok(denied) => {
                     self.send(&denied);
                     out.notice("declined", json!({ "id": id }), format!("declined file {id}")).await;

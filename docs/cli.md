@@ -1820,7 +1820,10 @@ process ends, however it ends (`flock`, or `LockFileEx` on Windows, as
 `File::try_lock` takes them), so no stale file keeps a name taken; with no
 cache (`PODSSH_CACHE_DIR=none`) there is no lock, a line says so, and the
 run goes on. Beside the lock, `NAME.json` records the run: its pid, the pid
-of a supervisor's run, its words, its log and its start.
+of a supervisor's run, its words, its log and its start; and, as the run
+exits, the time of its end and its exit code, which `status` and `list`
+show (T-1007; a run that was killed writes neither). A record that cannot
+be read is listed and said as unreadable (T-1006).
 `podssh detached list` writes a line for each run (its name, its state, its
 pid, its words); with none, stdout stays empty and one line on stderr says
 that no run is known and names the directory read, none with `-q`; `list
@@ -3043,7 +3046,10 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   named. `--timeout` without `--no-terminal` is 64, and `PODSSH_TIMEOUT` is
   read only with it: on a terminal a person decides. A flag, not a guess
   from `EDITOR`: podssh cannot tell an editor that needs a terminal from
-  one that needs none, and `vi` with no terminal waits for ever.
+  one that needs none, and `vi` with no terminal waits for ever. So with
+  `--no-terminal` the fall back to `vi` is gone: `VISUAL` or `EDITOR` names
+  the editor, an empty value counts as unset, and with neither the exit is
+  78 (T-998).
   An editor whose program returns while its window stays open leaves no
   change when it returns, and the copy goes: give it its flag to wait, as
   `code --wait`.
@@ -6486,8 +6492,8 @@ gives up each capability of the process (T-698), before it reads a file.
 - **`--listen ADDR` (T-124).** The same server on a listener that the user
   asks for (rule 2 of `AGENTS.md`, its first exception; the operator's
   ruling on Q1). `PORT` is `127.0.0.1:PORT`, `ADDR:PORT` an address of this
-  host as `pipe`'s `tcp-listen:` reads it (`[ADDR]:PORT` for IPv6, no name
-  resolved), and `unix:PATH` a socket of mode 0600 whose other users'
+  host as `pipe`'s `tcp-listen:` reads it (`[ADDR]:PORT` for IPv6; `localhost` is
+  `127.0.0.1`, and no other name is resolved), and `unix:PATH` a socket of mode 0600 whose other users'
   clients are closed (`crates/podssh-cli/src/serve_listen.rs`, on
   `pipe::listen`). The flag may be repeated, and each address binds at the
   start, in order, before the drop of the capabilities, as the relay role
@@ -6557,7 +6563,7 @@ gives up each capability of the process (T-698), before it reads a file.
     `SSH_ORIGINAL_COMMAND` (none for a shell; `internal-sftp` for the
     subsystem, as sshd sets the subsystem's command). A forced
     `internal-sftp` serves SFTP in the process and refuses a command or a
-    shell; with arguments (`-R`, `-d`...) it refuses SFTP too, as serve's
+    shell (its reason on the channel's stderr, then the status 1); with arguments (`-R`, `-d`...) it refuses SFTP too, as serve's
     SFTP server takes none and must not serve more than the line says.
     `SSH_ORIGINAL_COMMAND` is never taken from an `env` request, and
     serve's own, when serve itself runs under a forced command, never
@@ -6671,7 +6677,7 @@ gives up each capability of the process (T-698), before it reads a file.
   | Reply | Request that causes it | OpenSSH's client |
   | --- | --- | --- |
   | `USERAUTH_FAILURE` | a key that no line lists, or that its line refuses now | `Permission denied (publickey)`, 255 |
-  | `CHANNEL_FAILURE` | a channel request that serve does not serve: a subsystem other than `sftp`, `x11-req`, a refused `pty-req`, `exec` or `shell` (its reason on the channel's stderr first) | `subsystem request failed on channel 0`; `exec request failed` |
+  | `CHANNEL_FAILURE` | a channel request that serve does not serve: a subsystem other than `sftp`, `x11-req`, a refused `pty-req` (an `exec`, `shell` or `sftp` that a rule or `--no-shell` refuses is taken instead: its reason on the channel's stderr, then the status 1, as OpenSSH's client would drop a line before a failure) | `subsystem request failed on channel 0`; `PTY allocation request failed` |
   | `REQUEST_FAILURE` | a global request that serve does not serve, `streamlocal-forward`; a `tcpip-forward` (`-R`) that it refuses: no `--publish-remote`, `--no-forwarding`, a key's rule, or no relay to publish it (T-123) | `Warning: remote port forwarding failed for listen port N` |
   | `CHANNEL_OPEN_FAILURE` | a forward that `--no-forwarding` or a key's rule refuses, a dial that failed, X11, a Unix socket, more channels than the bound | `open failed: ...` (`serve_forward_openssh.rs`) |
   | `DISCONNECT` | a stop (SIGTERM, SIGINT); a key that a reload removed, with `--revoke-ends-sessions` (T-842); a client that `--policy` refuses (T-838) | `Received disconnect ...: podssh serve is stopping` (`serve_lifecycle_openssh.rs`); `... do not meet the policy` (`serve_policy_openssh.rs`) |
@@ -6996,7 +7002,7 @@ gives up each capability of the process (T-698), before it reads a file.
   (`SHELL=/x: not executable (noexec mount); /bin/bash: no such file`), and
   no shell at all refuses the start (78) unless `--no-shell` says that the
   server runs no command and no shell. In a session, the same line goes to
-  the channel's stderr and the request fails. `podssh doctor`'s line
+  the channel's stderr and serve's, and the session ends with the status 1. `podssh doctor`'s line
   `shell` names the same choice.
 - **A slow client, a slow child (T-118).** The output of a child (its
   pipes, or a pty's master) is read 32 KiB at a time, and read again only

@@ -26,8 +26,7 @@ pub fn read(inputs: &[Input]) -> Result<Read, String> {
     let mut read = Read::default();
     for input in inputs {
         let text = decode(&input.bytes);
-        let doc = roxmltree::Document::parse(&text)
-            .map_err(|e| format!("{}: not the XML of mRemoteNG's connections: {e}", input.name))?;
+        let doc = roxmltree::Document::parse(&text).map_err(|e| format!("{}: {}", input.name, not_xml(&e)))?;
         let root = doc.root_element();
         if root.tag_name().name() != "Connections" {
             return Err(format!("{}: no Connections element, so no connections of mRemoteNG", input.name));
@@ -66,6 +65,26 @@ struct Resolved {
 /// The fields of a session that a node can inherit, and the host, which it
 /// cannot.
 const FIELDS: [&str; 5] = ["Protocol", "Port", "Username", "PuttySession", "SSHTunnelConnectionName"];
+
+/// Why a file is not the XML of mRemoteNG's connections, in podssh's words:
+/// where the XML breaks, by line and column; or what of it podssh does not
+/// read. The parser's own text is not shown.
+pub(super) fn not_xml(e: &roxmltree::Error) -> String {
+    use roxmltree::Error as E;
+    const OF: &str = "so not mRemoteNG's connections";
+    match e {
+        E::NoRootNode => format!("not XML: no element at all, {OF}"),
+        E::UnclosedRootNode | E::UnexpectedEndOfStream => format!("XML that ends before its last element closes, {OF}"),
+        E::DtdDetected => format!("XML with a DTD, which podssh does not read, {OF}"),
+        E::NodesLimitReached | E::AttributesLimitReached | E::NamespacesLimitReached => {
+            format!("XML larger than podssh reads, {OF}")
+        }
+        other => {
+            let at = other.pos();
+            format!("not well-formed XML at line {}, column {}, {OF}", at.row, at.col)
+        }
+    }
+}
 
 /// `True` as mRemoteNG writes it: `True` up to 2.7, `true` since.
 fn truth(value: &str) -> bool {

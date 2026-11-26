@@ -90,19 +90,35 @@ impl Served {
         let (shelf, who) = (self.control.shelf.clone(), self.who.clone());
         let Some(open) = self.channels.get_mut(&channel) else { return session.channel_failure(channel) };
         let joined = allowed.and_then(|()| kept_join::join(open, &shelf, &who, channel));
-        session.channel_success(channel)?;
         match joined {
             Ok(name) => {
+                session.channel_success(channel)?;
                 self.settings.say(&format!("key {}: joined the kept shell {name}", self.who));
                 Ok(())
             }
-            Err(why) => {
-                session.extended_data(channel, 1, format!("podssh serve: {why}\r\n").into_bytes())?;
-                session.exit_status_request(channel, 1)?;
-                session.eof(channel)?;
-                session.close(channel)
-            }
+            // A kept shell is on a pty.
+            Err(why) => Self::ended_with(channel, &why, true, session),
         }
+    }
+
+    /// Refuse a command, a shell or a subsystem that the client cannot do
+    /// without: taken, `why` on the channel's stderr, the status 1, and the
+    /// end. A failure would lose the line: OpenSSH's client ends at once on
+    /// the failure of its session's request, before it writes the stderr
+    /// that came first. On a pty the client's terminal is raw, so the line
+    /// ends with CR LF.
+    pub(super) fn ended_with(
+        channel: ChannelId,
+        why: &str,
+        pty: bool,
+        session: &mut Session,
+    ) -> Result<(), russh::Error> {
+        session.channel_success(channel)?;
+        let end = if pty { "\r\n" } else { "\n" };
+        session.extended_data(channel, 1, format!("podssh serve: {why}{end}").into_bytes())?;
+        session.exit_status_request(channel, 1)?;
+        session.eof(channel)?;
+        session.close(channel)
     }
 
     /// The subsystem `shells@podssh`: this key's kept shells, one line each,

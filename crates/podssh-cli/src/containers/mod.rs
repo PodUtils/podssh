@@ -106,17 +106,27 @@ fn plan(args: &ContainersArgs) -> Result<Plan, Refusal> {
     Ok(Plan { tools, enter, shown: shown.join(" "), force_tty: args.ssh.tty > 1 })
 }
 
+/// The refusal of a destination whose road containers does not take.
+const NOT_TAKEN: &str = "podssh containers reaches a host through the relay, with --direct or cf://; a node://, iroh: \
+                         or derp: destination is for podssh ssh";
+
 /// The run of `ssh` for the list: its command, and nothing that a session
 /// of `podssh ssh` would open beside it.
 fn resolved(args: &ContainersArgs, plan: &Plan, env: &Env) -> Result<Resolved, Refusal> {
+    // A road that containers never takes, in any build, is a usage error
+    // before the environment is read (PODSSH_RELAY) and before a build
+    // without the road says so.
+    let named = args.ssh.destination.as_deref().unwrap_or_default();
+    let node = named.starts_with(crate::ssh::node::SCHEME);
+    if node || crate::ssh::iroh::is_iroh(named) || crate::ssh::derp::is_derp(named) {
+        return Err(Refusal::usage(NOT_TAKEN));
+    }
     let mut ssh = args.ssh.clone();
     ssh.command = vec![list::command(&plan.tools)];
     let mut resolved = resolve::resolve_or_refuse(&ssh, env)?;
+    // A member of the net by its name alone, or a road that ssh_config names.
     if matches!(resolved.transport, Transport::Node { .. } | Transport::Iroh { .. } | Transport::Derp { .. }) {
-        return Err(Refusal::usage(
-            "podssh containers reaches a host through the relay, with --direct or cf://; a node://, iroh: or derp: \
-             destination is for podssh ssh",
-        ));
+        return Err(Refusal::usage(NOT_TAKEN));
     }
     let forwards = !resolved.local.is_empty() || !resolved.options.remote_forwards.is_empty();
     if forwards || resolved.x11.is_some() || resolved.control.path.is_some() {
@@ -219,7 +229,12 @@ async fn run(resolved: &Resolved, plan: &Plan, log: &Arc<Log>) -> Ended {
     }
     let holders = list::holders(&listing, name);
     let Some((first, full)) = holders.first() else {
-        log.error(&format!("no container {name} on {host}: {}", found(&listing, &plan.tools)));
+        // Which lists were read: the tools that answered, or why none did.
+        let line = match listing.tools.is_empty() {
+            true => format!("no container {name} on {host}: {}", found(&listing, &plan.tools)),
+            false => format!("no container {name} in the lists of {} on {host}", found(&listing, &plan.tools)),
+        };
+        log.error(&line);
         podssh_ssh::run::disconnect_all(&handles).await;
         return Ended::Code(EX_UNAVAILABLE);
     };

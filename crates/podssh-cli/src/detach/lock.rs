@@ -313,6 +313,17 @@ pub fn ran(pid: u32) {
     change_record(|r| r["run"] = json!(pid));
 }
 
+/// How this run ended, in its record, as the process exits with `code`:
+/// the time and the code, for `podssh detached status`. Nothing when this
+/// process wrote no record (each process but a detached run's holder). A
+/// run that is killed writes none, and its status says none.
+pub fn ended(code: i32) {
+    change_record(|r| {
+        r["ended"] = json!(crate::pairs::now_ms().div_euclid(1000));
+        r["exit"] = json!(code);
+    });
+}
+
 /// A record in one rename, so that a reader never sees half of one; a
 /// failure is no failure of the run, whose lock is what counts.
 fn write_record(path: &Path, record: &Value) {

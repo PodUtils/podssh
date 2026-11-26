@@ -112,7 +112,9 @@ pub async fn connect_over<S>(
 where
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
 {
-    context().connect_over(stream, server_name, trust, limit).await.map_err(|e| e.text().to_string())
+    // A refused certificate in words, as on each other road (T-944).
+    let tls = context().connect_over(stream, server_name, trust, limit).await;
+    tls.map_err(|e| crate::tls_words::plain(&crate::text::plain(e.text())))
 }
 
 /// What to do when a TLS handshake failed with `error`: for an issuer that no

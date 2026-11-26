@@ -327,30 +327,19 @@ async fn a_shell_runs_as_a_login_shell_on_pipes() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_shell_that_does_not_run_is_named_on_stderr_and_fails_the_request() {
+async fn a_shell_that_does_not_run_is_named_on_stderr_and_ends_with_1() {
+    // Taken, then the line, the status 1 and the end in order: OpenSSH's
+    // client would drop a line that came before a failure of the request.
     let named = Settings { shell: Some("/nonexistent/podssh-sh".into()), ..settings() };
-    let handle = connect(named).await;
-    let mut channel = handle.channel_open_session().await.unwrap();
-    channel.exec(true, "true").await.unwrap();
-    let mut err = Vec::new();
-    let refused = tokio::time::timeout(LIMIT, async {
-        loop {
-            match channel.wait().await {
-                Some(ChannelMsg::ExtendedData { data, ext: 1 }) => err.extend_from_slice(&data),
-                Some(ChannelMsg::Failure) => return true,
-                Some(ChannelMsg::Success) | None => return false,
-                Some(_) => {}
-            }
-        }
-    })
-    .await
-    .expect("an answer in time");
-    let err = String::from_utf8_lossy(&err);
-    assert!(refused, "{err}");
-    assert!(err.contains("--shell /nonexistent/podssh-sh: no such file"), "{err}");
     let no_shell = Settings { no_shell: true, ..settings() };
-    let seen = run(no_shell, "true").await;
-    assert!(seen.replies.first() == Some(&false), "--no-shell refuses: {seen:?}");
+    for (settings, words) in [(named, "--shell /nonexistent/podssh-sh: no such file"), (no_shell, "--no-shell: ")] {
+        let seen = run(settings, "true").await;
+        let err = String::from_utf8_lossy(&seen.err);
+        assert_eq!(seen.replies, vec![true], "{words}: {seen:?}");
+        assert!(err.starts_with("podssh serve: ") && err.contains(words) && err.ends_with('\n'), "{err}");
+        assert_eq!((seen.status, seen.out.is_empty()), (Some(1), true), "{words}: {seen:?}");
+        ended_in_order(&seen);
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

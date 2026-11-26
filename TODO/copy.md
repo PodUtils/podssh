@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:396-417` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7323-7326`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7329-7332`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -3319,7 +3319,7 @@ destination too.
   and a second copy of a changed file replaces the far one with exit 0 and nothing on stderr.
   Read: `CP_FLAGS` has no such row (`crates/podssh-cli/src/flags/copy.rs`, lines 10-82 at
   `38f424c`), and each copy
-  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:228-247`), by
+  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:245-264`), by
   `posix-rename@openssh.com` where the server has it
   (`crates/podssh-ssh/src/sftp/mod.rs:414-423`).
 - Read: `hardlink@openssh.com` gives a file a second name
@@ -4058,7 +4058,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 - Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/tries.rs:55`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
-- Read: `crates/podssh-cli/src/sftp/run.rs:161` hands `self.link.meter` to `bysftp::down` and `up`;
+- Read: `crates/podssh-cli/src/sftp/run.rs:166` hands `self.link.meter` to `bysftp::down` and `up`;
   `crates/podssh-cli/src/cp/link.rs:92-100` stops the transfer with the failure
   "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:79`.
 - The issue says the transfer is "cut mid-way". That is not right: the meter stops it before the cap.
@@ -5283,7 +5283,7 @@ missing source.
 
 - The tree's copy gave `Fault::Capability` (78) for a server with no SFTP (`crates/podssh-cli/src/cp/tree_copy.rs:136` is the line
   now), and `df` read the client's refusal of the missing extension as a status of the source (`transfer::from_sftp` with
-  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:285` is the look now).
+  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:290` is the look now).
 
 ## Approach
 
@@ -5338,7 +5338,7 @@ named the temporary `.part` file, not the destination. `lcd nodir` said "not a d
   a `.` failed the check of one component.
 - The notes of `-p` and `--owner` named the path that they set, the temporary file before its rename
   (`crates/podssh-cli/src/cp/meta.rs:230`, `named`, gives the destination now).
-- `lcd` looked at `is_dir` alone (`crates/podssh-cli/src/sftp/run.rs:224` is its missing case now).
+- `lcd` looked at `is_dir` alone (`crates/podssh-cli/src/sftp/run.rs:229` is its missing case now).
 
 ## Approach
 
@@ -5377,3 +5377,177 @@ it private as podssh does; and `mv -r --dry-run FILE` now also plans the `delete
 hand against OpenSSH 9.6p1 (`--direct`): `cp -r --dry-run src/f host:dd/f` printed `copy src/f -> dd/f`, exit 0, and
 `dd/f` kept its old bytes; `mv -r --dry-run src/f host:dry2` printed the copy and `delete src/f`, exit 0, the source
 stayed and `dry2` was not made. Clippy (`-D warnings`) and rustfmt clean; the Windows check clean.
+
+
+# T-995: `sftp`'s `rm` and `rename` of a missing path exit 73, where a missing path is 66
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+In `sftp -b`, `rm` of a missing file and `rename` of a missing source exited 73 ("cannot be written"), while `cd` and
+`ls` of a missing path exit 66, which EXIT STATUS gives a missing source.
+
+## Premise
+
+- Read, at `58a21c1`: `rm`, `rename`, `rmdir` and `chmod` take each SFTP failure as the destination's (line 137 of
+  `crates/podssh-cli/src/sftp/run.rs`), and the destination's status is 73 (line 114 of
+  `crates/podssh-cli/src/cp/transfer.rs`).
+
+## Approach
+
+A status of `SSH_FX_NO_SUCH_FILE` of these commands is the source's side, 66; each other status stays 73. EXIT
+STATUS says it under 66. A test of the binary against the test's server with OpenSSH's `sftp-server`, one table:
+`rm`, `rename`, `cd` and `ls` of a missing path each 66.
+
+## Decision
+
+`rename`'s missing path is 66 also where the server's status comes of a missing directory of the new name, as an
+SFTP status does not tell the two paths apart; its line names both. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test sftp_batch
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live, against this host's sshd: `sftp -b` with `rm` of a missing file says "remove /tmp/...: no such file or directory (the server says: No such file)" and exits 66. The planted run waits for T-251.
+
+
+# T-996: A write that fails on the server names no file, and a full disk is said as "Failure"
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A put onto a full filesystem said "write at 1044480: the server could not do it (the server says: Failure)": no file
+named, and nothing of the likely cause.
+
+## Premise
+
+- Read, at `58a21c1`: a write's failure is the step's own words, which name an offset alone (line 201 of
+  `crates/podssh-cli/src/cp/bysftp.rs`, the end of the writes and the chunks of `crates/podssh-cli/src/cp/chunks.rs`
+  likewise); OpenSSH's `sftp-server` has no code for ENOSPC and answers `SSH_FX_FAILURE`.
+
+## Approach
+
+`transfer::write_failed(target, e)`: the destination named before the step, and "; the server's disk may be full"
+after a generic failure (code 4) of a write; each write of `cp`, `scp` and `sftp` takes it (`up` and its chunks). A
+table-driven unit test.
+
+## Decision
+
+"may be": a generic failure has other causes (a quota, an I/O error), and the line does not claim one. The name is the
+destination's, never its hidden temporary name (T-828). Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib cp::transfer
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-997: A batch file of `sftp -b` that is not text is 66 with the library's words
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`sftp -b FILE` whose bytes are not UTF-8 exited 66 with "stream did not contain valid UTF-8", the library's text.
+
+## Premise
+
+- Read, at `58a21c1`: the batch is read as a string (line 116 of `crates/podssh-cli/src/sftp/mod.rs`), and each
+  failure of the read is 66 (line 212).
+
+## Approach
+
+An `InvalidData` read is "the batch file FILE: not text: its bytes are not UTF-8", 65 (bad data); EXIT STATUS says it
+under 65. A row of the test `sftp_batch`.
+
+## Decision
+
+65, as each file of podssh that is not the text it must be is bad data (`net`'s, `agent`'s); 66 stays for a batch that
+cannot be read. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test sftp_batch
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live: a batch file of the bytes FF FE says "not text: its bytes are not UTF-8" and exits 65. The planted run waits for T-251.
+
+
+# T-998: `edit --no-terminal` with no editor variable runs `vi` with no terminal
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`EDITOR='' podssh edit --no-terminal --timeout 5s host:f` fell back to `vi`, which drew its screen as escape codes on
+stderr for no one until the bound passed.
+
+## Premise
+
+- Read, at `58a21c1`: the choice falls back to `vi` on `PATH` whatever the run (line 65 of
+  `crates/podssh-cli/src/edit/editor.rs`), and it does not know of `--no-terminal` (line 132 of
+  `crates/podssh-cli/src/edit/mod.rs`).
+
+## Approach
+
+`choose(env, terminal)`: with no terminal, `VISUAL` or `EDITOR` names the editor, an empty value counts as unset, and
+with neither the run refuses with 78 and a line that says so, before anything connects. The manual and `docs/cli.md`
+say it; a unit test of the choice and a row of `edit_args`.
+
+## Decision
+
+78, as no editor at all is 78: the setup names none that can run. Lost: a `vi` that a user meant to run with no
+terminal; `EDITOR=vi` still names it.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib edit::editor
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test edit_args no_terminal
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

@@ -144,10 +144,10 @@ impl Files {
         Ok((shown, as_privmsg(&from, &line)))
     }
 
-    /// The user's decline of the peer's file `id`.
-    pub fn decline(&mut self, id: u64) -> Result<Message, String> {
+    /// The decline of the peer's file `id`, with the reason that the peer hears.
+    pub fn decline(&mut self, id: u64, reason: &str) -> Result<Message, String> {
         let Offered { from, offer } = self.offered.remove(&id).ok_or(format!("no file waits under the number {id}"))?;
-        deny(&from, &offer.transfer_id, "declined").map_err(|e| e.to_string())
+        deny(&from, &offer.transfer_id, reason).map_err(|e| e.to_string())
     }
 
     /// The name and size of the peer's offer `id`.

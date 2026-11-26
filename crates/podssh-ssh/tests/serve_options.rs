@@ -166,8 +166,9 @@ async fn a_forced_internal_sftp_refuses_a_command_with_its_reason() {
     let mut channel = handle.channel_open_session().await.unwrap();
     channel.exec(true, "id").await.unwrap();
     let seen = read_to_close(&mut channel).await;
-    assert_eq!(seen.replies, vec![false], "{seen:?}");
-    assert!(seen.err.contains("SFTP alone"), "the reason on stderr: {seen:?}");
+    // Taken and ended with 1, so that OpenSSH's client shows the reason.
+    assert_eq!((seen.replies.as_slice(), seen.status), (&[true][..], Some(1)), "{seen:?}");
+    assert!(seen.err.contains("SFTP alone") && seen.out.is_empty(), "the reason on stderr: {seen:?}");
     assert!(heard.lock().unwrap().iter().any(|l| l.contains("SFTP alone")), "and in serve's log");
     let channel = handle.channel_open_session().await.unwrap();
     channel.request_subsystem(true, "sftp").await.unwrap();
@@ -292,6 +293,26 @@ async fn a_past_expiry_time_refuses_the_login_and_says_why() {
     assert!(!passed, "an expired key logs in");
     let said = heard.lock().unwrap().join("\n");
     assert!(said.contains("refused") && said.contains("expiry-time"), "{said}");
+}
+
+/// A key that no line lists is said on serve's stderr with its fingerprint,
+/// as the client hears only "Permission denied".
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_unlisted_key_is_said_with_its_fingerprint() {
+    let heard = Heard::default();
+    let (near, far) = tokio::io::duplex(1 << 22);
+    let mut authorized = Authorized::new();
+    authorized.add(key().public_key().key_data().clone());
+    tokio::spawn(server::serve_with(far, key(), Arc::new(authorized), Arc::new(settings(&heard))));
+    let client = Client { refusals: Arc::default() };
+    let mut handle = client::connect_stream(Arc::new(client::Config::default()), near, client).await.unwrap();
+    let other = key();
+    let shown = other.public_key().fingerprint(HashAlg::Sha256).to_string();
+    let login = PrivateKeyWithHashAlg::new(Arc::new(other), None);
+    let passed = handle.authenticate_publickey("anyone", login).await.unwrap().success();
+    assert!(!passed, "an unlisted key logs in");
+    let said = heard.lock().unwrap().join("\n");
+    assert!(said.contains(&format!("key {shown} refused: not an authorized key")), "{said}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

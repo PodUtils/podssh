@@ -204,12 +204,14 @@ fn sftp_run(
     let script = match args.batch.as_deref().map(read_batch).transpose() {
         Ok(script) => script,
         Err(e) => {
-            let why =
-                format!("the batch file {}: {}", args.batch.as_deref().unwrap_or("-"), crate::cp::words::said(&e));
+            // A batch that is not text is bad data (65), not a file missing.
+            let data = e.kind() == std::io::ErrorKind::InvalidData;
+            let said = if data { "not text: its bytes are not UTF-8".into() } else { crate::cp::words::said(&e) };
+            let why = format!("the batch file {}: {said}", args.batch.as_deref().unwrap_or("-"));
             let _ = writeln!(err, "podssh sftp: {why}");
             // The command line named a batch that cannot be read.
             (tally.did.failure, tally.did.error) = (Some("usage"), Some(why));
-            return Fault::NoInput.code();
+            return if data { crate::exitmap::sysexits::EX_DATAERR } else { Fault::NoInput.code() };
         }
     };
     if let Err(refusal) = crate::pins::apply(args.ssh.relay_addr.as_deref()) {

@@ -2,7 +2,7 @@
 //! network: who the peer is, which side this is, the keys of the channel,
 //! and the one thing of a script.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::ArgMatches;
 use podssh_core::chat::record::{MAX_NICK, MAX_TEXT};
@@ -241,10 +241,15 @@ fn nick(given: Option<&str>) -> Result<String, Refusal> {
 /// `--accept-dir`: a directory that is there, as the files go into it.
 fn accept_dir(given: Option<&str>) -> Result<Option<PathBuf>, Refusal> {
     let Some(dir) = given else { return Ok(None) };
-    if !Path::new(dir).is_dir() {
-        return Err(Refusal { message: format!("--accept-dir {dir}: not a directory"), code: EX_CANTCREAT });
-    }
-    Ok(Some(PathBuf::from(dir)))
+    // A path that is not there, and one that is no directory, apart: each
+    // says what is wrong (73 both, as nothing can be written into it).
+    let why = match std::fs::metadata(dir) {
+        Ok(meta) if meta.is_dir() => return Ok(Some(PathBuf::from(dir))),
+        Ok(_) => "not a directory".to_string(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "does not exist".to_string(),
+        Err(e) => podssh_ws::text::said(&e),
+    };
+    Err(Refusal { message: format!("--accept-dir {dir}: {why}"), code: EX_CANTCREAT })
 }
 
 /// The one thing of the run, its file read once now to fail before any

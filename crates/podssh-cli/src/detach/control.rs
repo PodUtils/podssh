@@ -86,14 +86,20 @@ struct Seen {
     main: Holder,
     run: Holder,
     record: Option<Value>,
+    /// A record file that is there, and that holds no record: `list` and
+    /// `status` say so alike.
+    unreadable: bool,
 }
 
 impl Seen {
     fn of(dir: &Path, name: &str) -> Seen {
+        let record = lock::read_record(dir, name);
+        let unreadable = record.is_none() && std::fs::symlink_metadata(lock::record_path(dir, name)).is_ok();
         Seen {
             main: lock::holder(&lock::lock_path(dir, name)),
             run: lock::holder(&lock::run_lock_path(dir, name)),
-            record: lock::read_record(dir, name),
+            record,
+            unreadable,
         }
     }
 
@@ -101,12 +107,27 @@ impl Seen {
         matches!(self.main, Holder::Held(_)) || matches!(self.run, Holder::Held(_))
     }
 
+    /// Whether anything of `name` is there: a lock that is held, a record,
+    /// or a record that cannot be read.
+    fn known(&self) -> bool {
+        self.running() || self.record.is_some() || self.unreadable
+    }
+
+    /// The exit code that the run wrote at its end, where it wrote one.
+    fn exit(&self) -> Option<i64> {
+        self.record.as_ref().and_then(|r| r.get("exit")).and_then(Value::as_i64)
+    }
+
     fn state(&self) -> String {
         match (&self.main, &self.run) {
             (Holder::Held(_), _) => "running".into(),
             (_, Holder::Held(_)) => "running, its supervisor gone".into(),
             (Holder::Unknown(why), _) | (_, Holder::Unknown(why)) => format!("unknown: {why}"),
-            _ => "ended".into(),
+            _ if self.unreadable => "ended, its record unreadable".into(),
+            _ => match self.exit() {
+                Some(code) => format!("ended, exit {code}"),
+                None => "ended".into(),
+            },
         }
     }
 
@@ -179,7 +200,7 @@ fn list(dir: &Path, args: &DetachedArgs, out: &mut dyn Write, err: &mut dyn Writ
     for name in names {
         let seen = Seen::of(dir, &name);
         let pid = seen.holder_pid().or(seen.run_pid()).map_or_else(|| "-".to_string(), |p| p.to_string());
-        runs.push(Run { name, state: seen.state(), pid, words: seen.text("words") });
+        runs.push(Run { name, state: seen.state(), pid, words: seen.text("words"), exit: seen.exit() });
     }
     if args.json {
         let _ = writeln!(out, "{}", json_of(&runs, Some(dir)));
@@ -201,6 +222,8 @@ struct Run {
     state: String,
     pid: String,
     words: String,
+    /// The exit code that an ended run wrote, where it wrote one.
+    exit: Option<i64>,
 }
 
 /// The line of an empty list.
@@ -215,7 +238,7 @@ fn json_of(runs: &[Run], dir: Option<&Path>) -> Value {
         .iter()
         .map(|r| {
             let pid = r.pid.parse::<u32>().map_or(Value::Null, Value::from);
-            json!({ "name": r.name, "state": r.state, "pid": pid, "words": r.words })
+            json!({ "name": r.name, "state": r.state, "pid": pid, "words": r.words, "exit": r.exit })
         })
         .collect();
     json!({ "runs": runs, "dir": dir.map(|d| d.display().to_string()) })
@@ -223,7 +246,7 @@ fn json_of(runs: &[Run], dir: Option<&Path>) -> Value {
 
 fn status(dir: &Path, name: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let seen = Seen::of(dir, name);
-    if seen.record.is_none() && !seen.running() {
+    if !seen.known() {
         let _ = writeln!(err, "{}", not_known(dir, name));
         return EX_UNAVAILABLE;
     }
@@ -245,6 +268,16 @@ fn status(dir: &Path, name: &str, out: &mut dyn Write, err: &mut dyn Write) -> i
     let _ = writeln!(out, "log: {}", seen.text("log"));
     let started = seen.record.as_ref().and_then(|r| r.get("started")).and_then(Value::as_i64);
     let _ = writeln!(out, "started: {}", started.map_or_else(|| "-".to_string(), crate::doctor::clock::format_utc));
+    // How an ended run ended, as it wrote at its exit; a run that was
+    // killed, or that is older than these fields, wrote none.
+    if !seen.running() {
+        let at = seen.record.as_ref().and_then(|r| r.get("ended")).and_then(Value::as_i64);
+        let _ = writeln!(out, "ended: {}", at.map_or_else(|| "-".to_string(), crate::doctor::clock::format_utc));
+        let _ = writeln!(out, "exit: {}", seen.exit().map_or_else(|| "-".to_string(), |code| code.to_string()));
+    }
+    if seen.unreadable {
+        let _ = writeln!(out, "record: {}: not a record of podssh", lock::record_path(dir, name).display());
+    }
     // The last beat of a supervisor's run (T-394), for a person to read.
     let beat = std::fs::metadata(super::beat::alive_path(dir, name)).and_then(|m| m.modified()).ok();
     if let Some(ago) = beat.and_then(|at| std::time::SystemTime::now().duration_since(at).ok()) {
@@ -267,7 +300,7 @@ fn stop(dir: &Path, name: &str, err: &mut dyn Write) -> i32 {
     if !seen.running() {
         // A name that never ran has no state to say: "(ended)" would not
         // be true of it (T-868).
-        let line = match seen.record.is_none() && matches!((&seen.main, &seen.run), (Holder::Free, Holder::Free)) {
+        let line = match !seen.known() && matches!((&seen.main, &seen.run), (Holder::Free, Holder::Free)) {
             true => not_known(dir, name),
             false => format!("podssh detached: no run named {name} runs ({})", seen.state()),
         };

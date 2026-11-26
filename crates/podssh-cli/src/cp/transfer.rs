@@ -124,6 +124,23 @@ pub(crate) fn from_sftp(e: SftpError, side: Side) -> Failed {
     Failed { fault, message: podssh_ws::text::said(&e), cause }
 }
 
+/// The failure of a write of the file `target` on the server: the step
+/// names an offset alone, so the line names the file. A server's generic
+/// failure of a write is most often a full disk (OpenSSH's sftp-server has
+/// no code for ENOSPC), said as a likely cause, not as a fact.
+pub(crate) fn write_failed(target: &str, e: SftpError) -> Failed {
+    let generic = matches!(&e, SftpError::Status { code, .. } if *code == GENERIC_FAILURE);
+    let mut failed = from_sftp(e, Side::Destination);
+    failed.message = format!("{target}: {}", failed.message);
+    if generic {
+        failed.message.push_str("; the server's disk may be full");
+    }
+    failed
+}
+
+/// `SSH_FX_FAILURE`, a status that names no cause.
+const GENERIC_FAILURE: u32 = 4;
+
 /// The line of a destination `target` whose temporary file in `dir` could
 /// not be made: the destination, and the directory where that is the cause,
 /// never the hidden name of the temporary file alone (T-828).
@@ -396,5 +413,27 @@ mod tests {
         assert_eq!(from_sftp(missing, Side::Destination).fault, Fault::CantCreate);
         assert_eq!(from_sftp(SftpError::Closed("gone".into()), Side::Source).fault, Fault::SessionFault);
         assert_eq!(from_sftp(SftpError::NoSftp, Side::Destination).fault, Fault::RelayUnreachable);
+    }
+
+    /// A failed write names its file; a generic failure adds the likely
+    /// cause, and another status does not.
+    #[test]
+    fn a_failed_write_names_its_file() {
+        let status = |code: u32, message: &str| SftpError::Status {
+            what: "write at 1044480".into(),
+            code,
+            message: message.into(),
+        };
+        for (e, want) in [
+            (
+                status(4, "Failure"),
+                "far/a.bin: write at 1044480: the server could not do it (the server says: Failure); the server's \
+                 disk may be full",
+            ),
+            (status(3, ""), "far/a.bin: write at 1044480: permission denied"),
+        ] {
+            let failed = write_failed("far/a.bin", e);
+            assert_eq!((failed.fault, failed.message.as_str()), (Fault::CantCreate, want));
+        }
     }
 }

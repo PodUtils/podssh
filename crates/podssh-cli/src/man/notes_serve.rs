@@ -66,7 +66,8 @@ pub const SERVE: &[&str] = &[
      environment=, permitlisten=, tunnel=, principals=, cert-authority and any option that serve does not know make \
      the line unused, named. Of the lines of one key, the first that lets it in now holds. Each refusal by a rule goes \
      to the client: a forward refused as administratively prohibited, a pty or a command with its line on the \
-     channel's stderr. It also goes to serve's stderr, with the key's fingerprint and the option; a key refused at \
+     channel's stderr. A refused command or shell is taken, then ends with status 1 after its line, so OpenSSH shows \
+     it. It also goes to serve's stderr, with the key's fingerprint and the option; a key refused at \
      login is said there alone, as the client hears Permission denied.",
     "The host key is --host-key FILE, else serve_host_ed25519_key in the cache (see FILES): made at the \
      first start, an Ed25519 key of mode 0600, and read at each later one, never overwritten; of two \
@@ -202,7 +203,7 @@ pub const SERVE: &[&str] = &[
      again at each session, with no cache. At the start, a candidate passed over is said with its reason (not \
      executable (noexec mount), for one). No shell at all refuses the start (78), as does a --shell that does not run; \
      --no-shell skips the search, and refuses each command and shell. In a session, the same line goes to the \
-     channel's stderr, and the request fails (OpenSSH: exec request failed). podssh doctor's line shell names the \
+     channel's stderr and to serve's, and the session ends with status 1. podssh doctor's line shell names the \
      shell that serve would run, and each candidate passed over.",
     "A client that reads slowly slows the child: its output is read 32 KiB at a time, and read again only once that \
      went out within the client's window. So a client that stops reading leaves the pipe or the pty full and the child \

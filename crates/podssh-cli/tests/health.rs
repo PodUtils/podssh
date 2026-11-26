@@ -215,6 +215,23 @@ fn a_preflight_whose_login_fails_is_255_with_its_line() {
     assert_eq!(doc["preflight"]["checks"][0]["status"], "FAIL", "{doc}");
 }
 
+/// A refused login names the destination once, in the line and in the
+/// JSON's error, as `each` does: the refusal's own words name it too.
+#[test]
+fn a_refused_login_names_the_destination_once() {
+    let dir = scratch("refused");
+    let (_runtime, port) = server(&dir);
+    // A user named key-...: the server asks for a key, and this run has none.
+    let ran = health_as(&dir, port, "key-nobody", &[]);
+    assert_eq!(ran.code, Some(255), "{}", ran.err);
+    assert!(ran.err.contains("podssh: health key-nobody@127.0.0.1: Permission denied"), "{}", ran.err);
+    assert!(!ran.err.contains("127.0.0.1: key-nobody@127.0.0.1"), "the destination twice: {}", ran.err);
+    let ran = health_as(&dir, port, "key-nobody", &["--json"]);
+    let doc: Value = serde_json::from_str(&ran.out).unwrap_or_else(|e| panic!("{e}: {}", ran.out));
+    let error = doc["error"].as_str().unwrap_or_default();
+    assert!(error.starts_with("Permission denied") && !error.contains("key-nobody@"), "{doc}");
+}
+
 /// A container of 4 CPUs and 4 GiB on a host of 16 (T-480): the lines give
 /// its own CPUs and memory with their sources, the host's beside them, and
 /// the JSON keeps the host's keys and adds `effective` and `cgroup`; a host

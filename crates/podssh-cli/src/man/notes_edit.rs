@@ -8,8 +8,9 @@ pub const EDIT: &[&str] = &[
      mode 0600 with the far file's name, so that the editor knows its kind. Then the connection closes, and the \
      editor runs here, with no time limit: no relay session waits while a person edits.",
     "The editor is VISUAL, else EDITOR, else vi when PATH has it; with none, podssh edit exits 78 and names \
-     EDITOR. A value is a program and its words, split at blanks with no shell, or one program whose path has \
-     a blank. podssh edit needs a terminal on stdin and stdout (else 64, and the refusal names --no-terminal). \
+     EDITOR. An empty value counts as unset. With --no-terminal, vi is never chosen, as it needs a terminal: \
+     with neither variable set, podssh edit exits 78. A value is a program and its words, split at blanks with \
+     no shell, or one program whose path has a blank. podssh edit needs a terminal on stdin and stdout (else 64, and the refusal names --no-terminal). \
      While the editor runs, SIGINT and SIGQUIT are the editor's, and on Windows so is Ctrl-C.",
     "--no-terminal runs an editor that needs no terminal, a script that changes the file in place: its stdin \
      is empty, and what it prints goes to stderr, so stdout stays empty. The check of the far file before the \

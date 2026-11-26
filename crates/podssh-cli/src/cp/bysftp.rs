@@ -156,7 +156,7 @@ pub async fn up(
             let tasks = shape.tasks;
             let each = chunks::share(pipe.within(sftp.limits().in_flight), tasks, meter.through_relay());
             log.verbose(&format!("{source}: chunks of {} bytes, {tasks} at once", chunks::CHUNK));
-            chunks::up(handle, local, &temp, before.len(), tasks, each, progress, meter).await?;
+            chunks::up(handle, local, &target, &temp, before.len(), tasks, each, progress, meter).await?;
             log.verbose(&rate(source, before.len(), started.elapsed()));
             let sum = digest::of_file(local).map_err(|e| failed(Fault::NoInput, format!("{source}: {e}")))?;
             return Ok((before.len(), sum));
@@ -198,7 +198,7 @@ pub async fn up(
             hasher.update(&buf[..n]);
             rate::take(carried as u64).await;
             if let Err(e) = meta::send_runs(&mut writes, &buf[..n], runs, block).await {
-                break Err(transfer::from_sftp(e, Side::Destination));
+                break Err(transfer::write_failed(&target, e));
             }
             offset += n as u64;
             progress.advance(writes.acked());
@@ -210,7 +210,7 @@ pub async fn up(
         let finished = writes.finish().await;
         progress.advance(writes.acked());
         sent?;
-        finished.map_err(|e| transfer::from_sftp(e, Side::Destination))?;
+        finished.map_err(|e| transfer::write_failed(&target, e))?;
         log.verbose(&rate(source, offset - started.1, started.0.elapsed()));
         Ok((offset, hasher.finalize().into()))
     }

@@ -41,5 +41,7 @@ fn main() {
         // This thread runs the command: a job for the first thread runs here.
         Err(_) => podssh_cli::dispatch::main_with_args(kept),
     };
+    // A detached run's record says how it ended; any other process has none.
+    podssh_cli::detach::lock::ended(code);
     std::process::exit(code);
 }

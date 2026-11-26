@@ -62,6 +62,9 @@ fn a_bad_command_line_is_64_before_anything_connects() {
         (&["--tool", "lxc", "h"][..], "--tool lxc"),
         (&["h", "ls"][..], "'ls'"),
         (&["node://lab"][..], "node://"),
+        // A road that containers never takes, in any build: 64, never 70.
+        (&["iroh:abc"][..], "is for podssh ssh"),
+        (&["u@iroh:abc"][..], "is for podssh ssh"),
         (&["--no-such-flag", "h"][..], "--no-such-flag"),
     ] {
         let (code, out, err) = containers(&home, args, true);
@@ -69,6 +72,20 @@ fn a_bad_command_line_is_64_before_anything_connects() {
         assert!(err.contains(says), "{args:?}: {err}");
         assert!(out.is_empty(), "{args:?}: {out}");
     }
+    // The destination is checked before the environment: PODSSH_RELAY,
+    // which a node:// refuses (78), comes second.
+    let out = Command::new(env!("CARGO_BIN_EXE_podssh"))
+        .args(["containers", "node://foo"])
+        .env("PODSSH_SSH_CONFIG", "none")
+        .env("PODSSH_SETTINGS", "none")
+        .env("PODSSH_OFFLINE", "1")
+        .env("PODSSH_RELAY", "relay.example")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(64), "{err}");
+    assert!(err.contains("is for podssh ssh") && !err.contains("PODSSH_RELAY"), "{err}");
 }
 
 #[test]
@@ -225,5 +242,5 @@ fn exec_enters_the_container_on_the_same_connection() {
     // A name that no list has.
     let (code, out, err) = on(&home, port, "containers-a", &["--exec", "nope"]);
     assert_eq!((code, out.as_str()), (69, ""), "{err}");
-    assert!(err.contains("no container nope on 127.0.0.1: docker and kubectl"), "{err}");
+    assert!(err.contains("no container nope in the lists of docker and kubectl on 127.0.0.1"), "{err}");
 }

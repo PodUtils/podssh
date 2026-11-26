@@ -33,6 +33,19 @@ pub fn target(offered: &str, to: Option<&Path>, dir: &Path) -> Result<PathBuf, S
     Ok(path)
 }
 
+/// Why `--accept-dir` declined the offer of `offered`, for the peer: no
+/// path of this host goes to it, so the line names the directory by its
+/// flag. The receiver's own line keeps the path.
+pub fn declined_words(offered: &str, dir: &Path) -> String {
+    match safe_name(offered) {
+        Some(name) if std::fs::symlink_metadata(dir.join(&name)).is_ok() => {
+            format!("{name} is in the receiver's --accept-dir already, and podssh writes over no file")
+        }
+        Some(name) => format!("{name} could not be written into the receiver's --accept-dir"),
+        None => format!("the name {offered:?} cannot be written"),
+    }
+}
+
 /// A file that the user accepted, as its bytes come.
 pub struct Incoming {
     path: PathBuf,

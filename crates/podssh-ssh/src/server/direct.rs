@@ -144,7 +144,7 @@ pub(super) fn open(
                 carry(channel, tcp, window, tally).await;
             }
             Err(e) => {
-                let words = e.to_string();
+                let words = podssh_ws::text::said(&e);
                 if let Some(mark) = mark.as_mut() {
                     mark.refused(&words);
                 }

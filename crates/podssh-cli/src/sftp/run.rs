@@ -8,7 +8,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use podssh_ssh::sftp::{FileAttributes, Sftp};
+use podssh_ssh::sftp::{FileAttributes, Sftp, SftpError};
 use podssh_ssh::Log;
 
 use super::commands::{self, Command};
@@ -134,7 +134,12 @@ impl<'a> State<'a> {
     pub async fn run(&mut self, command: &Command, out: &mut dyn Write) -> Result<Flow, Failed> {
         let sftp = self.sftp;
         // An SFTP error names its step and its path already.
-        let gone = |e| transfer::from_sftp(e, Side::Destination);
+        // A path that is not there is a missing input (66), as in cd and ls;
+        // another refusal is a destination that cannot be written (73).
+        let gone = |e: SftpError| {
+            let side = if e.is_missing() { Side::Source } else { Side::Destination };
+            transfer::from_sftp(e, side)
+        };
         match command {
             Command::Get { remote, local, preserve, recursive } => {
                 // Each command's line counts its own files (T-828).

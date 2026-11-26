@@ -159,12 +159,13 @@ impl Served {
             // As a program that did not start: the channel runs nothing
             // else, so it ends here.
             Plan::Refuse(why) => {
-                self.refuse_for(channel, why, session)?;
-                if self.channels.get(&channel).is_some_and(|open| !open.started()) {
-                    session.eof(channel)?;
-                    session.close(channel)?;
+                if let Some(open) = self.channels.get(&channel).filter(|open| !open.started()) {
+                    let pty = open.on_pty();
+                    self.settings.say(&format!("key {}: refused: {why}", self.who));
+                    Self::ended_with(channel, why, pty, session)
+                } else {
+                    self.refuse_for(channel, why, session)
                 }
-                Ok(())
             }
         };
         self.record(channel, wanted, &plan);
@@ -178,7 +179,7 @@ impl Served {
     }
 
     /// Run `program` on the channel `id`: success once it runs; else its
-    /// line on the channel's stderr, then failure, so the client says why.
+    /// line on the channel's stderr and the status 1, so the client says why.
     /// `original` is the client's command where a forced one replaced it.
     async fn start(
         &mut self,
@@ -207,6 +208,7 @@ impl Served {
             start_program(open, id, &settings, program, original).await
         };
         let told = share_view::told(open);
+        let pty = open.on_pty();
         match started {
             Ok(()) => {
                 session.channel_success(id)?;
@@ -220,11 +222,10 @@ impl Served {
             }
             // A channel whose program did not start can run nothing else,
             // so it ends here: the client waits for no close of its own.
+            // The line also goes to serve's stderr, as a rule's refusal does.
             Err(line) => {
-                session.extended_data(id, 1, format!("podssh serve: {line}\n").into_bytes())?;
-                Self::refuse(id, session)?;
-                session.eof(id)?;
-                session.close(id)
+                self.settings.say(&format!("key {}: refused: {line}", self.who));
+                Self::ended_with(id, &line, pty, session)
             }
         }
     }

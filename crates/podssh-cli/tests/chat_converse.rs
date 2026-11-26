@@ -366,8 +366,12 @@ async fn an_accepted_file_never_goes_over_a_file_that_is_there() {
     let a = Side::start(a_end, "ana", None, &here, Once::No);
     let b = Side::start(b_end, "bo", Some(&inbox), &here, Once::No);
     a.say(&format!("/file {}", here.join("notes.txt").display())).await;
+    // The sender hears why, with no path of the receiver's.
+    a.wait_for("bo: declined your file 1: notes.txt is in the receiver's --accept-dir already").await;
     a.wait_for("declined file 1").await;
     b.wait_for("exists, and podssh writes over no file").await;
+    let heard = format!("{} {}", a.notes.lock().unwrap().join("\n"), a.stdout.text());
+    assert!(!heard.contains(&inbox.display().to_string()), "the receiver's path reached the sender: {heard}");
     assert_eq!(std::fs::read(inbox.join("notes.txt")).unwrap(), b"mine, kept");
     let _ = (a.end().await, b.end().await);
 }

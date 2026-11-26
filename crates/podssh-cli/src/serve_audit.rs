@@ -45,7 +45,8 @@ pub fn verify(args: &ServeArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
     let verdict = match verdict {
         Ok(verdict) => verdict,
         Err(e) => {
-            let _ = writeln!(err, "podssh serve: --audit-verify {file}: {}", podssh_ws::text::said(&e));
+            let why = podssh_ws::text::file_said(Path::new(file), &e);
+            let _ = writeln!(err, "podssh serve: --audit-verify {file}: {why}");
             return EX_NOINPUT;
         }
     };
@@ -104,6 +105,9 @@ mod tests {
         a = args();
         a.audit_verify = Some("/nonexistent/podssh/audit.log".into());
         assert_eq!(verify(&a, &mut out, &mut err), EX_NOINPUT, "{}", String::from_utf8_lossy(&err));
+        let said = String::from_utf8_lossy(&err);
+        assert!(said.ends_with("does not exist\n") || said.ends_with("no such file\n"), "{said}");
+        err.clear();
         a.stdio = true;
         assert_eq!(verify(&a, &mut out, &mut err), EXIT_USAGE);
     }

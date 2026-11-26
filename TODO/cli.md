@@ -189,7 +189,7 @@ measured: the debug binary has no `ts`).
 1. In the `Parsed::Command` arm, refuse a verb of `VERB_OWNER`
    (`crates/podssh-cli/src/flags.rs`, line 453 at `7aa955a`) before the gate. Keep one usage
    error first: a `--timeout` value that was given and does not parse is 64
-   (`docs/cli.md:7323-7324`).
+   (`docs/cli.md:7329-7330`).
 2. Give `require_timeout` the verb's name. The message names that verb, gives
    one true reason, and shows an example for that verb only. Replace
    `({attachment:?})` with words: "stdin or stdout is not a terminal", or
@@ -199,7 +199,7 @@ measured: the debug binary has no `ts`).
    (`crates/podssh-cli/src/dispatch.rs`, lines 424-477 at `7aa955a`,
    `crates/podssh-cli/tests/non_interactive.rs` lines 252-284 at `37ace00`). `ts` is the only verb
    that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:221-227`).
-5. Same commit: `docs/STATUS.md`. `docs/cli.md:7398` needs no change.
+5. Same commit: `docs/STATUS.md`. `docs/cli.md:7404` needs no change.
 
 ## Decision
 
@@ -606,7 +606,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:68-81`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
-   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7503-7505`;
+   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7509-7511`;
    `docs/STATUS.md`.
 5. Do this after T-008, so that a verb that does nothing still exits 70 first.
 
@@ -1764,7 +1764,7 @@ file); measured here on `3ee70dc`.
 A `PODSSH_RELAY` or `PODSSH_RELAY_ADDR` that cannot be used makes
 `podssh proxy`, `podssh ssh` and `podssh doctor` exit 64, the code of a usage
 error. The command line is correct; a setting of the environment is not.
-`docs/cli.md:7323-7324` and `docs/decisions.md` ("Exit codes") give 78
+`docs/cli.md:7329-7330` and `docs/decisions.md` ("Exit codes") give 78
 (`EX_CONFIG`) for a configuration error. A script that reads 64 looks for the
 fault in its arguments.
 
@@ -1879,7 +1879,7 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:369`,
 `crates/podssh-ssh/src/keys.rs:367` and `crates/podssh-cli/src/keygen.rs:407`.
-Its refusals name the real remedies (`docs/cli.md:7460-7462`). Commands use
+Its refusals name the real remedies (`docs/cli.md:7466-7468`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
 `parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:398-419`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
@@ -3597,7 +3597,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and in the notes (`crates/podssh-cli/src/man/notes.rs:185`), and in no row of `cp --help`
   (`crates/podssh-cli/src/flags/copy.rs:20-64`).
 - Read (L-17): `job fetch` of a job that runs exits 75, as EXIT STATUS says
-  (`crates/podssh-cli/src/man/data.rs:105-107`); the rows of `job --help` do not
+  (`crates/podssh-cli/src/man/data.rs:106-108`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
   about of `job` does not say (`crates/podssh-cli/src/flags.rs:405-406`).
@@ -3610,7 +3610,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:266`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:124-140`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:125-141`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -5257,3 +5257,138 @@ Drafted 2026-11-25 (a worker's draft, not built): `early_flag_word` and `flag_wo
 the variable's case in `crates/podssh-cli/tests/doctor_hop.rs`, and the paragraph of `docs/cli.md`.
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-cli --no-fail-fast` 264 binaries passed; clippy clean, also for `x86_64-pc-windows-gnu`. Live: `podssh ssh --early-data 2rtt --vless x.list h` says "--early-data: 0rtt, 1rtt or off, not 2rtt" (64) before the file is read. The planted run waits for T-251.
+
+
+# T-1005: `config import mremoteng` of a file that is not XML says the parser's words
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh config import mremoteng FILE` of a file that is not XML said "unknown token at 1:1", roxmltree's text.
+
+## Premise
+
+- Read, at `58a21c1`: the parser's error is shown by its `Display` (line 30 of
+  `crates/podssh-cli/src/config_import/mremoteng.rs`), which was in `NOT_IO` of
+  `crates/podssh-cli/tests/io_error_lines.rs`.
+
+## Approach
+
+`mremoteng::not_xml`: "not well-formed XML at line R, column C, so not mRemoteNG's connections" from the error's
+position; its own words for a file with no element, one that ends early, a DTD, and one past the parser's bounds. A
+table-driven test; the line leaves `NOT_IO`, as it shows no error value any more.
+
+## Decision
+
+The position, not the parser's name of the fault: a user finds the line, and the name is the crate's. Lost: the name
+of the fault (an unknown token, a bad attribute).
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib config_import::mremoteng
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test io_error_lines
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1006: A record of `detached` that cannot be read is listed as ended, and its status says it is not known
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With a garbage `broken.json` beside `broken.lock`, `detached list` showed "broken ended - -", and `detached status
+broken` said "no run named broken is known" (69).
+
+## Premise
+
+- Read, at `58a21c1`: `list` takes each name of a file, and `status` asks for a record that parses (line 226 of
+  `crates/podssh-cli/src/detach/control.rs`); a record that does not parse is no record (`read_record` in
+  `crates/podssh-cli/src/detach/lock.rs`).
+
+## Approach
+
+`Seen` knows a record file that is there and holds no record: `list` says "ended, its record unreadable", and
+`status` gives its state and a line with the file's path, then 69; `stop` says the state, not "not known". A case of
+`tests/detach.rs`.
+
+## Decision
+
+Listed in both, not left out: a file of the user's directory is there, and the user may want it gone. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test detach status_and_stop_read_the_lock
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1007: `detached status` and `list` do not say how an ended run ended
+
+**Source:** the seventh black-box pass (2026-11-26).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Neither `detached status` nor `list` told how an ended run ended: no exit code and no time of the end.
+
+## Premise
+
+- Read, at `58a21c1`: a run's record holds its pid, words, log and start alone (`enter` in
+  `crates/podssh-cli/src/detach/lock.rs`), and the process exits at one place (line 44 of
+  `crates/podssh-cli/src/main.rs`).
+
+## Approach
+
+1. `lock::ended(code)`: the record of this process, where it wrote one, gets `ended` (the time) and `exit` as the
+   process exits; `main` calls it before `exit`. A process that holds no record writes nothing.
+2. `status` of an ended run gives `ended:` and `exit:` (a dash where the run wrote none: killed, or older); `list`'s
+   state is "ended, exit N", and `list --json` gives `exit`.
+3. A case of `crates/podssh-cli/tests/detach.rs` with a record that holds its end.
+
+## Decision
+
+At the one exit of `main`, not in each verb: each way that a run ends through `main` passes there, and a run that was
+killed cannot write, which status says as a dash. A supervisor's record says the supervisor's end, which is the
+name's. Lost: nothing.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test detach status_and_stop_read_the_lock
+```
+
+By hand: `podssh ssh -f --detach-name t HOST -- 'exit 3'`, then `podssh detached status t` says `exit: 3`.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

@@ -766,7 +766,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:7333`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:7339`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -904,7 +904,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:823-826`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:370`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:7329-7333`).
+`podssh proxy` sysexits (`docs/cli.md:7335-7339`).
 
 ## Approach
 
@@ -5948,8 +5948,8 @@ Other(OtherError(CaUsedAsEndEntity))": the `Debug` text of Rust's types, not wor
 - Read: rustls 0.23.46 writes a `CertificateError` with no `Display` arm of its own as its `Debug`, and each error of
   rustls-webpki as `Other(OtherError(NAME))`; `pod-tls`'s `handshake_failure` keeps that text and adds a hint for an
   unknown issuer and a clock (PodUtils/podcrates:crates/pod-tls/src/hint.rs, `handshake_hint`, `cause`).
-- Read: podssh-ws took the text as it came, in `handshake_failure` (`crates/podssh-ws/src/tls.rs:129`) and in the
-  `why` of `ConnectError::Tls` (`crates/podssh-ws/src/tls.rs:148`), which each road and `relay status` say.
+- Read: podssh-ws took the text as it came, in `handshake_failure` (`crates/podssh-ws/src/tls.rs:131`) and in the
+  `why` of `ConnectError::Tls` (`crates/podssh-ws/src/tls.rs:150`), which each road and `relay status` say.
 
 ## Approach
 

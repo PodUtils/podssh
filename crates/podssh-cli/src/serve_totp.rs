@@ -72,6 +72,12 @@ mod tests {
         assert_eq!(create(&args, &mut out, &mut err), 0, "{}", String::from_utf8_lossy(&err));
         assert_eq!(String::from_utf8_lossy(&out), format!("{shown}\n"), "the path alone");
         assert_eq!(create(&args, &mut out, &mut err), EX_CANTCREAT);
+        // Under a directory that is not there: that directory, no os error.
+        let nodir = ServeArgs { totp_new: Some(dir.join("none/t").display().to_string()), ..ServeArgs::default() };
+        err.clear();
+        assert_eq!(create(&nodir, &mut out, &mut err), EX_CANTCREAT);
+        let said = String::from_utf8_lossy(&err);
+        assert!(said.ends_with("none does not exist\n") && !said.contains("os error"), "{said}");
         let served = ServeArgs { stdio: true, ..args.clone() };
         assert_eq!(create(&served, &mut out, &mut err), EXIT_USAGE);
         let reading = ServeArgs { totp: Some(shown), ..ServeArgs::default() };

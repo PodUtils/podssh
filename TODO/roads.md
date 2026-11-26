@@ -4165,7 +4165,7 @@ the task (`transport::settle`); five commands do not.
 - Read: `crates/podssh-cli/src/job/far.rs:64-82`,
   `crates/podssh-cli/src/pipe/ssh.rs:68-91`,
   `crates/podssh-cli/src/health/mod.rs:181-189`,
-  `crates/podssh-cli/src/containers/mod.rs:186-197` and
+  `crates/podssh-cli/src/containers/mod.rs:196-207` and
   `crates/podssh-cli/src/ssh/upgrade.rs:93-108` take `reached.stream` and
   drop `reached.layer`.
 

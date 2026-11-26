@@ -61,7 +61,13 @@ impl Served {
     pub(super) fn admit(&self, key: &PublicKey) -> Result<Arc<Rules>, String> {
         match self.authorized.admit(key, &Context::now(self.settings.peer)) {
             Admission::Admitted(rules) => Ok(rules),
-            Admission::Unlisted => Err(UNLISTED.to_string()),
+            // Said too, as the client hears only "Permission denied": a
+            // client's line names no key. russh's bound of tries per
+            // connection bounds these lines.
+            Admission::Unlisted => {
+                self.settings.say(&format!("key {} refused: {UNLISTED}", crate::known_hosts::fingerprint(key)));
+                Err(UNLISTED.to_string())
+            }
             Admission::Refused(reasons) => {
                 let who = crate::known_hosts::fingerprint(key);
                 for why in &reasons {

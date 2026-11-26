@@ -62,12 +62,17 @@ async fn watcher_on(tty: Tty) {
         assert!(!seen.contains(word) && !watched.contains(word), "{tty:?}: {word} reached the tty: {seen}");
     }
 
-    // A name runs nothing else.
+    // A name runs nothing else: the command is taken and ends with 1 and
+    // the reason, which OpenSSH's client shows (a failure would lose it).
     let other = Seat::open(server.login(&read, &key()).await.expect("again")).await;
     other.write.exec(true, "echo RAN").await.unwrap();
-    other.until("the refusal", |seen| !seen.replies.is_empty()).await;
-    assert_eq!(other.seen.lock().unwrap().replies, vec![false], "{tty:?}");
-    assert!(String::from_utf8_lossy(&other.seen.lock().unwrap().err).contains("shared shell"), "{tty:?}");
+    other.until("the refusal", |seen| seen.closed).await;
+    {
+        let refused = other.seen.lock().unwrap();
+        assert_eq!((&refused.replies, refused.status), (&vec![true], Some(1)), "{tty:?}");
+        assert!(!refused.text().contains("RAN"), "{tty:?}");
+        assert!(String::from_utf8_lossy(&refused.err).contains("shared shell"), "{tty:?}");
+    }
 
     // A deleted name lets no one new in, and the seat that it opened stays.
     assert!(server.control.unshare(&read));

@@ -21,7 +21,8 @@ pub(super) const CHAT: &[&str] = &[
     "A file is written only once the user accepts it, with /accept, or each file with --accept-dir DIR: \
      under a temporary name in its directory, checked against the SHA-256 that the peer offered, and only \
      then given its name; never over a file that is there, and never out of the directory, as the name \
-     is the last part of the offered one. The peer hears whether each file was kept.",
+     is the last part of the offered one. The peer hears whether each file was kept. A file that --accept-dir \
+     declines, as one of that name is there, goes with its reason: over IRC in the decline, else as a message.",
     "The peer acknowledges each message, and a message with no acknowledgement when a conversation ends \
      is said, as not delivered. A run ends once stdin ended and each message and file went; with \
      --accept-dir, once the peer leaves, as its files can come after stdin ended. --send MESSAGE sends one \

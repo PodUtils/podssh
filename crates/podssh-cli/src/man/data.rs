@@ -46,12 +46,13 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              JSON, too large, a policy or a gateway that is not valid, or a signature that fails; add of a key that another member \
              has; take of a document that the rule of the store refuses; policy test: a case is false; policy diff \
              --exit-code: the new policy widens the old. podssh agent: a key file that is no key, or lock \
-             passwords that differ.",
+             passwords that differ. podssh sftp: the file of -b is not UTF-8 text.",
         ),
         row(
             sysexits::EX_NOINPUT,
             "podssh cp and mv: a source is missing or cannot be read. podssh mv: a source that changed \
-             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read. \
+             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read, or a path that a \
+             command names is not on the server. \
              podssh net: the FILE of take, policy set, test or diff, or gateway set is missing or cannot be read. \
              podssh agent: a key file is missing or cannot be read, or no passphrase or password came.",
         ),
@@ -88,7 +89,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             sysexits::EX_CANTCREAT,
             "podssh cp and mv: the destination cannot be written. podssh edit: the far file changed since \
              it was fetched, so nothing was sent and the copy here stays, or no cache directory takes the copy. \
-             podssh chat: the directory of --accept-dir is not there. podssh each: a file of --output-dir \
+             podssh chat: the path of --accept-dir is not there, or is no directory. podssh each: a file of --output-dir \
              cannot be made; no host has run.",
         ),
         row(

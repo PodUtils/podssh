@@ -29,6 +29,10 @@ mod host;
 pub mod out;
 mod record;
 
+// A host's line without the host that a prefix names already (T-981),
+// for each verb that says a host before its line.
+pub(crate) use host::unlabeled;
+
 use std::io::Write;
 use std::path::Path;
 use std::sync::Mutex;

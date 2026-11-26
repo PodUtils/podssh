@@ -44,6 +44,8 @@ fn each_listen_value_reads_or_is_refused_with_its_words() {
         ("", "PORT is a number"),
         ("x", "PORT is a number"),
         ("70000", "PORT is a number"),
+        ("badaddr", "badaddr: no port: an address takes one after it"),
+        ("x", "no port"),
         ("example.org:22", "no name is resolved"),
         ("::1:22", "in brackets"),
         ("[x]:22", "not an IPv6 address"),

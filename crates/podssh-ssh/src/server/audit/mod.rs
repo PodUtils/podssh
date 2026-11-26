@@ -107,9 +107,11 @@ impl Audit {
     /// `say` is where the one line of a failed write goes.
     pub fn open(path: &Path, commands: bool, say: Option<Say>) -> Result<Arc<Audit>, String> {
         let shown = path.display();
+        // The log is its own lock: an error of the lock is said of the log,
+        // never of a "lock file" the user did not name.
         let lock = pod_core::lock::FileLock::lock_within(path, pod_core::lock::Mode::Exclusive, LOCK_WAIT)
-            .map_err(|e| format!("--audit-log {shown}: {e}"))?;
-        let meta = lock.file().metadata().map_err(|e| format!("--audit-log {shown}: {e}"))?;
+            .map_err(|e| format!("--audit-log {shown}: {}", opening_words(path, &e)))?;
+        let meta = lock.file().metadata().map_err(|e| format!("--audit-log {shown}: {}", podssh_ws::text::said(&e)))?;
         if !meta.is_file() {
             return Err(format!("--audit-log {shown}: not a regular file"));
         }
@@ -175,6 +177,16 @@ impl Audit {
     }
 }
 
+/// What a failed open of the log says: the missing directory, "no such
+/// file", the system's words; or the lock's own words (a writer that held
+/// it past [`LOCK_WAIT`]), with no "(os error N)".
+fn opening_words(path: &Path, e: &pod_core::failure::Failure) -> String {
+    match e.io_cause() {
+        Some(io) => podssh_ws::text::file_said(path, io),
+        None => podssh_ws::text::said(e),
+    }
+}
+
 /// The thread: each line appended under the file's lock, chained to the
 /// line before it, whoever wrote that one.
 fn write_each(path: &Path, jobs: &mpsc::Receiver<Job>, say: Option<&Say>) {
@@ -206,9 +218,9 @@ fn write_each(path: &Path, jobs: &mpsc::Receiver<Job>, say: Option<&Say>) {
 fn append(path: &Path, event: &str, level: Level, mut fields: Map<String, Value>) -> Result<(), String> {
     use std::io::{Seek, SeekFrom, Write};
     let lock = pod_core::lock::FileLock::lock_within(path, pod_core::lock::Mode::Exclusive, LOCK_WAIT)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| podssh_ws::text::said(&e))?;
     let mut file = lock.file();
-    let (prev, cut) = chain::tail(file).map_err(|e| e.to_string())?;
+    let (prev, cut) = chain::tail(file).map_err(|e| podssh_ws::text::said(&e))?;
     fields.insert("prev".into(), Value::from(prev));
     let mut bytes = Vec::new();
     // A write that a crash cut short ends its own line: the chain covers
@@ -218,10 +230,10 @@ fn append(path: &Path, event: &str, level: Level, mut fields: Map<String, Value>
     }
     bytes.extend_from_slice(render(SystemTime::now(), event, level, &fields).as_bytes());
     bytes.push(b'\n');
-    file.seek(SeekFrom::End(0)).map_err(|e| e.to_string())?;
+    file.seek(SeekFrom::End(0)).map_err(|e| podssh_ws::text::said(&e))?;
     // One write of the whole line, so that a reader without the lock sees
     // whole lines, or the cut that the check names.
-    file.write_all(&bytes).map_err(|e| e.to_string())?;
+    file.write_all(&bytes).map_err(|e| podssh_ws::text::said(&e))?;
     Ok(())
 }
 
