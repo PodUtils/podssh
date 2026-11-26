@@ -44,6 +44,8 @@ pub fn run(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         Ok(plan) => plan,
         Err(refusal) => return refusal.report("session", err),
     };
+    let mut sink = std::io::sink();
+    let err = super::said(args, err, &mut sink);
     super::start::no_stdin();
     let Some(runtime) = super::runtime(err) else { return super::NO_RUNTIME };
     // On the heap: the future of a road is large.

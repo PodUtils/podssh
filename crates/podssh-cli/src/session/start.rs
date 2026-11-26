@@ -28,6 +28,8 @@ pub fn run(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         Ok(timeout) => timeout.unwrap_or(super::DEFAULT_TIMEOUT),
         Err(why) => return crate::relay_settings::Refusal::usage(why).report("session", err),
     };
+    let mut sink = std::io::sink();
+    let err = super::said(args, err, &mut sink);
     let Some(runtime) = super::runtime(err) else { return super::NO_RUNTIME };
     let code = runtime.block_on(start(args, timeout, out, err));
     // The child runs on; a read of its pipes may still wait.

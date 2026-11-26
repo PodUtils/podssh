@@ -250,6 +250,26 @@ fn a_bad_command_line_or_no_listener_refuses_before_anything_listens() {
     }
 }
 
+/// T-1069: `-q` leaves out podssh's own lines, errors included, as for
+/// `podssh job`, and the exit code stays; a refusal of the command line is
+/// still said.
+#[test]
+fn quiet_leaves_out_the_error_lines_and_keeps_the_code() {
+    let home = scratch("quiet");
+    for args in [&["stop", "nosuch"][..], &["send", "nosuch", "hi"][..], &["capture", "nosuch"][..], &["wait", "w"][..]] {
+        let (code, _, err) = session(&home, args);
+        assert_eq!(code, 69, "{args:?}: {err}");
+        assert!(err.contains("no session nosuch"), "{args:?}: {err}");
+        let mut quiet = args.to_vec();
+        quiet.insert(1, "-q");
+        let (code, out, err) = session(&home, &quiet);
+        assert_eq!((code, out.as_str(), err.as_str()), (69, "", ""), "{quiet:?}");
+    }
+    let (code, _, err) = session(&home, &["stop", "-q"]);
+    assert_eq!(code, 64, "{err}");
+    assert!(err.contains("give the session's name"), "{err}");
+}
+
 #[test]
 fn a_start_that_cannot_connect_exits_255_and_leaves_no_socket() {
     let home = scratch("closed");

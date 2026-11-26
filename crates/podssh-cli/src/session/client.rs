@@ -23,6 +23,8 @@ const ANSWER_WAIT: Duration = Duration::from_secs(30);
 /// Run a request of `args`'s session, and give its answer: the screen of a
 /// capture on stdout, as is; what ended a wait. The exit code.
 pub fn request(args: &SessionArgs, op: Op, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    let mut sink = std::io::sink();
+    let err = super::said(args, err, &mut sink);
     let name = args.name();
     let Some(path) = place::find(name, args.socket.as_deref()) else {
         let _ = writeln!(err, "podssh session: no session {name}: podssh session list names each one");
