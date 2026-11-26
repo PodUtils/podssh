@@ -176,7 +176,7 @@ fn pkcs8_scheme(text: &str) -> Result<(), Error> {
                 "an encrypted PKCS#8 key of a scheme of PKCS#12 ({oid}), which podssh does not open: it opens PBES2"
             )),
             Some(oid) => refused(format!("an encrypted PKCS#8 key of the scheme {oid}, which podssh does not open")),
-            None => refused(format!("an encrypted PKCS#8 key that podssh cannot read ({e})")),
+            None => refused(format!("an encrypted PKCS#8 key that podssh cannot read ({})", podssh_ws::text::said(&e))),
         },
     }
 }

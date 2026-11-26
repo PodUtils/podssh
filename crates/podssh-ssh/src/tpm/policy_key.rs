@@ -31,7 +31,10 @@ impl PolicyKey {
             ));
         }
         // The blob of SSH: the name, the curve, then the point (RFC 5656).
-        let blob = key.public_key().to_bytes().map_err(|e| format!("the policy key cannot be read: {e}"))?;
+        let blob = key
+            .public_key()
+            .to_bytes()
+            .map_err(|e| format!("the policy key cannot be read: {}", podssh_ws::text::said(&e)))?;
         let mut rest = blob.as_slice();
         let mut strings = Vec::with_capacity(3);
         for _ in 0..3 {
@@ -42,7 +45,7 @@ impl PolicyKey {
             rest = tail;
         }
         let point = strings[2];
-        let public = external_p256(point).map_err(|e| e.to_string())?;
+        let public = external_p256(point).map_err(|e| podssh_ws::text::said(&e))?;
         Ok(PolicyKey { key, public })
     }
 
@@ -63,12 +66,14 @@ impl PolicyKey {
         policy_ref: &[u8],
         name: Option<String>,
     ) -> Result<AuthPolicy, String> {
-        let statement = pcr::policy_pcr_now(t, pcrs).map_err(|e| e.to_string())?;
-        let approved = Policy::new(vec![statement.clone()]).digest(HashAlg::Sha256).map_err(|e| e.to_string())?;
-        let a_hash = approved_policy_hash(HashAlg::Sha256, &approved, policy_ref).map_err(|e| e.to_string())?;
+        let statement = pcr::policy_pcr_now(t, pcrs).map_err(|e| podssh_ws::text::said(&e))?;
+        let approved =
+            Policy::new(vec![statement.clone()]).digest(HashAlg::Sha256).map_err(|e| podssh_ws::text::said(&e))?;
+        let a_hash =
+            approved_policy_hash(HashAlg::Sha256, &approved, policy_ref).map_err(|e| podssh_ws::text::said(&e))?;
         let signature = self.sign(&a_hash)?.to_tpmt();
         let authorize = Authorize { public: self.public.clone(), policy_ref: policy_ref.to_vec(), signature };
-        let steps = vec![statement, Statement::authorize(&authorize).map_err(|e| e.to_string())?];
+        let steps = vec![statement, Statement::authorize(&authorize).map_err(|e| podssh_ws::text::said(&e))?];
         Ok(AuthPolicy { name, policy: Policy::new(steps) })
     }
 
@@ -82,9 +87,10 @@ impl PolicyKey {
             return Err("the policy key is not an open ECDSA P-256 key".into());
         };
         let signer = p256::ecdsa::SigningKey::from_slice(private.as_slice())
-            .map_err(|e| format!("the policy key cannot sign: {e}"))?;
-        let signature: p256::ecdsa::Signature =
-            signer.sign_prehash(digest).map_err(|e| format!("the policy key did not sign: {e}"))?;
+            .map_err(|e| format!("the policy key cannot sign: {}", podssh_ws::text::said(&e)))?;
+        let signature: p256::ecdsa::Signature = signer
+            .sign_prehash(digest)
+            .map_err(|e| format!("the policy key did not sign: {}", podssh_ws::text::said(&e)))?;
         let bytes = signature.to_bytes();
         let (r, s) = bytes.split_at(32);
         Ok(EcdsaSignature { r: r.try_into().unwrap_or([0; 32]), s: s.try_into().unwrap_or([0; 32]) })

@@ -67,7 +67,7 @@ impl Pair {
     /// The reply to the request whose sending gave `sent`.
     pub(super) async fn reply(&mut self, sent: Result<(), russh::Error>) -> Reply {
         if let Err(e) = sent {
-            return Reply::Lost(format!("the upstream's channel is gone ({e})"));
+            return Reply::Lost(format!("the upstream's channel is gone ({})", podssh_ws::text::said(&e)));
         }
         match tokio::time::timeout(REPLY_LIMIT, self.replies.recv()).await {
             Ok(Some(true)) => Reply::Yes,

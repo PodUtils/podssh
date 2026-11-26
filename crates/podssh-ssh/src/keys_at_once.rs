@@ -49,7 +49,7 @@ impl PublicKeys {
             let call = handle.authenticate_publickey_signed(user, key);
             let result = within(self.limit, &self.host, "the signed publickey request", call)
                 .await?
-                .map_err(|e| format!("public key authentication failed: {e}"))?;
+                .map_err(|e| format!("public key authentication failed: {}", podssh_ws::text::said(&e)))?;
             self.offered.push(public);
             return Ok(Some(Step::from(result)));
         }

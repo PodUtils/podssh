@@ -56,16 +56,19 @@ pub fn read(path: &Path) -> Result<Option<Read>, String> {
     let mut file = match open(path) {
         Ok(file) => file,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(format!("{}: {e}", path.display())),
+        Err(e) => return Err(format!("{}: {}", path.display(), podssh_ws::text::said(&e))),
     };
-    let meta = file.metadata().map_err(|e| format!("{}: {e}", path.display()))?;
+    let meta = file.metadata().map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err(format!("{}: not a regular file", path.display()));
     }
     let mut bytes = Vec::new();
     // One byte past the limit tells a file of exactly LIMIT bytes from a
     // longer one.
-    (&mut file).take(LIMIT as u64 + 1).read_to_end(&mut bytes).map_err(|e| format!("{}: {e}", path.display()))?;
+    (&mut file)
+        .take(LIMIT as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     let cut = bytes.len() > LIMIT;
     bytes.truncate(LIMIT);
     Ok(Some(Read { bytes, cut }))

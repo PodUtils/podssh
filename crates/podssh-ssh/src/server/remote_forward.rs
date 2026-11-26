@@ -115,7 +115,7 @@ impl Opener {
         let opened = self.handle.channel_open_forwarded_tcpip(self.address.clone(), port, from, from_port);
         match opened.await {
             Ok(channel) => Ok(channel.into_stream()),
-            Err(e) => Err(format!("the client did not open the forwarded channel: {e}")),
+            Err(e) => Err(format!("the client did not open the forwarded channel: {}", podssh_ws::text::said(&e))),
         }
     }
 

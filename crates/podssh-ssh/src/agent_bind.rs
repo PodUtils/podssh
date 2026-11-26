@@ -84,7 +84,7 @@ where
     match tokio::time::timeout(limit, exchange(agent, binding)).await {
         Ok(Ok(SUCCESS)) => Bound::Yes,
         Ok(Ok(other)) => Bound::Refused(other),
-        Ok(Err(e)) => Bound::Lost(format!("the agent's connection failed at the bind: {e}")),
+        Ok(Err(e)) => Bound::Lost(format!("the agent's connection failed at the bind: {}", podssh_ws::text::said(&e))),
         Err(_) => Bound::Lost(format!("the agent did not answer the bind within {} s", limit.as_secs())),
     }
 }

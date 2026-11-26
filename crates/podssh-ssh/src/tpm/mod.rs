@@ -140,7 +140,7 @@ pub fn probe(named: Option<&Path>) -> Result<Device, String> {
     let place = platform::find(named.or(from_variable.as_deref()))?;
     let mut transport = platform::open(&place)?;
     let no_answer = |why: String| format!("no TPM: {} gave no answer of a TPM 2.0: {why}", place.describe());
-    let facts = pcr::capabilities(&mut *transport).map_err(|e| no_answer(e.to_string()))?;
+    let facts = pcr::capabilities(&mut *transport).map_err(|e| no_answer(podssh_ws::text::said(&e)))?;
     let maker = facts.manufacturer.ok_or_else(|| no_answer("it names no manufacturer".into()))?;
     Ok(Device { place, maker })
 }
@@ -189,7 +189,8 @@ pub(crate) fn make_on(
     };
     file.description = (!comment.is_empty()).then(|| comment.to_string());
     let public = ssh::public_key(&area.point)?;
-    signs_now(t, &file, &public).map_err(|e| format!("the new key {e}, so it is not kept"))?;
+    signs_now(t, &file, &public)
+        .map_err(|e| format!("the new key {}, so it is not kept", podssh_ws::text::said(&e)))?;
     Ok((file, public))
 }
 
@@ -202,7 +203,10 @@ fn create_signing(t: &mut dyn Transport, policy: &Policy) -> Result<(KeyFile, po
     match flow::create_signing(t, &mut Random, RH_OWNER, policy) {
         Err(e) if matches!(e.code().map(|c| c.code()), Some(Code::BadAuth | Code::AuthFail)) => {
             flow::create_signing(t, &mut Random, PERSISTENT_SRK, policy).map_err(|e| {
-                format!("{OWNER_PASSWORD}, and no storage key kept at {PERSISTENT_SRK:#010x} takes the key: {e}")
+                format!(
+                    "{OWNER_PASSWORD}, and no storage key kept at {PERSISTENT_SRK:#010x} takes the key: {}",
+                    podssh_ws::text::said(&e)
+                )
             })
         }
         other => other.map_err(text),
@@ -236,7 +240,8 @@ pub fn add_policy(
     let mut transport = device.open()?;
     let signed = policy_key.signed_now(&mut *transport, &pcrs, &head.policy_ref, name)?;
     let new = sign::add_signed_policy(file, signed).map_err(text)?;
-    signs_now(&mut *transport, &new, &public_key(&new)?).map_err(|e| format!("with the new policy, the key {e}"))?;
+    signs_now(&mut *transport, &new, &public_key(&new)?)
+        .map_err(|e| format!("with the new policy, the key {}", podssh_ws::text::said(&e)))?;
     Ok(new)
 }
 
@@ -263,8 +268,10 @@ pub fn takes_signed_policies(file: &KeyFile) -> bool {
 /// the signature; else why not, as the end of a sentence.
 fn signs_now(transport: &mut dyn Transport, file: &KeyFile, public: &PublicKey) -> Result<(), String> {
     let challenge: [u8; 32] = rand::random();
-    let blob = sign_with(transport, file, &challenge).map_err(|e| format!("did not sign: {e}"))?;
-    check(public, &challenge, &blob).map_err(|e| format!("gave a signature that failed its check: {e}"))
+    let blob =
+        sign_with(transport, file, &challenge).map_err(|e| format!("did not sign: {}", podssh_ws::text::said(&e)))?;
+    check(public, &challenge, &blob)
+        .map_err(|e| format!("gave a signature that failed its check: {}", podssh_ws::text::said(&e)))
 }
 
 /// The signature of `data` with the key of `file`, as SSH carries it
@@ -307,8 +314,8 @@ fn check_parent(file: &KeyFile) -> Result<(), String> {
 /// Whether `blob` is a valid signature of `data` by `public`, checked by
 /// ssh-key, as a server checks it.
 pub fn check(public: &PublicKey, data: &[u8], blob: &[u8]) -> Result<(), String> {
-    let signature = Signature::try_from(blob).map_err(|e| e.to_string())?;
-    public.key_data().verify(data, &signature).map_err(|e| e.to_string())
+    let signature = Signature::try_from(blob).map_err(|e| podssh_ws::text::said(&e))?;
+    public.key_data().verify(data, &signature).map_err(|e| podssh_ws::text::said(&e))
 }
 
 /// The public key of a key file of a TPM.
@@ -327,19 +334,21 @@ pub fn is_key_file(path: &Path) -> bool {
 /// The key file of a TPM at `path`, read with a bound on its size.
 pub fn read_key_file(path: &Path) -> Result<KeyFile, String> {
     let max = pod_tpm::keyfile::MAX_PEM;
-    let file = std::fs::File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let file = std::fs::File::open(path).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     let mut text = Vec::new();
-    file.take(max as u64 + 1).read_to_end(&mut text).map_err(|e| format!("{}: {e}", path.display()))?;
+    file.take(max as u64 + 1)
+        .read_to_end(&mut text)
+        .map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     if text.len() > max {
         return Err(format!("{}: more than {max} bytes, which no key file of a TPM has", path.display()));
     }
     let text = String::from_utf8(text).map_err(|_| format!("{}: not text", path.display()))?;
-    KeyFile::from_pem(&text).map_err(|e| format!("{}: {e}", path.display()))
+    KeyFile::from_pem(&text).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))
 }
 
 /// The line of an error of `pod-tpm`.
 fn text(e: pod_tpm::Error) -> String {
-    e.to_string()
+    podssh_ws::text::said(&e)
 }
 
 /// What the tests of a real TPM need beside a user's operations: a change

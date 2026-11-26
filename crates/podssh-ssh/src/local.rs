@@ -173,7 +173,7 @@ pub async fn serve(handle: &Handle<Client>, forwards: &[LocalForward], log: &Arc
                     opening.push(carry(handle, forward, conn, log));
                 }
                 Err(_) if listener.closed() => log.verbose(&format!("{}: a listener is closed", forward.shown)),
-                Err(e) => log.info(&format!("{}: a listener failed and is closed: {e}", forward.shown)),
+                Err(e) => log.info(&format!("{}: a listener failed and is closed: {}", forward.shown, podssh_ws::text::said(&e))),
             },
             Some(()) = opening.next() => {}
             else => break,

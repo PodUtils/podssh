@@ -63,7 +63,7 @@ pub(super) async fn start_program(
         Ok::<_, shell::NoShell>((found, child_env, extras))
     })
     .await
-    .map_err(|e| format!("the search for a shell failed: {e}"))?
+    .map_err(|e| format!("the search for a shell failed: {}", podssh_ws::text::said(&e)))?
     .map_err(|none| none.to_string())?;
     said.iter().for_each(|told| settings.say(told));
     open.extras = extras;

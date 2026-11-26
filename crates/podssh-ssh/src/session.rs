@@ -103,7 +103,7 @@ pub async fn attach(
         channel
             .request_pty(true, &terminal::term_name(), size.cols, size.rows, size.px_width, size.px_height, &modes)
             .await
-            .map_err(|e| format!("could not request a pseudo-terminal: {e}"))?;
+            .map_err(|e| format!("could not request a pseudo-terminal: {}", podssh_ws::text::said(&e)))?;
         if !together {
             pty = granted(&mut channel, &mut early, log).await?;
         }
@@ -141,7 +141,7 @@ pub async fn attach(
     let mut elevated = None;
     let what = match &opts.request {
         Request::Shell => {
-            channel.request_shell(true).await.map_err(|e| e.to_string())?;
+            channel.request_shell(true).await.map_err(|e| podssh_ws::text::said(&e))?;
             "a shell".to_string()
         }
         Request::Exec(command) => {
@@ -157,11 +157,11 @@ pub async fn attach(
                 }
                 None => command.clone(),
             };
-            channel.exec(true, line.as_bytes()).await.map_err(|e| e.to_string())?;
+            channel.exec(true, line.as_bytes()).await.map_err(|e| podssh_ws::text::said(&e))?;
             "the command".to_string()
         }
         Request::Subsystem(name) => {
-            channel.request_subsystem(true, name.as_str()).await.map_err(|e| e.to_string())?;
+            channel.request_subsystem(true, name.as_str()).await.map_err(|e| podssh_ws::text::said(&e))?;
             format!("the subsystem '{name}'")
         }
         Request::StdioForward(_) | Request::Nothing => unreachable!("not a session request"),
@@ -181,7 +181,7 @@ pub async fn attach(
         match terminal::RawMode::enter() {
             Ok(r) => Some(r),
             Err(e) => {
-                log.info(&format!("could not put the terminal in raw mode: {e}"));
+                log.info(&format!("could not put the terminal in raw mode: {}", podssh_ws::text::said(&e)));
                 None
             }
         }
@@ -202,7 +202,7 @@ pub async fn attach(
         let size = terminal::size().unwrap_or_else(terminal::fallback_size);
         let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
         crate::record::Recorder::start(file, size, &terminal::term_name(), now)
-            .map_err(|e| log.info(&format!("--record: the file could not be written: {e}")))
+            .map_err(|e| log.info(&format!("--record: the file could not be written: {}", podssh_ws::text::said(&e))))
             .ok()
     });
     // ZMODEM (T-148) only with a raw terminal and a terminal on stdout: with

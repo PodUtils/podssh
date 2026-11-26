@@ -20,7 +20,7 @@ pub(super) fn read(path: &Path) -> Result<Vec<(String, String)>, String> {
     let meta = match std::fs::symlink_metadata(path) {
         Ok(meta) => meta,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(format!("{}: {e}", path.display())),
+        Err(e) => return Err(format!("{}: {}", path.display(), podssh_ws::text::said(&e))),
     };
     if !meta.is_file() {
         return Err(format!("{}: not a regular file", path.display()));
@@ -28,7 +28,7 @@ pub(super) fn read(path: &Path) -> Result<Vec<(String, String)>, String> {
     if meta.len() > LONGEST {
         return Err(format!("{}: longer than {LONGEST} bytes, which no record is", path.display()));
     }
-    let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let bytes = std::fs::read(path).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     Ok(parse(&String::from_utf8_lossy(&bytes)))
 }
 

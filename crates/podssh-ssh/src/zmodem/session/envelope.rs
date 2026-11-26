@@ -310,7 +310,7 @@ impl Envelope {
         match files::read_at(&mut sending.file, offset, &mut buf) {
             Ok(n) => self.codec.supply(&buf[..n]),
             Err(e) => {
-                let why = format!("{} could not be read: {e}", sending.name);
+                let why = format!("{} could not be read: {}", sending.name, podssh_ws::text::said(&e));
                 self.codec.stop(stop::LOCAL, &why);
             }
         }
@@ -319,7 +319,7 @@ impl Envelope {
     fn write(&mut self, bytes: &[u8]) {
         let written = self.incoming.as_mut().map_or(Ok(()), |file| file.write(bytes));
         if let Err(e) = written {
-            self.codec.stop(stop::LOCAL, &format!("the file could not be written: {e}"));
+            self.codec.stop(stop::LOCAL, &format!("the file could not be written: {}", podssh_ws::text::said(&e)));
         }
     }
 

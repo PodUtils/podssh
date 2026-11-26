@@ -27,7 +27,7 @@ Read:
 
 - `resolve` removes `publickey` from the methods when `PubkeyAuthentication`
   is `no` (`crates/podssh-cli/src/ssh/login.rs:59-67`). The chain then
-  never offers a key (`crates/podssh-ssh/src/auth.rs:124-126`).
+  never offers a key (`crates/podssh-ssh/src/auth.rs:129-131`).
 - The denial adds the notes of the keys with no condition
   (`crates/podssh-ssh/src/auth.rs` line 115 at `475aea9`). `PublicKeys::notes` writes "no key
   was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:169-188`).
@@ -534,7 +534,7 @@ Read:
   same way when no CA line matches; podssh never looks for a CA line.
 - The refusal comes from the policy: `crates/podssh-ssh/src/hostkey.rs:189-193`
   (`yes`), `crates/podssh-ssh/src/hostkey.rs:199-203` (BatchMode),
-  `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
+  `crates/podssh-ssh/src/hostkey.rs:228-236` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
 - `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7425-7426`).
@@ -805,7 +805,7 @@ measured: a race needs two processes; the test below makes it certain.
 
 ## Approach
 
-1. In `append` (`crates/podssh-ssh/src/known_hosts.rs:335-410`), lock the open
+1. In `append` (`crates/podssh-ssh/src/known_hosts.rs:335-412`), lock the open
    file with `std::fs::File::try_lock`. It is stable since Rust 1.89, the
    minimum that `crates/podssh-ssh/Cargo.toml:8` declares, and it needs no new
    dependency (`flock` on Unix, `LockFileEx` on Windows). Try again for 5 s at
@@ -813,7 +813,7 @@ measured: a race needs two processes; the test below makes it certain.
 2. Under the lock, read the file again and look the name up. The same key:
    write nothing. Another key of the same type: return a new result, and let
    `record` refuse with the changed-key message
-   (`crates/podssh-ssh/src/hostkey.rs:352-376`). Else append.
+   (`crates/podssh-ssh/src/hostkey.rs:357-381`). Else append.
 3. Hold the lock only for the read and the write, never across a prompt.
 4. When the file system refuses locks, append as today, with a verbose note
    (a fallback that says so, `AGENTS.md:455`).
@@ -992,7 +992,7 @@ and no other.
 ## Premise
 
 - Read: the host-key question accepts a typed fingerprint
-  (`crates/podssh-ssh/src/hostkey.rs:223-241`), and an `SSH_ASKPASS` program
+  (`crates/podssh-ssh/src/hostkey.rs:223-244`), and an `SSH_ASKPASS` program
   can answer it (`crates/podssh-ssh/src/prompt.rs:50-73`). A script then
   needs an askpass program that it can run, which a noexec sandbox can
   refuse.
@@ -1014,7 +1014,7 @@ and no other.
    only, as `HostKeyAlias` (`crates/podssh-ssh/src/run.rs:309-314`).
 3. In `Policy::check`, refuse a revoked key and a changed key first, as today
    (`crates/podssh-ssh/src/hostkey.rs:147-150`). Then accept a key whose SHA-256
-   fingerprint (`crates/podssh-ssh/src/known_hosts.rs:426-429`) is in the
+   fingerprint (`crates/podssh-ssh/src/known_hosts.rs:428-431`) is in the
    list, and record nothing. Refuse any other key, also under `accept-new`
    and `no`, with the fingerprint seen and the ones expected.
 4. Jump hops keep the normal policy; say so in the help.
@@ -1338,7 +1338,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: podssh uses an agent that `SSH_AUTH_SOCK` names, today. On Unix it
   connects to that socket, or to `IdentityAgent PATH`; on Windows it tries
   the named pipe of `SSH_AUTH_SOCK`, then the pipe of the OpenSSH agent, then
-  Pageant (`crates/podssh-ssh/src/keys.rs:429-466`, `connect_agent`). It offers the agent's
+  Pageant (`crates/podssh-ssh/src/keys.rs:429-469`, `connect_agent`). It offers the agent's
   keys first (`crates/podssh-ssh/src/keys.rs:234-303`), and skips the agent's
   certificates (`crates/podssh-ssh/src/keys.rs:242-245`).
 - Read: russh 0.64.1, which the binary links, has an agent server
@@ -1634,7 +1634,7 @@ Read, at `4cfbd5f`:
 - A prompt goes to `SSH_ASKPASS` or to the terminal; with neither, podssh
   refuses and names the remedy (`crates/podssh-ssh/src/prompt.rs:50-93`).
   The askpass program's answer is zeroized
-  (`crates/podssh-ssh/src/prompt.rs:137-154`).
+  (`crates/podssh-ssh/src/prompt.rs:137-156`).
 - The prompts for a credential: the passphrase of a key file
   (`crates/podssh-ssh/src/keys.rs`, lines 211-236), the password
   (`crates/podssh-ssh/src/auth.rs`, lines 231-274), and the answers of
@@ -1733,7 +1733,7 @@ gives the extension messages and the exit codes; the manual's EXIT STATUS has 65
   source; the tests of the password and of keyboard-interactive failed.
 - The doctor's tests failed in their first run on this host, where no agent runs: russh's stream
   to Pageant opens when no Pageant runs, and closes at the first request, so the line said FAIL.
-  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:451-455`), which also
+  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:453-457`), which also
   spares `podssh ssh` that stream, and reads an agent that closes the connection at the store's
   question as one with no store (`crates/podssh-ssh/src/credential_store.rs:366-373`). The
   doctor's tests: 10 passed, on Windows and in the build image.
@@ -1773,7 +1773,7 @@ with the key file of one, and has no agent to hold one.
   exit 64, and writes nothing.
 - Read: the default key files leave out the types of security keys
   (`crates/podssh-ssh/src/options.rs`, lines 392-399 at `c7c5aa6`). `known_hosts::key_type` names
-  them (`crates/podssh-ssh/src/known_hosts.rs:416-417`), and `ssh-key`
+  them (`crates/podssh-ssh/src/known_hosts.rs:418-419`), and `ssh-key`
   0.7.0-rc.11 has their algorithms.
 - Read: podssh offers each key that an agent lists
   (`crates/podssh-ssh/src/keys.rs:234-303`), so an `sk-` key in OpenSSH's
@@ -2058,7 +2058,7 @@ Not measured: it needs a server that stalls.
    (line 148 at `8d668b7` there), keyboard-interactive (`crates/podssh-ssh/src/auth.rs`
    lines 162-165 and 194 at `8d668b7`) and the password (lines 214-218 at `8d668b7` there).
 3. Do not count a local prompt: each prompt runs before its request
-   (`crates/podssh-ssh/src/auth.rs:235-240`). Pitfall: an agent that asks its
+   (`crates/podssh-ssh/src/auth.rs:240-245`). Pitfall: an agent that asks its
    user to confirm a signature (`ssh-add -c`) runs inside the agent request.
 4. On expiry, end with 255, and name the step, as "HOST did not answer the
    publickey request within 60 s".
@@ -6552,7 +6552,7 @@ KEY". The `--sudo` path names it.
 
 - Read: `decrypt` (`crates/podssh-ssh/src/keys.rs:368`) kept the path alone for both causes, and dropped the error of
   the question (now `crates/podssh-ssh/src/keys.rs:390`); the note had one fixed reason. The same fixed
-  words were in the notes of keyboard-interactive and password (`crates/podssh-ssh/src/auth.rs:256`) and of a
+  words were in the notes of keyboard-interactive and password (`crates/podssh-ssh/src/auth.rs:261`) and of a
   security key's PIN.
 
 ## Approach

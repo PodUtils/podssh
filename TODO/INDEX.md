@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**939 entries: 4 open, 33 partial, 15 blocked, 887 done.**
+**939 entries: 3 open, 33 partial, 15 blocked, 888 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
 | P2 | 0 | 20 | 3 | 342 | 365 |
-| P3 | 4 | 7 | 9 | 442 | 462 |
-| **All** | 4 | 33 | 15 | 887 | 939 |
+| P3 | 3 | 7 | 9 | 443 | 462 |
+| **All** | 3 | 33 | 15 | 888 | 939 |
 
 ## Entries
 
@@ -996,7 +996,7 @@ repository and CI).
 | [T-986](multi.md) | P3 | S | backlog | defect | done | `job fetch` of a lost job exits 0 and says nothing |
 | [T-987](cli.md) | P3 | S | backlog | defect | done | `node --print-unit` exits 73 when its stdout write fails, where an output that cannot be written is 74 |
 | [T-988](cli.md) | P3 | S | backlog | defect | done | A bad word of `--early-data` is said with the variable's name |
-| [T-989](robustness.md) | P3 | M | none | defect | open | `(os error N)` leaves each user line of `podssh-ssh`, as T-952 did for `podssh-cli` |
+| [T-989](robustness.md) | P3 | M | none | defect | done | `(os error N)` leaves each user line of `podssh-ssh`, as T-952 did for `podssh-cli` |
 | [T-990](serve.md) | P3 | S | backlog | defect | done | `serve`'s file flags say a missing file each in its own words, and `--audit-log` names a lock file |
 | [T-991](serve.md) | P3 | S | backlog | defect | done | A forward that `serve` cannot dial reaches the client with "(os error N)" |
 | [T-992](serve.md) | P3 | S | backlog | defect | done | `serve --listen localhost:PORT` listens though the manual says no name is resolved, and a bad host is called a bad port |

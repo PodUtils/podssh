@@ -52,7 +52,7 @@ pub fn probe() -> Result<Tool, String> {
     probe_with(Path::new(BOOTED), std::env::var_os("PATH").as_deref(), &|program, args| {
         pod_core::process::run_bounded(program, args, None, PROBE_WAIT)
             .map(|ran| ran.stdout)
-            .map_err(|e| format!("{program}: {e}"))
+            .map_err(|e| format!("{program}: {}", podssh_ws::text::said(&e)))
     })
 }
 
@@ -178,7 +178,7 @@ mod held {
 
     impl Hold {
         pub(in crate::server) fn new(tool: Tool) -> Result<Hold, String> {
-            let fail = |e: std::io::Error| format!("no pipe for the scope's hold: {e}");
+            let fail = |e: std::io::Error| format!("no pipe for the scope's hold: {}", podssh_ws::text::said(&e));
             Ok(Hold { tool, unit: super::unit_name(), pid: pipe().map_err(fail)?, go: pipe().map_err(fail)? })
         }
 
@@ -195,7 +195,7 @@ mod held {
                     let _go = go;
                     mover(&tool, &unit, &reader)
                 })
-                .map_err(|e| format!("no thread for the scope: {e}"))?;
+                .map_err(|e| format!("no thread for the scope: {}", podssh_ws::text::said(&e)))?;
             Ok(Moving { child_ends: (pid_w, go_r), pid_r, go_w, thread })
         }
     }
@@ -275,8 +275,8 @@ mod held {
         let args = call_args(unit, pid);
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
         let busctl = tool.busctl.to_string_lossy();
-        let ran =
-            pod_core::process::run_bounded(&busctl, &args, None, CALL_WAIT).map_err(|e| format!("{busctl}: {e}"))?;
+        let ran = pod_core::process::run_bounded(&busctl, &args, None, CALL_WAIT)
+            .map_err(|e| format!("{busctl}: {}", podssh_ws::text::said(&e)))?;
         if !ran.success() {
             return Err(format!("{busctl}: {}", ran.said()));
         }

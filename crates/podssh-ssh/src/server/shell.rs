@@ -130,14 +130,14 @@ pub fn check(path: &Path) -> Result<(), String> {
     let link = match std::fs::symlink_metadata(path) {
         Ok(meta) => meta,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Err("no such file".into()),
-        Err(e) => return Err(format!("cannot be looked at: {e}")),
+        Err(e) => return Err(format!("cannot be looked at: {}", podssh_ws::text::said(&e))),
     };
     let meta = match std::fs::metadata(path) {
         Ok(meta) => meta,
         Err(e) if e.kind() == io::ErrorKind::NotFound && link.file_type().is_symlink() => {
             return Err("a link to a missing file".into())
         }
-        Err(e) => return Err(format!("cannot be looked at: {e}")),
+        Err(e) => return Err(format!("cannot be looked at: {}", podssh_ws::text::said(&e))),
     };
     if meta.is_dir() {
         return Err("a directory".into());
@@ -207,7 +207,7 @@ pub fn probe(path: &Path, env: &[(OsString, OsString)]) -> Result<(), String> {
             }
             Err(e) => {
                 let _ = child.kill();
-                return Err(format!("could not be waited for: {e}"));
+                return Err(format!("could not be waited for: {}", podssh_ws::text::said(&e)));
             }
         }
     }
@@ -243,7 +243,7 @@ pub fn not_started(e: &io::Error) -> String {
         Some(libc::ENOENT) => "its loader or interpreter is missing".into(),
         Some(libc::EACCES) => "refused at its start (a noexec mount, or a security policy)".into(),
         Some(libc::ETXTBSY) => "open for writing at each of its starts (text file busy)".into(),
-        _ => format!("does not start: {e}"),
+        _ => format!("does not start: {}", podssh_ws::text::said(&e)),
     }
 }
 

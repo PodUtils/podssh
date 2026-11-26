@@ -72,7 +72,7 @@ impl Zmodem {
                 self.decide(true, now);
             }
             Err(e) => {
-                self.say(&format!("skipped {}: {e}", shown(&name)));
+                self.say(&format!("skipped {}: {}", shown(&name), podssh_ws::text::said(&e)));
                 self.decide(false, now);
             }
         }
@@ -92,7 +92,7 @@ impl Zmodem {
             _ => return,
         };
         if let Err(e) = written {
-            self.cancel(&format!("the file could not be written: {e}"), now);
+            self.cancel(&format!("the file could not be written: {}", podssh_ws::text::said(&e)), now);
         }
     }
 

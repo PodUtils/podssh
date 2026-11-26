@@ -210,7 +210,7 @@ impl Handler for Client {
         let check = move || crate::handshake::checking(&record, || policy.check_offer(&offer, &log));
         let verdict = tokio::task::spawn_blocking(check)
             .await
-            .unwrap_or_else(|e| Verdict::Reject(format!("the host key check failed: {e}")));
+            .unwrap_or_else(|e| Verdict::Reject(format!("the host key check failed: {}", podssh_ws::text::said(&e))));
         match verdict {
             Verdict::Accept => Ok(true),
             Verdict::Reject(message) => {

@@ -193,7 +193,7 @@ pub fn ask_pin(prompt: &str, may_ask: bool) -> Result<Zeroizing<String>, String>
     if !crate::prompt::can_ask() {
         return Err(format!("the key needs the PIN of its security key, and {}", crate::prompt::why_no_one()));
     }
-    crate::prompt::ask(prompt, false).map_err(|e| format!("the PIN of the security key: {e}"))
+    crate::prompt::ask(prompt, false).map_err(|e| format!("the PIN of the security key: {}", podssh_ws::text::said(&e)))
 }
 
 // A device in software, for the tests; last, as the manual's scan of the

@@ -168,8 +168,8 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<(), String> {
     options.write(true).create_new(true);
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-    let mut file = options.open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    file.write_all(bytes).map_err(|e| format!("{}: {e}", path.display()))
+    let mut file = options.open(path).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
+    file.write_all(bytes).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))
 }
 
 /// Where the files go: the child's `TMPDIR` when it is an absolute path,

@@ -79,7 +79,7 @@ impl KeyKind {
 /// by the operating system), carrying `comment`.
 pub fn generate(kind: KeyKind, comment: &str) -> Result<PrivateKey, String> {
     let mut rng = rand::rng();
-    let failed = |e: russh::keys::ssh_key::Error| format!("could not make the key: {e}");
+    let failed = |e: russh::keys::ssh_key::Error| format!("could not make the key: {}", podssh_ws::text::said(&e));
     let mut key = match kind {
         KeyKind::Ed25519 => PrivateKey::random(&mut rng, Algorithm::Ed25519).map_err(failed)?,
         KeyKind::Ecdsa(curve) => PrivateKey::random(&mut rng, Algorithm::Ecdsa { curve }).map_err(failed)?,
@@ -101,8 +101,9 @@ pub fn protect(key: PrivateKey, passphrase: &str) -> Result<PrivateKey, String> 
     if passphrase.is_empty() {
         return Ok(key);
     }
-    let mut locked =
-        key.encrypt(&mut rand::rng(), passphrase).map_err(|e| format!("could not encrypt the key: {e}"))?;
+    let mut locked = key
+        .encrypt(&mut rand::rng(), passphrase)
+        .map_err(|e| format!("could not encrypt the key: {}", podssh_ws::text::said(&e)))?;
     locked.set_comment(key.comment().clone());
     Ok(locked)
 }
@@ -132,8 +133,13 @@ pub struct KeyFiles {
 /// to `path.pub` (in place of one that is there, as `ssh-keygen` does), each
 /// made by `files`, which also makes a missing directory.
 pub fn write_pair(key: &PrivateKey, path: &Path, files: KeyFiles) -> Result<PathBuf, String> {
-    let private = key.to_openssh(LineEnding::LF).map_err(|e| format!("could not encode the key: {e}"))?;
-    let line = key.public_key().to_openssh().map_err(|e| format!("could not encode the public key: {e}"))?;
+    let private = key
+        .to_openssh(LineEnding::LF)
+        .map_err(|e| format!("could not encode the key: {}", podssh_ws::text::said(&e)))?;
+    let line = key
+        .public_key()
+        .to_openssh()
+        .map_err(|e| format!("could not encode the public key: {}", podssh_ws::text::said(&e)))?;
     write_texts(path, &private, &line, files)
 }
 
@@ -141,7 +147,7 @@ pub fn write_pair(key: &PrivateKey, path: &Path, files: KeyFiles) -> Result<Path
 /// public key's line.
 pub fn write_texts(path: &Path, private: &str, line: &str, files: KeyFiles) -> Result<PathBuf, String> {
     if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty() && !d.exists()) {
-        (files.dir)(dir).map_err(|e| format!("could not create {}: {e}", dir.display()))?;
+        (files.dir)(dir).map_err(|e| format!("could not create {}: {}", dir.display(), podssh_ws::text::said(&e)))?;
     }
     let mut file = (files.private)(path).map_err(|e| match e.kind() {
         std::io::ErrorKind::AlreadyExists => {
@@ -150,15 +156,20 @@ pub fn write_texts(path: &Path, private: &str, line: &str, files: KeyFiles) -> R
                 path.display()
             )
         }
-        _ => format!("could not create {}: {e}", path.display()),
+        _ => format!("could not create {}: {}", path.display(), podssh_ws::text::said(&e)),
     })?;
     if let Err(e) = file.write_all(private.as_bytes()).and_then(|()| file.sync_all()) {
         drop(file);
         let _ = std::fs::remove_file(path);
-        return Err(format!("could not write {}: {e}", path.display()));
+        return Err(format!("could not write {}: {}", path.display(), podssh_ws::text::said(&e)));
     }
     write_public(path, line, files).map_err(|(public, e)| {
-        format!("the private key is in {}, but {} could not be written: {e}", path.display(), public.display())
+        format!(
+            "the private key is in {}, but {} could not be written: {}",
+            path.display(),
+            public.display(),
+            podssh_ws::text::said(&e)
+        )
     })
 }
 
@@ -215,7 +226,7 @@ pub fn read_key_file(path: &Path) -> Result<KeyFile, String> {
             Err(russh::keys::Error::KeyIsEncrypted) => {
                 Err(format!("{shown} is encrypted: podssh keygen -y asks for its passphrase"))
             }
-            Err(e) => Err(format!("{shown}: not a key that podssh reads: {e}")),
+            Err(e) => Err(format!("{shown}: not a key that podssh reads: {}", podssh_ws::text::said(&e))),
         };
     }
     let line = start
@@ -223,7 +234,9 @@ pub fn read_key_file(path: &Path) -> Result<KeyFile, String> {
         .map(str::trim)
         .find(|l| !l.is_empty() && !l.starts_with('#'))
         .ok_or_else(|| format!("{shown}: no key in the file"))?;
-    PublicKey::from_openssh(line).map(KeyFile::Public).map_err(|e| format!("{shown}: not a public key: {e}"))
+    PublicKey::from_openssh(line)
+        .map(KeyFile::Public)
+        .map_err(|e| format!("{shown}: not a public key: {}", podssh_ws::text::said(&e)))
 }
 
 /// The key size `ssh-keygen -l` prints.

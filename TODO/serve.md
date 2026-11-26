@@ -29,7 +29,7 @@ core: the handshake, a host key that does not change, and key authentication.
   (`Eugeny/russh:russh/src/lib_inner.rs`, lines 69-70 at `22c3b88`), so
   `crates/podssh-ssh/Cargo.toml:15` has it. `run_stream` serves one
   connection over any stream, as `crates/podssh-ssh/src/run.rs:36-41` does.
-  To reuse: `crates/podssh-ssh/src/keygen.rs:78-163` (a key, mode 0600, never
+  To reuse: `crates/podssh-ssh/src/keygen.rs:78-174` (a key, mode 0600, never
   over a file), `crates/podssh-ssh/src/known_hosts.rs:266-271` (a key line),
   `crates/podssh-relay/src/cache/dirs.rs:136-241` (the directories).
 
@@ -645,7 +645,7 @@ the entry joins the work order by its priority.
   `32bf8af`; it is now `crates/podssh-ssh/src/terminal/modes.rs` (Approach item 2), one table that the
   client encodes its termios with and the server applies to the slave, and the client's
   `pty_modes_of` calls it. The doctor's probe was at `crates/podssh-cli/src/doctor/unix.rs` lines
-  95-154 at `32bf8af`; it is now `podssh_ssh::server::pty` (`crates/podssh-ssh/src/server/pty.rs:62-121`),
+  95-154 at `32bf8af`; it is now `podssh_ssh::server::pty` (`crates/podssh-ssh/src/server/pty.rs:62-123`),
   and the doctor's line `pty` calls it with the same words. The probe opens each master by path
   (`/dev/ptmx`, then `/dev/pts/ptmx`) where doctor called `posix_openpt`, which opens `/dev/ptmx` alone.
 - The client's answer to a refused pty moved: since T-664 it may read the answer after the session's
@@ -1356,8 +1356,8 @@ one-time code (TOTP) needs only a shared secret and a clock.
   partial success, then `auth_keyboard_interactive`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 175-208 and 309-318).
 - Read: podssh's client answers keyboard-interactive after a partial success
-  (`crates/podssh-ssh/src/auth.rs:146-157`,
-  `crates/podssh-ssh/src/auth.rs:242-327`), through the terminal or
+  (`crates/podssh-ssh/src/auth.rs:151-162`,
+  `crates/podssh-ssh/src/auth.rs:247-333`), through the terminal or
   `SSH_ASKPASS`.
 - Read: HMAC and SHA-1 are dependencies already
   (`crates/podssh-ssh/Cargo.toml:22-23`).
@@ -1455,7 +1455,7 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
   `vendor/russh/src/server/mod.rs:384-391`), with one fact the entry did not say: russh does not check that a method is in the set it sent
   (`vendor/russh/src/server/encrypted.rs:1124-1146`), so the handler keeps which key passed (Decision).
 - Premise item 2 moved: podssh's client answers keyboard-interactive after a partial success at
-  `crates/podssh-ssh/src/auth.rs:146-157` and `crates/podssh-ssh/src/auth.rs:242-327`, as cited; it holds.
+  `crates/podssh-ssh/src/auth.rs:151-162` and `crates/podssh-ssh/src/auth.rs:247-333`, as cited; it holds.
 - Premise item 3 holds at `crates/podssh-ssh/Cargo.toml:22-25` (`hmac` and `sha1`).
 - Approach item 2's "prints only the path" holds; the file is the secret's one line in base32, which an
   app takes, and `--totp-new` runs alone (64 with `--stdio`, NAME or `--totp`).
@@ -3170,7 +3170,7 @@ next tag. The Prove's `cargo test -p podssh-terminal` named a package that is go
 dropped, and the line discipline's own tests run in PodUtils/podcrates (`cargo test -p pod-term`).
 
 2026-11-13 (T-110's draft). `podssh doctor`'s line `pty` is now `podssh serve`'s own probe,
-`podssh_ssh::server::pty::open` (`crates/podssh-ssh/src/server/pty.rs:62-121`): it opens `/dev/ptmx`,
+`podssh_ssh::server::pty::open` (`crates/podssh-ssh/src/server/pty.rs:62-123`): it opens `/dev/ptmx`,
 then `/dev/pts/ptmx`, by path, where it called `posix_openpt`; route 1's `ptmx` of a new devpts
 instance can be one more path of that list, and serve grants a `pty-req` on whatever it opens.
 
@@ -5771,7 +5771,7 @@ gateway cannot use `Mint` today.
 
 ## Premise
 
-- Read: the gateway signs with `cert::certify` (`crates/podssh-ssh/src/server/gateway/upstream.rs:128`).
+- Read: the gateway signs with `cert::certify` (`crates/podssh-ssh/src/server/gateway/upstream.rs:131`).
 - Read: `Mint` signs with principals, a window and critical options, and no extension (PodUtils/podcrates:crates/pod-relay/src/grant/cert.rs
   at `v0.83.0`).
 

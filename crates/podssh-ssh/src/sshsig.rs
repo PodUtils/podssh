@@ -64,16 +64,17 @@ pub fn sign(key: &PrivateKey, namespace: &str, hash: HashAlg, prehash: &[u8]) ->
         return Err("the namespace is empty".into());
     }
     if key.algorithm().is_rsa() {
-        let data = SshSig::signed_data_for_prehash(namespace, hash, prehash).map_err(|e| e.to_string())?;
-        let bytes = crate::rsa_key::RsaSigner::of(key)?.sign_sha512(&data).map_err(|e| e.to_string())?;
-        let signature =
-            Signature::new(Algorithm::Rsa { hash: Some(HashAlg::Sha512) }, bytes).map_err(|e| e.to_string())?;
-        return SshSig::new(key.public_key().key_data().clone(), namespace, hash, signature).map_err(|e| e.to_string());
+        let data = SshSig::signed_data_for_prehash(namespace, hash, prehash).map_err(|e| podssh_ws::text::said(&e))?;
+        let bytes = crate::rsa_key::RsaSigner::of(key)?.sign_sha512(&data).map_err(|e| podssh_ws::text::said(&e))?;
+        let signature = Signature::new(Algorithm::Rsa { hash: Some(HashAlg::Sha512) }, bytes)
+            .map_err(|e| podssh_ws::text::said(&e))?;
+        return SshSig::new(key.public_key().key_data().clone(), namespace, hash, signature)
+            .map_err(|e| podssh_ws::text::said(&e));
     }
     // A key of a security key signs in its device, which asks for a touch
     // (T-229).
     if let Some(security) = crate::sk::SkKey::of(key.key_data()) {
-        let data = SshSig::signed_data_for_prehash(namespace, hash, prehash).map_err(|e| e.to_string())?;
+        let data = SshSig::signed_data_for_prehash(namespace, hash, prehash).map_err(|e| podssh_ws::text::said(&e))?;
         let shown = crate::known_hosts::fingerprint(key.public_key());
         if security.touch() {
             crate::err_line!(
@@ -83,10 +84,12 @@ pub fn sign(key: &PrivateKey, namespace: &str, hash: HashAlg, prehash: &[u8]) ->
         }
         let say = |line: &str| crate::err_line!("{line}");
         let blob = crate::sk::sign_blob(&security, &data, &say, true)?;
-        let signature = Signature::try_from(&blob[..]).map_err(|e| format!("the device's signature: {e}"))?;
-        return SshSig::new(key.public_key().key_data().clone(), namespace, hash, signature).map_err(|e| e.to_string());
+        let signature = Signature::try_from(&blob[..])
+            .map_err(|e| format!("the device's signature: {}", podssh_ws::text::said(&e)))?;
+        return SshSig::new(key.public_key().key_data().clone(), namespace, hash, signature)
+            .map_err(|e| podssh_ws::text::said(&e));
     }
-    key.sign_prehash(namespace, hash, prehash).map_err(|e| format!("could not sign: {e}"))
+    key.sign_prehash(namespace, hash, prehash).map_err(|e| format!("could not sign: {}", podssh_ws::text::said(&e)))
 }
 
 /// An SSH signature of the digest `prehash` by the agent of `choice` with
@@ -101,28 +104,33 @@ pub async fn sign_with_agent(
     let Some(mut agent) = crate::keys::connect_agent(choice).await? else {
         return Err("no agent runs: SSH_AUTH_SOCK names none".into());
     };
-    let held = agent.request_identities().await.map_err(|e| format!("the agent: {e}"))?;
-    let data = SshSig::signed_data_for_prehash(namespace, hash, prehash).map_err(|e| e.to_string())?;
+    let held = agent.request_identities().await.map_err(|e| format!("the agent: {}", podssh_ws::text::said(&e)))?;
+    let data = SshSig::signed_data_for_prehash(namespace, hash, prehash).map_err(|e| podssh_ws::text::said(&e))?;
     let rsa = public.algorithm().is_rsa().then_some(HashAlg::Sha512);
     let plain = held.iter().any(|id| match id {
         AgentIdentity::PublicKey { key, .. } => key.key_data() == public.key_data(),
         AgentIdentity::Certificate { .. } => false,
     });
     let signature = if plain {
-        agent.sign_request_signature(public, rsa, &data).await.map_err(|e| format!("the agent did not sign: {e}"))?
+        agent
+            .sign_request_signature(public, rsa, &data)
+            .await
+            .map_err(|e| format!("the agent did not sign: {}", podssh_ws::text::said(&e)))?
     } else {
         // An agent that holds the key only in a certificate is asked by the
         // certificate, as OpenSSH's ssh-agent finds the key by it (T-289).
         let Some(id) = held.iter().find(|id| id.public_key().key_data() == public.key_data()) else {
             return Err("the agent does not hold the key".into());
         };
-        let answer =
-            agent.sign_request(id, rsa, data.clone()).await.map_err(|e| format!("the agent did not sign: {e}"))?;
+        let answer = agent
+            .sign_request(id, rsa, data.clone())
+            .await
+            .map_err(|e| format!("the agent did not sign: {}", podssh_ws::text::said(&e)))?;
         // russh gives back the data, then the signature as a string.
         let blob = answer.get(data.len() + 4..).ok_or("the agent's answer is short")?;
-        Signature::try_from(blob).map_err(|e| format!("the agent's signature: {e}"))?
+        Signature::try_from(blob).map_err(|e| format!("the agent's signature: {}", podssh_ws::text::said(&e)))?
     };
-    SshSig::new(public.key_data().clone(), namespace, hash, signature).map_err(|e| e.to_string())
+    SshSig::new(public.key_data().clone(), namespace, hash, signature).map_err(|e| podssh_ws::text::said(&e))
 }
 
 /// The armoured text of a signature, as `ssh-keygen` writes it; with a
@@ -130,7 +138,7 @@ pub async fn sign_with_agent(
 pub fn armour(signature: &SshSig, certificate: Option<&Certificate>) -> Result<String, String> {
     match certificate {
         Some(certificate) => crate::sshsig_cert::armour(signature, certificate),
-        None => signature.to_pem(LineEnding::LF).map_err(|e| e.to_string()),
+        None => signature.to_pem(LineEnding::LF).map_err(|e| podssh_ws::text::said(&e)),
     }
 }
 
@@ -140,7 +148,8 @@ pub fn read_signature(text: &[u8]) -> Result<Signed, String> {
     if crate::sshsig_cert::certificate_inside(text) {
         return crate::sshsig_cert::read(text).map_err(|why| format!("Couldn't parse signature: {why}"));
     }
-    let signature = SshSig::from_pem(text).map_err(|e| format!("Couldn't parse signature: {e}"))?;
+    let signature =
+        SshSig::from_pem(text).map_err(|e| format!("Couldn't parse signature: {}", podssh_ws::text::said(&e)))?;
     Ok(Signed { signature, certificate: None })
 }
 

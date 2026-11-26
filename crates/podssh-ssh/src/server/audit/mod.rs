@@ -124,7 +124,7 @@ impl Audit {
         std::thread::Builder::new()
             .name("podssh-audit".into())
             .spawn(move || write_each(&owned, &rx, say.as_ref()))
-            .map_err(|e| format!("--audit-log: no thread for its writes: {e}"))?;
+            .map_err(|e| format!("--audit-log: no thread for its writes: {}", podssh_ws::text::said(&e)))?;
         Ok(Arc::new(Audit { path: path.to_path_buf(), commands, run, jobs, next_conn: AtomicU64::new(1) }))
     }
 
@@ -200,9 +200,10 @@ fn write_each(path: &Path, jobs: &mpsc::Receiver<Job>, say: Option<&Say>) {
                     told = true;
                     if let Some(Say(say)) = say {
                         say(&format!(
-                            "the audit log {} could not be written ({e}); the sessions go on, and each later line \
+                            "the audit log {} could not be written ({}); the sessions go on, and each later line \
                              is tried again",
-                            path.display()
+                            path.display(),
+                            podssh_ws::text::said(&e)
                         ));
                     }
                 }

@@ -254,14 +254,14 @@ fn parse_add(contents: &[u8]) -> Result<(KeyFile, Option<Instant>), String> {
         return Err(format!("its key file has more than {} bytes", pod_tpm::keyfile::MAX_PEM));
     }
     let text = std::str::from_utf8(&pem).map_err(|_| "its key file is not text".to_string())?;
-    Ok((KeyFile::from_pem(text).map_err(|e| e.to_string())?, until))
+    Ok((KeyFile::from_pem(text).map_err(|e| podssh_ws::text::said(&e))?, until))
 }
 
 /// The body of the request that gives an agent the key of `file`, as
 /// ssh-tpm-agent's `ssh-tpm-add` sends it, with a lifetime when given; else
 /// why the key file cannot be written (a part over the bounds of the file).
 pub fn add_request(file: &KeyFile, lifetime: Option<u32>) -> Result<Zeroizing<Vec<u8>>, String> {
-    let pem = Zeroizing::new(file.to_pem().map_err(|e| e.to_string())?);
+    let pem = Zeroizing::new(file.to_pem().map_err(|e| podssh_ws::text::said(&e))?);
     let mut body = Zeroizing::new(vec![EXTENSION]);
     put_string(&mut body, ADD_EXTENSION.as_bytes());
     // The message's own code: 17 with or without constraints, as Go's
@@ -291,7 +291,7 @@ pub async fn add<S: AsyncRead + AsyncWrite + Unpin>(
     };
     let answer = match tokio::time::timeout(ADD_LIMIT, asked).await {
         Err(_) => return Err(format!("the agent did not answer within {} s", ADD_LIMIT.as_secs())),
-        Ok(Err(e)) => return Err(format!("the agent did not answer: {e}")),
+        Ok(Err(e)) => return Err(format!("the agent did not answer: {}", podssh_ws::text::said(&e))),
         Ok(Ok(None)) => return Err("the agent closed the connection: it keeps no key of a TPM".into()),
         Ok(Ok(Some(answer))) => answer,
     };

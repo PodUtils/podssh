@@ -122,7 +122,8 @@ impl Far {
     fn drive(&mut self, (width, rows): (u32, u32)) -> Result<bool, Failure> {
         self.codec.set_width(width as usize);
         self.pace = (rows as usize / 2).max(1);
-        let raw = RawMode::enter().map_err(|e| Failure::Usage(format!("the terminal cannot be made raw: {e}")))?;
+        let raw = RawMode::enter()
+            .map_err(|e| Failure::Usage(format!("the terminal cannot be made raw: {}", podssh_ws::text::said(&e))))?;
         let input = reader();
         let mut out = std::io::stdout().lock();
         let mut events = Vec::new();
@@ -201,7 +202,7 @@ impl Far {
                 Event::NeedData { offset, max } => self.supply(offset, max),
                 Event::Write { bytes, .. } => {
                     if let Err(e) = self.incoming.as_mut().map_or(Ok(()), |file| file.write(&bytes)) {
-                        let why = format!("the file could not be written: {e}");
+                        let why = format!("the file could not be written: {}", podssh_ws::text::said(&e));
                         self.fail(Failure::CantCreate(why), "the file could not be written there");
                     }
                 }
@@ -257,7 +258,7 @@ impl Far {
         match files::read_at(file, offset, &mut buf) {
             Ok(n) => self.codec.supply(&buf[..n]),
             Err(e) => {
-                let why = format!("{} could not be read: {e}", shown(name));
+                let why = format!("{} could not be read: {}", shown(name), podssh_ws::text::said(&e));
                 self.fail(Failure::NoInput(why), "the file could not be read there");
             }
         }

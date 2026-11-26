@@ -56,7 +56,7 @@ impl PublicKeys {
         self.offered.push(public);
         match answer {
             Ok(result) => Ok(Some(Step::from(result))),
-            Err(e) => Err(format!("public key authentication failed: {e}")),
+            Err(e) => Err(format!("public key authentication failed: {}", podssh_ws::text::said(&e))),
         }
     }
 }

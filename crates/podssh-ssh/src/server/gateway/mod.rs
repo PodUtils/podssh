@@ -167,7 +167,7 @@ pub fn read_ca(path: &Path) -> Result<PrivateKey, String> {
         Err(russh::keys::Error::KeyIsEncrypted) => {
             return Err(format!("{shown} has a passphrase, and serve has nobody to ask: give a CA key with none"));
         }
-        Err(e) => return Err(format!("{shown} is not a private key: {e}")),
+        Err(e) => return Err(format!("{shown} is not a private key: {}", podssh_ws::text::said(&e))),
     };
     if matches!(key.algorithm(), Algorithm::SkEd25519 | Algorithm::SkEcdsaSha2NistP256) {
         return Err(format!("{shown} is a security key, which signs only when touched: give a key in a file"));

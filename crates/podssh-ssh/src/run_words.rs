@@ -29,7 +29,7 @@ pub fn describe(e: &russh::Error) -> String {
         Error::KeepaliveTimeout => "the server stopped answering keepalives".into(),
         Error::ConnectionTimeout | Error::InactivityTimeout => "the connection timed out".into(),
         Error::StrictKeyExchangeViolation { .. } => {
-            format!("{e} (the connection was tampered with, or the server is broken)")
+            format!("{} (the connection was tampered with, or the server is broken)", podssh_ws::text::said(&e))
         }
         // russh's words alone named no side (GitHub #83).
         Error::SshEncoding(inner) => format!("podssh could not read a message of the server: {inner}"),

@@ -205,7 +205,7 @@ where
 {
     let handles = connect_hops(stream, opts, log).await.map_err(|e| {
         crate::outcome::failed(e.class());
-        e.to_string()
+        podssh_ws::text::said(&e)
     })?;
     run_handles(handles, opts, log).await
 }
@@ -335,7 +335,7 @@ where
     log.verbose(&format!("TLS with {label}, its certificate checked for {}", hop.host));
     match podssh_ws::tls_over(stream, &hop.host, &opts.tls_trust, opts.connect_timeout).await {
         Ok(tls) => login(tls, hop, is_destination, opts, log).await,
-        Err(e) => Err(HopError::Unreachable(format!("{label}: TLS: {e}"))),
+        Err(e) => Err(HopError::Unreachable(format!("{label}: TLS: {}", podssh_ws::text::said(&e)))),
     }
 }
 

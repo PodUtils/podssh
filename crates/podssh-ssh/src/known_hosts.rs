@@ -189,7 +189,7 @@ fn read_file(path: &Path) -> Result<Option<Vec<u8>>, String> {
     let missing = |e: &std::io::Error| matches!(e.kind(), ErrorKind::NotFound | ErrorKind::NotADirectory);
     match std::fs::metadata(path) {
         Err(e) if missing(&e) => return Ok(None),
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(podssh_ws::text::said(&e)),
         Ok(meta) if meta.is_dir() => return Err("it is a directory".into()),
         Ok(meta) if !meta.is_file() => return Err("it is not a regular file".into()),
         Ok(_) => {}
@@ -200,7 +200,7 @@ fn read_file(path: &Path) -> Result<Option<Vec<u8>>, String> {
         Ok(_) => Ok(Some(raw)),
         // Removed between the two looks: missing.
         Err(e) if missing(&e) => Ok(None),
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(podssh_ws::text::said(&e)),
     }
 }
 
@@ -356,7 +356,9 @@ pub fn append(path: &Path, name: &str, key: &PublicKey) -> std::io::Result<Recor
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
     let bare = PublicKey::new(key.key_data().clone(), "");
-    let encoded = bare.to_openssh().map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
+    let encoded = bare
+        .to_openssh()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, podssh_ws::text::said(&e)))?;
     for _ in 0..3 {
         let file = options.open(path)?;
         if let Some(recorded) = append_locked(path, &file, name, key, &encoded)? {

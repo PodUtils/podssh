@@ -140,7 +140,7 @@ where
     }
     let lost = match (crate::handler::take_last_disconnect(), crate::handler::take_last_error()) {
         (Some(said), _) => format!("the server ended the connection to {host}: {said}"),
-        (None, Some(error)) => format!("connection to {host} lost: {error}"),
+        (None, Some(error)) => format!("connection to {host} lost: {}", podssh_ws::text::said(&error)),
         (None, None) => format!("the connection to {host} was lost"),
     };
     disconnect_all(&handles).await;
@@ -245,7 +245,7 @@ async fn probe_tmux(handle: &Handle<Client>, log: &Log) -> Result<(), Attempt> {
         },
         Err(ExecError::Lost(why)) => Err(Attempt::Lost { attached: false, why }),
         Err(e) => {
-            log.error(&format!("the probe for tmux: {e}"));
+            log.error(&format!("the probe for tmux: {}", podssh_ws::text::said(&e)));
             Err(Attempt::Failed)
         }
     }
@@ -257,7 +257,7 @@ async fn check(handle: &Handle<Client>, command: &str, log: &Log) -> Result<bool
         Ok(found) => Ok(found.status == Some(0)),
         Err(ExecError::Lost(why)) => Err(Attempt::Lost { attached: false, why }),
         Err(e) => {
-            log.error(&format!("{command}: {e}"));
+            log.error(&format!("{command}: {}", podssh_ws::text::said(&e)));
             Err(Attempt::Failed)
         }
     }

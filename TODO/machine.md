@@ -619,9 +619,9 @@ failure at `crates/podssh-ssh/src/run.rs:152-163` and
 `crates/podssh-ssh/src/run.rs:207`, a new connection at
 `crates/podssh-ssh/src/run.rs:173`, the relay's close first at
 `crates/podssh-ssh/src/run.rs:77-84`; a control master at
-`crates/podssh-ssh/src/mux/client.rs:168`,
-`crates/podssh-ssh/src/mux/client.rs:202` and
-`crates/podssh-ssh/src/mux/client.rs:264-271`. The object in
+`crates/podssh-ssh/src/mux/client.rs:171`,
+`crates/podssh-ssh/src/mux/client.rs:205` and
+`crates/podssh-ssh/src/mux/client.rs:271-278`. The object in
 `crates/podssh-cli/src/ssh/result.rs:18-66`, the channel's verdict at
 `crates/podssh-cli/src/ssh/result.rs:153-163`, the file at
 `crates/podssh-cli/src/ssh/result.rs:165-179`, written at the end of

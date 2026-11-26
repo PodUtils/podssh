@@ -54,7 +54,7 @@ pub(super) fn find_in(dev: &Path, named: Option<&Path>) -> Result<Place, String>
                 format!("no TPM: this host shows no {} (a container or a sandbox shows none)", path.display())
             });
         }
-        Err(e) => return Err(format!("no TPM: {} cannot be read: {e}", path.display())),
+        Err(e) => return Err(format!("no TPM: {} cannot be read: {}", path.display(), podssh_ws::text::said(&e))),
     };
     let kind = meta.file_type();
     if kind.is_char_device() {
@@ -73,14 +73,19 @@ pub(super) fn find_in(dev: &Path, named: Option<&Path>) -> Result<Place, String>
 pub(super) fn open(place: &Place) -> Result<Box<dyn Transport>, String> {
     let limits = Limits { command: COMMAND_LIMIT };
     if place.socket {
-        let socket = Socket::connect_unix(&place.path, limits).map_err(|e| format!("no TPM: {e}"))?;
+        let socket =
+            Socket::connect_unix(&place.path, limits).map_err(|e| format!("no TPM: {}", podssh_ws::text::said(&e)))?;
         return Ok(Box::new(socket));
     }
     let device = Device::open(&place.path, limits).map_err(|e| match e.class {
         pod_core::Class::Permission => {
-            format!("no TPM: this user may not open {} ({e}); on most systems the group tss may", place.path.display())
+            format!(
+                "no TPM: this user may not open {} ({}); on most systems the group tss may",
+                place.path.display(),
+                podssh_ws::text::said(&e)
+            )
         }
-        _ => format!("no TPM: {} cannot be opened: {e}", place.path.display()),
+        _ => format!("no TPM: {} cannot be opened: {}", place.path.display(), podssh_ws::text::said(&e)),
     })?;
     Ok(Box::new(device))
 }

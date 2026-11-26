@@ -649,7 +649,7 @@ old writer can race the new one.
   `crates/podssh-ssh/src/relay_stream.rs:265-277`). Each new SSH
   connection asks again for a passphrase or a password
   (`crates/podssh-ssh/src/keys.rs:323-396`,
-  `crates/podssh-ssh/src/auth.rs:329-390`).
+  `crates/podssh-ssh/src/auth.rs:335-396`).
 
 ## Approach
 
@@ -3321,9 +3321,9 @@ destination too.
   `38f424c`), and each copy
   ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:245-264`), by
   `posix-rename@openssh.com` where the server has it
-  (`crates/podssh-ssh/src/sftp/mod.rs:414-423`).
+  (`crates/podssh-ssh/src/sftp/mod.rs:416-425`).
 - Read: `hardlink@openssh.com` gives a file a second name
-  (`crates/podssh-ssh/src/sftp/mod.rs:341-351`, which T-146 uses in
+  (`crates/podssh-ssh/src/sftp/mod.rs:343-353`, which T-146 uses in
   `crates/podssh-cli/src/cp/meta.rs:393-416`). A hard link is never made over a name that is there
   (POSIX `link()`; Inferred for each server), so it can put a verified file at a name that must
   not be replaced, also when that name came during the copy. Not read here: what each server does
@@ -4388,7 +4388,7 @@ Finding 15: `podssh tx --help` showed `[FILE | DIR]...` (repeatable), but a seco
 ## Premise
 
 - The near end asks, and replaces only after `y`: `crates/podssh-ssh/src/zmodem/session/envelope.rs:283` says "exists. Replace it?
-  [y/N]" in the question; the far end never replaces: `crates/podssh-ssh/src/zmodem/far.rs:237` says "exists, and was not
+  [y/N]" in the question; the far end never replaces: `crates/podssh-ssh/src/zmodem/far.rs:238` says "exists, and was not
   replaced" and the end is `Failure::Stopped`, exit 75.
 - The positional of `tx` takes any number of words, `crates/podssh-cli/src/positionals.rs:243`, and `ask` in `crates/podssh-cli/src/tx.rs`
   refused a second one, so the help's "..." promised what the run refused.
@@ -4450,7 +4450,7 @@ visible. The manual said only that the near end removes the first line.
 
 ## Premise
 
-- The far end writes the trigger and its frames to its own terminal and nothing else: `crates/podssh-ssh/src/zmodem/far.rs:292`
+- The far end writes the trigger and its frames to its own terminal and nothing else: `crates/podssh-ssh/src/zmodem/far.rs:293`
   (`put`) writes each frame in parts of half the pane; its last frame goes at the end in `drive`
   (`crates/podssh-ssh/src/zmodem/far.rs:122`). It keeps no count of the rows that a terminal gave them.
 - The near end removes the trigger line from its screen only while it watches; with `PODSSH_ZMODEM=off`, or through a control master,
@@ -4514,7 +4514,7 @@ never saw.
 ## Approach
 
 One function, `files::cannot_create(dir, error)`, gives "a file could not be created in DIR: " and the system's words; the far end's
-failure (`crates/podssh-ssh/src/zmodem/far.rs:246`) and the near end's line (`crates/podssh-ssh/src/zmodem/session/envelope.rs:298`) both
+failure (`crates/podssh-ssh/src/zmodem/far.rs:247`) and the near end's line (`crates/podssh-ssh/src/zmodem/session/envelope.rs:298`) both
 use it. The exit code stays 73, and the manual's sentence says "cannot be created in DIR, written or kept".
 
 ## Decision

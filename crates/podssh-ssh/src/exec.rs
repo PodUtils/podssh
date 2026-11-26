@@ -96,7 +96,7 @@ async fn open(handle: &Handle<Client>, command: &str, limit: Duration) -> Result
     };
     match tokio::time::timeout(limit, channel.exec(true, command.as_bytes())).await {
         Err(_) => Err(ExecError::Timeout(limit)),
-        Ok(Err(e)) => Err(ExecError::Lost(e.to_string())),
+        Ok(Err(e)) => Err(ExecError::Lost(podssh_ws::text::said(&e))),
         Ok(Ok(())) => Ok(channel),
     }
 }
@@ -114,7 +114,7 @@ async fn write<F: Future<Output = Result<(), russh::Error>>, S: Source<Msg = Cha
 ) -> Result<(), ExecError> {
     match tokio::time::timeout(progress, beside(op, read, aside, &|| {})).await {
         Err(_) => Err(ExecError::Timeout(progress)),
-        Ok(Err(e)) => Err(ExecError::Lost(e.to_string())),
+        Ok(Err(e)) => Err(ExecError::Lost(podssh_ws::text::said(&e))),
         Ok(Ok(())) => Ok(()),
     }
 }
@@ -163,7 +163,7 @@ async fn finish<S: Source<Msg = ChannelMsg>>(
             Ok(Some(ChannelMsg::Eof)) => eof = true,
             Ok(Some(ChannelMsg::Failure)) => return Err(ExecError::Refused("exec".into())),
             Ok(Some(ChannelMsg::Data { data })) => {
-                sink(&data).map_err(|e| ExecError::Lost(format!("the local copy: {e}")))?;
+                sink(&data).map_err(|e| ExecError::Lost(format!("the local copy: {}", podssh_ws::text::said(&e))))?;
             }
             Ok(Some(ChannelMsg::ExtendedData { data, ext: 1 })) => keep(&mut out.stderr, &data, cap),
             Ok(Some(ChannelMsg::ExitStatus { exit_status })) => out.status = Some(exit_status),
@@ -210,7 +210,7 @@ pub async fn send(
     let mut piece = Vec::new();
     loop {
         piece.clear();
-        fill(&mut piece).map_err(|e| ExecError::Lost(format!("the local source: {e}")))?;
+        fill(&mut piece).map_err(|e| ExecError::Lost(format!("the local source: {}", podssh_ws::text::said(&e))))?;
         if piece.is_empty() {
             break;
         }

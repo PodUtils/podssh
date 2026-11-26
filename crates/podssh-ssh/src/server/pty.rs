@@ -103,14 +103,16 @@ pub fn open_from<P: AsRef<Path>>(paths: &[P]) -> Result<Pair, NoPty> {
         let master = match File::options().read(true).write(true).custom_flags(libc::O_NOCTTY).open(path) {
             Ok(file) => OwnedFd::from(file),
             Err(e) => {
-                whys.push(format!("{}: {e}", path.display()));
+                whys.push(format!("{}: {}", path.display(), podssh_ws::text::said(&e)));
                 continue;
             }
         };
         opened = true;
         match slave_of(&master) {
             Ok((slave, name)) => return Ok(Pair { master, slave, name, path: true }),
-            Err(e) => whys.push(format!("{} opens, but no pty comes of it: {e}", path.display())),
+            Err(e) => {
+                whys.push(format!("{} opens, but no pty comes of it: {}", path.display(), podssh_ws::text::said(&e)))
+            }
         }
     }
     if whys.is_empty() {
@@ -130,13 +132,13 @@ fn slave_of(master: &OwnedFd) -> Result<(OwnedFd, String), String> {
     if unsafe { libc::unlockpt(fd) } != 0 {
         return Err(format!("unlockpt: {}", io::Error::last_os_error()));
     }
-    let name = pts_name(fd).map_err(|e| format!("ptsname: {e}"))?;
+    let name = pts_name(fd).map_err(|e| format!("ptsname: {}", podssh_ws::text::said(&e)))?;
     let slave = File::options()
         .read(true)
         .write(true)
         .custom_flags(libc::O_NOCTTY)
         .open(&name)
-        .map_err(|e| format!("{name}: {e}"))?;
+        .map_err(|e| format!("{name}: {}", podssh_ws::text::said(&e)))?;
     Ok((OwnedFd::from(slave), name))
 }
 

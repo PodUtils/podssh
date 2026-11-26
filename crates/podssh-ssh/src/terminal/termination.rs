@@ -84,7 +84,7 @@ impl Termination {
                 // goes on either way.
                 match writer.signal(Sig::INT).await {
                     Ok(()) => log.verbose("signal INT sent, as asked"),
-                    Err(e) => log.info(&format!("signal INT could not be sent: {e}")),
+                    Err(e) => log.info(&format!("signal INT could not be sent: {}", podssh_ws::text::said(&e))),
                 }
                 None
             }

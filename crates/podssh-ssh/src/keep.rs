@@ -185,7 +185,10 @@ pub(crate) async fn ask_attach(
     asks.push((ATTACH, name.to_string()));
     let mut counted = joining.count.is_some() && !joining.reset;
     for (request, value) in asks {
-        channel.set_env(true, request, value).await.map_err(|e| format!("could not ask to attach {name}: {e}"))?;
+        channel
+            .set_env(true, request, value)
+            .await
+            .map_err(|e| format!("could not ask to attach {name}: {}", podssh_ws::text::said(&e)))?;
         if !crate::session::wait_reply(channel, early).await? {
             // A far end that knows no count starts where it counted.
             if request == COUNT {
@@ -221,7 +224,7 @@ impl Detaching {
         }
         match writer.set_env(true, DETACH, name).await {
             Ok(()) => self.asked = true,
-            Err(e) => log.info(&format!("could not ask the far end to keep the shell: {e}")),
+            Err(e) => log.info(&format!("could not ask the far end to keep the shell: {}", podssh_ws::text::said(&e))),
         }
     }
 

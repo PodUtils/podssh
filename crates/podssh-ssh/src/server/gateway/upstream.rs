@@ -107,8 +107,11 @@ fn minted(
         valid_before: now.saturating_add(LIFE),
         critical: &critical,
     };
-    let cert = mint.sign_with(&issuer, &PERMITS).map_err(|e| format!("could not sign the certificate: {e}"))?;
-    Certificate::from_bytes(&cert.blob()).map_err(|e| format!("the certificate does not read back: {e}"))
+    let cert = mint
+        .sign_with(&issuer, &PERMITS)
+        .map_err(|e| format!("could not sign the certificate: {}", podssh_ws::text::said(&e)))?;
+    Certificate::from_bytes(&cert.blob())
+        .map_err(|e| format!("the certificate does not read back: {}", podssh_ws::text::said(&e)))
 }
 
 /// [`certificate`] by podssh's `cert::certify`, for a CA of RSA or ECDSA.
@@ -160,7 +163,7 @@ async fn log_in_now(route: &Route, user: &str, who: &str) -> Result<Upstream, St
                     "its host key is {other}, not {} that the route pins: refused before the login",
                     fingerprint(&route.host_key)
                 ),
-                None => format!("the SSH handshake failed: {e}"),
+                None => format!("the SSH handshake failed: {}", podssh_ws::text::said(&e)),
             });
         }
     };
@@ -168,7 +171,7 @@ async fn log_in_now(route: &Route, user: &str, who: &str) -> Result<Upstream, St
     let answer = handle
         .authenticate_openssh_cert(principal.as_str(), Arc::new(fresh), certificate)
         .await
-        .map_err(|e| format!("the login failed: {e}"))?;
+        .map_err(|e| format!("the login failed: {}", podssh_ws::text::said(&e)))?;
     if !answer.success() {
         return Err(format!(
             "it refused the certificate for {principal}: it must trust the CA {} (TrustedUserCAKeys) and take the \

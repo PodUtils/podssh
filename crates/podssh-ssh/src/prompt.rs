@@ -143,7 +143,9 @@ fn run_askpass(program: &OsString, prompt: &str) -> Result<Zeroizing<String>, Pr
     // window of its own (T-383).
     #[cfg(windows)]
     std::os::windows::process::CommandExt::creation_flags(&mut command, crate::terminal::child_console_flags());
-    let output = command.output().map_err(|e| PromptError::Failed(format!("{}: {e}", program.to_string_lossy())))?;
+    let output = command
+        .output()
+        .map_err(|e| PromptError::Failed(format!("{}: {}", program.to_string_lossy(), podssh_ws::text::said(&e))))?;
     let stdout = Zeroizing::new(output.stdout);
     if !output.status.success() {
         return Err(PromptError::Exited(ended(output.status)));

@@ -242,7 +242,7 @@ impl russh::server::Handler for Gateway {
             }
             refused => {
                 let why = match refused {
-                    Ok(Err(e)) => format!("the upstream refused a session: {e}"),
+                    Ok(Err(e)) => format!("the upstream refused a session: {}", podssh_ws::text::said(&e)),
                     _ => format!("the upstream opened no session within {} s", OPEN_LIMIT.as_secs()),
                 };
                 self.settings.say(&format!("key {}: {why}", self.who));
@@ -315,7 +315,7 @@ impl russh::server::Handler for Gateway {
                     pump::forward(channel, twin, down, tally).await;
                     return;
                 }
-                Ok(Err(e)) => format!("the upstream {at} did not open {host}:{port}: {e}"),
+                Ok(Err(e)) => format!("the upstream {at} did not open {host}:{port}: {}", podssh_ws::text::said(&e)),
                 Err(_) => format!("the upstream {at} did not open {host}:{port} within {} s", OPEN_LIMIT.as_secs()),
             };
             if let Some(mark) = mark.as_mut() {

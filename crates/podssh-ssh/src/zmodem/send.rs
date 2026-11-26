@@ -140,7 +140,7 @@ impl<R: Read + Seek> Sender<R> {
                 Err(e) => {
                     self.step = Step::Over;
                     self.deadline = None;
-                    return stop(format!("{}: {e}", self.info.name));
+                    return stop(format!("{}: {}", self.info.name, podssh_ws::text::said(&e)));
                 }
             };
             self.offset += n as u64;
@@ -260,7 +260,7 @@ impl<R: Read + Seek> Sender<R> {
                 Ok(crc) => acts.push(Act::Send(self.esc.header(wire::ZCRC, crc.to_le_bytes(), self.crc32))),
                 Err(e) => {
                     acts.push(Act::Send(CANCEL.to_vec()));
-                    return Some(Ended::Stopped(format!("{}: {e}", self.info.name)));
+                    return Some(Ended::Stopped(format!("{}: {}", self.info.name, podssh_ws::text::said(&e))));
                 }
             },
             // "it sends two characters, "OO" (Over and Out)" (8.3).
@@ -300,7 +300,7 @@ impl<R: Read + Seek> Sender<R> {
         self.asked = Some(position);
         if let Err(e) = self.file.seek(SeekFrom::Start(position)) {
             acts.push(Act::Send(CANCEL.to_vec()));
-            return Some(Ended::Stopped(format!("{}: {e}", self.info.name)));
+            return Some(Ended::Stopped(format!("{}: {}", self.info.name, podssh_ws::text::said(&e))));
         }
         self.offset = position;
         self.since_ack = 0;

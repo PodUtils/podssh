@@ -1053,7 +1053,7 @@ Read: `KEYGEN_FLAGS` has generation, `-y` and `-l`
 (`crates/podssh-cli/src/flags/keygen.rs:8-71`). The parts exist: decryption with a
 prompt (`crates/podssh-cli/src/keygen.rs`, lines 342-373 at `8290fe1`), a new passphrase asked
 twice (`crates/podssh-cli/src/keygen.rs:384-403`), encryption as OpenSSH does
-it (`crates/podssh-ssh/src/keygen.rs:95-108`), and the refusal of a passphrase
+it (`crates/podssh-ssh/src/keygen.rs:95-109`), and the refusal of a passphrase
 on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
 
 ## Approach
@@ -1117,7 +1117,7 @@ the compare of step 4 and write a fresh key; the public-key test fails.
 2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:22-92`, their
 flags at `crates/podssh-cli/src/flags/keygen.rs:21-26` and their refusals at
 `crates/podssh-cli/src/keygen.rs:137-144` and `:251-270`; `keygen::protect` keeps the comment
-(`crates/podssh-ssh/src/keygen.rs:95-108`).
+(`crates/podssh-ssh/src/keygen.rs:95-109`).
 - `cargo test -p podssh-cli --test keygen -- change`: 3 passed; `cargo test -p podssh-cli --lib --
   keygen_change`: 1 passed; `cargo test -p podssh-ssh --lib -- keygen`: 5 passed. Planted, each
   restored: a fresh key written over the file with the compare skipped (the Prove's plant) failed
@@ -1243,7 +1243,7 @@ Plant: drop the comment lines in the rewrite; the byte test fails.
 2026-10-11. `find`, `remove`, `hash` and `rewrite` in
 `crates/podssh-ssh/src/known_hosts/edit.rs:89-288`, on the bytes of the file;
 `append` opens the file again when a rewrite took its place
-(`crates/podssh-ssh/src/known_hosts.rs:342-410`); the flags at
+(`crates/podssh-ssh/src/known_hosts.rs:342-412`); the flags at
 `crates/podssh-cli/src/flags/keygen.rs:35-40`, and the command in
 `crates/podssh-cli/src/keygen_hosts.rs:23-183`.
 - `cargo test -p podssh-ssh --lib -- known_hosts`: 8 passed on Windows (9 in the build image, with
@@ -1364,7 +1364,7 @@ OpenSSH's verify with `-n git` then fails.
 
 ## Done
 
-2026-10-11. Signatures and allowed signers in `crates/podssh-ssh/src/sshsig.rs:1-388`; an RSA key
+2026-10-11. Signatures and allowed signers in `crates/podssh-ssh/src/sshsig.rs:1-397`; an RSA key
 signs through `RsaSigner::sign_sha512` (`crates/podssh-ssh/src/rsa_key.rs:81-88`), and the keys of
 the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:415-427`). The command is
 `crates/podssh-cli/src/keygen_sign.rs:1-371`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
@@ -1487,7 +1487,7 @@ the `sshd` login check fails.
 
 ## Done
 
-2026-10-11. Certificates in `crates/podssh-ssh/src/cert.rs:1-424`, signed by an RSA CA through
+2026-10-11. Certificates in `crates/podssh-ssh/src/cert.rs:1-429`, signed by an RSA CA through
 `Detached` (`crates/podssh-ssh/src/rsa_key.rs:106-134`); the command in
 `crates/podssh-cli/src/keygen_cert.rs:1-199`, its new flags at
 `crates/podssh-cli/src/flags/keygen.rs:53-60` and `:67-68`.
@@ -1877,7 +1877,7 @@ lines 9-13 at `8c05b5e`. A test asserts the false
 flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
-`crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:369`,
+`crates/podssh-ssh/src/auth.rs:256`, `crates/podssh-ssh/src/auth.rs:375`,
 `crates/podssh-ssh/src/keys.rs:367` and `crates/podssh-cli/src/keygen.rs:407`.
 Its refusals name the real remedies (`docs/cli.md:7466-7468`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
@@ -2265,7 +2265,7 @@ write the key with `OpenOptions`, as now; the test fails.
 ## Done
 
 2026-10-11. `write_pair` makes the files of a key pair with the makers that its caller passes,
-`KeyFiles` (`crates/podssh-ssh/src/keygen.rs:117-178`), and the CLI passes podssh-relay's
+`KeyFiles` (`crates/podssh-ssh/src/keygen.rs:118-189`), and the CLI passes podssh-relay's
 (`crates/podssh-cli/src/keygen.rs:388-395`): the private key by `create_new_private`, a missing
 directory by `private_dir`, and `FILE.pub` by the new `create_new_public`
 (`crates/podssh-relay/src/cache.rs:296-324`), on Windows with an access list of its own that lets
@@ -2388,8 +2388,8 @@ allows, where OpenSSH's own signature of `-f KEY` passes. The check
 `crates/podssh-ssh/src/sshsig_cert.rs:1-197`: the blob read (`:74`) and written (`:109`), the
 checks of a line (`not_authorized`, `:145`) and the principals of `find-principals` (`:178`).
 `read_signature` gives a `Signed`, the signature and its certificate
-(`crates/podssh-ssh/src/sshsig.rs:26-32`, `:139-145`); `names_key` names a CA's certificate
-(`:383-388`); an agent that holds a key only in a certificate signs by it (`:111-124`). The
+(`crates/podssh-ssh/src/sshsig.rs:26-32`, `:147-154`); `names_key` names a CA's certificate
+(`:392-397`); an agent that holds a key only in a certificate signs by it (`:114-132`). The
 command: `-f KEY-cert.pub` in `crates/podssh-cli/src/keygen_sign.rs:185-239`, the lines of `verify`
 and `check-novalidate` (`:232-290`) and `find-principals` (`:307-347`). The manual's note
 (`crates/podssh-cli/src/man/notes_keygen.rs:27-31`), the help of `-f`

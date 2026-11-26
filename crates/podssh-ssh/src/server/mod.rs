@@ -453,15 +453,15 @@ fn closed(e: &std::io::Error, accepted: bool) -> Result<(), String> {
     match e.kind() {
         BrokenPipe | ConnectionAborted | ConnectionReset | UnexpectedEof if accepted => Ok(()),
         BrokenPipe | ConnectionAborted | ConnectionReset | UnexpectedEof => {
-            Err(format!("the client closed the connection before it logged in ({e})"))
+            Err(format!("the client closed the connection before it logged in ({})", podssh_ws::text::said(&e)))
         }
-        _ => Err(format!("the SSH connection failed: {e}")),
+        _ => Err(format!("the SSH connection failed: {}", podssh_ws::text::said(&e))),
     }
 }
 
 /// The words of a connection that failed.
 fn ended(e: &russh::Error) -> String {
-    format!("the SSH connection failed: {e}")
+    format!("the SSH connection failed: {}", podssh_ws::text::said(&e))
 }
 
 #[cfg(test)]

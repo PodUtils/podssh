@@ -110,7 +110,12 @@ pub async fn authenticate(
             match none {
                 Ok(AuthResult::Success) => return Ok("none"),
                 Ok(AuthResult::Failure { remaining_methods, .. }) => remaining_methods.iter().copied().collect(),
-                Err(e) => return Err(AuthError::Broke(format!("authentication failed before it started: {e}"))),
+                Err(e) => {
+                    return Err(AuthError::Broke(format!(
+                        "authentication failed before it started: {}",
+                        podssh_ws::text::said(&e)
+                    )))
+                }
             }
         }
     };
@@ -259,7 +264,7 @@ async fn keyboard_interactive(
     // The prompt that the stored password answered, until the server shows
     // whether it took it.
     let mut answered: Option<String> = None;
-    let fail = |e: russh::Error| format!("keyboard-interactive authentication failed: {e}");
+    let fail = |e: russh::Error| format!("keyboard-interactive authentication failed: {}", podssh_ws::text::said(&e));
     let limit = opts.connect_timeout;
     let start = handle.authenticate_keyboard_interactive_start(user, None::<String>);
     let mut response = within(limit, host, "the keyboard-interactive request", start).await?.map_err(fail)?;
@@ -309,7 +314,8 @@ async fn keyboard_interactive(
                         match ask(shown, p.echo).await {
                             Ok(answer) => answers.push(answer.to_string()),
                             Err(e) => {
-                                notes.push(format!("keyboard-interactive was abandoned: {e}"));
+                                notes
+                                    .push(format!("keyboard-interactive was abandoned: {}", podssh_ws::text::said(&e)));
                                 return Ok(Step::Exhausted);
                             }
                         }
@@ -344,7 +350,7 @@ async fn password(
             within(opts.connect_timeout, host, "the password", handle.authenticate_password(user, kept.as_str()))
                 .await?
                 .map(Step::from)
-                .map_err(|e| format!("password authentication failed: {e}"))?;
+                .map_err(|e| format!("password authentication failed: {}", podssh_ws::text::said(&e)))?;
         if matches!(step, Step::Success) {
             return Ok(step);
         }
@@ -357,7 +363,7 @@ async fn password(
             within(opts.connect_timeout, host, "the password", handle.authenticate_password(user, stored.as_str()))
                 .await?
                 .map(Step::from)
-                .map_err(|e| format!("password authentication failed: {e}"))?;
+                .map_err(|e| format!("password authentication failed: {}", podssh_ws::text::said(&e)))?;
         if matches!(step, Step::Success) {
             if let Some(memory) = &opts.remembered {
                 memory.keep_password(stored.as_str());
@@ -376,14 +382,14 @@ async fn password(
                 within(opts.connect_timeout, host, "the password", handle.authenticate_password(user, pw.as_str()))
                     .await?
                     .map(Step::from)
-                    .map_err(|e| format!("password authentication failed: {e}"))?;
+                    .map_err(|e| format!("password authentication failed: {}", podssh_ws::text::said(&e)))?;
             if let (Step::Success, Some(memory)) = (&step, &opts.remembered) {
                 memory.keep_password(pw.as_str());
             }
             Ok(step)
         }
         Err(e) => {
-            notes.push(format!("password authentication was abandoned: {e}"));
+            notes.push(format!("password authentication was abandoned: {}", podssh_ws::text::said(&e)));
             Ok(Step::Exhausted)
         }
     }

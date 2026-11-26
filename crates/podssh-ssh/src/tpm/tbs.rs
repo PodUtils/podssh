@@ -71,7 +71,7 @@ pub(super) fn bounded<T: Send + 'static>(
         .spawn(move || {
             let _ = sender.send(work());
         })
-        .map_err(|e| format!("no thread for the TPM's command: {e}"))?;
+        .map_err(|e| format!("no thread for the TPM's command: {}", podssh_ws::text::said(&e)))?;
     match answer.recv_timeout(limit) {
         Ok(done) => return Ok(done),
         Err(RecvTimeoutError::Disconnected) => return Err("the thread of the TPM's command failed".into()),

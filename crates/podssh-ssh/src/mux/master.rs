@@ -112,10 +112,10 @@ pub async fn serve(
                         clients.push(job.run(stream));
                     }
                     Ok(cred) => log.info(&format!("control socket: closed a client of uid {}: this master is uid {uid}'s", cred.uid())),
-                    Err(e) => log.info(&format!("control socket: closed a client whose user is not known: {e}")),
+                    Err(e) => log.info(&format!("control socket: closed a client whose user is not known: {}", podssh_ws::text::said(&e))),
                 },
                 Err(e) => {
-                    log.info(&format!("control socket: {e}; it no longer listens"));
+                    log.info(&format!("control socket: {}; it no longer listens", podssh_ws::text::said(&e)));
                     listener = None;
                     let _ = std::fs::remove_file(&path);
                 }

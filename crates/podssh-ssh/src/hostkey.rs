@@ -227,13 +227,16 @@ impl Policy {
                 Ok(a) => a,
                 Err(e @ (PromptError::NoTerminal | PromptError::NoAnswer)) => {
                     return Verdict::Reject(format!(
-                        "'{}' is not a known host, and {e}.\n  \
+                        "'{}' is not a known host, and {}.\n  \
                          Its {kind} key fingerprint is {fp}.\n  \
                          If that is the right key, re-run with -o StrictHostKeyChecking=accept-new.",
-                        self.name
+                        self.name,
+                        podssh_ws::text::said(&e)
                     ))
                 }
-                Err(e) => return Verdict::Reject(format!("host key verification failed: {e}")),
+                Err(e) => {
+                    return Verdict::Reject(format!("host key verification failed: {}", podssh_ws::text::said(&e)))
+                }
             };
             let answer = answer.trim();
             if answer.eq_ignore_ascii_case("yes") || answer == fp {
@@ -319,7 +322,9 @@ pub enum NotRecorded<'a> {
 pub fn not_recorded(name: &str, kind: &str, fp: &str, why: &NotRecorded<'_>) -> String {
     let why = match why {
         NotRecorded::NoFile(why) => why.to_string(),
-        NotRecorded::Write { path, error } => format!("{} could not be written: {error}", path.display()),
+        NotRecorded::Write { path, error } => {
+            format!("{} could not be written: {}", path.display(), podssh_ws::text::said(&error))
+        }
     };
     format!(
         "the {kind} key of '{name}' ({fp}) is accepted for this connection only: it was not recorded, as {why}. \

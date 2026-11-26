@@ -134,7 +134,7 @@ impl PublicKeys {
                     let call = handle.authenticate_publickey(user, key);
                     within(self.limit, &self.host, "the publickey request", call)
                         .await?
-                        .map_err(|e| format!("public key authentication failed: {e}"))?
+                        .map_err(|e| format!("public key authentication failed: {}", podssh_ws::text::said(&e)))?
                 }
                 // An RSA key signs through aws-lc-rs, never through the
                 // `rsa` crate, and never with SHA-1 (T-257). Each refusal
@@ -157,7 +157,7 @@ impl PublicKeys {
                     let call = handle.authenticate_publickey_with(user, public.clone(), hash, &mut signer);
                     within(self.limit, &self.host, "the publickey request", call)
                         .await?
-                        .map_err(|e| format!("public key authentication failed: {e}"))?
+                        .map_err(|e| format!("public key authentication failed: {}", podssh_ws::text::said(&e)))?
                 }
             };
             self.offered.push(public);
@@ -227,7 +227,7 @@ impl PublicKeys {
         self.offered.push(public);
         match answer {
             Ok(result) => Ok(Some(Step::from(result))),
-            Err(e) => Err(format!("public key authentication failed: {e}")),
+            Err(e) => Err(format!("public key authentication failed: {}", podssh_ws::text::said(&e))),
         }
     }
 
@@ -249,7 +249,7 @@ impl PublicKeys {
                         AgentState::Ready(agent, keys)
                     }
                     Err(e) => {
-                        self.log.verbose(&format!("the agent did not list its keys: {e}"));
+                        self.log.verbose(&format!("the agent did not list its keys: {}", podssh_ws::text::said(&e)));
                         AgentState::Done
                     }
                 },
@@ -297,7 +297,7 @@ impl PublicKeys {
                     self.offered.push(key);
                     return Ok(Some(Step::from(result)));
                 }
-                Err(e) => self.log.verbose(&format!("the agent could not sign: {e}")),
+                Err(e) => self.log.verbose(&format!("the agent could not sign: {}", podssh_ws::text::said(&e))),
             }
         }
     }
@@ -387,7 +387,7 @@ impl PublicKeys {
                 // How the question failed goes into the final lines: an
                 // SSH_ASKPASS that exited 1 is the cause, not the key.
                 Err(e) => {
-                    self.skipped_encrypted.push((path.to_path_buf(), e.to_string()));
+                    self.skipped_encrypted.push((path.to_path_buf(), podssh_ws::text::said(&e)));
                     return None;
                 }
             }
@@ -422,7 +422,7 @@ pub async fn agent_keys(choice: &Agent) -> Result<Vec<PublicKey>, String> {
 /// a line can then say that none runs, not that it lacks a key (T-971).
 pub async fn held_keys(choice: &Agent) -> Result<Option<Vec<PublicKey>>, String> {
     let Some(mut agent) = connect_agent(choice).await? else { return Ok(None) };
-    let held = agent.request_identities().await.map_err(|e| e.to_string())?;
+    let held = agent.request_identities().await.map_err(|e| podssh_ws::text::said(&e))?;
     Ok(Some(held.iter().map(|id| id.public_key().into_owned()).collect()))
 }
 
@@ -436,10 +436,12 @@ pub(crate) async fn connect_agent(choice: &Agent) -> Result<Option<DynAgent>, St
             if std::env::var_os("SSH_AUTH_SOCK").is_none_or(|v| v.is_empty()) {
                 return Ok(None);
             }
-            AgentClient::connect_env().await.map(|a| Some(a.dynamic())).map_err(|e| e.to_string())
+            AgentClient::connect_env().await.map(|a| Some(a.dynamic())).map_err(|e| podssh_ws::text::said(&e))
         }
         #[cfg(unix)]
-        Agent::Path(path) => AgentClient::connect_uds(path).await.map(|a| Some(a.dynamic())).map_err(|e| e.to_string()),
+        Agent::Path(path) => {
+            AgentClient::connect_uds(path).await.map(|a| Some(a.dynamic())).map_err(|e| podssh_ws::text::said(&e))
+        }
         #[cfg(windows)]
         Agent::FromEnvironment => {
             let pipe = std::env::var_os("SSH_AUTH_SOCK")
@@ -459,8 +461,9 @@ pub(crate) async fn connect_agent(choice: &Agent) -> Result<Option<DynAgent>, St
             }
         }
         #[cfg(windows)]
-        Agent::Path(path) => {
-            AgentClient::connect_named_pipe(path).await.map(|a| Some(a.dynamic())).map_err(|e| e.to_string())
-        }
+        Agent::Path(path) => AgentClient::connect_named_pipe(path)
+            .await
+            .map(|a| Some(a.dynamic()))
+            .map_err(|e| podssh_ws::text::said(&e)),
     }
 }

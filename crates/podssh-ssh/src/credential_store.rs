@@ -291,7 +291,7 @@ impl std::fmt::Display for StoreError {
             StoreError::NoStore => {
                 f.write_str("the agent keeps no credentials: it is not podssh agent, or it is locked")
             }
-            StoreError::Io(e) => write!(f, "the agent did not answer: {e}"),
+            StoreError::Io(e) => write!(f, "the agent did not answer: {}", podssh_ws::text::said(&e)),
             StoreError::Protocol => f.write_str("the agent's answer was not one of podssh agent's store"),
         }
     }

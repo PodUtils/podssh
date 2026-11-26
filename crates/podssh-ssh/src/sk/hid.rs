@@ -107,7 +107,7 @@ fn send<R: Reports>(reports: &mut R, cid: u32, command: u8, data: &[u8]) -> Resu
     if data.len() > MAX_MESSAGE {
         return Err(format!("a message of {} bytes, more than a device takes", data.len()));
     }
-    let failed = |e: std::io::Error| format!("could not write to the device: {e}");
+    let failed = |e: std::io::Error| format!("could not write to the device: {}", podssh_ws::text::said(&e));
     let mut report = [0u8; REPORT];
     report[..4].copy_from_slice(&cid.to_be_bytes());
     report[4] = command;
@@ -164,7 +164,7 @@ fn next<R: Reports>(reports: &mut R, until: Instant) -> Result<Option<[u8; REPOR
     if left.is_zero() {
         return Ok(None);
     }
-    reports.receive(left).map_err(|e| format!("could not read the device: {e}"))
+    reports.receive(left).map_err(|e| format!("could not read the device: {}", podssh_ws::text::said(&e)))
 }
 
 #[cfg(test)]

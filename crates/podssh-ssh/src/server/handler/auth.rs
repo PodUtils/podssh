@@ -170,7 +170,7 @@ impl Served {
         };
         let key = who.clone();
         let judged = tokio::task::spawn_blocking(move || totp.check(&key, &answer, SystemTime::now())).await;
-        match judged.map_err(|e| e.to_string()).and_then(|checked| checked) {
+        match judged.map_err(|e| podssh_ws::text::said(&e)).and_then(|checked| checked) {
             Ok(Checked::Accepted) => {
                 let Some(pending) = self.pending.take() else { return back_to_keys() };
                 self.trail.auth(Verdict::Accepted, user, Some(&who), BOTH, None);

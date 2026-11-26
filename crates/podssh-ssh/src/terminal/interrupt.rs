@@ -86,7 +86,10 @@ impl Interrupt {
             (Step::CtrlC, None) => {
                 self.until = Some(tokio::time::Instant::now() + WAIT);
                 if let Err(e) = writer.signal(Sig::INT).await {
-                    log.verbose(&format!("Ctrl-C: signal INT could not be sent ({e}); ending the session"));
+                    log.verbose(&format!(
+                        "Ctrl-C: signal INT could not be sent ({}); ending the session",
+                        podssh_ws::text::said(&e)
+                    ));
                     return Some(End::Interrupted);
                 }
                 log.verbose(&format!("Ctrl-C: signal INT sent; the command has {} s to end", WAIT.as_secs()));

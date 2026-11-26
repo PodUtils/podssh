@@ -62,8 +62,10 @@ pub(super) fn spawn(
     let (utf8, size, traced) = (grant.utf8, grant.size.subscribe(), grant.traced);
     // TERM is the request's; a socket has no path for SSH_TTY.
     let env = super::env::with_tty(env, &grant.term, None);
-    let (mine, theirs) = UnixStream::pair().map_err(|e| format!("no socket for the tty: {e}"))?;
-    let (ctl_mine, ctl_theirs) = UnixStream::pair().map_err(|e| format!("no socket for the filter: {e}"))?;
+    let (mine, theirs) =
+        UnixStream::pair().map_err(|e| format!("no socket for the tty: {}", podssh_ws::text::said(&e)))?;
+    let (ctl_mine, ctl_theirs) =
+        UnixStream::pair().map_err(|e| format!("no socket for the filter: {}", podssh_ws::text::said(&e)))?;
     let _ = ctl_mine.set_read_timeout(Some(PROBE_WAIT));
     let mut cmd = command(shell, &program, env)?;
     // The shell's start files of the marks (T-120), for a login shell.
@@ -71,7 +73,7 @@ pub(super) fn spawn(
         files.apply(&mut cmd);
     }
     let stdio = |s: &UnixStream| s.try_clone().map(|c| Stdio::from(OwnedFd::from(c)));
-    let fail = |e: std::io::Error| format!("no tty socket for the child: {e}");
+    let fail = |e: std::io::Error| format!("no tty socket for the child: {}", podssh_ws::text::said(&e));
     cmd.stdin(stdio(&theirs).map_err(fail)?)
         .stdout(stdio(&theirs).map_err(fail)?)
         .stderr(stdio(&theirs).map_err(fail)?);
@@ -83,7 +85,8 @@ pub(super) fn spawn(
     }
     // The leader is known once the child runs; the tracer sets it sooner.
     let shared = Arc::new(Mutex::new(Shared::new(Tty::new(state).sized(*size.borrow()), 0)));
-    let ours = reach::Ours::new(OwnedFd::from(theirs)).map_err(|e| format!("the child's socket: {e}"))?;
+    let ours = reach::Ours::new(OwnedFd::from(theirs))
+        .map_err(|e| format!("the child's socket: {}", podssh_ws::text::said(&e)))?;
     let (told_tx, told) = mpsc::unbounded_channel();
     let stop = Arc::new(AtomicBool::new(false));
     let answerer = Answerer { ours, shared: shared.clone(), told: told_tx };
@@ -112,7 +115,7 @@ pub(super) fn spawn(
                 }
                 Tracer { leader, answerer, stop: stopping }.run();
             })
-            .map_err(|e| format!("no thread for the tty: {e}"))?;
+            .map_err(|e| format!("no thread for the tty: {}", podssh_ws::text::said(&e)))?;
         let spawned = cmd.spawn();
         drop(ctl_theirs);
         spawned.map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?
@@ -144,7 +147,7 @@ pub(super) fn spawn(
             Ok(listener) => listener,
             Err(e) => {
                 let _ = child.start_kill();
-                return Err(format!("no listener of the child's filter: {e}"));
+                return Err(format!("no listener of the child's filter: {}", podssh_ws::text::said(&e)));
             }
         };
         let leader = child.id().map_or(0, |pid| pid as i32);
@@ -155,7 +158,7 @@ pub(super) fn spawn(
         std::thread::Builder::new()
             .name("podssh-tty".into())
             .spawn(move || supervisor.run())
-            .map_err(|e| format!("no thread for the tty: {e}"))?;
+            .map_err(|e| format!("no thread for the tty: {}", podssh_ws::text::said(&e)))?;
         child
     };
     let running = Running::take(open, id, &mut child)?;
@@ -166,8 +169,9 @@ pub(super) fn spawn(
     let ends = super::share_view::offer_tty(open, tokio::io::duplex(PIPE), modes, &running.write, running.writer());
     let super::share_view::TtyEnds { input, keys, screen, ticks } = ends;
     open.give_stdin(input);
-    mine.set_nonblocking(true).map_err(|e| format!("the tty socket: {e}"))?;
-    let mine = tokio::net::UnixStream::from_std(mine).map_err(|e| format!("the tty socket: {e}"))?;
+    mine.set_nonblocking(true).map_err(|e| format!("the tty socket: {}", podssh_ws::text::said(&e)))?;
+    let mine =
+        tokio::net::UnixStream::from_std(mine).map_err(|e| format!("the tty socket: {}", podssh_ws::text::said(&e)))?;
     let (from_child, to_child) = mine.into_split();
     let (exited_tx, exited) = watch::channel(false);
     let mut ends = run::Ends { keys, from_child, to_child, screen, ticks };

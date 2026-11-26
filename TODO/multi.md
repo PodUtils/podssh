@@ -32,9 +32,9 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
   stderr with one `podssh: ` prefix (`crates/podssh-ssh/src/log.rs:123-145`).
   Two hosts cannot be told apart.
 - Read: a host-key prompt waits for the user
-  (`crates/podssh-ssh/src/hostkey.rs:208-247`); N prompts at once cannot
+  (`crates/podssh-ssh/src/hostkey.rs:208-250`); N prompts at once cannot
   work. `known_hosts` is appended under a lock since T-029
-  (`crates/podssh-ssh/src/known_hosts.rs:335-410`).
+  (`crates/podssh-ssh/src/known_hosts.rs:335-412`).
 - Read: with no cached token, each session mints one
   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:135-180`); the relay allows 120 attempts
   with no token for each minute and address (`docs/relay.md:639`).
@@ -1803,7 +1803,7 @@ a ticket, or a tool that asks an AI.
 
 - Read: podssh starts another program only when the user names it
   (`AGENTS.md:440-446`), as it runs `SSH_ASKPASS`: the program, no shell, and
-  its first line read back (`crates/podssh-ssh/src/prompt.rs:137-154`).
+  its first line read back (`crates/podssh-ssh/src/prompt.rs:137-156`).
 - Read: credentials never go to output, logs, URLs or argv
   (`docs/architecture.md:324-326`). The token type never shows itself
   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:28-57`), and doctor never shows proxy
@@ -2848,7 +2848,7 @@ relay reaches; nothing reports the far side.
   exec (`crates/podssh-cli/src/health/mod.rs:180-230`, the login and the exec as this entry's
   change split them).
 - Read: what a preflight asks is in podssh already: the SFTP server's extensions
-  (`crates/podssh-ssh/src/sftp/mod.rs:234-237`), the request of a remote forward
+  (`crates/podssh-ssh/src/sftp/mod.rs:236-239`), the request of a remote forward
   (`crates/podssh-ssh/src/remote.rs:130-144`), a channel `direct-tcpip`
   (`crates/podssh-ssh/src/local.rs:79`), keepalives each 60 s by default
   (`crates/podssh-ssh/src/options.rs:394-395`), and the relay's cap on a session
@@ -4051,7 +4051,7 @@ Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p pod
 - Read, at `07d7d9b`: each line of a host's failure was logged as it came, and the summary took the first whole
   failure, lines and all (lines 142 to 166 of `crates/podssh-cli/src/each/host.rs`, line 87 of
   `crates/podssh-cli/src/each/fan.rs`); the login's refusal reads `{user}@{host}: Permission denied`
-  (`crates/podssh-ssh/src/auth.rs:163`), and a host key's refusal has three lines (`crates/podssh-ssh/src/hostkey.rs`).
+  (`crates/podssh-ssh/src/auth.rs:168`), and a host key's refusal has three lines (`crates/podssh-ssh/src/hostkey.rs`).
 - Read, at `07d7d9b`: the base64 errors are shown by their `Display` (line 129 of `crates/podssh-cli/src/mcp/copy.rs`,
   line 149 of `crates/podssh-cli/src/session/wire.rs`).
 

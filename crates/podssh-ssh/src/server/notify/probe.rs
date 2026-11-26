@@ -41,8 +41,8 @@ pub fn probe_trace() -> Result<(), String> {
 
 /// What answers the probe's call: a socket's copy, and a state of 24x80.
 fn answerer(asker_end: &UnixStream) -> Result<Answerer, String> {
-    let copy = asker_end.try_clone().map_err(|e| e.to_string())?;
-    let ours = reach::Ours::new(OwnedFd::from(copy)).map_err(|e| e.to_string())?;
+    let copy = asker_end.try_clone().map_err(|e| podssh_ws::text::said(&e))?;
+    let ours = reach::Ours::new(OwnedFd::from(copy)).map_err(|e| podssh_ws::text::said(&e))?;
     let shared = Arc::new(Mutex::new(Shared::new(Tty::new(Termios::sane()).sized(SIZE), 0)));
     let (told, _) = mpsc::unbounded_channel();
     Ok(Answerer { ours, shared, told })
@@ -59,7 +59,8 @@ fn want() -> Vec<u8> {
 /// one that the child's `test -t 0` does not make, so a defect of `TCGETS`
 /// shows in the session, not as a host that refuses.
 fn by_notification() -> Result<(), String> {
-    let (asker_end, _other) = UnixStream::pair().map_err(|e| format!("no socket pair: {e}"))?;
+    let (asker_end, _other) =
+        UnixStream::pair().map_err(|e| format!("no socket pair: {}", podssh_ws::text::said(&e)))?;
     let (lfd_tx, lfd_rx) = std::sync::mpsc::channel::<Result<OwnedFd, String>>();
     let (asked_tx, asked_rx) = std::sync::mpsc::channel::<(i32, [u8; 8])>();
     let fd = asker_end.as_raw_fd();
@@ -71,7 +72,8 @@ fn by_notification() -> Result<(), String> {
             let listener = match unsafe { filter::install(&program) } {
                 Ok(lfd) => lfd,
                 Err(e) => {
-                    let _ = lfd_tx.send(Err(format!("seccomp's user notification is refused: {e}")));
+                    let _ = lfd_tx
+                        .send(Err(format!("seccomp's user notification is refused: {}", podssh_ws::text::said(&e))));
                     return;
                 }
             };
@@ -86,7 +88,7 @@ fn by_notification() -> Result<(), String> {
             let rc = unsafe { libc::ioctl(fd, 0x5413 as _, answer.as_mut_ptr()) };
             let _ = asked_tx.send((rc, answer));
         })
-        .map_err(|e| format!("no thread for the probe: {e}"))?;
+        .map_err(|e| format!("no thread for the probe: {}", podssh_ws::text::said(&e)))?;
     let listener = lfd_rx.recv_timeout(PROBE_WAIT).map_err(|_| "the probe's thread said nothing".to_string())??;
     let answerer = answerer(&asker_end)?;
     let stop = Arc::new(AtomicBool::new(false));
@@ -108,8 +110,10 @@ fn by_notification() -> Result<(), String> {
 /// and waits to be seized; this thread seizes it, answers its `TIOCGWINSZ`
 /// at the call's stop, and reads its exit: 0 where the answer came.
 fn by_trace() -> Result<(), String> {
-    let (asker_end, _other) = UnixStream::pair().map_err(|e| format!("no socket pair: {e}"))?;
-    let (ctl_mine, ctl_theirs) = UnixStream::pair().map_err(|e| format!("no socket pair: {e}"))?;
+    let (asker_end, _other) =
+        UnixStream::pair().map_err(|e| format!("no socket pair: {}", podssh_ws::text::said(&e)))?;
+    let (ctl_mine, ctl_theirs) =
+        UnixStream::pair().map_err(|e| format!("no socket pair: {}", podssh_ws::text::said(&e)))?;
     let _ = ctl_mine.set_read_timeout(Some(PROBE_WAIT));
     let answerer = answerer(&asker_end)?;
     let (fd, ctl, program, want) = (asker_end.as_raw_fd(), ctl_theirs.as_raw_fd(), filter::traced(), want());
@@ -158,7 +162,7 @@ fn by_trace() -> Result<(), String> {
     // SAFETY: waitpid writes one status of this thread's own child.
     unsafe { libc::waitpid(pid, &mut status, 0) };
     match (seized, libc::WIFEXITED(status).then(|| libc::WEXITSTATUS(status))) {
-        (Err(e), _) => Err(format!("ptrace is refused: {e}")),
+        (Err(e), _) => Err(format!("ptrace is refused: {}", podssh_ws::text::said(&e))),
         (Ok(_), Some(0)) => Ok(()),
         (Ok(_), Some(2)) => Err("the tracer's filter is refused".into()),
         (Ok(_), _) => Err("the answer to a traced call did not come back".into()),

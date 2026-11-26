@@ -149,7 +149,7 @@ impl Request {
     }
 
     fn builder(&self, public: &PublicKey, nonce: &[u8]) -> Result<Builder, String> {
-        let failed = |e: russh::keys::ssh_key::Error| e.to_string();
+        let failed = |e: russh::keys::ssh_key::Error| podssh_ws::text::said(&e);
         let mut builder = Builder::new(nonce.to_vec(), public.key_data().clone(), self.valid_after, self.valid_before)
             .map_err(failed)?;
         builder.serial(self.serial).map_err(failed)?;
@@ -207,7 +207,7 @@ pub fn certify(
 ) -> Result<Certificate, String> {
     let builder = request.builder(public, &nonce())?;
     if !ca.algorithm().is_rsa() {
-        return builder.sign(ca).map_err(|e| format!("could not sign the certificate: {e}"));
+        return builder.sign(ca).map_err(|e| format!("could not sign the certificate: {}", podssh_ws::text::said(&e)));
     }
     let signer = crate::rsa_key::RsaSigner::of(ca)?;
     let detached = Detached::new(ca.public_key().key_data().clone(), move |data| {
@@ -215,10 +215,10 @@ pub fn certify(
             HashAlg::Sha256 => signer.sign_sha256(data),
             _ => signer.sign_sha512(data),
         }
-        .map_err(|e| e.to_string())?;
-        Signature::new(Algorithm::Rsa { hash: Some(rsa_hash) }, bytes).map_err(|e| e.to_string())
+        .map_err(|e| podssh_ws::text::said(&e))?;
+        Signature::new(Algorithm::Rsa { hash: Some(rsa_hash) }, bytes).map_err(|e| podssh_ws::text::said(&e))
     });
-    builder.sign(&detached).map_err(|e| format!("could not sign the certificate: {e}"))
+    builder.sign(&detached).map_err(|e| format!("could not sign the certificate: {}", podssh_ws::text::said(&e)))
 }
 
 /// `public` certified by the CA key `ca` that the agent of `choice` holds
@@ -245,13 +245,15 @@ pub async fn certify_with_agent(
     let Some(mut agent) = crate::keys::connect_agent(choice).await? else {
         return Err("no agent runs: SSH_AUTH_SOCK names none".into());
     };
-    let held = agent.request_identities().await.map_err(|e| format!("the agent: {e}"))?;
+    let held = agent.request_identities().await.map_err(|e| format!("the agent: {}", podssh_ws::text::said(&e)))?;
     if !held.iter().any(|id| id.public_key().key_data() == ca.key_data()) {
         return Err("the agent does not hold the CA key".into());
     }
     let hash = ca.algorithm().is_rsa().then_some(rsa_hash);
-    let signature =
-        agent.sign_request_signature(ca, hash, &data).await.map_err(|e| format!("the agent did not sign: {e}"))?;
+    let signature = agent
+        .sign_request_signature(ca, hash, &data)
+        .await
+        .map_err(|e| format!("the agent did not sign: {}", podssh_ws::text::said(&e)))?;
     let replay = Detached::new(ca.key_data().clone(), move |again| {
         if again == data.as_slice() {
             Ok(signature.clone())
@@ -259,7 +261,10 @@ pub async fn certify_with_agent(
             Err("the certificate changed between its two builds".into())
         }
     });
-    request.builder(public, &nonce)?.sign(&replay).map_err(|e| format!("could not sign the certificate: {e}"))
+    request
+        .builder(public, &nonce)?
+        .sign(&replay)
+        .map_err(|e| format!("could not sign the certificate: {}", podssh_ws::text::said(&e)))
 }
 
 /// `-V`, as ssh-keygen takes it: `+TIME` from now (the start a minute

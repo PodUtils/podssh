@@ -47,7 +47,7 @@ async fn spawn(shell: &Path, local: &LocalCommand, log: &Log) {
     match command.status().await {
         Ok(status) if status.success() => {}
         Ok(status) => log.verbose(&format!("LocalCommand ended with {status}")),
-        Err(e) => log.error(&format!("LocalCommand: {} could not run: {e}", shell.display())),
+        Err(e) => log.error(&format!("LocalCommand: {} could not run: {}", shell.display(), podssh_ws::text::said(&e))),
     }
 }
 

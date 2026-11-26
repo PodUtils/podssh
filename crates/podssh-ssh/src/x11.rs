@@ -153,7 +153,7 @@ pub async fn answers(display: &Display) -> Result<(), String> {
         .await
         .map_err(|_| format!("the X server did not answer within {} s", LIMIT.as_secs()))?
         .map(drop)
-        .map_err(|e| format!("the X server cannot be reached: {e}"))
+        .map_err(|e| format!("the X server cannot be reached: {}", podssh_ws::text::said(&e)))
 }
 
 /// Whether the X server of `display` takes a connection with no
@@ -162,7 +162,7 @@ pub async fn takes_no_cookie(display: &Display) -> Result<bool, String> {
     let mut conn = tokio::time::timeout(LIMIT, connect(display))
         .await
         .map_err(|_| format!("the X server did not answer within {} s", LIMIT.as_secs()))?
-        .map_err(|e| format!("the X server cannot be reached: {e}"))?;
+        .map_err(|e| format!("the X server cannot be reached: {}", podssh_ws::text::said(&e)))?;
     // A setup request with no authorization (X11, chapter 8): little-endian,
     // protocol 11.0.
     let setup = [b'l', 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -174,7 +174,7 @@ pub async fn takes_no_cookie(display: &Display) -> Result<bool, String> {
     tokio::time::timeout(LIMIT, asked)
         .await
         .map_err(|_| "the X server did not answer a setup request".to_string())?
-        .map_err(|e| format!("the X server: {e}"))?;
+        .map_err(|e| format!("the X server: {}", podssh_ws::text::said(&e)))?;
     Ok(status[0] == 1)
 }
 
@@ -232,7 +232,7 @@ pub async fn request(
     channel
         .request_x11(true, false, PROTOCOL, forward.spoofed_hex(), forward.display.screen)
         .await
-        .map_err(|e| format!("could not request X11 forwarding: {e}"))?;
+        .map_err(|e| format!("could not request X11 forwarding: {}", podssh_ws::text::said(&e)))?;
     if !crate::session::wait_reply(channel, early).await? {
         log.info("the server refused X11 forwarding; the session goes on without it");
     }
@@ -260,7 +260,7 @@ pub fn join(forward: Forward, channel: Channel<Msg>, reply: ChannelOpenHandle, l
             Ok(Ok(local)) => local,
             failed => {
                 refuse(match failed {
-                    Ok(Err(e)) => format!("the X server cannot be reached: {e}"),
+                    Ok(Err(e)) => format!("the X server cannot be reached: {}", podssh_ws::text::said(&e)),
                     _ => "the X server did not answer".into(),
                 });
                 reply.reject(ChannelOpenFailure::ConnectFailed).await;
@@ -303,10 +303,16 @@ fn pad(n: usize) -> usize {
 /// another.
 async fn setup<S: AsyncRead + Unpin>(stream: &mut S, forward: &Forward) -> Result<Vec<u8>, String> {
     let mut head = [0u8; 12];
-    stream.read_exact(&mut head).await.map_err(|e| format!("the X client's first packet: {e}"))?;
+    stream
+        .read_exact(&mut head)
+        .await
+        .map_err(|e| format!("the X client's first packet: {}", podssh_ws::text::said(&e)))?;
     let (name_len, data_len) = lengths(&head)?;
     let mut rest = vec![0u8; name_len + pad(name_len) + data_len + pad(data_len)];
-    stream.read_exact(&mut rest).await.map_err(|e| format!("the X client's first packet: {e}"))?;
+    stream
+        .read_exact(&mut rest)
+        .await
+        .map_err(|e| format!("the X client's first packet: {}", podssh_ws::text::said(&e)))?;
     swap(&head, &rest, forward)
 }
 

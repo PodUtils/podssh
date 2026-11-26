@@ -329,7 +329,8 @@ fn upstream(rest: &str) -> Result<(String, u16), String> {
 /// A public key as a line of authorized_keys gives it: `TYPE BASE64
 /// [COMMENT]`, with no options.
 fn public_key(rest: &str) -> Result<PublicKey, String> {
-    PublicKey::from_openssh(rest).map_err(|e| format!("not a public key, TYPE BASE64 [COMMENT]: {e}"))
+    PublicKey::from_openssh(rest)
+        .map_err(|e| format!("not a public key, TYPE BASE64 [COMMENT]: {}", podssh_ws::text::said(&e)))
 }
 
 /// A principal: one word, no comma (OpenSSH splits a list of them on it).

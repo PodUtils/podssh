@@ -62,11 +62,12 @@ pub fn stand_in_on(device: Device, text: &str) -> Result<PrivateKey, String> {
 
 /// [`stand_in`] on the TPM that `open` reaches.
 pub(crate) fn stand_in_with(open: Opener, text: &str) -> Result<PrivateKey, String> {
-    let file = KeyFile::from_pem(text).map_err(|e| e.to_string())?;
+    let file = KeyFile::from_pem(text).map_err(|e| podssh_ws::text::said(&e))?;
     let public = super::public_key(&file)?;
     {
         let mut transport = open()?;
-        super::signs_now(&mut *transport, &file, &public).map_err(|e| format!("the key of the TPM {e}"))?;
+        super::signs_now(&mut *transport, &file, &public)
+            .map_err(|e| format!("the key of the TPM {}", podssh_ws::text::said(&e)))?;
     }
     let key = stand_in_key(&public, file.description.clone().unwrap_or_default())?;
     let tpm = Arc::new(HostTpm { file, open, turn: Mutex::new(()) });
@@ -82,7 +83,8 @@ fn stand_in_key(public: &PublicKey, comment: String) -> Result<PrivateKey, Strin
         return Err("a key of a TPM that is not ECDSA P-256, which podssh does not make".into());
     };
     let pair = EcdsaKeypair::NistP256 { public: *point, private: EcdsaPrivateKey::from([0u8; 32]) };
-    PrivateKey::new(KeypairData::Ecdsa(pair), comment).map_err(|e| format!("the host key of the TPM: {e}"))
+    PrivateKey::new(KeypairData::Ecdsa(pair), comment)
+        .map_err(|e| format!("the host key of the TPM: {}", podssh_ws::text::said(&e)))
 }
 
 /// The TPM of `key`, when [`stand_in`] made it.

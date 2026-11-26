@@ -28,7 +28,7 @@ pub enum Unreached {
 impl std::fmt::Display for Unreached {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Unreached::NoMaster(e) => write!(f, "{e}"),
+            Unreached::NoMaster(e) => write!(f, "{}", podssh_ws::text::said(&e)),
             Unreached::Broken(why) => f.write_str(why),
         }
     }
@@ -56,7 +56,8 @@ pub struct MuxClient {
 /// The master on `path`, after the hellos.
 pub async fn connect(path: &Path) -> Result<MuxClient, Unreached> {
     let mut stream = UnixStream::connect(path).await.map_err(Unreached::NoMaster)?;
-    let broken = |e: io::Error| Unreached::Broken(format!("the control master broke the hello: {e}"));
+    let broken =
+        |e: io::Error| Unreached::Broken(format!("the control master broke the hello: {}", podssh_ws::text::said(&e)));
     wire::write(&mut stream, &Message::Hello { version: VERSION, extensions: Vec::new() }).await.map_err(broken)?;
     match wire::read(&mut stream).await.map_err(broken)? {
         Some(Message::Hello { version: VERSION, .. }) => Ok(MuxClient { stream, rid: 0 }),
@@ -76,10 +77,12 @@ impl MuxClient {
 
     /// One request and its answer, which must name the request.
     async fn ask(&mut self, request: Message) -> Result<Message, String> {
-        wire::write(&mut self.stream, &request).await.map_err(|e| format!("the control master left: {e}"))?;
+        wire::write(&mut self.stream, &request)
+            .await
+            .map_err(|e| format!("the control master left: {}", podssh_ws::text::said(&e)))?;
         wire::read(&mut self.stream)
             .await
-            .map_err(|e| format!("the control master broke its answer: {e}"))?
+            .map_err(|e| format!("the control master broke its answer: {}", podssh_ws::text::said(&e)))?
             .ok_or_else(|| "the control master closed the connection".to_string())
     }
 
@@ -210,9 +213,13 @@ impl MuxClient {
 
     /// `request`, then each descriptor of `fds`, as OpenSSH's client sends.
     async fn send_with(&mut self, request: Message, fds: &[i32]) -> Result<(), String> {
-        wire::write(&mut self.stream, &request).await.map_err(|e| format!("the control master left: {e}"))?;
+        wire::write(&mut self.stream, &request)
+            .await
+            .map_err(|e| format!("the control master left: {}", podssh_ws::text::said(&e)))?;
         for fd in fds {
-            wire::send_fd(&self.stream, *fd).await.map_err(|e| format!("could not pass descriptor {fd}: {e}"))?;
+            wire::send_fd(&self.stream, *fd)
+                .await
+                .map_err(|e| format!("could not pass descriptor {fd}: {}", podssh_ws::text::said(&e)))?;
         }
         Ok(())
     }

@@ -119,7 +119,7 @@ impl Totp {
                         LOCK_WAIT.as_secs()
                     ))
                 }
-                Err(e) => return Err(e.to_string()),
+                Err(e) => return Err(podssh_ws::text::said(&e)),
             }
         }
     }
@@ -141,7 +141,7 @@ impl Totp {
         let text = state::render(state);
         pod_core::files::replace(&self.state, text.as_bytes(), pod_core::files::Mode::Private)
             .map(|_| ())
-            .map_err(|e| e.to_string())
+            .map_err(|e| podssh_ws::text::said(&e))
     }
 }
 

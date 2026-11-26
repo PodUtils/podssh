@@ -81,8 +81,8 @@ fn probe_in(dev: &Path, sys: &Path, named: Option<&Path>) -> Result<Found, Strin
 
 /// The `hidraw` devices of `dev`, in the order of their numbers.
 fn hidraw_nodes(dev: &Path) -> Result<Vec<PathBuf>, String> {
-    let entries =
-        std::fs::read_dir(dev).map_err(|e| format!("no security key: {} cannot be read: {e}", dev.display()))?;
+    let entries = std::fs::read_dir(dev)
+        .map_err(|e| format!("no security key: {} cannot be read: {}", dev.display(), podssh_ws::text::said(&e)))?;
     let mut nodes: Vec<(u32, PathBuf)> = entries
         .filter_map(Result::ok)
         .filter(|entry| entry.file_type().is_ok_and(|t| t.is_char_device()))
@@ -103,7 +103,8 @@ fn fido(path: &Path, sys: &Path) -> Result<bool, String> {
     }
     // No sysfs (a sandbox may hide it): the device's own answer.
     let file = open(path)?;
-    let bytes = descriptor(&file).map_err(|e| format!("{} is no HID device here: {e}", path.display()))?;
+    let bytes = descriptor(&file)
+        .map_err(|e| format!("{} is no HID device here: {}", path.display(), podssh_ws::text::said(&e)))?;
     Ok(is_fido(&bytes))
 }
 
@@ -160,11 +161,12 @@ fn is_fido(descriptor: &[u8]) -> bool {
 fn open(path: &Path) -> Result<File, String> {
     let file = std::fs::OpenOptions::new().read(true).write(true).open(path).map_err(|e| match e.kind() {
         std::io::ErrorKind::PermissionDenied => format!(
-            "{} is a FIDO device that this user may not open ({e}): a udev rule gives the user access \
+            "{} is a FIDO device that this user may not open ({}): a udev rule gives the user access \
              (TAG+=\"uaccess\", as libfido2's 70-u2f.rules does)",
-            path.display()
+            path.display(),
+            podssh_ws::text::said(&e)
         ),
-        _ => format!("{} cannot be opened: {e}", path.display()),
+        _ => format!("{} cannot be opened: {}", path.display(), podssh_ws::text::said(&e)),
     })?;
     // SAFETY: flock on a descriptor that `file` holds open.
     if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
@@ -218,7 +220,8 @@ impl Reports for Hidraw {
 /// A channel of the device at `path`.
 fn channel(path: &Path) -> Result<Channel<Hidraw>, String> {
     let file = open(path)?;
-    Channel::open(Hidraw(file), rand::random()).map_err(|e| format!("{}: {e}", path.display()))
+    Channel::open(Hidraw(file), rand::random())
+        .map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))
 }
 
 /// Make a key in the one FIDO device. With several, podssh does not choose

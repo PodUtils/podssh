@@ -118,7 +118,7 @@ impl Incoming {
                 self.name, self.written
             ));
         }
-        file.sync_all().map_err(|e| format!("{}: {e}", self.name))?;
+        file.sync_all().map_err(|e| format!("{}: {}", self.name, podssh_ws::text::said(&e)))?;
         if let Some(seconds) = self.mtime {
             // A file system that cannot keep the server's time keeps its own.
             let _ = file.set_modified(UNIX_EPOCH + Duration::from_secs(seconds));
@@ -137,7 +137,8 @@ impl Incoming {
                 kept.display()
             ));
         }
-        std::fs::rename(&self.temp, &self.dest).map_err(|e| format!("{}: {e}", self.dest.display()))?;
+        std::fs::rename(&self.temp, &self.dest)
+            .map_err(|e| format!("{}: {}", self.dest.display(), podssh_ws::text::said(&e)))?;
         self.temp = PathBuf::new();
         Ok(self.dest.clone())
     }
@@ -193,8 +194,8 @@ impl Outgoing {
 /// the spec's positions have 32 bits.
 pub fn open(path: &Path) -> Result<(File, Outgoing), String> {
     let shown = path.display();
-    let file = File::open(path).map_err(|e| format!("{shown}: {e}"))?;
-    let meta = file.metadata().map_err(|e| format!("{shown}: {e}"))?;
+    let file = File::open(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
+    let meta = file.metadata().map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err(format!("{shown} is not a regular file"));
     }
@@ -226,8 +227,8 @@ fn mode_of(_meta: &std::fs::Metadata) -> u32 {
 /// that opens, of any size below 2^63, as its offsets have 64 bits.
 pub fn open_whole(path: &Path) -> Result<(File, pod_term::transfer::FileInfo), String> {
     let shown = path.display();
-    let file = File::open(path).map_err(|e| format!("{shown}: {e}"))?;
-    let meta = file.metadata().map_err(|e| format!("{shown}: {e}"))?;
+    let file = File::open(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
+    let meta = file.metadata().map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err(format!("{shown} is not a regular file"));
     }
@@ -263,7 +264,11 @@ pub fn read_at(file: &mut File, offset: u64, buf: &mut [u8]) -> std::io::Result<
 /// the temporary file, a name that nobody typed, and in a directory that
 /// exists but takes no file (`/proc`) it can say "No such file".
 pub fn cannot_create(dir: &Path, error: &std::io::Error) -> String {
-    format!("a file could not be created in {}: {error}", podssh_ws::text::one_line(&dir.display().to_string()))
+    format!(
+        "a file could not be created in {}: {}",
+        podssh_ws::text::one_line(&dir.display().to_string()),
+        podssh_ws::text::said(&error)
+    )
 }
 
 #[cfg(test)]
@@ -279,6 +284,8 @@ mod tests {
         let Err(error) = Incoming::create(dir, "up.bin", &offer, false) else { return };
         let line = cannot_create(dir, &error);
         assert!(line.starts_with("a file could not be created in /nonexistent-podssh-dir: "), "{line}");
-        assert!(line.ends_with(&error.to_string()) && !line.contains(".part"), "{line}");
+        // The system's words, with no "(os error N)" of Rust's (T-989).
+        assert!(line.ends_with(&podssh_ws::text::said(&error)) && !line.contains(".part"), "{line}");
+        assert!(!line.contains("os error"), "{line}");
     }
 }

@@ -49,9 +49,11 @@ impl Granted {
     pub(super) fn new(pair: Pair, term: &str, size: Size, modes: &[(Pty, u32)]) -> Result<Granted, String> {
         let Pair { master, slave, name, path } = pair;
         // A mode that the kernel refuses is passed over, as sshd does.
-        pty::set_modes(slave.as_raw_fd(), modes).map_err(|e| format!("{name}: its modes: {e}"))?;
-        pty::set_size(master.as_raw_fd(), size).map_err(|e| format!("{name}: its size: {e}"))?;
-        nonblocking(&master).map_err(|e| format!("{name}: {e}"))?;
+        pty::set_modes(slave.as_raw_fd(), modes)
+            .map_err(|e| format!("{name}: its modes: {}", podssh_ws::text::said(&e)))?;
+        pty::set_size(master.as_raw_fd(), size)
+            .map_err(|e| format!("{name}: its size: {}", podssh_ws::text::said(&e)))?;
+        nonblocking(&master).map_err(|e| format!("{name}: {}", podssh_ws::text::said(&e)))?;
         // SAFETY: the AsyncFd owns the master, which stays open and the same
         // until the AsyncFd drops it.
         let master = unsafe { AsyncFd::register(master) }.map_err(|e| format!("{name}: {}", e.into_parts().1))?;
@@ -107,7 +109,8 @@ pub(super) fn spawn(
     if let Some(files) = open.extras.marks.as_ref() {
         files.apply(&mut cmd);
     }
-    let copy = |what: &str| slave.try_clone().map_err(|e| format!("{}: {what}: {e}", granted.name));
+    let copy =
+        |what: &str| slave.try_clone().map_err(|e| format!("{}: {what}: {}", granted.name, podssh_ws::text::said(&e)));
     cmd.stdin(Stdio::from(copy("stdin")?)).stdout(Stdio::from(copy("stdout")?)).stderr(Stdio::from(copy("stderr")?));
     // A session of its own whose controlling terminal is the slave: Ctrl-C
     // on the pty reaches the child's foreground group, and a hangup its

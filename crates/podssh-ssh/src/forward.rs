@@ -116,7 +116,7 @@ pub async fn stdio(handle: &Handle<Client>, target: &StdioTarget, log: &Log) -> 
                     crate::outcome::output(n, false);
                 }
                 Err(e) => {
-                    log.error(&format!("the forwarded connection failed: {e}"));
+                    log.error(&format!("the forwarded connection failed: {}", podssh_ws::text::said(&e)));
                     crate::outcome::failed("forward");
                     return crate::run::EXIT_FAILURE;
                 }

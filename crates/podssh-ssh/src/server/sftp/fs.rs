@@ -52,11 +52,7 @@ pub(super) fn status_of(e: &io::Error) -> StatusCode {
 
 /// The system's words for a failed call, without Rust's "(os error N)".
 pub(super) fn words(e: &io::Error) -> String {
-    let text = e.to_string();
-    match text.find(" (os error ") {
-        Some(at) => text[..at].to_string(),
-        None => text,
-    }
+    podssh_ws::text::said(e)
 }
 
 /// A time as version 3 carries it: seconds in 32 bits.

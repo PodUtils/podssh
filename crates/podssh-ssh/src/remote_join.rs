@@ -39,14 +39,14 @@ async fn tcp(channel: Channel<Msg>, host: &str, port: u16, counts: &Arc<Counts>,
         Ok(tcp) => tcp,
         Err(e) => {
             counts.failed();
-            log.info(&cannot_connect("remote forward", &target, &e.to_string()));
+            log.info(&cannot_connect("remote forward", &target, &podssh_ws::text::said(&e)));
             let _ = channel.close().await;
             return;
         }
     };
     let _ = tcp.set_nodelay(true);
     if let Err(e) = crate::tally::copy(tcp, channel.into_stream(), counts).await {
-        log.verbose(&format!("remote forward to {target} ended: {e}"));
+        log.verbose(&format!("remote forward to {target} ended: {}", podssh_ws::text::said(&e)));
     }
 }
 
@@ -56,7 +56,13 @@ async fn socket(channel: Channel<Msg>, path: &str, counts: &Arc<Counts>, log: &L
     let stream = match connected {
         Ok(Ok(stream)) => stream,
         Ok(Err(e)) => {
-            return refuse(channel, counts, log, &format!("remote forward to {path}: cannot connect: {e}")).await
+            return refuse(
+                channel,
+                counts,
+                log,
+                &format!("remote forward to {path}: cannot connect: {}", podssh_ws::text::said(&e)),
+            )
+            .await
         }
         Err(_) => {
             let why = format!("remote forward to {path}: no answer within {} s", DIAL_LIMIT.as_secs());
@@ -64,7 +70,7 @@ async fn socket(channel: Channel<Msg>, path: &str, counts: &Arc<Counts>, log: &L
         }
     };
     if let Err(e) = crate::tally::copy(stream, channel.into_stream(), counts).await {
-        log.verbose(&format!("remote forward to {path} ended: {e}"));
+        log.verbose(&format!("remote forward to {path} ended: {}", podssh_ws::text::said(&e)));
     }
 }
 
@@ -104,7 +110,7 @@ async fn socks(channel: Channel<Msg>, counts: &Arc<Counts>, log: &Log) {
         Err(e) => {
             counts.failed();
             let _ = crate::socks::answer(&mut write, request.version, Err(crate::socks::Refusal::Refused)).await;
-            return log.info(&cannot_connect("remote forward, SOCKS", &target, &e.to_string()));
+            return log.info(&cannot_connect("remote forward, SOCKS", &target, &podssh_ws::text::said(&e)));
         }
     };
     if crate::socks::answer(&mut write, request.version, Ok(())).await.is_err() {
@@ -113,7 +119,7 @@ async fn socks(channel: Channel<Msg>, counts: &Arc<Counts>, log: &Log) {
     }
     let _ = tcp.set_nodelay(true);
     if let Err(e) = crate::tally::copy(tcp, read.unsplit(write), counts).await {
-        log.verbose(&format!("remote forward, SOCKS to {target} ended: {e}"));
+        log.verbose(&format!("remote forward, SOCKS to {target} ended: {}", podssh_ws::text::said(&e)));
     }
 }
 

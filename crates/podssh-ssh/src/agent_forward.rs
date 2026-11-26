@@ -80,7 +80,10 @@ impl Forward {
 /// the command: a refusal is said, and the session goes on without it.
 pub async fn request(channel: &mut Channel<Msg>, early: &mut Vec<ChannelMsg>, log: &Log) -> Result<(), String> {
     log.verbose("requesting agent forwarding (auth-agent-req@openssh.com)");
-    channel.agent_forward(true).await.map_err(|e| format!("could not request agent forwarding: {e}"))?;
+    channel
+        .agent_forward(true)
+        .await
+        .map_err(|e| format!("could not request agent forwarding: {}", podssh_ws::text::said(&e)))?;
     if !crate::session::wait_reply(channel, early).await? {
         log.info("the server refused agent forwarding; the session goes on without it");
     }
@@ -98,7 +101,7 @@ pub fn join(forward: Forward, channel: Channel<Msg>, reply: ChannelOpenHandle, l
             failed => {
                 let why = match failed {
                     Ok(Ok(_)) => "no agent runs here (SSH_AUTH_SOCK is not set)".to_string(),
-                    Ok(Err(e)) => format!("the agent cannot be reached: {e}"),
+                    Ok(Err(e)) => format!("the agent cannot be reached: {}", podssh_ws::text::said(&e)),
                     Err(_) => format!("the agent did not answer within {} s", CONNECT_LIMIT.as_secs()),
                 };
                 forward.refusing(&why, &log);

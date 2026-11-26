@@ -68,7 +68,7 @@ where
         match signed {
             Ok(data) => Ok(data),
             Err(e) => {
-                self.failed = Some(e.to_string());
+                self.failed = Some(podssh_ws::text::said(&e));
                 Ok(unverifiable(unsigned, key, hash_alg))
             }
         }

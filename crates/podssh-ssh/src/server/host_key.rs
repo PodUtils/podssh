@@ -56,11 +56,13 @@ pub fn at(path: &Path, files: &StateFiles) -> Result<HostKey, String> {
             return Ok(HostKey { key, path: path.to_path_buf(), made: false });
         }
         let key = keygen::generate(KeyKind::Ed25519, COMMENT)?;
-        let text = key.to_openssh(LineEnding::LF).map_err(|e| format!("could not encode the host key: {e}"))?;
+        let text = key
+            .to_openssh(LineEnding::LF)
+            .map_err(|e| format!("could not encode the host key: {}", podssh_ws::text::said(&e)))?;
         match (files.create)(path, text.as_bytes()) {
             Ok(true) => return Ok(HostKey { key, path: path.to_path_buf(), made: true }),
             Ok(false) => continue,
-            Err(e) => return Err(format!("{}: {e}", path.display())),
+            Err(e) => return Err(format!("{}: {}", path.display(), podssh_ws::text::said(&e))),
         }
     }
     Err(format!("{}: could not be made or read", path.display()))
@@ -84,7 +86,10 @@ pub fn in_first(read_dirs: &[PathBuf], dirs: &[PathBuf], files: &StateFiles) -> 
     let mut reasons = Vec::new();
     for dir in dirs {
         let path = dir.join(FILE);
-        match (files.dir)(dir).map_err(|e| format!("{}: {e}", dir.display())).and_then(|()| at(&path, files)) {
+        match (files.dir)(dir)
+            .map_err(|e| format!("{}: {}", dir.display(), podssh_ws::text::said(&e)))
+            .and_then(|()| at(&path, files))
+        {
             Ok(found) => return Ok(found),
             Err(why) => reasons.push(why),
         }
@@ -104,7 +109,8 @@ pub fn parse(text: &str) -> Result<PrivateKey, String> {
     if !text.contains(OPENSSH_BEGIN) {
         return Err(not_openssh(text));
     }
-    let key = PrivateKey::from_openssh(text).map_err(|e| format!("not an OpenSSH private key: {e}"))?;
+    let key = PrivateKey::from_openssh(text)
+        .map_err(|e| format!("not an OpenSSH private key: {}", podssh_ws::text::said(&e)))?;
     if key.is_encrypted() {
         return Err("the key has a passphrase, which nobody can type at a server's start: use a key without one".into());
     }

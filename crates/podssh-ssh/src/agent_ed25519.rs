@@ -32,7 +32,10 @@ pub async fn ed25519_keys(choice: &Agent) -> Result<Option<Vec<[u8; 32]>>, Strin
 /// [`ed25519_keys`] with no time limit.
 async fn listed(choice: &Agent) -> Result<Option<Vec<[u8; 32]>>, String> {
     let Some(mut agent) = connect_agent(choice).await? else { return Ok(None) };
-    let held = agent.request_identities().await.map_err(|e| format!("the SSH agent gave no list of its keys: {e}"))?;
+    let held = agent
+        .request_identities()
+        .await
+        .map_err(|e| format!("the SSH agent gave no list of its keys: {}", podssh_ws::text::said(&e)))?;
     let plain = held.iter().filter_map(|id| match id {
         AgentIdentity::PublicKey { key, .. } => raw_ed25519(key),
         AgentIdentity::Certificate { .. } => None,
@@ -65,7 +68,10 @@ async fn signed(choice: &Agent, key: &[u8; 32], data: &[u8]) -> Result<Signature
         return Err("no SSH agent runs now: SSH_AUTH_SOCK names none".to_string());
     };
     // No hash algorithm: an Ed25519 key's request carries flags 0.
-    agent.sign_request_signature(&public, None, data).await.map_err(|e| format!("the SSH agent did not sign: {e}"))
+    agent
+        .sign_request_signature(&public, None, data)
+        .await
+        .map_err(|e| format!("the SSH agent did not sign: {}", podssh_ws::text::said(&e)))
 }
 
 /// The 64 bytes of an Ed25519 signature; an agent that answered with

@@ -188,7 +188,7 @@ impl Through {
     /// What the terminal shows, into the recording.
     fn recorded(&mut self, data: Vec<u8>, log: &Log) -> Vec<u8> {
         if let Some(Err(e)) = self.record.as_mut().map(|r| r.output(&data)) {
-            log.info(&format!("--record stopped: {e}"));
+            log.info(&format!("--record stopped: {}", podssh_ws::text::said(&e)));
             self.record = None;
         }
         data

@@ -35,7 +35,7 @@ where
     retry::begin();
     match connect_hops(stream, opts, log).await {
         Ok(handles) => Ok(handles),
-        Err(e) => Err(failed(&e.to_string(), e.class(), opts, relay)),
+        Err(e) => Err(failed(&podssh_ws::text::said(&e), e.class(), opts, relay)),
     }
 }
 

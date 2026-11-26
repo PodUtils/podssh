@@ -113,7 +113,7 @@ async fn read_packet<R: AsyncRead + Unpin>(input: &mut R) -> Result<Option<Bytes
     match input.read_exact(&mut len).await {
         Ok(_) => {}
         Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
-        Err(e) => return Err(format!("the channel failed: {e}")),
+        Err(e) => return Err(format!("the channel failed: {}", podssh_ws::text::said(&e))),
     }
     let len = u32::from_be_bytes(len);
     // A length past the limit leaves no packet boundary to read on from.
@@ -121,13 +121,16 @@ async fn read_packet<R: AsyncRead + Unpin>(input: &mut R) -> Result<Option<Bytes
         return Err(format!("a packet of {len} bytes, where {MAX_PACKET} is the most"));
     }
     let mut body = vec![0u8; len as usize];
-    input.read_exact(&mut body).await.map_err(|e| format!("the input ended inside a packet: {e}"))?;
+    input
+        .read_exact(&mut body)
+        .await
+        .map_err(|e| format!("the input ended inside a packet: {}", podssh_ws::text::said(&e)))?;
     Ok(Some(Bytes::from(body)))
 }
 
 /// A packet with its length.
 fn encode(packet: Packet) -> Result<Bytes, String> {
-    Bytes::try_from(packet).map_err(|e| format!("a reply did not encode: {e}"))
+    Bytes::try_from(packet).map_err(|e| format!("a reply did not encode: {}", podssh_ws::text::said(&e)))
 }
 
 /// The version reply: version 3, whatever the client asked, as
@@ -169,9 +172,11 @@ where
             }
             Some(open) => Some(match Packet::try_from(&mut body) {
                 Ok(packet) => open.answer(packet).await,
-                Err(e) => {
-                    status(id, StatusCode::BadMessage, format!("a packet of type {kind} that does not parse: {e}"))
-                }
+                Err(e) => status(
+                    id,
+                    StatusCode::BadMessage,
+                    format!("a packet of type {kind} that does not parse: {}", podssh_ws::text::said(&e)),
+                ),
             }),
         };
         let reply = reply.unwrap_or_else(|| {
@@ -179,8 +184,11 @@ where
             version()
         });
         let bytes = encode(reply)?;
-        output.write_all(&bytes).await.map_err(|e| format!("the reply could not be sent: {e}"))?;
-        output.flush().await.map_err(|e| format!("the reply could not be sent: {e}"))?;
+        output
+            .write_all(&bytes)
+            .await
+            .map_err(|e| format!("the reply could not be sent: {}", podssh_ws::text::said(&e)))?;
+        output.flush().await.map_err(|e| format!("the reply could not be sent: {}", podssh_ws::text::said(&e)))?;
         if session.as_ref().is_some_and(|s| s.stuck() >= MAX_STUCK) {
             return Err(format!("{MAX_STUCK} file-system calls gave no answer: the session ends"));
         }

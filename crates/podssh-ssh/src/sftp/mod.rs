@@ -192,7 +192,9 @@ impl Sftp {
                     limit: limits.metadata,
                 })
             }
-            Ok(Err(e)) => return Err(SftpError::Closed(format!("ask for the {name} subsystem: {e}"))),
+            Ok(Err(e)) => {
+                return Err(SftpError::Closed(format!("ask for the {name} subsystem: {}", podssh_ws::text::said(&e))))
+            }
             Ok(Ok(())) => {}
         }
         // Nothing comes before the subsystem's reply that SFTP needs.

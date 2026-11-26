@@ -1888,7 +1888,7 @@ ssh -N -L` sees its warnings and errors at `info`.
 lines that `journal::line` writes, and `Log` writes its own to stderr. The client's log has no level
 of warnings: `crates/podssh-ssh/src/options.rs:115-124` lists the levels of `-o LogLevel`, as
 OpenSSH's, and the client's "Warning:" lines are written at INFO, as OpenSSH's `logit` writes them
-(`crates/podssh-ssh/src/hostkey.rs:263` says "Warning: Permanently added"). So:
+(`crates/podssh-ssh/src/hostkey.rs:266` says "Warning: Permanently added"). So:
 
 - The sink is a function that the binary gives podssh-ssh's log once
   (`crates/podssh-ssh/src/log.rs:204`, `copy_lines`), as it gives the hint of an error
@@ -5255,7 +5255,7 @@ SOCKS), whose values are not I/O errors.
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5289,3 +5289,24 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test io_error_lines
 cargo test -p podssh-ssh --lib
 ```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent (built nothing; the main session merges and measures it): a Python port of the
+scan (the matcher, the test blocks, `*_tests.rs` and `tests.rs` left out) found 291 hits in `crates/podssh-ssh/src/` at
+`0f1f64b` (T-952 counted 301). 255 lines in 74 files were converted to `podssh_ws::text::said(&e)`: each line of a
+module that touches I/O, including the lines of ssh-key and signature faults inside such a module (`said` is harmless on
+them, and it keeps those modules out of a table); a format string with an `{e}` took a `{}` and the argument (or the
+argument last, where the string has positional `{}` before it), and `server/sftp/fs.rs`'s own `words` became
+`said`. The SOCKS codec (`socks.rs`) is not exempt: it reads a TCP stream, and a reset shows the suffix. Seven modules of
+codecs are exempt in `SSH_EXEMPT` of `crates/podssh-cli/tests/io_error_lines.rs`, 34 hits with a one-line why each:
+`convert.rs`, `rsa_key.rs`, `sshsig_cert.rs`, `policy/file.rs`, `tpm/ssh.rs`, `sk/format.rs`, `sk/flow.rs`. Two lines
+stay in `SSH_NOT_IO`: `escape.rs`'s help of `~?`, whose `e` is the escape character. The test is the scan of T-952
+with a second tree (`TREES`: podssh-cli, podssh-ssh) and a test `an_exempt_module_is_a_live_codec_with_no_io`: an exempt
+module with no hit is stale, and one that has a line with `std::fs`, `std::io`, `File::`, a socket, `AsyncRead`,
+`AsyncWrite` or an agent's call fails (the words are `IO_WORDS`, with a test of the guard on planted lines). The scan
+fails on an unlisted hit and on a stale table line. `rustfmt --edition 2024` was run on the crate (clean before and after).
+A Python port of the whole test run on the result: 36 hits, 34 in the seven exempt modules, 2 equal to the table, no
+unlisted line, no stale line or module, no I/O word in an exempt module.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 310 binaries passed, and `podssh-ssh`'s lib (566) once `zmodem::files`' test read the line without Rust's suffix; `io_error_lines` reads both crates; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.

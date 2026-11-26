@@ -57,7 +57,7 @@ where
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
 {
-    match read.read_u8().await.map_err(|e| format!("no request: {e}"))? {
+    match read.read_u8().await.map_err(|e| format!("no request: {}", podssh_ws::text::said(&e)))? {
         4 => four(read, write).await,
         5 => five(read, write).await,
         other => Err(format!("version {other} is not SOCKS 4 or 5")),
@@ -72,7 +72,7 @@ where
     W: AsyncWrite + Unpin,
 {
     let mut head = [0u8; 7];
-    read.read_exact(&mut head).await.map_err(|e| format!("a short SOCKS4 request: {e}"))?;
+    read.read_exact(&mut head).await.map_err(|e| format!("a short SOCKS4 request: {}", podssh_ws::text::said(&e)))?;
     let port = u16::from_be_bytes([head[1], head[2]]);
     let ip = [head[3], head[4], head[5], head[6]];
     let _user = until_nul(read).await?;
@@ -94,34 +94,36 @@ where
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
 {
-    let count = read.read_u8().await.map_err(|e| format!("a short SOCKS5 greeting: {e}"))?;
+    let count = read.read_u8().await.map_err(|e| format!("a short SOCKS5 greeting: {}", podssh_ws::text::said(&e)))?;
     let mut methods = vec![0u8; usize::from(count)];
-    read.read_exact(&mut methods).await.map_err(|e| format!("a short SOCKS5 greeting: {e}"))?;
+    read.read_exact(&mut methods)
+        .await
+        .map_err(|e| format!("a short SOCKS5 greeting: {}", podssh_ws::text::said(&e)))?;
     if !methods.contains(&0) {
         let _ = write.write_all(&[5, 0xff]).await;
         return Err("the client offered no method without authentication".into());
     }
-    write.write_all(&[5, 0]).await.map_err(|e| format!("the client left: {e}"))?;
+    write.write_all(&[5, 0]).await.map_err(|e| format!("the client left: {}", podssh_ws::text::said(&e)))?;
     let mut head = [0u8; 4];
-    read.read_exact(&mut head).await.map_err(|e| format!("a short SOCKS5 request: {e}"))?;
+    read.read_exact(&mut head).await.map_err(|e| format!("a short SOCKS5 request: {}", podssh_ws::text::said(&e)))?;
     if head[0] != 5 {
         return Err(format!("a SOCKS5 request of version {}", head[0]));
     }
     let host = match head[3] {
         1 => {
             let mut ip = [0u8; 4];
-            read.read_exact(&mut ip).await.map_err(|e| e.to_string())?;
+            read.read_exact(&mut ip).await.map_err(|e| podssh_ws::text::said(&e))?;
             std::net::Ipv4Addr::from(ip).to_string()
         }
         3 => {
-            let len = read.read_u8().await.map_err(|e| e.to_string())?;
+            let len = read.read_u8().await.map_err(|e| podssh_ws::text::said(&e))?;
             let mut name = vec![0u8; usize::from(len)];
-            read.read_exact(&mut name).await.map_err(|e| e.to_string())?;
+            read.read_exact(&mut name).await.map_err(|e| podssh_ws::text::said(&e))?;
             String::from_utf8(name).map_err(|_| "a SOCKS5 host name that is not UTF-8".to_string())?
         }
         4 => {
             let mut ip = [0u8; 16];
-            read.read_exact(&mut ip).await.map_err(|e| e.to_string())?;
+            read.read_exact(&mut ip).await.map_err(|e| podssh_ws::text::said(&e))?;
             std::net::Ipv6Addr::from(ip).to_string()
         }
         other => {
@@ -129,7 +131,7 @@ where
             return Err(format!("SOCKS5 address type {other}"));
         }
     };
-    let port = read.read_u16().await.map_err(|e| e.to_string())?;
+    let port = read.read_u16().await.map_err(|e| podssh_ws::text::said(&e))?;
     if head[1] != 1 {
         let _ = answer(write, Version::Five, Err(Refusal::Command)).await;
         return Err(format!("SOCKS5 command {} is not CONNECT", head[1]));
@@ -145,7 +147,7 @@ where
 async fn until_nul<R: AsyncRead + Unpin>(read: &mut R) -> Result<Vec<u8>, String> {
     let mut out = Vec::new();
     loop {
-        match read.read_u8().await.map_err(|e| format!("a short SOCKS4 request: {e}"))? {
+        match read.read_u8().await.map_err(|e| format!("a short SOCKS4 request: {}", podssh_ws::text::said(&e)))? {
             0 => return Ok(out),
             _ if out.len() == NAME_MAX => return Err(format!("a SOCKS4 name of more than {NAME_MAX} bytes")),
             b => out.push(b),

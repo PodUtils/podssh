@@ -202,7 +202,7 @@ async fn read_line(mut from: DuplexStream) -> Result<Vec<u8>, String> {
     let mut line = Vec::new();
     let mut buf = [0u8; 64];
     loop {
-        let n = from.read(&mut buf).await.map_err(|e| format!("the line: {e}"))?;
+        let n = from.read(&mut buf).await.map_err(|e| format!("the line: {}", podssh_ws::text::said(&e)))?;
         if n == 0 {
             return Ok(line);
         }
