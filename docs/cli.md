@@ -6295,7 +6295,7 @@ asciicast v2 file. `--speed FACTOR` plays it faster or slower, and
 `idle_time_limit` does when it has one. An event of another kind than
 output (`r`, `i`, `m`) is passed over. A file of another version, and a
 line that is no event, are refused (exit 1, the line named), and so is an
-event whose time is below 0 (T-984). An event whose time is before the
+event whose time is below 0 (T-984), or too large to wait for (T-1058). An event whose time is before the
 latest one's plays at once, as asciinema's player plays it, and the clock
 goes on from the latest. A `--speed` so small that one second would wait past any clock is a usage error (64), and a wait that no clock can keep is a bad line (exit 1, T-1057); a missing
 FILE and a bad value are usage errors (64). The name is not `replay`, which

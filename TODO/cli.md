@@ -6396,3 +6396,54 @@ Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
 - Changed: `crates/podssh-cli/src/play.rs` (the test `a_wait_past_any_clock_is_refused_not_a_panic`),
   `crates/podssh-cli/src/man/notes_play.rs`, `crates/podssh-cli/src/man/data.rs`, `docs/cli.md`.
 - Result: UNVERIFIED.
+
+
+# T-1058: `podssh play` of an event at 1e300 seconds panics, where 1e400 is a bad line
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 2.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A recording with the event `[1e300,"o","x\n"]` ended 101 with a panic, "cannot convert float seconds to Duration";
+the time 1e400 (no finite number) was refused as "not an event", exit 1. The manual gives exit 1, one line, for a
+file that cannot be played.
+
+## Premise
+
+- Read, at `40a83e5`: `play` of `crates/podssh-cli/src/play.rs` refused a time below 0 or not finite (line 78), and
+  made each wait with `Duration::from_secs_f64` (line 87), which panics for a finite time past `Duration::MAX`.
+
+## Approach
+
+1. A time that `Duration::try_from_secs_f64` does not take is a bad line: `FILE:LINE: a time too large to wait for
+   (T s)`, exit 1, of an output event or another; T-1057's `deadline` keeps any sum of waits from a panic.
+2. The note of `play` and `docs/cli.md` say so; two cases join the table test of the times (T-984).
+
+## Decision
+
+- A bad line, exit 1, as a time below 0 is (T-984), not a wait saturated at `Duration::MAX`: no recording holds an
+  event 584 billion years in, so the file is bad, and the line says which. A time past what this host's clock holds,
+  but within a Duration, is T-1057's "a wait too long for any clock", also exit 1. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib play::
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+Then by hand: the finding's `huge.cast` exits 1 with `huge.cast:2: a time too large to wait for (1e300 s)`.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
+
+- Changed: `crates/podssh-cli/src/play.rs` (two cases of `a_time_below_0_is_refused_and_one_out_of_order_plays_at_once`),
+  `crates/podssh-cli/src/man/notes_play.rs`, `docs/cli.md`.
+- Result: UNVERIFIED.

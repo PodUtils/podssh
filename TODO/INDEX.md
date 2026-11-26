@@ -1064,3 +1064,4 @@ repository and CI).
 | [T-1055](cli.md) | P3 | S | backlog | defect | done | `status` with `PODSSH_RELAY` set and empty exits 0, where each other verb refuses it with 78 |
 | [T-1056](resume.md) | P1 | S | backlog | defect | done | Nine lines of a flood neither in the scrollback nor said skipped, on macOS |
 | [T-1057](cli.md) | P2 | S | backlog | defect | open | `podssh play --speed 1e-320` panics, where a wait cannot be a Duration |
+| [T-1058](cli.md) | P2 | S | backlog | defect | open | `podssh play` of an event at 1e300 seconds panics, where 1e400 is a bad line |

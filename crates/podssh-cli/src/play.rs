@@ -87,14 +87,19 @@ fn play(path: &str, speed: f64, idle: Option<f64>, out: &mut dyn Write) -> Resul
         if at < 0.0 || !at.is_finite() {
             return Err(format!(":{}: a time below 0 ({at})", n + 2));
         }
+        // A time that no Duration holds is a bad line too, said for what it
+        // is before any wait is summed from it (T-1058).
+        if Duration::try_from_secs_f64(at).is_err() {
+            return Err(format!(":{}: a time too large to wait for ({at:e} s)", n + 2));
+        }
         let gap = (at - last).max(0.0);
         last = last.max(at);
         clock += idle.map_or(gap, |limit| gap.min(limit)) / speed;
         // The sum of the waits at this speed can pass what a Duration or this
         // host's clock holds, each time being good: said, not a panic.
         let Some(due) = deadline(start, clock) else {
-            let why = format!("a wait too long for any clock ({clock:e} s); a larger --speed or an --idle-limit plays it");
-            return Err(format!(":{}: {why}", n + 2));
+            let hint = "a larger --speed or an --idle-limit plays it";
+            return Err(format!(":{}: a wait too long for any clock ({clock:e} s); {hint}", n + 2));
         };
         if kind != "o" {
             continue;
@@ -164,6 +169,9 @@ mod tests {
             ("order", &["[0.0,\"o\",\"a\"]", "[0.2,\"o\",\"b\"]", "[0.1,\"o\",\"c\"]"][..], Ok("abc")),
             ("negative", &["[0.0,\"o\",\"a\"]", "[-1,\"o\",\"b\"]"][..], Err(":3: a time below 0")),
             ("first", &["[-0.5,\"o\",\"a\"]"][..], Err(":2: a time below 0")),
+            // A time that no Duration holds (T-1058), of output or not.
+            ("huge", &["[1e300,\"o\",\"x\"]"][..], Err(":2: a time too large to wait for (1e300 s)")),
+            ("past", &["[0.0,\"o\",\"a\"]", "[1.9e19,\"i\",\"b\"]"][..], Err(":3: a time too large to wait for")),
         ] {
             let path = recording(name, events);
             let mut out = Vec::new();
