@@ -78,7 +78,8 @@ pub const SERVE: &[&str] = &[
      russh's rsa crate. An RSA key outside 2048 to 8192 bits, or a key that is not Ed25519, ECDSA or RSA, \
      is refused (78). --host-key also takes a key file of a TPM (podssh keygen -t ecdsa-tpm): the TPM signs each \
      key exchange, and serve holds no private key. Such a key must sign at the start: with no TPM, or after the \
-     boot state changed, serve does not start (78).",
+     boot state changed, serve does not start (78). serve NAME with no pair stored under NAME, and no other road, \
+     is refused (78) before a host key is made.",
     "A command (exec) runs as SHELL -c COMMAND. A shell request runs the shell as a login shell (its argv[0] the \
      shell's name after a dash). Each runs as the user that runs serve, on three pipes: stdout comes as data and \
      stderr as extended data, apart. Each child leads a session of its own (setsid), in HOME when it is a directory, \

@@ -23,6 +23,7 @@ use super::meta::{Keep, Stamp};
 use super::operand::Operand;
 use super::plan::Plan;
 use super::resume::{far, local, Before};
+use super::special;
 use super::transfer::{self, Done, Failed, Side};
 use crate::exitmap::Fault;
 
@@ -142,6 +143,10 @@ pub async fn rename(
                 return Err(not_a_file(source, attrs.is_dir()));
             }
             let target = transfer::remote_target(sftp, dest, name, false).await?;
+            // A rename never replaces a device or a FIFO (T-1038).
+            if let Some(kind) = sftp.stat(&target).await.ok().as_ref().and_then(special::far) {
+                return Err(special::no_rename(&target, kind.what()));
+            }
             if let (Ok(a), Ok(b)) = (sftp.realpath(source).await, sftp.realpath(&target).await) {
                 if a == b {
                     return Err(one_file(source, &target));
@@ -192,6 +197,9 @@ pub async fn rename(
                 Kind::Other => return Err(not_a_file(source, false)),
             };
             let target = far.target(handle, dest, name, false).await?;
+            if far.kind(handle, &target).await? == Kind::Other {
+                return Err(special::no_rename(&target, special::DEVICE_OR_FIFO));
+            }
             if far.same_file(handle, source, &target).await? {
                 return Err(one_file(source, &target));
             }

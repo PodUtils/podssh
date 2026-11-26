@@ -17,6 +17,8 @@ use crate::exitmap::Fault;
 pub struct Local {
     pub dir: PathBuf,
     pub file: PathBuf,
+    /// `DIR: why` of each cache directory that refused the copy first.
+    pub refused: Vec<String>,
 }
 
 impl Local {
@@ -36,11 +38,19 @@ impl Local {
         let mut refused = Vec::new();
         for parent in dirs {
             match make_dir(parent) {
-                Ok(dir) => return Ok(Local { file: dir.join(&name), dir }),
+                Ok(dir) => return Ok(Local { file: dir.join(&name), dir, refused }),
                 Err(e) => refused.push(format!("{}: {}", parent.display(), podssh_ws::text::said(&e))),
             }
         }
         Err((Fault::CantCreate, format!("no cache directory would take the copy ({})", refused.join("; "))))
+    }
+
+    /// What a run says once of `PODSSH_CACHE_DIR` that `chosen` names: a
+    /// relative path, or a directory that refused the copy, and where it
+    /// went (T-1041); nothing when the choice was followed.
+    pub fn cache_note(&self, chosen: &podssh_relay::cache::Chosen) -> Option<String> {
+        let stored = podssh_relay::cache::Stored { path: self.file.clone(), refused: self.refused.clone() };
+        podssh_relay::cache::chosen_note(chosen, &stored)
     }
 
     /// Remove the directory and what is in it: the edit went, or the copy
@@ -182,6 +192,28 @@ mod tests {
         assert!(line.starts_with("1 copy that an earlier edit kept") && line.contains("edit-old"), "{line}");
         assert!(cache.join("edit-old/notes.txt").exists(), "none is removed");
         assert_eq!(stale_line(&[]), None);
+        let _ = std::fs::remove_dir_all(&cache);
+    }
+
+    /// A PODSSH_CACHE_DIR that refuses the copy is said with why, and where
+    /// the copy went; one that takes it, or none, says nothing (T-1041).
+    #[test]
+    fn a_cache_dir_that_refuses_the_copy_is_said() {
+        use podssh_relay::cache::Chosen;
+        let cache = std::env::temp_dir().join(format!("podssh-edit-note-{:016x}", rand::random::<u64>()));
+        std::fs::create_dir_all(&cache).unwrap();
+        // Under a regular file: no system makes a directory there.
+        std::fs::write(cache.join("file"), b"").unwrap();
+        let refused = cache.join("file").join("sub");
+        let local = Local::make_in(&[refused.clone(), cache.clone()], "/etc/notes.txt").expect("the second takes it");
+        assert!(local.dir.starts_with(&cache), "{}", local.dir.display());
+        let note = local.cache_note(&Chosen::Dir(refused.clone())).expect("a line");
+        let head = format!("PODSSH_CACHE_DIR could not be used ({}: ", refused.display());
+        assert!(note.starts_with(&head), "{note}");
+        assert!(note.ends_with(&format!("the file went to {}", local.file.display())), "{note}");
+        assert_eq!(local.cache_note(&Chosen::Unset), None);
+        let taken = Local::make_in(std::slice::from_ref(&cache), "/etc/notes.txt").unwrap();
+        assert_eq!(taken.cache_note(&Chosen::Dir(cache.clone())), None);
         let _ = std::fs::remove_dir_all(&cache);
     }
 }

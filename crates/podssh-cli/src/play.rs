@@ -51,9 +51,15 @@ pub fn run(args: &PlayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
 /// divided by `speed`; an event of another kind is passed over. `Err` is
 /// the end of a message after the file's name.
 fn play(path: &str, speed: f64, idle: Option<f64>, out: &mut dyn Write) -> Result<(), String> {
+    // A directory opens on Unix and fails at the first read, and Windows
+    // refuses its open: either is said as what it is (T-1042).
+    if std::fs::metadata(path).is_ok_and(|meta| meta.is_dir()) {
+        return Err(": a directory, not a recording".into());
+    }
     let file = std::fs::File::open(path).map_err(|e| format!(": {}", podssh_ws::text::said(&e)))?;
     let mut lines = std::io::BufReader::new(file).lines();
-    let header: Option<Value> = lines.next().and_then(Result::ok).and_then(|line| serde_json::from_str(&line).ok());
+    let first = lines.next().transpose().map_err(|e| format!(": {}", podssh_ws::text::said(&e)))?;
+    let header: Option<Value> = first.and_then(|line| serde_json::from_str(&line).ok());
     let header = header.filter(|h| h.get("version").and_then(Value::as_u64) == Some(2));
     let Some(header) = header else { return Err(": not an asciicast v2 recording".into()) };
     let idle = idle.or_else(|| header.get("idle_time_limit").and_then(Value::as_f64).filter(|v| *v > 0.0));
@@ -105,6 +111,27 @@ mod tests {
         }
         std::fs::write(&path, text).unwrap();
         path
+    }
+
+    /// What is no recording, each in its own words (T-1042): a directory,
+    /// an empty file, and a header of another version.
+    #[test]
+    fn what_is_no_recording_is_said_for_what_it_is() {
+        let empty = std::env::temp_dir().join(format!("podssh-play-empty-{}.cast", std::process::id()));
+        std::fs::write(&empty, b"").unwrap();
+        let other = std::env::temp_dir().join(format!("podssh-play-v1-{}.cast", std::process::id()));
+        std::fs::write(&other, b"{\"version\":1}\n").unwrap();
+        let dir = std::env::temp_dir();
+        for (path, want) in [
+            (dir.as_path(), ": a directory, not a recording"),
+            (empty.as_path(), ": not an asciicast v2 recording"),
+            (other.as_path(), ": not an asciicast v2 recording"),
+        ] {
+            let got = play(path.to_str().unwrap(), 1.0, None, &mut Vec::new());
+            assert_eq!(got, Err(want.to_string()), "{}", path.display());
+        }
+        let _ = std::fs::remove_file(&empty);
+        let _ = std::fs::remove_file(&other);
     }
 
     /// Each time an event may have (T-984): a time below 0 is a bad line,

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**969 entries: 3 open, 33 partial, 16 blocked, 917 done.**
+**976 entries: 3 open, 33 partial, 16 blocked, 924 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 6 | 3 | 104 | 113 |
-| P2 | 0 | 20 | 4 | 347 | 371 |
-| P3 | 3 | 7 | 9 | 465 | 484 |
-| **All** | 3 | 33 | 16 | 917 | 969 |
+| P1 | 0 | 6 | 3 | 105 | 114 |
+| P2 | 0 | 20 | 4 | 348 | 372 |
+| P3 | 3 | 7 | 9 | 470 | 489 |
+| **All** | 3 | 33 | 16 | 924 | 976 |
 
 ## Entries
 
@@ -1045,3 +1045,10 @@ repository and CI).
 | [T-1035](relay.md) | P3 | S | M10 | defect | done | The relay role's HTTP road and reverse road lines name their client and target, as T-1016 did for the others |
 | [T-1036](repo.md) | P1 | S | M10 | defect | done | The gate's step ssh passed its job's limit of 45 min at `2a37826` |
 | [T-1037](robustness.md) | P1 | S | M10 | defect | done | On Windows, access_relay's echo ended with a reset, which the operator reads as a cut (69) |
+| [T-1038](copy.md) | P1 | M | backlog | defect | done | `cp HOST:FILE /dev/null` as root renames a plain file over the device |
+| [T-1039](copy.md) | P3 | S | backlog | defect | done | `cp FILE HOST:/proc/NAME` says "no such directory: /proc/", which is there |
+| [T-1040](cli.md) | P2 | S | backlog | defect | done | `keygen -f /missing/dir/k` makes the missing directories, where `ssh-keygen` fails |
+| [T-1041](copy.md) | P3 | S | backlog | defect | done | `edit` passes over a `PODSSH_CACHE_DIR` that refuses its copy with no word |
+| [T-1042](cli.md) | P3 | S | backlog | defect | done | `podssh play DIRECTORY` says "not an asciicast v2 recording" |
+| [T-1043](serve.md) | P3 | S | backlog | defect | done | `serve NAME` with no pair stored makes a host key, then refuses |
+| [T-1044](ssh.md) | P3 | S | backlog | defect | done | `ssh -i KEY.pub` warns of the mode of a public key, then says "Could not read key" |

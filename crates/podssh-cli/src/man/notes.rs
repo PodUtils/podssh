@@ -152,6 +152,11 @@ const CP: &[&str] = &[
      fails leaves its destination damaged, and a failure says so. The file that it would write is refused \
      when it is a link or a directory (exit 64). A destination directory takes the file under the source's name, \
      as a copy without --inplace does.",
+    "A destination that is a device or a FIFO takes the bytes into itself, as OpenSSH's scp writes them. No \
+     temporary file and no rename replace it, and its mode and times stay. Nothing is read back from it: the \
+     source's digest checks the bytes that went. A FIFO that no process reads is refused at once (exit 73), and so \
+     is a socket. A copy into one that breaks does not start again. mv and a copy within one server never rename \
+     onto one (exit 73).",
     "-n (--no-clobber) leaves a destination that is there as it is: the copy looks before any byte goes, says DST: \
      there, so not replaced, and counts a skip, with exit 0. A name that comes during the copy stays too: the \
      verified file takes its name by a hard link (hardlink@openssh.com, or ln by exec), which never takes a name \

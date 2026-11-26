@@ -402,8 +402,10 @@ pub fn local_temp(
     let temp = target.with_file_name(transfer::temp_name(leaf));
     let file = transfer::create_private(&temp).map_err(|e| {
         let dir = target.parent().map(|d| d.display().to_string()).unwrap_or_default();
-        let missing = e.kind() == std::io::ErrorKind::NotFound;
-        Failed::new(Fault::CantCreate, transfer::not_made(&target.display().to_string(), &dir, missing, &e.to_string()))
+        // NotFound in a directory that is there: the name was refused (T-1039).
+        let missing = e.kind() == std::io::ErrorKind::NotFound && !transfer::is_local_dir(&dir);
+        let said = podssh_ws::text::said(&e);
+        Failed::new(Fault::CantCreate, transfer::not_made(&target.display().to_string(), &dir, missing, &said))
     })?;
     progress.begin(&target.display().to_string(), &temp.display().to_string());
     Ok((temp, file, 0))

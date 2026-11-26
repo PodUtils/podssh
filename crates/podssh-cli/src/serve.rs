@@ -292,6 +292,11 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             }
         }
     }
+    // NAME with no pair, which no other road serves: said before a host key
+    // is made in the cache (T-1043).
+    if let Some(refusal) = args.name.as_deref().and_then(crate::node_serve::no_road) {
+        return refused(err, refusal);
+    }
     let found = match args.host_key.as_deref() {
         Some(file) => host_key::at(Path::new(file), &FILES),
         None => host_key::in_first(&cache::read_dirs(), &cache::candidate_dirs(), &FILES),

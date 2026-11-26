@@ -6150,3 +6150,53 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_options an_unlisted_key
 Drafted 2026-11-26 by a drafting agent;
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1043: `serve NAME` with no pair stored makes a host key, then refuses
+
+**Source:** the ninth black-box pass (2026-11-26, a debug build of `b562ec9`), finding 16.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh serve LABEL --authorized-keys F` with no pair stored under LABEL made `serve_host_ed25519_key` in the cache
+and said its fingerprint ("made now"), then exited 78 "no pair is stored". A run that could not serve left a key.
+
+## Premise
+
+- Read, at `b562ec9`: serve makes or reads its host key (line 295 of `crates/podssh-cli/src/serve.rs`) before
+  `run_node` (line 331 of the same file), whose `prepare` looks for the pair (line 223 of
+  `crates/podssh-cli/src/node.rs`). A node with no pair may still take a road unasked: DERP's with a door (Q50,
+  `crates/podssh-cli/src/node_derp.rs:81`) or a tunnel's (Q78, `crates/podssh-cli/src/node_sshj.rs:47`).
+
+## Approach
+
+`node_serve::no_road(NAME)`: the node's own refusal (`pairs::stored`) when no usable pair is stored and neither
+`node_derp::unasked` nor `node_sshj::last_of_all` would serve the node; serve says it before the host key, with the
+node's code (78, or 77 for an expired pair). A check that cannot be made is left to the node. The manual's note of
+the host key says it; `tests/serve_node.rs` holds 78, the line, and no key in the cache.
+
+## Decision
+
+- The node's own decisions of its unasked roads, read again, not a copy of their rules: a node with no pair that one
+  of them serves still starts. Lost: nothing; a road added later that serves a node with no pair must be named here.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test serve_node
+cargo test -p podssh-cli --test man_page
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent:
+
+- Changed: `crates/podssh-cli/src/node_serve.rs`, `crates/podssh-cli/src/serve.rs`,
+  `crates/podssh-cli/src/man/notes_serve.rs`, `crates/podssh-cli/tests/serve_node.rs`.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

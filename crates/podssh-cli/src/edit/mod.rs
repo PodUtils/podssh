@@ -174,6 +174,10 @@ pub fn run_edit(args: &EditArgs, tty: Tty, err: &mut dyn Write) -> i32 {
     for warning in &resolved.warnings {
         log.warning(warning);
     }
+    // A PODSSH_CACHE_DIR that was passed over, once, as the manual says.
+    if let Some(note) = local.cache_note(&podssh_relay::cache::chosen()) {
+        log.warning(&note);
+    }
     // The copies that earlier runs kept, each with a change: said once,
     // and none removed.
     let old = self::local::stale(&dirs, std::time::SystemTime::now(), self::local::STALE);

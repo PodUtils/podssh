@@ -38,7 +38,7 @@ mod tpm_key;
 // What the key files say of themselves (T-958, T-959).
 #[path = "keys_words.rs"]
 mod words;
-use words::{not_a_file, skipped_lines, unread, warn_if_readable_by_others};
+use words::{no_key, not_a_file, skipped_lines, warn_if_readable_by_others};
 
 enum AgentState {
     NotTried,
@@ -331,14 +331,19 @@ impl PublicKeys {
             self.log.info(&format!("could not use the key file {}: {why}", path.display()));
             return None;
         }
-        warn_if_readable_by_others(path, &self.log);
-        match crate::key_file::load(path, None) {
+        // The mode is said of a private key alone: a public key or a text
+        // that is no key is said as what it is (T-1044).
+        let loaded = crate::key_file::load(path, None);
+        if matches!(loaded, Ok(_) | Err(russh::keys::Error::KeyIsEncrypted)) {
+            warn_if_readable_by_others(path, &self.log);
+        }
+        match loaded {
             Ok(key) => Some(key),
             // Opened earlier in this run: no second question.
             Err(russh::keys::Error::KeyIsEncrypted) if self.kept(path).is_some() => self.kept(path),
             Err(russh::keys::Error::KeyIsEncrypted) => self.decrypt(path).await,
             Err(e) => {
-                self.log.info(&format!("could not use the key file {}: {}", path.display(), unread(&e)));
+                self.log.info(&format!("could not use the key file {}: {}", path.display(), no_key(path, &e)));
                 None
             }
         }

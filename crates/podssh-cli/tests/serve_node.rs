@@ -85,3 +85,20 @@ fn stdio_and_name_together_are_a_usage_error() {
     assert_eq!(out.status.code(), Some(64), "{}", String::from_utf8_lossy(&out.stderr));
     assert!(String::from_utf8_lossy(&out.stderr).contains("--stdio and NAME"));
 }
+
+/// NAME with no pair stored, and no road of a node with no pair: 78, said
+/// before the host key, so that the cache holds no new key (T-1043).
+#[test]
+fn name_with_no_pair_is_refused_before_a_host_key_is_made() {
+    let s = Session::start("serve-node-no-pair");
+    // A key that parses (GitHub's host key): the keys are read first.
+    let key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl github";
+    let args = ["serve", "nopair", "--authorized-key", key].map(String::from);
+    let out = s.command(&args).stdin(Stdio::null()).output().unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(78), "{err}");
+    assert!(err.contains("no pair is stored under \"nopair\""), "{err}");
+    assert!(!err.contains("host key"), "no key was said: {err}");
+    let made = s.home.join("cache").join("podssh").join("serve_host_ed25519_key");
+    assert!(!made.exists(), "a host key was made: {}", made.display());
+}

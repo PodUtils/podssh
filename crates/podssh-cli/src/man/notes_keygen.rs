@@ -6,9 +6,11 @@ pub const KEYGEN: &[&str] = &[
      it has an access list of its own that lets in only the user, SYSTEM and the Administrators, as OpenSSH's keys \
      do; a new key never replaces a file that exists. The public key goes to FILE.pub, which others may read and not \
      change. podssh prints the SHA-256 fingerprint.",
-    "A new key is refused when FILE or FILE.pub exists, before any question. FILE.pub has mode 0644 under any \
-     umask. An empty -f is a usage error (64). podssh reads a key, a certificate or a signature file of 1 MiB at \
-     most; a larger file is refused. With -q, -R and -H print nothing but a failure and the warning of FILE.old.",
+    "A new key is refused when FILE or FILE.pub exists, before any question. A missing directory of -f is refused \
+     too (exit 73), as ssh-keygen refuses it; ~/.ssh of the default file is made, mode 0700. FILE.pub has mode 0644 \
+     under any umask. An empty -f is a usage error (64). podssh reads a key, a certificate or a signature file of \
+     1 MiB at most; a larger file is refused. With -q, -R and -H print nothing but a failure and the warning of \
+     FILE.old.",
     "podssh keygen -p -f FILE changes the passphrase of a key: podssh asks for the old one, then for the new \
      one two times. podssh keygen -c -f FILE changes its comment, to -C COMMENT or to one that podssh asks \
      for, in the key and in FILE.pub. The file is replaced only with the same key, read back and compared \

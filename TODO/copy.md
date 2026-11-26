@@ -648,7 +648,7 @@ old writer can race the new one.
   (`crates/podssh-ssh/src/relay_stream.rs:236`,
   `crates/podssh-ssh/src/relay_stream.rs:265-277`). Each new SSH
   connection asks again for a passphrase or a password
-  (`crates/podssh-ssh/src/keys.rs:323-396`,
+  (`crates/podssh-ssh/src/keys.rs:323-401`,
   `crates/podssh-ssh/src/auth.rs:335-396`).
 
 ## Approach
@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:396-417` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7353-7356`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7372-7375`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -2269,19 +2269,19 @@ program writes on, such as a log, need not end at all.
 ## Premise
 
 Read at `a22e3ec`: the copy up over SFTP reads the source until a read
-gives no byte (`crates/podssh-cli/src/cp/bysftp.rs:180-206`), and each read
+gives no byte (`crates/podssh-cli/src/cp/bysftp.rs:192-218`), and each read
 waits for the server's answer to the write before it. The check's writer
 adds a byte to the source in a loop, so a read gives no byte only when the
 writer adds none for a whole round trip: when the runner does not schedule
 it. The check after the read gives 66 to a source whose size moved
 (`crates/podssh-cli/src/cp/finish.rs:72-75`), but only once the read
 ends. The copy up by exec reads the same way
-(`crates/podssh-cli/src/cp/byexec/files.rs:139-165`); the copies down read
+(`crates/podssh-cli/src/cp/byexec/files.rs:144-170`); the copies down read
 the far file until it ends, over SFTP
-(`crates/podssh-cli/src/cp/bysftp.rs:365-404`) and with `cat`
-(`crates/podssh-cli/src/cp/byexec.rs:331-368`); and so do the far digests
+(`crates/podssh-cli/src/cp/bysftp.rs:384-423`) and with `cat`
+(`crates/podssh-cli/src/cp/byexec.rs:332-369`); and so do the far digests
 that read the file again (`crates/podssh-cli/src/cp/digest.rs:78-109`,
-`crates/podssh-cli/src/cp/byexec.rs:302-329`).
+`crates/podssh-cli/src/cp/byexec.rs:303-330`).
 
 ## Approach
 
@@ -2314,8 +2314,8 @@ bound fails the native test.
 
 2026-10-10. Each road of the copy reads what the source held at the start,
 and stops with 66, "the file changed while it was read", at the first byte
-past it: up over SFTP (`crates/podssh-cli/src/cp/bysftp.rs:180-206`) and by
-exec (`crates/podssh-cli/src/cp/byexec/files.rs:139-165`); down by exec
+past it: up over SFTP (`crates/podssh-cli/src/cp/bysftp.rs:192-218`) and by
+exec (`crates/podssh-cli/src/cp/byexec/files.rs:144-170`); down by exec
 past the size that `wc -c` gave; down over SFTP after a second look at the
 far size, so that a file of `/proc` goes on as before. The far digest by
 reading, over SFTP and by exec, stops one byte past the copy's size. One
@@ -2738,7 +2738,7 @@ waits minutes for what one archive would carry in seconds.
 - Read: a file up waits in turn for the target's stat, the temporary file's stat, its open, each
   write, `fsync`, its close, the far digest over an exec channel of its own (an open, an exec, a
   reply and a close), the times, the rename and the times again
-  (`crates/podssh-cli/src/cp/bysftp.rs:50-134` and the end of a copy up, now
+  (`crates/podssh-cli/src/cp/bysftp.rs:51-140` and the end of a copy up, now
   `crates/podssh-cli/src/cp/finish.rs:36-107`).
 - Measured (this cloud session, 2026-11-01): through the stand-in relay with 50 ms each way, 0.7
   files a second each way with one task, about 14 round trips a file; 4.6 up and 3.2 down with 8.
@@ -2785,7 +2785,7 @@ cargo test -p podssh-cli --test throughput_live -- --ignored --nocapture cp_smal
 ## Correction
 
 2026-11-01: a new copy makes no stat of a temporary file: only one that goes on in a temporary file
-that its side file names looks at it (`crates/podssh-cli/src/cp/bysftp.rs:106-117`). The round trips
+that its side file names looks at it (`crates/podssh-cli/src/cp/bysftp.rs:112-123`). The round trips
 of a file up, on a server with a digest command: the target's stat, the open, the write, `fsync`,
 the close, the realpath and the command's channel (some three), the mode, the rename. On the
 throughput run's server, which runs no command, the channel is refused and a second read follows
@@ -3033,7 +3033,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2841-2847` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2855-2861` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3177,7 +3177,7 @@ with no word, which reads as a hang.
   `PODSSH_PROGRESS=line` (`crates/podssh-cli/src/cp/gauge.rs`, lines 23-37 at `010abe1`): T-145's
   Approach chose nothing in a pipe.
 - Read: a gauge is made only by the SFTP road's copy of one file in one stream
-  (`crates/podssh-cli/src/cp/bysftp.rs:174`, `:357`). The chunks of `--parallel`
+  (`crates/podssh-cli/src/cp/bysftp.rs:186`, `:376`). The chunks of `--parallel`
   (`crates/podssh-cli/src/cp/chunks.rs`) and the copy by exec (`crates/podssh-cli/src/cp/byexec.rs`)
   draw none, and each file of a tree draws a line of its own, with no count of the run's files.
 - Read: the counts that a summary needs are in the run's `Outcome` already: the files done with
@@ -3319,7 +3319,7 @@ destination too.
   and a second copy of a changed file replaces the far one with exit 0 and nothing on stderr.
   Read: `CP_FLAGS` has no such row (`crates/podssh-cli/src/flags/copy.rs`, lines 10-82 at
   `38f424c`), and each copy
-  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:245-264`), by
+  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:258-277`), by
   `posix-rename@openssh.com` where the server has it
   (`crates/podssh-ssh/src/sftp/mod.rs:416-425`).
 - Read: `hardlink@openssh.com` gives a file a second name
@@ -4773,9 +4773,9 @@ An edit of a file in a read-only directory ended with "cannot be written in ro/:
 
 ## Premise
 
-- The copy up names its temporary file in its record before the server makes it (`crates/podssh-cli/src/cp/bysftp.rs:138`), so
+- The copy up names its temporary file in its record before the server makes it (`crates/podssh-cli/src/cp/bysftp.rs:144`), so
   that a break between the two leaves no file that no record names; the open's failure returned with `?` and left that record,
-  which `partial()` of `crates/podssh-cli/src/edit/mod.rs:331` read as a partial copy.
+  which `partial()` of `crates/podssh-cli/src/edit/mod.rs:335` read as a partial copy.
 
 ## Approach
 
@@ -4836,10 +4836,10 @@ overwritten in place and stayed 0644, though the manual says "a new file for its
 ## Approach
 
 `no_place` (`crates/podssh-cli/src/ssh/result.rs:168`) says why FILE's directory cannot take it (missing, or no directory). `cp`,
-`mv`, `scp` (`crates/podssh-cli/src/cp/mod.rs:235`) and `sftp` refuse such a FILE before anything connects, with 73 and "Nothing has
+`mv`, `scp` (`crates/podssh-cli/src/cp/mod.rs:238`) and `sftp` refuse such a FILE before anything connects, with 73 and "Nothing has
 been attempted". `write` makes a new file of mode 0600 under a private name beside FILE and renames it onto FILE; a FIFO or a device
 (`/dev/stderr`) takes the object as before. It says whether it wrote: a run of `cp`, `mv`, `scp` or `sftp` that succeeded and whose
-record could not be written at the end exits 73 (`crates/podssh-cli/src/cp/mod.rs:245`). `ssh`, `run` and `each` keep their exit
+record could not be written at the end exits 73 (`crates/podssh-cli/src/cp/mod.rs:248`). `ssh`, `run` and `each` keep their exit
 code, as their record is no part of their work.
 
 ## Decision
@@ -4893,7 +4893,7 @@ The `.resume` side file held Rust's `Debug` text: `"state":"local 3 Some(...) So
 ## Premise
 
 - Each failure of a copy is `Failed::new(fault, format!("{path}: {e}"))` with an `io::Error` (as in
-  `crates/podssh-cli/src/cp/bysftp.rs:63`), and `Display` of `io::Error` adds the suffix. podssh had one helper for it, private
+  `crates/podssh-cli/src/cp/bysftp.rs:64`), and `Display` of `io::Error` adds the suffix. podssh had one helper for it, private
   to the SFTP server (`crates/podssh-ssh/src/server/sftp/fs.rs:53`).
 - A connection that failed logged each line of the road, then said its own (`crates/podssh-cli/src/cp/link.rs:180` is the fold
   now).
@@ -4956,7 +4956,7 @@ A copy that never started (exit 73 into `/nonexistent/dir/x` or `/etc/x`) left a
 
 ## Premise
 
-- The record is written before the server makes the temporary file (`crates/podssh-cli/src/cp/bysftp.rs:138`), and the lock file at
+- The record is written before the server makes the temporary file (`crates/podssh-cli/src/cp/bysftp.rs:144`), and the lock file at
   the load of the record; only `Progress::clear` removes both, and a failure that returned early with `?` (the open refused, a
   local directory missing) never reached it.
 
@@ -5007,7 +5007,7 @@ SIGTERM name it). `--timeout 1ms` said "the --timeout of 0 s passed".
 
 ## Premise
 
-- The line of the bound (`crates/podssh-cli/src/cp/mod.rs:387`) was built from `limit.as_secs()`, and named no partial copy; the
+- The line of the bound (`crates/podssh-cli/src/cp/mod.rs:390`) was built from `limit.as_secs()`, and named no partial copy; the
   words of an interruption, a few lines below, did. `sftp` and `edit` built theirs the same way.
 
 ## Approach
@@ -5060,7 +5060,7 @@ manual said "A destination that is a link or a directory is refused (exit 64)".
 
 ## Premise
 
-- The copy places the file first, as every copy does (`crates/podssh-cli/src/cp/bysftp.rs:75`: into DIR under its own name), and
+- The copy places the file first, as every copy does (`crates/podssh-cli/src/cp/bysftp.rs:76`: into DIR under its own name), and
   `in_place::check_far` (`crates/podssh-cli/src/cp/in_place.rs:43`) then refuses the name that it would write when that name is a
   link or a directory; down, `check_before` (`:95`) does the same before anything connects. The code was right by its own rule;
   the manual named the operand where it meant the file written.
@@ -5116,7 +5116,7 @@ though no byte moved.
 
 ## Premise
 
-- `moving::rename` (`crates/podssh-cli/src/cp/moving.rs:126`) refused each source that is no regular file, `-r` or not.
+- `moving::rename` (`crates/podssh-cli/src/cp/moving.rs:127`) refused each source that is no regular file, `-r` or not.
 - The summary counted each `done` as copied, with its bytes (`crates/podssh-cli/src/cp/summary.rs:42` now counts a rename apart).
 
 ## Approach
@@ -5551,3 +5551,192 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test edit_args no_terminal
 Drafted 2026-11-26 by a drafting agent;
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1038: `cp HOST:FILE /dev/null` as root renames a plain file over the device
+
+**Source:** the ninth black-box pass (2026-11-26, a debug build of `b562ec9`), finding 2.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P1
+**Effort:** M
+**Status:** done
+
+## Problem
+
+`podssh cp --direct HOST:/tmp/f /dev/null` (and `/dev/full`) as root exited 0, said "1 copied", and left
+`/dev/null` a regular file: the copy wrote `.null.podssh-RANDOM.part` in `/dev` and renamed it onto the device. Each
+later write to `/dev/null` on that host then filled a file. A FIFO in a user's directory was replaced the same way,
+as any user. OpenSSH's `scp` and `sftp` write into such a destination.
+
+## Premise
+
+- Read, at `b562ec9`: the copy down made its temporary file beside the target whatever the target was (line 402 of
+  `crates/podssh-cli/src/cp/resume.rs`), and placed it by `std::fs::rename` (line 328 of
+  `crates/podssh-cli/src/cp/clobber.rs`). Up, the far file was placed by a rename too (line 238 of the same file),
+  after no look at what the destination is. A copy within one server (`copy-data`) and `mv` within one server
+  renamed onto the name the same way. `--result-file` alone had a check (line 188 of
+  `crates/podssh-cli/src/ssh/result.rs`).
+
+## Approach
+
+One check, `crates/podssh-cli/src/cp/special.rs`: `local(PATH)` (through a link, as a write goes) and `far(ATTRS)`
+(the type bits of an SFTP `stat`) say whether a destination is a character or block device, a FIFO or a socket.
+
+- Down (SFTP and exec): such a destination is opened to write with no create and no truncation, the bytes go in
+  order, a block device is synced, and nothing is cut, read back or stamped; the far digest of the source checks the
+  bytes that came. No delta, chunks, holes or record to go on from. A FIFO is opened with `O_NONBLOCK`, so one with no
+  reader is refused at once (73), then the descriptor is made blocking. A socket is refused (73).
+- Up over SFTP: a `stat` of the target; a device or a FIFO is opened `WRITE` only, written, closed, with no fsync
+  (`/dev/null` and a FIFO refuse one), no `setstat`, no rename; the verifier is "none: a device keeps no bytes to
+  read back". By exec: `test` says "other", and the bytes go by `cat >` into the name, with no digest and no rename.
+- `mv` within one server and a copy within one server (`copy-data`) refuse to rename onto one (73).
+- A copy into one that broke is an answer, not a continuation: a FIFO's reader has its first bytes.
+- `--result-file` takes the same check.
+- The manual's note of `cp` and `docs/cli.md` say it. Tests: a table of destination kinds of the local writer
+  (`cp::special`'s unit tests: a regular file, a missing name, a directory, a FIFO with and with no reader, a socket,
+  `/dev/null`), and `tests/cp_device.rs`: down and up into each kind against `sftp-server`, the FIFO still a FIFO
+  and its reader with each byte, `/dev/null` still a character device, and `mv` onto a FIFO refused.
+
+## Decision
+
+- Write into it, as OpenSSH's `scp` and `sftp` do, not refuse: `cp FILE /dev/null` and a copy into a FIFO that a
+  program reads are uses. Lost: the verification of a read back, which a device cannot give; the source's digest
+  covers the bytes that went.
+- A FIFO with no reader is refused, not waited on: a wait with no end breaks the rule that each wait has a bound;
+  a bounded wait would race with a reader that starts later. Lost: `cp` started before the FIFO's reader.
+- `mv` and `copy-data` within one server refuse, not write into it: `mv` of GNU replaces the device by a rename,
+  which is the defect itself; and a far digest of `copy-data` cannot read the bytes back. The line says that
+  `podssh cp` writes into it.
+- Up by SFTP costs one `stat` more for each file. Lost: a round trip for each file of a tree.
+- `podssh tx` (ZMODEM) names files in a directory as the sender offers them, and replaces one only when asked; it
+  stays as it is, in `podssh-ssh`, which cannot take this crate's check.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib cp::special
+cargo test -p podssh-cli --test cp_device
+cargo test -p podssh-cli --test cp_inplace
+cargo test -p podssh-cli --test io_error_lines
+cargo test -p podssh-cli --test man_page
+```
+
+As root in a container, `podssh cp --direct HOST:/tmp/f /dev/null` and `/dev/full`: 0 and 73, `/dev/null` still a
+character device.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent:
+
+- Changed: `crates/podssh-cli/src/cp/special.rs` (new), `crates/podssh-cli/src/cp/special_tests.rs` (new),
+  `crates/podssh-cli/src/cp/bysftp.rs`, `crates/podssh-cli/src/cp/byexec.rs`,
+  `crates/podssh-cli/src/cp/byexec/files.rs`, `crates/podssh-cli/src/cp/moving.rs`,
+  `crates/podssh-cli/src/cp/transfer.rs`, `crates/podssh-cli/src/cp/mod.rs`,
+  `crates/podssh-cli/src/ssh/result.rs`, `crates/podssh-cli/src/man/notes.rs`, `docs/cli.md`,
+  `crates/podssh-cli/tests/cp_device.rs` (new).
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live, as root, against this host's sshd: `cp --direct ... podtest@127.0.0.1:/etc/hostname DEV`, where DEV is a character device made with `mknod c 1 3`, copied 3 bytes (0) and DEV stayed a character device. The planted run waits for T-251.
+
+
+# T-1039: `cp FILE HOST:/proc/NAME` says "no such directory: /proc/", which is there
+
+**Source:** the ninth black-box pass (2026-11-26, a debug build of `b562ec9`), finding 9.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh cp FILE HOST:/proc/qa12` exited 73 with "no such directory: /proc/", though `/proc` exists: the file system
+refused the new name with ENOENT, and podssh read that as a missing directory.
+
+## Premise
+
+- Read, at `b562ec9`: a failed create of the temporary file names a missing directory whenever the words say "no
+  such file" or "directory nonexistent" (line 157 of `crates/podssh-cli/src/cp/transfer.rs`), over SFTP (line 142 of
+  `crates/podssh-cli/src/cp/bysftp.rs`) and by exec (line 177 of `crates/podssh-cli/src/cp/byexec/files.rs`; dash
+  says "Directory nonexistent" for each ENOENT); here a NotFound alone did it (line 405 of
+  `crates/podssh-cli/src/cp/resume.rs`). Nobody looked whether the directory is there.
+
+## Approach
+
+Before the line names a missing directory, a look: a `stat` of the directory over SFTP, `test -d` by exec (`kind`),
+`is_dir` here. A directory that is there gives "TARGET: cannot be written in DIR: WORDS", the server's or the
+system's words. A unit test holds the rule (`transfer`'s table of a directory that is there, the login directory
+and a missing one).
+
+## Decision
+
+- A look after the failure, not before each copy: it costs a round trip only on the path of a failure.
+- The exit stays 73: the destination cannot be written. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib cp::transfer
+cargo test -p podssh-cli --test io_error_lines
+```
+
+Against a host with `/proc`: `podssh cp FILE HOST:/proc/qa12` says "cannot be written in /proc/", 73.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent:
+
+- Changed: `crates/podssh-cli/src/cp/transfer.rs`, `crates/podssh-cli/src/cp/bysftp.rs`,
+  `crates/podssh-cli/src/cp/byexec/files.rs`, `crates/podssh-cli/src/cp/resume.rs`.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1041: `edit` passes over a `PODSSH_CACHE_DIR` that refuses its copy with no word
+
+**Source:** the ninth black-box pass (2026-11-26, a debug build of `b562ec9`), finding 8.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`PODSSH_CACHE_DIR=/proc/nonexist podssh edit HOST:FILE` put its copy in `$HOME/.cache/podssh` and said nothing. The
+manual (PODSSH_CACHE_DIR) says "A directory that refuses a write is skipped, and podssh says why".
+
+## Premise
+
+- Read, at `b562ec9`: `Local::make_in` gathers the refusal of each cache directory, but says them only when none took
+  the copy (line 43 of `crates/podssh-cli/src/edit/local.rs`); a later directory that takes it drops them. The cache's
+  files say it by `chosen_note` (line 136 of `crates/podssh-relay/src/cache.rs`).
+
+## Approach
+
+`Local` keeps the refusals before the directory that took the copy; `Local::cache_note` gives the line of
+`chosen_note` for `PODSSH_CACHE_DIR` as the run reads it: a relative path not used, or the named directory's refusal
+and where the copy went. `edit` says it once, at the default level, as a warning, before the fetch. A unit test: a
+named directory under a regular file refuses, the second takes the copy, and the line names both; a directory that
+takes the copy, and no variable, say nothing. `docs/cli.md` says it.
+
+## Decision
+
+- The words of `chosen_note`, so that `edit` and the cache's files say it in one way. Lost: "the file went to" names
+  the copy, where a line of `edit`'s own could say "the copy".
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib edit::local
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent:
+
+- Changed: `crates/podssh-cli/src/edit/local.rs`, `crates/podssh-cli/src/edit/mod.rs`, `docs/cli.md`.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

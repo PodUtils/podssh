@@ -198,7 +198,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7363`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7382`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
@@ -310,8 +310,8 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
 - Measured: `podssh proxy unix-connect:/tmp/x.sock 1` exits 64
   (`':' is not allowed`): no command takes a socket path.
 - Read: podssh connects to a Unix socket only for the agent
-  (`crates/podssh-ssh/src/keys.rs:429-442`, `connect_agent`); on Windows the agent is a
-  named pipe (`crates/podssh-ssh/src/keys.rs:443-464`).
+  (`crates/podssh-ssh/src/keys.rs:434-447`, `connect_agent`); on Windows the agent is a
+  named pipe (`crates/podssh-ssh/src/keys.rs:448-469`).
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
   before the call (`crates/podssh-cli/src/doctor/unix.rs:212-221`,
   `crates/podssh-cli/src/doctor/unix.rs:235-240`).
@@ -610,9 +610,9 @@ running on the server (`docs/design.md:860-864`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7490-7492`). After the attach, send the window size again.
+   (`docs/cli.md:7509-7511`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
-   (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-195`), `docs/design.md:860-864`,
+   (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-196`), `docs/design.md:860-864`,
    `docs/STATUS.md`, and tmux in the interop image
    (`scripts/interop.sh:24-25`). T-025 shares the classes of close codes;
    T-153 replaces this loop when both ends run podssh.
@@ -724,7 +724,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 ## Premise
 
 - Read: a byte pipe carries each TCP protocol
-  (`crates/podssh-cli/src/man/notes.rs:266-277`); a client that calls
+  (`crates/podssh-cli/src/man/notes.rs:271-282`); a client that calls
   `connect()` itself needs a listener (`docs/design.md:1428-1431`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
@@ -844,7 +844,7 @@ The calls made where the Approach left a choice:
   (`crates/podssh-cli/src/man/examples.rs:331`). It has no
   `ServerAliveInterval`, so that its line stays within rustfmt's 120
   columns; the note of proxy asks for it
-  (`crates/podssh-cli/src/man/notes.rs:278`).
+  (`crates/podssh-cli/src/man/notes.rs:283`).
 - Form b runs with `--direct`, as `scripts/interop-pipe.sh` runs `ssh:`;
   forms a and c go through the stand-in relay.
 - The citations of `crates/podssh-cli/src/man/examples.rs` in

@@ -1468,9 +1468,10 @@ podssh ssh
   for -o, and 78 with FILE:LINE for a line of a file. ${NAME} in them is the
   variable NAME, which must be set (exit 64); a whole $NAME as IdentityAgent or
   ForwardAgent is the variable that holds the path, and no agent when it is not
-  set. -E FILE is opened as typed. A key file that others can read is used
-  after a warning, where OpenSSH refuses it: on some hosts chmod changes
-  nothing.
+  set. -E FILE is opened as typed. A private key file that others can read is
+  used after a warning, where OpenSSH refuses it: on some hosts chmod changes
+  nothing. A public key or a certificate named by -i is said as one, with the
+  private key's name.
 
   A repeated value follows OpenSSH: the first -p and -l, the last -e, -E and
   -F, and the first value of each -o keyword. A second -J or -W is refused, and
@@ -6950,6 +6951,13 @@ podssh cp
   it is a link or a directory (exit 64). A destination directory takes the file
   under the source's name, as a copy without --inplace does.
 
+  A destination that is a device or a FIFO takes the bytes into itself, as
+  OpenSSH's scp writes them. No temporary file and no rename replace it, and
+  its mode and times stay. Nothing is read back from it: the source's digest
+  checks the bytes that went. A FIFO that no process reads is refused at once
+  (exit 73), and so is a socket. A copy into one that breaks does not start
+  again. mv and a copy within one server never rename onto one (exit 73).
+
   -n (--no-clobber) leaves a destination that is there as it is: the copy looks
   before any byte goes, says DST: there, so not replaced, and counts a skip,
   with exit 0. A name that comes during the copy stays too: the verified file
@@ -10004,11 +10012,12 @@ podssh keygen
   key never replaces a file that exists. The public key goes to FILE.pub, which
   others may read and not change. podssh prints the SHA-256 fingerprint.
 
-  A new key is refused when FILE or FILE.pub exists, before any question.
-  FILE.pub has mode 0644 under any umask. An empty -f is a usage error (64).
-  podssh reads a key, a certificate or a signature file of 1 MiB at most; a
-  larger file is refused. With -q, -R and -H print nothing but a failure and
-  the warning of FILE.old.
+  A new key is refused when FILE or FILE.pub exists, before any question. A
+  missing directory of -f is refused too (exit 73), as ssh-keygen refuses it;
+  ~/.ssh of the default file is made, mode 0700. FILE.pub has mode 0644 under
+  any umask. An empty -f is a usage error (64). podssh reads a key, a
+  certificate or a signature file of 1 MiB at most; a larger file is refused.
+  With -q, -R and -H print nothing but a failure and the warning of FILE.old.
 
   podssh keygen -p -f FILE changes the passphrase of a key: podssh asks for the
   old one, then for the new one two times. podssh keygen -c -f FILE changes its
@@ -10764,9 +10773,9 @@ podssh play
   timing: a file of podssh ssh --record, or another asciicast v2 file. --speed
   plays it faster or slower, and --idle-limit cuts each wait to its seconds, as
   the file's idle_time_limit does when it has one. A file of another version is
-  refused (exit 1), and an event of another kind than output is passed over. A
-  time below 0 is refused as a bad line (exit 1); an event earlier than the one
-  before it plays at once.
+  refused (exit 1), and so is a directory. An event of another kind than output
+  is passed over. A time below 0 is refused as a bad line (exit 1); an event
+  earlier than the one before it plays at once.
 
   A recording holds what the session showed, its secrets too (a key that was
   printed, a password that a program echoed). It never holds what was typed.
@@ -11369,7 +11378,9 @@ podssh serve
   ECDSA or RSA, is refused (78). --host-key also takes a key file of a TPM
   (podssh keygen -t ecdsa-tpm): the TPM signs each key exchange, and serve
   holds no private key. Such a key must sign at the start: with no TPM, or
-  after the boot state changed, serve does not start (78).
+  after the boot state changed, serve does not start (78). serve NAME with no
+  pair stored under NAME, and no other road, is refused (78) before a host key
+  is made.
 
   A command (exec) runs as SHELL -c COMMAND. A shell request runs the shell as
   a login shell (its argv[0] the shell's name after a dash). Each runs as the
@@ -13871,7 +13882,8 @@ EXIT STATUS
       file changed since it was fetched, so nothing was sent and the copy here
       stays, or no cache directory takes the copy. podssh chat: the path of
       --accept-dir is not there, or is no directory. podssh each: a file of
-      --output-dir cannot be made; no host has run.
+      --output-dir cannot be made; no host has run. podssh keygen: the
+      directory of -f is not there, or is no directory.
   74
       The output of a command could not be written, as to a full disk or a
       device that refuses it. That holds for podssh keygen, doctor, man,

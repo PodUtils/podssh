@@ -2686,6 +2686,20 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   `copy-data` is needed; `mv` removes the source only after the check. By
   exec, the first attempt writes with `cat >` (a truncation keeps the
   inode) and a later one appends. No holes are made in place.
+- **A destination that is a device or a FIFO** (T-1038,
+  `crates/podssh-cli/src/cp/special.rs`) takes the bytes into itself, as
+  OpenSSH's `scp` and `sftp` write them: opened to write with no new name,
+  no truncation, no rename and no change of its mode or times, so
+  `/dev/null` stays a device even as root. Here the check is `metadata`
+  (through a link); there it is a `stat` of the destination, by SFTP, or
+  `test` by exec. Nothing can be read back from it: down, the far digest
+  of the source checks the bytes that came; up, the verifier is
+  `none: a device keeps no bytes to read back`. A FIFO here is opened with
+  no wait, so one that no process reads is refused at once (73); a socket
+  is refused (73). A copy into one that broke does not start again (a
+  FIFO's reader has its first bytes). `mv` within one server, and a copy
+  within one server (`copy-data`), refuse to rename onto one (73).
+  `--result-file` takes the same check.
 - **A destination that is there** (T-473,
   `crates/podssh-cli/src/cp/clobber.rs`), with the names of GNU `cp` and
   rsync, as OpenSSH's `scp` has none (`scp -n` stays an unknown flag, 64).
@@ -3041,7 +3055,9 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   with the far file's name, so that the editor knows its kind by its name
   or its extension; a name that this system cannot hold becomes `file` with
   the extension. podssh records the far file's size and time of change (by
-  exec, the line of `ls -lnid`), its SHA-256 and its mode.
+  exec, the line of `ls -lnid`), its SHA-256 and its mode. A
+  `PODSSH_CACHE_DIR` that refuses the copy is said once, with why and where
+  the copy went, as each file of the cache says it (T-1041).
 - **No session while a person edits.** The connection closes before the
   editor starts: no relay session waits, so its idle limit (180 s) and its
   12 h cap cannot end an edit, and a lost link costs nothing. The second
@@ -3864,7 +3880,10 @@ judges what the peer offers.
   OpenSSH for Windows refuses a key that others may open. Each may read
   `FILE.pub`, and only its owner may change it (mode 0644 under any umask,
   set again once the file is open, T-970; on Windows, Everyone reads it).
-  A missing directory is made private (T-288).
+  The missing `~/.ssh` of the default file is made private (T-288); a
+  missing directory of `-f` is refused (73, `no such directory: DIR`)
+  before any line, as `ssh-keygen` refuses it, and nothing is made
+  (T-1040).
 - `-p` changes the passphrase of the key in `-f FILE`, and `-c` its comment,
   in the key and in `FILE.pub` (T-018). The file is replaced only with the
   same key: the new text goes to a new private file beside it, which is

@@ -307,6 +307,12 @@ fn generate(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
             }
         },
     };
+    // A missing directory of -f is refused before anything is said, as
+    // ssh-keygen refuses it; ~/.ssh of the default path is made (T-1040).
+    if let Some(line) = args.file.as_ref().and_then(|_| no_directory(&path)) {
+        let _ = writeln!(err, "podssh keygen: {line}");
+        return crate::exitmap::sysexits::EX_CANTCREAT;
+    }
     // Before asking for a passphrase that would be thrown away; add-policy
     // changes a TPM's key file. FILE.pub counts too, a link as well: a new
     // key replaces neither file (T-970).
@@ -443,6 +449,18 @@ fn print_public(path: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             let _ = writeln!(err, "podssh keygen: could not encode the public key: {e}");
             EXIT_FAILED
         }
+    }
+}
+
+/// Why the directory of `path` cannot take a new key: missing, or no
+/// directory; `None` when it is one.
+fn no_directory(path: &Path) -> Option<String> {
+    let dir = path.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    match std::fs::metadata(dir) {
+        Ok(meta) if meta.is_dir() => None,
+        Ok(_) => Some(format!("{} is not a directory", dir.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Some(format!("no such directory: {}", dir.display())),
+        Err(e) => Some(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
     }
 }
 

@@ -22,6 +22,7 @@ use super::link::Meter;
 use super::meta::{self, Stamp};
 use super::pipe::Shape;
 use super::resume::{self, Progress};
+use super::special;
 use super::transfer::{self, Cause, Done, Failed, Side};
 use super::{gauge, rate};
 use crate::exitmap::Fault;
@@ -83,6 +84,11 @@ pub async fn up(
     if let Some(kept) = clobber::before_far(sftp, source, &target, seen, shape.clobber, resumed, log).await? {
         return Ok(kept);
     }
+    // A device or a FIFO there takes the bytes into itself (T-1038).
+    if let Some(kind) = sftp.stat(&target).await.ok().as_ref().and_then(special::far) {
+        progress.clear();
+        return special::up_far(sftp, local, source, &target, &before, kind, meter, shape, log).await;
+    }
     // Over an older version, only the blocks that changed (T-142); a copy
     // that broke goes on where it was instead. A full copy says why (T-470).
     let mut said = None;
@@ -136,14 +142,20 @@ pub async fn up(
             // it: a connection lost between the two leaves no file that no
             // record names, and the next attempt goes on in it or removes it.
             progress.begin(&target, &temp);
-            let file = sftp.open_file(&temp, flags, attrs).await.map_err(|e| {
-                let mut failed = transfer::from_sftp(e, Side::Destination);
-                if failed.cause == Cause::Answer {
-                    let missing = transfer::says_no_directory(&failed.message);
-                    failed.message = transfer::not_made(&target, dir, missing, &failed.message);
+            let file = match sftp.open_file(&temp, flags, attrs).await {
+                Ok(file) => file,
+                Err(e) => {
+                    let mut failed = transfer::from_sftp(e, Side::Destination);
+                    if failed.cause == Cause::Answer {
+                        // "No such file" in a directory that is there: the
+                        // file system refused the name (/proc), T-1039.
+                        let said = transfer::says_no_directory(&failed.message);
+                        let missing = said && !transfer::is_far_dir(sftp, dir).await;
+                        failed.message = transfer::not_made(&target, dir, missing, &failed.message);
+                    }
+                    return Err(failed);
                 }
-                failed
-            })?;
+            };
             log.verbose(&format!("{source}: writing {temp}"));
             (temp, file)
         }
@@ -283,11 +295,14 @@ pub async fn down(
     if let Some(kept) = clobber::before_local(source, &target, Seen::of_far(&attrs), shape.clobber, resumed, log)? {
         return Ok(kept);
     }
+    // A device or a FIFO here takes the bytes into itself, never a rename
+    // (T-1038): no delta, no chunks, no holes, no record to go on from.
+    let device = special::local(&target);
     // Over an older version here, only the blocks that changed (T-142); a
     // full copy says why (T-470).
     let stamp = Stamp::of_far(&attrs, 0o777);
     let mut said = None;
-    if shape.delta {
+    if shape.delta && device.is_none() {
         let tried = match progress.temp {
             Some(_) => Err(delta::Full::Resumed),
             None => delta::down(sftp, handle, source, &target, size, &stamp, shape, log).await?,
@@ -297,10 +312,14 @@ pub async fn down(
             Err(why) => said = Some(delta::full(source, why, progress, log)),
         }
     }
-    let chunked = shape.tasks > 1 && size > chunks::CHUNK;
-    let (temp, file, start) = match shape.inplace {
-        true => in_place::open_local(&target, progress)?,
-        false => resume::local_temp(&target, size, progress, chunked)?,
+    let chunked = shape.tasks > 1 && size > chunks::CHUNK && device.is_none();
+    let (temp, file, start) = match (device, shape.inplace) {
+        (Some(kind), _) => {
+            progress.clear();
+            (target.clone(), special::open_local(&target, kind)?, 0)
+        }
+        (None, true) => in_place::open_local(&target, progress)?,
+        (None, false) => resume::local_temp(&target, size, progress, chunked)?,
     };
     let shown = temp.display().to_string();
     log.verbose(&match start {
@@ -357,7 +376,7 @@ pub async fn down(
         let mut bar = gauge::Gauge::new(source, size, start);
         // --sparse: the blocks of zeros are holes here (T-146); not in the
         // destination itself, whose old bytes would stay.
-        let mut holes = (shape.keep.sparse && !shape.inplace).then(|| meta::Holes::new(start));
+        let mut holes = (shape.keep.sparse && !shape.inplace && device.is_none()).then(|| meta::Holes::new(start));
         log.verbose(&format!("{source}: reads of {} bytes, {} in flight", reads.block(), reads.depth()));
         // A read below the size of the start goes out only while the relay
         // session may carry it (T-137); the failure that stopped them.
@@ -421,6 +440,18 @@ pub async fn down(
         }
         read?;
         log.verbose(&rate(source, offset - start, started.elapsed()));
+        // Into a device: nothing to cut, to read back, or to stamp.
+        if let Some(kind) = device {
+            let f = out.take().ok_or_else(|| failed(Fault::CantCreate, format!("{shown}: not open")))?;
+            special::ended(f, &target, kind)?;
+            let sum: Sum = hasher.finalize().into();
+            let (far, how) = match far {
+                Some(far) => far?,
+                None => transfer::far_digest(handle, sftp, source, offset, Side::Source).await?,
+            };
+            transfer::compare(&sum, &far, &how, source)?;
+            return Ok(special::done(source, &shown, offset, sum, how));
+        }
         if let Some(f) = out.take() {
             // Into the destination itself: its old bytes past the end go.
             let cut = if shape.inplace { f.set_len(offset) } else { Ok(()) };
@@ -439,7 +470,11 @@ pub async fn down(
     }
     .await;
     drop(out);
-    let copied = copied.map_err(|f| if shape.inplace { in_place::damaged(f, &shown) } else { f });
+    let copied = copied.map_err(|f| match device {
+        Some(kind) => special::failed(f, &shown, kind.what()),
+        None if shape.inplace => in_place::damaged(f, &shown),
+        None => f,
+    });
     let copied = copied.map(|done| Done { delta: said, ..done });
     match &copied {
         Err(f) if matches!(f.cause, Cause::Broke | Cause::Spent) => progress.save(),

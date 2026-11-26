@@ -90,7 +90,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             "podssh cp and mv: the destination cannot be written. podssh edit: the far file changed since \
              it was fetched, so nothing was sent and the copy here stays, or no cache directory takes the copy. \
              podssh chat: the path of --accept-dir is not there, or is no directory. podssh each: a file of --output-dir \
-             cannot be made; no host has run.",
+             cannot be made; no host has run. podssh keygen: the directory of -f is not there, or is no directory.",
         ),
         row(
             sysexits::EX_IOERR,

@@ -26,8 +26,37 @@ pub(super) fn unread(e: &russh::keys::Error) -> String {
             "it is not text, so it is no private key of a format that podssh reads".into()
         }
         russh::keys::Error::IO(io) => podssh_ws::text::said(io),
+        // russh's "Could not read key" names no cause (T-1044).
+        russh::keys::Error::CouldNotReadKey => "it holds no private key that podssh reads".into(),
         other => podssh_ws::text::said(other),
     }
+}
+
+/// Why the file at `path` gave no private key (`e`): a public key or a
+/// certificate is said as one, with the private key that `-i` names
+/// (T-1044); anything else as [`unread`] says it.
+pub(super) fn no_key(path: &Path, e: &russh::keys::Error) -> String {
+    let text = crate::key_text::read_text(path).ok();
+    text.as_deref().and_then(|text| public_of(path, text)).unwrap_or_else(|| unread(e))
+}
+
+/// The words of `text` at `path` when it is a public key or a certificate.
+fn public_of(path: &Path, text: &str) -> Option<String> {
+    let line = text.lines().map(str::trim).find(|line| !line.is_empty())?;
+    let word = line.split_whitespace().next()?;
+    let what = if word.ends_with("-cert-v01@openssh.com") {
+        "a certificate"
+    } else if line.starts_with("---- BEGIN SSH2 PUBLIC KEY") || russh::keys::PublicKey::from_openssh(line).is_ok() {
+        "a public key"
+    } else {
+        return None;
+    };
+    let shown = path.display().to_string();
+    let private = shown.strip_suffix("-cert.pub").or_else(|| shown.strip_suffix(".pub")).filter(|p| !p.is_empty());
+    Some(match private {
+        Some(private) => format!("it is {what}; -i names the private key, {private}"),
+        None => format!("it is {what}; -i names the private key"),
+    })
 }
 
 /// The lines of the encrypted keys that were not opened, one for each
@@ -108,5 +137,28 @@ mod tests {
         assert!(said.starts_with("it is not text") && !said.contains("UTF-8"), "{said}");
         let denied = russh::keys::Error::IO(std::io::Error::from_raw_os_error(13));
         assert!(!unread(&denied).contains("os error"), "{}", unread(&denied));
+        assert_eq!(unread(&russh::keys::Error::CouldNotReadKey), "it holds no private key that podssh reads");
+    }
+
+    /// A public key or a certificate named where a private key goes is said
+    /// as one, with the private key's name; other text is none (T-1044).
+    #[test]
+    fn a_public_key_named_by_i_names_its_private_key() {
+        let line = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl github";
+        let cert = "ssh-ed25519-cert-v01@openssh.com AAAAIHNzaC1lZDI1NTE5LWNlcnQ= me";
+        let rfc = "---- BEGIN SSH2 PUBLIC KEY ----\nAAAA\n---- END SSH2 PUBLIC KEY ----\n";
+        let padded = format!("\n{line}\n");
+        for (path, text, want) in [
+            ("/k/id.pub", line, Some("it is a public key; -i names the private key, /k/id")),
+            ("/k/id", line, Some("it is a public key; -i names the private key")),
+            ("/k/key", padded.as_str(), Some("it is a public key; -i names the private key")),
+            ("/k/id-cert.pub", cert, Some("it is a certificate; -i names the private key, /k/id")),
+            ("/k/id2.pub", rfc, Some("it is a public key; -i names the private key, /k/id2")),
+            (".pub", line, Some("it is a public key; -i names the private key")),
+            ("/k/notes.txt", "hello world", None),
+            ("/k/empty", "", None),
+        ] {
+            assert_eq!(public_of(Path::new(path), text).as_deref(), want, "{path}");
+        }
     }
 }

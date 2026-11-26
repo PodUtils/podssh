@@ -184,8 +184,8 @@ pub fn write(verb: &str, path: &str, object: &Value, err: &mut dyn Write) -> boo
     let target = std::path::Path::new(path);
     let body = format!("{object}\n");
     // A FIFO or a device (`/dev/stderr`) takes the record as it is: no file
-    // can be renamed onto it.
-    let special = std::fs::metadata(target).is_ok_and(|m| !m.is_file() && !m.is_dir());
+    // is renamed onto it, by the one check of the copies' too (T-1038).
+    let special = crate::cp::special::local(target).is_some();
     let placed = match special {
         true => std::fs::OpenOptions::new().write(true).open(target).and_then(|mut f| f.write_all(body.as_bytes())),
         false => replace(target, body.as_bytes()),

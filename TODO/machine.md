@@ -48,7 +48,7 @@ failed (lines 156-168). The sections are "this host", "egress" and "relay" (line
    keep the additions small, or split first.
 5. The JSON carries the same detail strings as the text, which hide proxy credentials and
    tokens today (`crates/podssh-cli/tests/doctor.rs:142-167`).
-6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:276-364`) and
+6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:281-369`) and
    `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
@@ -335,7 +335,7 @@ and `crates/podssh-ssh/src/keys.rs:130-162` offers a key to the server.
 5. The line joins the JSON of T-049. The script can call `doctor --full` and keep its OpenSSH
    step.
 6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:210-282`), the `doctor` notes
-   (`crates/podssh-cli/src/man/notes.rs:276-364`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
+   (`crates/podssh-cli/src/man/notes.rs:281-369`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
 
@@ -629,7 +629,7 @@ failure at `crates/podssh-ssh/src/run.rs:152-163` and
 `crates/podssh-cli/src/ssh/transport.rs:226` and its close at
 `crates/podssh-cli/src/ssh/mod.rs:408`. The flag in `SSH_FLAGS`
 (`crates/podssh-cli/src/flags.rs:213`), its note at
-`crates/podssh-cli/src/man/notes_ssh_more.rs:161-179`, and `docs/cli.md`.
+`crates/podssh-cli/src/man/notes_ssh_more.rs:162-180`, and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/ssh_result.rs`, against the test server,
 whose `exit N` and `kill NAME` are in
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7477-7507`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7496-7526`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:137-154`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.

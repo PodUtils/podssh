@@ -62,8 +62,10 @@ LISTENERS = {
     # the path, through a short way to the stage where a socket's address
     # cannot hold the path, and links it to the path (T-857). And the test of
     # StreamLocalBindUnlink of -L (T-962), which leaves a stale socket in a
-    # scratch directory for the refusal to find.
+    # scratch directory for the refusal to find. And the test of a copy's
+    # destination that is a socket (T-1038), which cp must refuse to write.
     "UnixListener": [
+        "crates/podssh-cli/src/cp/special_tests.rs",
         "crates/podssh-cli/src/pipe/cover_tests.rs",
         "crates/podssh-cli/src/pipe/listen.rs",
         "crates/podssh-relay/src/serve/control.rs",
@@ -156,6 +158,7 @@ LISTENERS = {
     # -R (T-123, step 4), as above. And the node's call of the DNS road's
     # bind before it says that it serves (T-908), the same listener.
     "bind(": [
+        "crates/podssh-cli/src/cp/special_tests.rs",
         "crates/podssh-cli/src/serve_listen_forward.rs",
         "crates/podssh-cli/src/carrier_dns.rs",
         "crates/podssh-cli/src/node_carrier.rs",

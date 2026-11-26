@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:183-189`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:7475-7535`
+   so that only the notes change. No document changes: `docs/cli.md:7494-7554`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:7349-7449`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:7368-7468`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:7359-7362`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:7378-7381`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:7349-7449`, and the measurement in
+5. Write the measured rule in `docs/cli.md:7368-7468`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:7475-7535` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:7494-7554` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1285,7 +1285,7 @@ session starts with the size of its start
 (`crates/podssh-ssh/src/io.rs:127-200`). The flag at
 `crates/podssh-cli/src/flags.rs:231-232`, its check and its file in
 `crates/podssh-cli/src/ssh/recording.rs:1-42`; the verb in
-`crates/podssh-cli/src/play.rs:1-92`, its flags in
+`crates/podssh-cli/src/play.rs:1-98`, its flags in
 `crates/podssh-cli/src/flags/play.rs:1-14`.
 - `cargo test -p podssh-ssh -- asciicast`: 4 passed: the header and both
   events, the escapes of quotes and control bytes, a character split across
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:922-933` and `docs/cli.md:6110-6122`, the manual's notes and an
+- `docs/cli.md:922-933` and `docs/cli.md:6129-6141`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1338,7 +1338,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: podssh uses an agent that `SSH_AUTH_SOCK` names, today. On Unix it
   connects to that socket, or to `IdentityAgent PATH`; on Windows it tries
   the named pipe of `SSH_AUTH_SOCK`, then the pipe of the OpenSSH agent, then
-  Pageant (`crates/podssh-ssh/src/keys.rs:429-469`, `connect_agent`). It offers the agent's
+  Pageant (`crates/podssh-ssh/src/keys.rs:434-474`, `connect_agent`). It offers the agent's
   keys first (`crates/podssh-ssh/src/keys.rs:234-303`), and skips the agent's
   certificates (`crates/podssh-ssh/src/keys.rs:242-245`).
 - Read: russh 0.64.1, which the binary links, has an agent server
@@ -1733,7 +1733,7 @@ gives the extension messages and the exit codes; the manual's EXIT STATUS has 65
   source; the tests of the password and of keyboard-interactive failed.
 - The doctor's tests failed in their first run on this host, where no agent runs: russh's stream
   to Pageant opens when no Pageant runs, and closes at the first request, so the line said FAIL.
-  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:453-457`), which also
+  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:458-462`), which also
   spares `podssh ssh` that stream, and reads an agent that closes the connection at the store's
   question as one with no store (`crates/podssh-ssh/src/credential_store.rs:366-373`). The
   doctor's tests: 10 passed, on Windows and in the build image.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:674`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:7498-7503`). A person who types slowly must not meet a limit
+  `docs/cli.md:7517-7522`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:7533-7535` asks for a limit on the whole operation.
+   `docs/cli.md:7552-7554` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:187-190`), and is never
-called. `docs/cli.md:6004-6005` says that the key "is never used".
+called. `docs/cli.md:6023-6024` says that the key "is never used".
 
 ## Approach
 
@@ -2619,7 +2619,7 @@ says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:2
 ## Problem
 
 `podssh ssh -i FILE` asks for the passphrase of a key only when russh says that it is encrypted
-(`crates/podssh-ssh/src/keys.rs:338-339`). russh says so for a key of OpenSSH and for an RSA key
+(`crates/podssh-ssh/src/keys.rs:343-344`). russh says so for a key of OpenSSH and for an RSA key
 in PEM, but not for three others. An encrypted key of PKCS#8 (`BEGIN ENCRYPTED PRIVATE KEY`) is
 read as a plain one, and fails on its DER. An encrypted key of PuTTY fails with ssh-key's "private
 key is encrypted". A key in PEM encrypted with another cipher than AES-128-CBC is read as a plain
@@ -3754,7 +3754,7 @@ name to give. OpenSSH on the same host connects.
   `docs/decisions.md`; T-222 (on hold) says the same of the shell of `podssh serve`.
 - Read: the same name is `%u`, `Match localuser` (`crates/podssh-cli/src/ssh/config/matching.rs:110`),
   the nick of `chat`, and the default comment of `keygen`, "never from the user database"
-  (`crates/podssh-cli/src/man/notes_keygen.rs:62-63`).
+  (`crates/podssh-cli/src/man/notes_keygen.rs:64-65`).
 - Read, against the report: the README of this repository holds no prompt with `ssh railway.new`
   (no line of `README.md` names Railway, at `01e371e` and at `35a0d19`); that one-liner is
   Railway's own page. Its L-02, Railway's refusal of each login of the day, is the service's state,
@@ -6550,8 +6550,8 @@ KEY". The `--sudo` path names it.
 
 ## Premise
 
-- Read: `decrypt` (`crates/podssh-ssh/src/keys.rs:368`) kept the path alone for both causes, and dropped the error of
-  the question (now `crates/podssh-ssh/src/keys.rs:390`); the note had one fixed reason. The same fixed
+- Read: `decrypt` (`crates/podssh-ssh/src/keys.rs:373`) kept the path alone for both causes, and dropped the error of
+  the question (now `crates/podssh-ssh/src/keys.rs:395`); the note had one fixed reason. The same fixed
   words were in the notes of keyboard-interactive and password (`crates/podssh-ssh/src/auth.rs:261`) and of a
   security key's PIN.
 
@@ -6561,7 +6561,7 @@ KEY". The `--sudo` path names it.
   set and neither DISPLAY nor WAYLAND_DISPLAY (with the remedy `SSH_ASKPASS_REQUIRE=force`); `SSH_ASKPASS_REQUIRE=never`.
   `why_not_asked` puts BatchMode first. `PromptError::NoTerminal` says the same.
 - Each skipped key keeps its reason: BatchMode, no one to ask, or the question's error ("SSH_ASKPASS exited 1"); the
-  final lines group the keys by reason (`skipped_lines`, `crates/podssh-ssh/src/keys_words.rs:36`).
+  final lines group the keys by reason (`skipped_lines`, `crates/podssh-ssh/src/keys_words.rs:65`).
 - The notes of keyboard-interactive, password and a security key's PIN take the same words.
 
 ## Prove
@@ -6990,3 +6990,56 @@ Drafted 2026-11-25 by a drafting agent.
   `crates/podssh-cli/src/man/notes_tests.rs`, `crates/podssh-cli/tests/agent_cli.rs`, `docs/cli.md`.
 
 Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+# T-1044: `ssh -i KEY.pub` warns of the mode of a public key, then says "Could not read key"
+
+**Source:** the ninth black-box pass (2026-11-26, a debug build of `b562ec9`), finding 14.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh -i KEY.pub HOST` (and `-i` of any text file that is no key) said first "warning: the key file ... can be
+read by others (mode 0644); using it anyway", then "could not use the key file ...: Could not read key". A public key
+may be read by anyone, and the second line did not say what was wrong: `-i` names the private key.
+
+## Premise
+
+- Read, at `b562ec9`: the mode is checked before the file is read (line 334 of `crates/podssh-ssh/src/keys.rs`), and
+  a file that is no private key is said in russh's words (line 341 of the same file).
+
+## Approach
+
+The file is read first; the mode is said only for a private key (one that opened, or an encrypted one). A file that
+gives no private key: a public key (a line of OpenSSH, or RFC 4716) or a certificate is said as one, "it is a
+public key; -i names the private key, KEY", with KEY the name without `.pub` (or `-cert.pub`) where it has one;
+russh's "Could not read key" becomes "it holds no private key that podssh reads". The manual's note of `-i` says it.
+A table test of the words of each kind of text and name.
+
+## Decision
+
+- The look at the text comes only after the load failed, so a private key costs no second read. Lost: nothing.
+- The key named by `-i` is not tried in its private half's place: `-i` names a file, and a guess would offer a key
+  that the user did not name. Lost: a login that would have worked with the guess; the line names the file to give.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib keys::
+cargo test -p podssh-cli --test man_page
+```
+
+With `chmod 644 k.pub`: `podssh ssh -i k.pub HOST true` says one line of the public key, and no warning of its mode.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent:
+
+- Changed: `crates/podssh-ssh/src/keys.rs`, `crates/podssh-ssh/src/keys_words.rs`,
+  `crates/podssh-cli/src/man/notes_ssh_more.rs`.
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

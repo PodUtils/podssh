@@ -52,6 +52,9 @@ mod remote_glob;
 pub(crate) mod result;
 pub(crate) mod resume;
 pub(crate) mod session;
+// A destination that is a device or a FIFO: written into, never replaced
+// (T-1038).
+pub(crate) mod special;
 pub(crate) mod summary;
 pub(crate) mod sync;
 pub(crate) mod transfer;

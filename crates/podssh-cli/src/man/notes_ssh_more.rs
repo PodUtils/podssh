@@ -109,8 +109,9 @@ pub(super) const MORE: &[&str] = &[
      and 78 with FILE:LINE for a line of a file. \
      ${NAME} in them is the variable NAME, which must be set (exit 64); a whole $NAME as IdentityAgent or \
      ForwardAgent is the variable that holds the path, and no agent when it is not set. -E FILE is opened \
-     as typed. A key file that others can read is used after a warning, where OpenSSH refuses it: on some hosts \
-     chmod changes nothing.",
+     as typed. A private key file that others can read is used after a warning, where OpenSSH refuses it: on some \
+     hosts chmod changes nothing. A public key or a certificate named by -i is said as one, with the private key's \
+     name.",
     "A repeated value follows OpenSSH: the first -p and -l, the last -e, -E and -F, and the first value \
      of each -o keyword. A second -J or -W is refused, and so is a second --relay-host, --relay-addr or \
      --ca-file: give several hops, hosts or addresses as one comma list. A value in double quotes loses them, as \

@@ -294,8 +294,9 @@ impl Far {
             Kind::Dir => Ok(format!("{dest}/{name}")),
             Kind::Missing if many => Err(super::into::not_into(dest, true)),
             _ if many => Err(super::into::not_into(dest, false)),
-            Kind::Other => Err(failed(Fault::CantCreate, format!("{dest}: not a regular file"))),
-            Kind::File(_) | Kind::Unreadable | Kind::Missing => Ok(dest.to_string()),
+            // A device or a FIFO: a copy writes into it, and a move by a
+            // rename refuses it (T-1038).
+            Kind::File(_) | Kind::Unreadable | Kind::Missing | Kind::Other => Ok(dest.to_string()),
         }
     }
 

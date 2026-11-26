@@ -159,6 +159,19 @@ pub(crate) fn says_no_directory(why: &str) -> bool {
     why.contains("no such file") || why.contains("directory nonexistent") || why.contains("not found")
 }
 
+/// Whether `dir` (empty: the login directory) is a directory on the server:
+/// then a "no such file" of a write in it is the file system's refusal of
+/// the name, as /proc gives it, and no missing directory (T-1039).
+pub(crate) async fn is_far_dir(sftp: &Sftp, dir: &str) -> bool {
+    let dir = if dir.is_empty() { "." } else { dir };
+    sftp.stat(dir).await.is_ok_and(|attrs| attrs.is_dir())
+}
+
+/// [`is_far_dir`] here.
+pub(crate) fn is_local_dir(dir: &str) -> bool {
+    Path::new(if dir.is_empty() { "." } else { dir }).is_dir()
+}
+
 /// `.NAME.podssh-RANDOM.part`: hidden, unique, and named for what it holds.
 pub(super) fn temp_name(name: &str) -> String {
     format!(".{name}.podssh-{:016x}.part", rand::random::<u64>())
@@ -286,6 +299,10 @@ pub async fn within(
     let size = attrs.size.unwrap_or(0);
     let (_, name) = split_remote(source.trim_end_matches('/'));
     let target = remote_target(sftp, dest, name, false).await?;
+    // A device or a FIFO there: never a rename over it (T-1038).
+    if let Some(kind) = sftp.stat(&target).await.ok().as_ref().and_then(super::special::far) {
+        return Err(super::special::not_within(&target, kind.what()));
+    }
     let (dir, leaf) = split_remote(&target);
     let temp = if inplace { target.clone() } else { format!("{dir}{}", temp_name(leaf)) };
     if inplace {
@@ -434,6 +451,25 @@ mod tests {
         ] {
             let failed = write_failed("far/a.bin", e);
             assert_eq!((failed.fault, failed.message.as_str()), (Fault::CantCreate, want));
+        }
+    }
+
+    /// A "no such file" of a write names a missing directory only where the
+    /// directory is missing; in one that is there (/proc) the line is the
+    /// refusal, with the system's words (T-1039).
+    #[test]
+    fn no_such_file_in_a_directory_that_is_there_is_its_refusal() {
+        let here = std::env::temp_dir().display().to_string();
+        for (dir, there) in [(here.as_str(), true), ("", true), ("/no/such/podssh-dir/", false)] {
+            assert_eq!(is_local_dir(dir), there, "{dir:?}");
+            let why = "No such file or directory";
+            let line = not_made("/x/qa12", dir, says_no_directory(why) && !there, why);
+            let shown = if dir.is_empty() { "." } else { dir };
+            let want = match there {
+                true => format!("/x/qa12: cannot be written in {shown}: {why}"),
+                false => format!("/x/qa12: no such directory: {shown}"),
+            };
+            assert_eq!(line, want);
         }
     }
 }

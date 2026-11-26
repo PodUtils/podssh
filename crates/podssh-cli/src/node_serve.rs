@@ -136,6 +136,20 @@ where
     }
 }
 
+/// `podssh serve NAME`'s pair, looked at before the host key is made
+/// (T-1043): the node's refusal when no usable pair is stored under NAME and
+/// no road that a node with no pair takes unasked would serve it (DERP's,
+/// Q50, or a tunnel's, Q78). `None` when the node may go on; a check that
+/// cannot be made is the node's own to say.
+pub(crate) fn no_road(name: &str) -> Option<crate::relay_settings::Refusal> {
+    let checked = crate::pairs::check_label(name).and_then(|()| crate::pairs::stored(name).map(|_| ()));
+    let refusal = checked.err()?;
+    let node = crate::node::NodeArgs { name: Some(name.to_string()), ..Default::default() };
+    let derp = !matches!(crate::node_derp::unasked(&node), Ok(None));
+    let tunnel = crate::node_sshj::last_of_all(&node).is_some();
+    (!derp && !tunnel).then_some(refusal)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

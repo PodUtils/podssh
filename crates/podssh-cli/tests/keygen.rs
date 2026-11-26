@@ -238,11 +238,26 @@ fn a_new_key_is_private() {
     closed(&public, &open(&public), Others::Read).expect("others may not change the new .pub");
     assert!(std::fs::read_to_string(&public).unwrap().trim_end().ends_with(" renamed"));
 
-    let sub = dir.join("sub");
-    let run = podssh(&["keygen", "-q", "-N", "", "-f", &sub.join("k").to_string_lossy()]);
+    // A missing directory of -f is refused, as ssh-keygen refuses it, with
+    // nothing made (T-1040); ~/.ssh of the default path is made, private.
+    let missing = dir.join("missing");
+    let run = podssh(&["keygen", "-q", "-N", "", "-f", &missing.join("k").to_string_lossy()]);
+    assert_eq!(run.code, 73, "{}", run.err);
+    let want = format!("podssh keygen: no such directory: {}", missing.display());
+    assert_eq!(run.err.trim_end(), want);
+    assert!(!missing.exists(), "no directory made");
+    let home = dir.join("home");
+    std::fs::create_dir(&home).unwrap();
+    let shown_home = home.to_string_lossy().into_owned();
+    let run = podssh_with(
+        &["keygen", "-q", "-N", "", "-t", "ed25519"],
+        &[("HOME", shown_home.as_str()), ("USERPROFILE", shown_home.as_str())],
+    );
     assert_eq!(run.code, 0, "{}", run.err);
+    let sub = home.join(".ssh");
     closed(&sub, &open(&sub), Others::NoAccess).expect("the new directory is closed to others");
-    closed(&sub.join("k"), &open(&sub.join("k")), Others::NoAccess).expect("the key is closed to others");
+    let made = sub.join("id_ed25519");
+    closed(&made, &open(&made), Others::NoAccess).expect("the key is closed to others");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

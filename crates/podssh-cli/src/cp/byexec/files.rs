@@ -23,6 +23,7 @@ use crate::cp::link::Meter;
 use crate::cp::meta::{self, Stamp};
 use crate::cp::pipe::Shape;
 use crate::cp::resume::{self, Progress};
+use crate::cp::special;
 use crate::cp::transfer::{self, Cause, Done, Failed};
 use crate::exitmap::Fault;
 
@@ -83,6 +84,9 @@ impl Far {
                 return Ok(clobber::skipped(source, &target, skip));
             }
         }
+        // A device or a FIFO there takes the bytes into itself: no rename
+        // replaces it, and no digest can read them back (T-1038).
+        let device = progress.temp.is_none() && self.kind(handle, &target).await? == Kind::Other;
         // --delta: the copy by exec sends the whole file, and says so (T-470).
         let said = if shape.delta {
             let old = matches!(self.kind(handle, &target).await?, Kind::File(n) if n > 0);
@@ -108,15 +112,16 @@ impl Far {
             }
             None => {
                 let (dir, leaf) = transfer::split_remote(&target);
-                let temp = if inplace { target.clone() } else { format!("{dir}{}", transfer::temp_name(leaf)) };
+                let into = inplace || device;
+                let temp = if into { target.clone() } else { format!("{dir}{}", transfer::temp_name(leaf)) };
                 progress.begin(&target, &temp);
                 log.verbose(&format!("{source}: writing {temp} by exec"));
                 (temp, 0)
             }
         };
         // A new temporary file only (set -C); the destination itself is cut
-        // where it is, so that its inode stays (T-147).
-        let script = match (start, self.raw, inplace) {
+        // where it is, so that its inode stays (T-147); a device is not cut.
+        let script = match (start, self.raw, inplace || device) {
             (0, true, false) => "umask 077; set -C; exec cat > \"$1\"",
             (0, false, false) => "umask 077; set -C; exec base64 -d > \"$1\"",
             (0, true, true) => "umask 077; exec cat > \"$1\"",
@@ -174,7 +179,10 @@ impl Far {
             if got.status != Some(0) {
                 let why = String::from_utf8_lossy(&got.stderr);
                 let (dir, _) = transfer::split_remote(&target);
-                let missing = transfer::says_no_directory(&why);
+                // dash says "Directory nonexistent" for each ENOENT, also in a
+                // directory that is there and refuses the name (/proc), T-1039.
+                let there = self.kind(handle, if dir.is_empty() { "." } else { dir }).await.ok() == Some(Kind::Dir);
+                let missing = transfer::says_no_directory(&why) && !there;
                 return Err(failed(Fault::CantCreate, transfer::not_made(&target, dir, missing, why.trim())));
             }
             let after = std::fs::metadata(local).map_err(|e| failed(Fault::NoInput, format!("{source}: {e}")))?;
@@ -182,6 +190,10 @@ impl Far {
                 return Err(transfer::changed(source));
             }
             let sum: Sum = hasher.finalize().into();
+            if device {
+                let how = special::NOT_READ_BACK.to_string();
+                return Ok(Done { delta: said, ..special::done(source, &target, sent, sum, how) });
+            }
             let (far, how) = self.digest(handle, &temp, sent).await?;
             transfer::compare(&sum, &far, &how, source)?;
             // The source's mode, or the far file's that `podssh edit` keeps.
@@ -204,7 +216,11 @@ impl Far {
             })
         }
         .await;
-        let copied = copied.map_err(|f| if inplace { in_place::damaged(f, &target) } else { f });
+        let copied = copied.map_err(|f| match (device, inplace) {
+            (true, _) => special::failed(f, &target, special::DEVICE_OR_FIFO),
+            (false, true) => in_place::damaged(f, &target),
+            (false, false) => f,
+        });
         match &copied {
             // Only what the far file held at the start is known to be there;
             // the next attempt counts it again.
@@ -284,9 +300,15 @@ impl Far {
         if inplace {
             in_place::check_local(&target)?;
         }
-        let (temp, file, start) = match inplace {
-            true => in_place::open_local(&target, progress)?,
-            false => resume::local_temp(&target, size, progress, false)?,
+        // A device or a FIFO here takes the bytes into itself (T-1038).
+        let device = special::local(&target);
+        let (temp, file, start) = match (device, inplace) {
+            (Some(kind), _) => {
+                progress.clear();
+                (target.clone(), special::open_local(&target, kind)?, 0)
+            }
+            (None, true) => in_place::open_local(&target, progress)?,
+            (None, false) => resume::local_temp(&target, size, progress, false)?,
         };
         let shown = temp.display().to_string();
         log.verbose(&match start {
@@ -330,6 +352,15 @@ impl Far {
             if came != size {
                 return Err(failed(Fault::SessionFault, format!("{source}: {came} bytes came, and wc -c gave {size}")));
             }
+            // Into a device: nothing to cut, to read back, or to stamp.
+            if let Some(kind) = device {
+                let f = out.take().ok_or_else(|| failed(Fault::CantCreate, format!("{shown}: not open")))?;
+                special::ended(f, &target, kind)?;
+                let sum: Sum = hasher.finalize().into();
+                let (far, how) = self.digest(handle, source, size).await?;
+                transfer::compare(&sum, &far, &how, source)?;
+                return Ok(Done { delta: said, ..special::done(source, &shown, came, sum, how) });
+            }
             if let Some(f) = out.take() {
                 // Into the destination itself: its old bytes past the end go.
                 let cut = if inplace { f.set_len(came) } else { Ok(()) };
@@ -354,7 +385,11 @@ impl Far {
         }
         .await;
         drop(out);
-        let copied = copied.map_err(|f| if inplace { in_place::damaged(f, &shown) } else { f });
+        let copied = copied.map_err(|f| match device {
+            Some(kind) => special::failed(f, &shown, kind.what()),
+            None if inplace => in_place::damaged(f, &shown),
+            None => f,
+        });
         match &copied {
             Err(f) if matches!(f.cause, Cause::Broke | Cause::Spent) => progress.save(),
             Err(_) => {
