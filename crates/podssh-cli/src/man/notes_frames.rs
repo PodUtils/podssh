@@ -14,7 +14,10 @@ pub const SSH_FRAMES: &str = "--frames shows the far end's latest screen in plac
      server refuses the ask: podssh says so in one line, and the session shows each byte. A shell with frames is kept \
      as any shell, and podssh serve keeps the model of its screen with it. --attach with --frames gets the whole \
      screen first, then its changes; a client without --frames gets the bytes. --expect, --sudo and --su show each \
-     byte, and so does a far end that shares its shell by name; one line says so. ZMODEM and a copy to the \
+     byte, and so does a far end that shares its shell by name; one line says so. Through a control master of \
+     podssh's, the master asks for the frames and draws them on the client's terminal. A master of OpenSSH's, or an \
+     older podssh, carries none: one line says so, and the session shows each byte. podssh each refuses --frames \
+     (exit 64): it writes each host's output as lines, with no terminal. ZMODEM and a copy to the \
      clipboard do not cross: a frame carries the screen alone. The far end itself answers a program that asks its \
      terminal for the cursor's place or the device's attributes. \
      The window's title and the bell cross with a frame. After a line of podssh's own on the terminal, the next \

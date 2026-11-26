@@ -119,17 +119,17 @@ impl server::Handler for Far {
 }
 
 /// A directory of the test's own, gone at its end.
-struct Scratch(PathBuf);
+pub(super) struct Scratch(PathBuf);
 
 impl Scratch {
-    fn new(name: &str) -> Self {
+    pub(super) fn new(name: &str) -> Self {
         let dir = std::env::temp_dir().join(format!("podssh-mux-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("a scratch directory");
         Scratch(dir)
     }
 
-    fn socket(&self) -> PathBuf {
+    pub(super) fn socket(&self) -> PathBuf {
         self.0.join("ctl")
     }
 }
@@ -150,6 +150,14 @@ impl Listen for Handed {
 }
 
 async fn login() -> (russh::client::Handle<Client>, Arc<Log>) {
+    login_to(Far).await
+}
+
+/// A connection to `far`, a russh server in this process, logged in.
+pub(super) async fn login_to<H>(far: H) -> (russh::client::Handle<Client>, Arc<Log>)
+where
+    H: server::Handler<Error = russh::Error> + Send + 'static,
+{
     let (client_end, server_end) = tokio::io::duplex(1 << 16);
     let mut config = server::Config::default();
     config.keys.push(PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).expect("a host key"));
@@ -157,7 +165,7 @@ async fn login() -> (russh::client::Handle<Client>, Arc<Log>) {
     config.auth_rejection_time_initial = Some(Duration::ZERO);
     let config = Arc::new(config);
     tokio::spawn(async move {
-        if let Ok(session) = server::run_stream(config, server_end, Far).await {
+        if let Ok(session) = server::run_stream(config, server_end, far).await {
             let _ = session.await;
         }
     });
@@ -172,12 +180,12 @@ async fn login() -> (russh::client::Handle<Client>, Arc<Log>) {
     (client, log)
 }
 
-fn control(scratch: &Scratch, persist: Persist, binder: Option<Binder>) -> Control {
+pub(super) fn control(scratch: &Scratch, persist: Persist, binder: Option<Binder>) -> Control {
     let listener = UnixListener::bind(scratch.socket()).expect("the control socket binds");
     Control { listener, path: scratch.socket(), persist, binder, ask: false, agent: false, host: "mux.test".into() }
 }
 
-async fn bounded<F: std::future::Future>(test: F) -> F::Output {
+pub(super) async fn bounded<F: std::future::Future>(test: F) -> F::Output {
     tokio::time::timeout(Duration::from_secs(60), test).await.expect("the test ends within 60 s")
 }
 

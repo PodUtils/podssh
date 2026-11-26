@@ -193,7 +193,8 @@ impl Job<'_> {
     /// The hellos, then each request until the client leaves; a session or
     /// a stdio forward takes the rest of the connection.
     async fn run(self, mut stream: UnixStream) {
-        let hello = Message::Hello { version: VERSION, extensions: Vec::new() };
+        // The offer of frames (T-303), which OpenSSH's client passes over.
+        let hello = Message::Hello { version: VERSION, extensions: vec![super::mframes::offer()] };
         if wire::write(&mut stream, &hello).await.is_err() {
             return;
         }

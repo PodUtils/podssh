@@ -2783,6 +2783,75 @@ See also the addition of the donor study (report 14) to T-161: the offset log is
     a login under a name), and a test of two seats with their own bases. Lost for now: nothing that this draft builds
     on; the epochs of item 29 are one sender at a time of the same split.
 
+2026-11-26, the calls of the draft of item (h) of the Done's list: a control master's client and `podssh each`.
+
+36. **What happened before this draft** (read on `main` at `3aed42c`). A client of a control master (`-S PATH`, or
+    `ControlPath` with a master that answers) dropped `--frames` with no word: `through` in
+    `crates/podssh-cli/src/ssh/control_unix.rs` built its `SessionRequest` with no frames, so the session showed each
+    byte, against item 12's rule of one line. A podssh master that a frame had reached would have written its bytes to
+    the client's stderr: `take` in `crates/podssh-ssh/src/mux/msession.rs` wrote each code of extended data there.
+    `podssh each --frames` was clap's unknown flag (64), whose line named no reason and guessed another flag.
+37. **A client of a podssh master gets frames, and the master runs the receiver.** The client passes its terminal to
+    the master (SCM_RIGHTS); the master holds the channel and writes the far end's output to that terminal itself, and
+    the client never sees a byte of it. So the master asks serve as a client of its own asks, draws each frame on the
+    client's terminal, and acknowledges (`crates/podssh-ssh/src/mux/mframes.rs`, `Framed`; `msession.rs`). Lost: the
+    client running the receiver, which needs the frames and the acknowledgements carried over the control socket, a
+    message that OpenSSH's protocol has none of, so a protocol of podssh's own beside version 4 and each frame copied
+    twice; a refusal alone (frames are what a client under a flood needs, and `ControlMaster auto` is common in the
+    `ssh_config` files that podssh reads).
+38. **The offer is an extension of the master's hello; the ask is an entry of the session's environment.**
+    `PROTOCOL.mux` lets a hello carry extensions, which OpenSSH's client passes over ("Unrecognised master extension",
+    at debug2), and NEW_SESSION carries a list of `NAME=VALUE`. A podssh master names `frames@podssh` in its hello; a
+    podssh client with `--frames` that read it adds `frames@podssh=v1` (`v2` with `--frames-scroll`); the master takes
+    each entry of that name out before it passes the environment on, so no server sees it as a variable
+    (`Ask::take`). A client never sends it to a master that did not offer. Lost: the entry sent to any master
+    (OpenSSH's master would pass it on as a variable with no reply asked, and its channel writes no extended data but
+    stderr's, so frames from a far end that took the ask would show nothing); a new message type (OpenSSH's master
+    answers an unknown type with a failure, and its client never sends one); the client's hello (it is per control
+    connection, while the version and the level belong to the session; each session has its own connection all the
+    same, so this lost on its shape only).
+39. **The entry's value is the version, then ` quiet` for a client under INFO (`-q`).** The master's lines about the
+    frames (no pty, a refusal, bytes that are no frame) go to the client's stderr in the client's own form (`podssh: `
+    and CR LF, `log::message_text`), unless the client is quiet. The verbose line of version 1 where 2 was asked is
+    not said. Lost: the master's own log (its stderr, which a master of `-f` sends to /dev/null, and which a user of a
+    client never reads); the client's whole level (only one threshold is said).
+40. **The master asks where the client's own session would**: after the pty and the agent, before the session's
+    request, and it reads their replies before the session's, in order (`frames::taken`, which `frames::answered` now
+    calls too). With no pty there is no ask, and one line (`frames::NO_TERMINAL`). It acknowledges once for each pass
+    of its copy, with no reply asked; a frame counts as a key's echo for the pace of T-661; a new size, its own words
+    (`~?`, `~#`, `~Z`'s note) and the far end's stderr make the next frame draw the whole screen; at the end it writes
+    what gives the terminal back (the modes of the keys, the cursor) before EXIT_MESSAGE, so the client's "Shared
+    connection to HOST closed." comes after. Bytes that are no frame: one line, the master closes the channel, and the
+    session has no status (the client exits 255), as without a master. The count of podssh's own writes
+    (`predict::own_writes`) is the master's process's, whose lines go to the master's terminal: at worst one whole
+    draw too many. Lost: a second order of the asks for a master (one more rule to keep in step).
+41. **A client whose master did not offer says so in one line, and the session shows each byte**
+    (`mframes::NOT_OFFERED`, at the info level as `frames::REFUSED`): OpenSSH's master, or a podssh master before this
+    draft. The decision is one function on what the client knows (`mframes::decide`): the line of a session that
+    cannot show frames first, as without a master; nothing for one that does not want them; then the offer. Lost:
+    asking the master's version (OpenSSH's protocol has none).
+42. **`podssh each` refuses `--frames` and `--frames-scroll` by name (64)**, with `podssh ssh --frames HOST` in their
+    place: two refused rows of `EACH_FLAGS` (`crates/podssh-cli/src/flags/frames.rs`), so `--help`, the manual and the
+    refusal say the same. `each` runs a command with no pty on each host and writes the output as lines with a label
+    or into files, and `--interactive` sends lines to shells with no pty: there is no screen to draw. Lost: frames in
+    `each` (several far screens on one terminal is no session of a terminal); a flag that parses and does nothing,
+    which `crates/podssh-cli/src/refuse.rs` rules out ("accepted, set a field, and nothing read it"); clap's unknown
+    flag, true but with no reason and a guess at another flag. This supersedes "`podssh each` and a control master's
+    client" of item 12.
+43. **The tests.** `mux::mframes::tests`: four tables (an entry reads back as its ask; the entry leaves the
+    environment and the rest keep their order; the hello offers by name; the client's choice for each case).
+    `mux::frames_tests::a_podssh_master_draws_the_frames_that_its_client_asked_for`: one table of six rows, podssh's
+    master and client on a control socket over a russh server in the process that takes the ask as serve does or
+    refuses it as sshd does (taken; version 2 first; refused; refused and quiet; no pty; not asked): the client's
+    screen, its stderr, the asks that the far end saw (no entry as a variable) and the acknowledgement. In
+    `crates/podssh-cli/tests/frames_e2e.rs`, `through_a_control_master_ctrl_c_shows_the_prompt_within_three_round_trips`:
+    a master `-M -N -S CTL` through the stand-in relay's link, and a client `-S CTL --frames -tt` in a pty, under the
+    bar of three round trips. Two rows of `crates/podssh-cli/tests/words.rs` (`each --frames`, `each
+    --frames-scroll`). One fix beside them: `MuxClient::session_on` puts this process's terminal in raw mode only when
+    the session's stdin is descriptor 0, as a test's pipes are not that terminal.
+44. **Shared code first.** The control socket is podssh-ssh's own (T-039), and the frames' modules are item 14's; this
+    draft adds no capability that a sibling has, and asks podcrates nothing.
+
 ## Prove
 
 ```sh
@@ -3057,6 +3126,50 @@ test named for clippy; clippy clean, also for `x86_64-pc-windows-gnu`; `llms-ful
 `python3 scripts/feel_interrupt.py --frames --no-openssh --runs 5`: 782 ms median (692 to 1,042), as `main` measured the
 same day: `--frames` keeps its bar. Items (c) and (b) for kept shells are done; (b) for shells shared by name (item 35),
 (f), (g) and (h) are left.
+
+Drafted 2026-11-26 by a worker, on `main` at `3aed42c`, not built and not run: item (h), a control master's client and
+`podssh each` (the Decision, items 36 to 44). Each result below is UNVERIFIED until the lead's merge.
+
+- The master and the client of the control socket: `crates/podssh-ssh/src/mux/mframes.rs` (new: the offer, the
+  client's entry and its reading, the client's choice `decide` and `for_client`, the master's ask and answer, `Framed`
+  that draws on the client's terminal; its table tests), `crates/podssh-ssh/src/mux/msession.rs` (the entry taken out
+  of the environment, the asks before the session's request, the client's terminal as `Term` with the frames, the
+  acknowledgement once for each pass, the end's bytes before EXIT_MESSAGE, `Stop::Unframed`),
+  `crates/podssh-ssh/src/mux/master.rs` (the offer in the hello), `crates/podssh-ssh/src/mux/client.rs` (the hello's
+  extensions kept, `offers_frames`; raw mode only for descriptor 0), `crates/podssh-ssh/src/mux/mod.rs`,
+  `crates/podssh-ssh/src/frames/mod.rs` (`taken`, `NO_TERMINAL`, `REFUSED` for the master).
+- The command line: `crates/podssh-cli/src/ssh/control_unix.rs` (the entry, or the line, in `through`),
+  `crates/podssh-cli/src/flags/frames.rs` (`EACH_FRAMES`, `EACH_FRAMES_SCROLL`; the help of `--frames`),
+  `crates/podssh-cli/src/flags/each.rs`, `crates/podssh-cli/src/man/notes_frames.rs`.
+- The tests: `crates/podssh-ssh/src/mux/frames_tests.rs` (new; `crates/podssh-ssh/src/mux/tests.rs` lends it
+  `Scratch`, `control`, `bounded` and `login_to`, a login to any handler), the unit tables of `mframes.rs`, the test of
+  the bar through a master in `crates/podssh-cli/tests/frames_e2e.rs`, two rows of `crates/podssh-cli/tests/words.rs`.
+- The documents: `docs/terminal.md` ("Through a control master", "`podssh each`", "Where there are none"),
+  `docs/cli.md` (the paragraph of `--frames`, "Connection sharing"), a row of `docs/STATUS.md`.
+
+What the lead runs, in this order:
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib mux::
+cargo test -p podssh-ssh --lib frames::
+cargo test -p podssh-ssh --test frame_rate
+cargo test -p podssh-cli --lib man
+cargo test -p podssh-cli --lib refuse
+cargo test -p podssh-cli --test words --test flag_table --test man_flag_parity --test man_json
+cargo test -p podssh-cli --test ssh_control --test frames_e2e
+```
+
+Then, in the build image, `scripts/interop-control.sh` through `scripts/interop.sh` (OpenSSH 10.3p1's client and its
+`-O check` against a podssh master whose hello now carries an extension; its rows `control.podssh_master.*` must pass
+as before), `podssh man --llms full > llms-full.txt` (the note and two rows of `each` changed), `cargo todo remap` of
+`docs/terminal.md`, `docs/cli.md`, `docs/STATUS.md` and the sources named above, rustfmt (the table of
+`frames_tests.rs` has rows over 120 columns) and the gate's clippy, also for `x86_64-pc-windows-gnu` (the module
+`mframes` is Unix only, as the client and the master are). What to check by hand once: `podssh ssh -M -N -S CTL HOST &`
+to `podssh serve`, then `podssh ssh -S CTL --frames -t HOST` under a flood and Ctrl-C; and the same client through
+`ssh -M -N -f -S CTL` of OpenSSH, which must say "does not carry them" once and show each byte.
+
+Left after these: (b) for shells shared by name (item 35), (f) and (g).
 
 
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road

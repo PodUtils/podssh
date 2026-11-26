@@ -867,7 +867,11 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   keeps the model of its screen with it: `--attach NAME --frames` gets the
   whole screen first, then its changes, and a client without `--frames`
   gets the bytes. `--expect`, `--sudo`, `--su` and a far end with
-  `--share` carry each byte, with one line that says so. With `--predict` too, the
+  `--share` carry each byte, with one line that says so. Through a podssh
+  control master (`-S PATH`), the master asks for the frames and draws them
+  on the client's terminal; a master of OpenSSH's, or an older podssh,
+  carries none, and one line says so. `podssh each` refuses `--frames`
+  (64): it writes each host's output as lines. With `--predict` too, the
   guesses of local echo are drawn over the frames' screen, as Mosh's
   overlay. The flag has no `-o` keyword and no key of the
   settings file ([terminal.md](terminal.md), "The latest screen: frames").
@@ -1301,6 +1305,11 @@ keywords have no effect.
   `cancel` of `-L`, `-D` and `-R`, which it serves on its own connection.
   `-O proxy` is refused. `ControlMaster ask` confirms each request that
   changes something on the terminal or through `SSH_ASKPASS`.
+- A podssh master offers `frames@podssh` in its hello (T-303), which
+  OpenSSH's client passes over: a podssh client with `--frames` then asks
+  for them in the session's environment, and the master draws the frames
+  on the client's terminal ([terminal.md](terminal.md), "The latest
+  screen: frames"). The master takes that entry out, so no server sees it.
 - `ControlPersist yes|TIME` keeps a `-N` master for that long with no
   client (`0` is forever, as in OpenSSH). A master with its own session
   ends with it, once its clients' sessions have ended: start a lasting
