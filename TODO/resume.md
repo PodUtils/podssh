@@ -3230,7 +3230,7 @@ far end's run admit no line that is neither carried nor said (Premise); the dete
 (`crates/podssh-ssh/src/frames/gap_tests.rs`, eleven schedules) passes on the current code by
 reasoning: no defect of the frames was found to repair. The end-to-end test's shell sets `stty
 noflsh` (`crates/podssh-ssh/tests/frame_rate.rs:47`), and its message names the rows around a gap
-(`crates/podssh-ssh/tests/frame_rate.rs:232`).
+(`crates/podssh-ssh/tests/frame_rate.rs:233`).
 
 Merged 2026-11-26: `cargo test --locked -p podssh-ssh --lib frames::` 47 passed, the property test `gap_tests` among
 them; `frame_rate` 8 of 8 here after the Correction; clippy clean. The proof is a repeat on macOS, where the gap showed:

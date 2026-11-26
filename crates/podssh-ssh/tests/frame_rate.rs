@@ -40,10 +40,11 @@ const BAR: Duration = Duration::from_millis(900);
 /// no echo of a typed line is it.
 const PROMPT: &str = "FRAMEP>";
 const SHELL: &str = "exec env PS1='FRAMEP> ' ENV= /bin/sh -i";
-/// The rows before the Ctrl-C's row where a gap may be no frame's: with
+/// The rows about the Ctrl-C's row where a gap may be no frame's: with
 /// `noflsh` off, the default, the pty's driver discards at Ctrl-C what the
 /// flood wrote and serve did not read yet (POSIX, `ISIG`), and the loop can
-/// print a line or two before the signal ends it, so those lines never reach
+/// print a line or two after the echo of `^C` before the signal ends it (as
+/// macOS's runner showed: `^Cflood N`, then N+1), so those lines never reach
 /// the far end's screen and no count can say them (T-1056). A gap anywhere
 /// else is podssh's.
 const AT_THE_CTRL_C: usize = 4;
@@ -233,7 +234,7 @@ fn flood_once(read: &[String]) -> usize {
                 let place = format!("at row {at} of {rows}: {around:?}");
                 // The row of the Ctrl-C's echo, `^C`, and how far this one is before it.
                 let ctrl_c = read.iter().position(|r| r.contains("^C")).unwrap_or(rows);
-                let discarded = ctrl_c > at && ctrl_c - at <= AT_THE_CTRL_C && n > last + 1 + said;
+                let discarded = at.abs_diff(ctrl_c) <= AT_THE_CTRL_C && n > last + 1 + said;
                 if !discarded {
                     assert_eq!(n, last + 1 + said, "flood {n} after flood {last} and {said} said skipped, {place}");
                 }
