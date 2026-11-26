@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**968 entries: 3 open, 33 partial, 16 blocked, 916 done.**
+**969 entries: 3 open, 33 partial, 16 blocked, 917 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 6 | 3 | 103 | 112 |
+| P1 | 0 | 6 | 3 | 104 | 113 |
 | P2 | 0 | 20 | 4 | 347 | 371 |
 | P3 | 3 | 7 | 9 | 465 | 484 |
-| **All** | 3 | 33 | 16 | 916 | 968 |
+| **All** | 3 | 33 | 16 | 917 | 969 |
 
 ## Entries
 
@@ -1044,3 +1044,4 @@ repository and CI).
 | [T-1034](repo.md) | P3 | M | M10 | defect | done | 40 of the 326 planted defects no longer apply to the tree |
 | [T-1035](relay.md) | P3 | S | M10 | defect | done | The relay role's HTTP road and reverse road lines name their client and target, as T-1016 did for the others |
 | [T-1036](repo.md) | P1 | S | M10 | defect | done | The gate's step ssh passed its job's limit of 45 min at `2a37826` |
+| [T-1037](robustness.md) | P1 | S | M10 | defect | done | On Windows, access_relay's echo ended with a reset, which the operator reads as a cut (69) |

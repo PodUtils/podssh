@@ -5310,3 +5310,40 @@ A Python port of the whole test run on the result: 36 hits, 34 in the seven exem
 unlisted line, no stale line or module, no I/O word in an exempt module.
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 310 binaries passed, and `podssh-ssh`'s lib (566) once `zmodem::files`' test read the line without Rust's suffix; `io_error_lines` reads both crates; `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. The planted run waits for T-251.
+
+# T-1037: On Windows, access_relay's echo ended with a reset, which the operator reads as a cut (69)
+
+**Source:** the gate at `ab2e143` (run 45796331388, `windows-2025`, 2026-11-26):
+`a_pair_s_road_and_operator_reach_the_relay_behind_access` of `crates/podssh-cli/tests/access_relay.rs` exited 69, "the
+channel was cut before its end: the last bytes can be missing", where 0 is due; each other job passed.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The test's echo target closed its socket with no shutdown. Windows gives such a close to its peer as a reset, so the
+node saw its target cut, and the operator, since T-753, says a cut and exits 69. The product is right; the test's
+target is not a graceful one.
+
+## Premise
+
+- Read: `crates/podssh-cli/tests/access_relay.rs`'s `echo` copied and dropped the stream, as `exit/clients.rs`'s did
+  before T-753 gave it a shutdown of its write half and a drain.
+
+## Approach
+
+1. The echo shuts its write half after the copy, then reads to the peer's close (5 s at most), as `exit/clients.rs`'s.
+2. Each other echo of the tests that runs over TCP was read: `live_harness`'s shuts its write half; the others are
+   in-memory pipes, which Windows' reset does not touch.
+
+## Prove
+
+The Windows job of the next gate passes `access_relay`.
+
+## Done
+
+2026-11-26: `crates/podssh-cli/tests/access_relay.rs` (`echo`); `cargo test -p podssh-cli --test access_relay` 3 passed
+here (Linux); clippy for `x86_64-pc-windows-gnu` clean. The proof is the next Windows job.
