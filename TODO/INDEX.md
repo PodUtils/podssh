@@ -1069,3 +1069,4 @@ repository and CI).
 | [T-1060](config.md) | P3 | S | backlog | defect | open | `config import ansible` of a YAML or JSON inventory prints blocks of nonsense, where the manual refuses it |
 | [T-1061](multi.md) | P3 | S | backlog | defect | open | `each --output-dir ''` writes the hosts' files into the working directory |
 | [T-1062](cli.md) | P3 | S | backlog | docs | open | `mcp --allow-command` limits `ssh_exec` alone, and the manual's risk does not say that `job_start` runs any command |
+| [T-1063](cli.md) | P3 | S | backlog | docs | open | The manual of `podssh status` does not name its `settings` field |

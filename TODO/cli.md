@@ -6505,3 +6505,51 @@ Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
 - Changed: `crates/podssh-cli/src/mcp/tools.rs`, `crates/podssh-cli/src/mcp/tools_tests.rs`,
   `crates/podssh-cli/src/mcp/mod.rs`, `crates/podssh-cli/src/man/notes_mcp.rs`, `docs/cli.md`.
 - Result: UNVERIFIED.
+
+
+# T-1063: The manual of `podssh status` does not name its `settings` field
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 11.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The line of `podssh status` has a key `settings`, the path of podssh's settings file, which the manual's list of
+fields (`podssh man status`) left out; `docs/cli.md` names it.
+
+## Premise
+
+- Read, at `40a83e5`: `run_status` writes `"settings": settings.path` (`crates/podssh-cli/src/status.rs:94`), the
+  file that `settings::locate` found, which exists, or null with none; the first note of `status`
+  (`crates/podssh-cli/src/man/notes.rs`) names each other key.
+
+## Approach
+
+1. The note names `settings` after `deployments`, in the order of the line: the path of the settings file that was
+   found, or null with none.
+2. A test of the binary pins the class: each key of the line is a word of `podssh man status`
+   (`each_key_of_the_line_is_named_in_the_manual`).
+
+## Decision
+
+- A test of each key against the page, not a row for `settings` alone: the next key that the code adds fails it.
+  Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test status
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
+
+- Changed: `crates/podssh-cli/src/man/notes.rs`, `crates/podssh-cli/tests/status.rs`.
+- Result: UNVERIFIED.

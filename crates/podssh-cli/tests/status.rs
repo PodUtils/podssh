@@ -329,3 +329,21 @@ fn the_counters_of_an_exit_s_callers_are_shown_by_label() {
     assert_eq!((caller["connects"].as_u64(), caller["refusals"].as_u64()), (Some(2), Some(1)), "{exits}");
     assert_eq!((caller["bytes_up"].as_u64(), caller["bytes_down"].as_u64()), (Some(10), Some(20)), "{exits}");
 }
+
+/// Each key of the line is named in the manual of `status` (T-1063): a key
+/// that the code adds and the manual leaves out, as `settings` was, fails.
+#[test]
+fn each_key_of_the_line_is_named_in_the_manual() {
+    let home = scratch("manual");
+    let (rc, out, err) = status(&home, &[], &[]);
+    assert_eq!(rc, 0, "{err}");
+    let doc = one_line(&out);
+    let (rc, page, err) = ran(command(&home, "man", &["status"], &[]));
+    assert_eq!(rc, 0, "{err}");
+    let words: std::collections::BTreeSet<&str> =
+        page.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_')).collect();
+    let keys = doc.as_object().expect("the line is an object");
+    assert!(keys.len() > 20 && words.contains("relay_rank_auto"), "{keys:?}");
+    let missing: Vec<&String> = keys.keys().filter(|key| !words.contains(key.as_str())).collect();
+    assert!(missing.is_empty(), "keys of podssh status that its manual does not name: {missing:?}");
+}
