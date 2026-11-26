@@ -119,6 +119,11 @@ pub fn run_each(args: &EachArgs, out: &mut dyn Write, err: &mut dyn Write) -> i3
     if args.ssh.result_file.as_deref() == Some("-") {
         return usage(err, "--result-file -: stdout carries the hosts' lines; name a file, or give --json".into());
     }
+    // An empty name is no directory: the files would land in the working
+    // one, which nobody named (T-1061).
+    if args.output_dir.as_deref().is_some_and(str::is_empty) {
+        return usage(err, "--output-dir: an empty name is no directory; give . for this one".into());
+    }
     // A record that could not be written at the end: refused before
     // anything connects, as a copy refuses it (T-928, T-977).
     if let Some(why) = args.ssh.result_file.as_deref().and_then(crate::ssh::result::no_place) {

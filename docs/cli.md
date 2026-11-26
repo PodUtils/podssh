@@ -1935,7 +1935,7 @@ host, and a list of hosts changes both.
   and two hosts whose files would differ only in case are refused (64).
   The files are made before anything connects (73 when they cannot be),
   with no status file left from an earlier run: a host with none did not
-  run.
+  run. An empty DIR is a usage error (64), as it names no directory (T-1061).
 - **The exit status** is the largest status of the hosts: 0 only when each
   host gave 0, and 255 for a host that could not connect or log in, or
   whose session ended with no status. `--fail-fast` starts no new host after

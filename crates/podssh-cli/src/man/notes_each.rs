@@ -29,7 +29,7 @@ pub const EACH: &[&str] = &[
      unchanged into DIR/HOST.out and DIR/HOST.err, and the exit status into DIR/HOST.status at the host's \
      end; each byte of HOST but a letter, a digit, a dot, an underscore, a hyphen and @ is written %XX. \
      The files are made before anything connects (73 when they cannot be), and a host with no status \
-     file did not run.",
+     file did not run. An empty DIR is a usage error (64).",
     "--snippet NAME runs the command NAME of the settings file on each host, as podssh ssh --snippet runs it (see \
      podssh ssh): the words after HOSTS fill {{1}} to {{9}}, and {{host}}, {{user}} and {{port}} are those of each \
      host. podssh shows each host and its command once, before anything connects and before a file of --output-dir \

@@ -3032,7 +3032,7 @@ failure's words, no signal and no time. The other surfaces give one object (`ssh
 
 - Read: the rows of `each` have no `--json` and no `--result-file`
   (`crates/podssh-cli/src/flags/each.rs`); its summary is lines for people on stderr, above the
-  level quiet only (`crates/podssh-cli/src/each/mod.rs:196-200`,
+  level quiet only (`crates/podssh-cli/src/each/mod.rs:201-205`,
   `crates/podssh-cli/src/each/fan.rs:75-93`).
 - Read: a host ends with its status, the first line of its failure, or not started
   (`crates/podssh-cli/src/each/fan.rs:10-20`); its signal, its end, the class of its failure, its
@@ -3350,7 +3350,7 @@ host runs nothing anywhere.
 - Read: `podssh ssh` takes a word that is no pattern as one host
   (`crates/podssh-cli/src/hosts.rs:29-33`), so `a b` goes to the name check of the road (T-503).
 - Read: the hosts are expanded, then each is resolved, before anything connects
-  (`crates/podssh-cli/src/each/mod.rs:153-163`); the resolve of the direct road takes `a`, and the
+  (`crates/podssh-cli/src/each/mod.rs:158-168`); the resolve of the direct road takes `a`, and the
   relay road takes it too, so the blank is the only fault, and it is lost.
 
 ## Approach
@@ -4415,4 +4415,53 @@ Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
 
 - Changed: `crates/podssh-cli/src/run_cmd/mod.rs`, `crates/podssh-cli/src/run_cmd/dry.rs`,
   `crates/podssh-cli/src/run_cmd/tests.rs`, `docs/cli.md`.
+- Result: UNVERIFIED.
+
+
+# T-1061: `each --output-dir ''` writes the hosts' files into the working directory
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 5.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh each --output-dir '' HOST -- 'echo hello'` exited 0 and left `HOST.out`, `HOST.err` and `HOST.status` in
+the working directory, which nobody named. An empty DIR is no directory.
+
+## Premise
+
+- Read, at `40a83e5`: `prepare` of `crates/podssh-cli/src/each/out.rs` took any `Some(dir)`, and
+  `Path::new("").join("HOST.out")` is `HOST.out`, relative to the working directory; `create_dir_all("")` succeeds.
+
+## Approach
+
+1. `run_each` (`crates/podssh-cli/src/each/mod.rs`) refuses an empty `--output-dir` with the other usage errors,
+   before a host is expanded, a snippet asked or a file made: one line, 64, "give . for this one".
+2. A row of `a_bad_command_line_is_64_before_anything_connects` (`tests/each.rs`), and no `a.out` in its working
+   directory after the table.
+3. The note of `each` and `docs/cli.md` say so.
+
+## Decision
+
+- 64, not 73: the value is wrong, not a directory that cannot be made, and nothing was tried; `.` names the working
+  directory for whoever wants it. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test each a_bad_command_line_is_64_before_anything_connects
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent; UNVERIFIED (nothing was built or run).
+
+- Changed: `crates/podssh-cli/src/each/mod.rs`, `crates/podssh-cli/tests/each.rs`,
+  `crates/podssh-cli/src/man/notes_each.rs`, `docs/cli.md`.
 - Result: UNVERIFIED.

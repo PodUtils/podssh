@@ -1067,3 +1067,4 @@ repository and CI).
 | [T-1058](cli.md) | P2 | S | backlog | defect | open | `podssh play` of an event at 1e300 seconds panics, where 1e400 is a bad line |
 | [T-1059](multi.md) | P3 | S | backlog | defect | open | `run --dry-run` into `head -c0` exits 74 "Broken pipe", where a reader that went away is no failure |
 | [T-1060](config.md) | P3 | S | backlog | defect | open | `config import ansible` of a YAML or JSON inventory prints blocks of nonsense, where the manual refuses it |
+| [T-1061](multi.md) | P3 | S | backlog | defect | open | `each --output-dir ''` writes the hosts' files into the working directory |
