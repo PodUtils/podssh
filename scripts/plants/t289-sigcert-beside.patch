@@ -1,9 +1,9 @@
---- a/crates/podssh-cli/src/keygen_sign.rs
-+++ b/crates/podssh-cli/src/keygen_sign.rs
-@@ -183,7 +183,8 @@
+--- a/crates/podssh-cli/src/keygen_signer.rs
++++ b/crates/podssh-cli/src/keygen_signer.rs
+@@ -19,7 +19,8 @@ use crate::keygen_sign::Signing;
  pub(crate) fn signer(path: &Path, agent_only: bool) -> Result<(Signing, Option<Certificate>), String> {
      let shown = path.display();
-     let text = std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?;
+     let text = podssh_ssh::key_text::text_of(path)?;
 -    if let Some(certificate) = certificate_line(&text) {
 +    let beside = std::fs::read_to_string(format!("{shown}-cert.pub")).ok();
 +    if let Some(certificate) = beside.as_deref().and_then(certificate_line).or_else(|| certificate_line(&text)) {

@@ -1,6 +1,6 @@
 --- a/crates/podssh-cli/src/ssh/upgrade.rs
 +++ b/crates/podssh-cli/src/ssh/upgrade.rs
-@@ -132,13 +132,7 @@
+@@ -136,13 +136,7 @@ type Found = (Offer, Channel<Msg>, Arc<Identity>);
  async fn offer(handle: &Connection, client_key: Option<&str>, host: &str, log: &Log) -> Result<Found, String> {
      // A line `podssh VERSION`: a login's own lines may come before it.
      let answers = |out: &Captured| out.stdout.split(|b| *b == b'\n').any(|line| line.starts_with(b"podssh "));
@@ -9,7 +9,7 @@
 -            log.verbose(&format!("{host}: a podssh answers there; it starts a temporary node"));
 -        }
 -        Ok(out) => return Err(format!("no podssh answers there (podssh --version: {})", said(&out))),
--        Err(e) => return Err(format!("no podssh answers there (podssh --version: {e})")),
+-        Err(e) => return Err(format!("no podssh answers there (podssh --version: {})", podssh_ws::text::said(&e))),
 -    }
 +    let _ = (answers, PROBE_LIMIT);
      let say = |line: String| log.info(&format!("{host}: {line}"));

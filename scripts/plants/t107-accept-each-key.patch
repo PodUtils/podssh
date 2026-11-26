@@ -1,11 +1,14 @@
---- a/crates/podssh-ssh/src/server/handler.rs
-+++ b/crates/podssh-ssh/src/server/handler.rs
-@@ -60,7 +60,7 @@
-     fn admit(&self, key: &russh::keys::PublicKey) -> Option<Arc<Rules>> {
-         match self.authorized.admit(key, &Context::now(self.settings.peer)) {
-             Admission::Admitted(rules) => Some(rules),
--            Admission::Unlisted => None,
-+            Admission::Unlisted => Some(Arc::new(Rules::default())),
+--- a/crates/podssh-ssh/src/server/handler/auth.rs
++++ b/crates/podssh-ssh/src/server/handler/auth.rs
+@@ -64,10 +64,7 @@ impl Served {
+             // Said too, as the client hears only "Permission denied": a
+             // client's line names no key. russh's bound of tries per
+             // connection bounds these lines.
+-            Admission::Unlisted => {
+-                self.settings.say(&format!("key {} refused: {UNLISTED}", crate::known_hosts::fingerprint(key)));
+-                Err(UNLISTED.to_string())
+-            }
++            Admission::Unlisted => Ok(Arc::new(Rules::default())),
              Admission::Refused(reasons) => {
                  let who = crate::known_hosts::fingerprint(key);
-                 for why in reasons {
+                 for why in &reasons {

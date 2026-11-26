@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**966 entries: 4 open, 33 partial, 16 blocked, 913 done.**
+**967 entries: 4 open, 33 partial, 16 blocked, 914 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
 | P2 | 0 | 20 | 4 | 347 | 371 |
-| P3 | 4 | 7 | 9 | 463 | 483 |
-| **All** | 4 | 33 | 16 | 913 | 966 |
+| P3 | 4 | 7 | 9 | 464 | 484 |
+| **All** | 4 | 33 | 16 | 914 | 967 |
 
 ## Entries
 
@@ -1041,4 +1041,5 @@ repository and CI).
 | [T-1031](cli.md) | P3 | S | backlog | defect | done | `status` does not say how it reads a destination of two @, and its `open_files.refused` ends with (os error N) |
 | [T-1032](cli.md) | P3 | S | backlog | defect | done | The refusal of PODSSH_OFFLINE has three wordings across the commands |
 | [T-1033](cli.md) | P3 | S | backlog | defect | done | `doctor --json` gives an empty `diagnosis` beside a failed check, and the manual does not say why |
+| [T-1034](repo.md) | P3 | M | M10 | defect | done | 40 of the 326 planted defects no longer apply to the tree |
 | [T-1035](relay.md) | P3 | S | M10 | defect | open | The relay role's HTTP road and reverse road lines name their client and target, as T-1016 did for the others |

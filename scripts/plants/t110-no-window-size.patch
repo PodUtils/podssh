@@ -1,11 +1,12 @@
 --- a/crates/podssh-ssh/src/server/pty_child.rs
 +++ b/crates/podssh-ssh/src/server/pty_child.rs
-@@ -43,7 +43,7 @@
-         let Pair { master, slave, name } = pair;
+@@ -51,8 +51,7 @@ impl Granted {
          // A mode that the kernel refuses is passed over, as sshd does.
-         pty::set_modes(slave.as_raw_fd(), modes).map_err(|e| format!("{name}: its modes: {e}"))?;
--        pty::set_size(master.as_raw_fd(), size).map_err(|e| format!("{name}: its size: {e}"))?;
+         pty::set_modes(slave.as_raw_fd(), modes)
+             .map_err(|e| format!("{name}: its modes: {}", podssh_ws::text::said(&e)))?;
+-        pty::set_size(master.as_raw_fd(), size)
+-            .map_err(|e| format!("{name}: its size: {}", podssh_ws::text::said(&e)))?;
 +        let _ = size;
-         nonblocking(&master).map_err(|e| format!("{name}: {e}"))?;
+         nonblocking(&master).map_err(|e| format!("{name}: {}", podssh_ws::text::said(&e)))?;
          // SAFETY: the AsyncFd owns the master, which stays open and the same
          // until the AsyncFd drops it.

@@ -1,11 +1,11 @@
 --- a/crates/podssh-cli/src/ping/node.rs
 +++ b/crates/podssh-cli/src/ping/node.rs
-@@ -116,7 +116,7 @@
+@@ -128,7 +128,7 @@ fn road_line(shown: &str, measured: &Measured) -> String {
          false => format!(", started {} into the race", shown_ms(timed.started)),
      };
      match &timed.answered {
 -        Ok(()) => format!("{shown}: {road}: answered in {}{into}", shown_ms(timed.took)),
 +        Ok(()) => format!("{shown}: {road}: answered{into}"),
-         Err(why) => format!("{shown}: {road}: failed after {}{into}: {why}", shown_ms(timed.took)),
-     }
- }
+         Err(why) => {
+             format!("{shown}: {road}: failed after {}{into}: {}", shown_ms(timed.took), true_why(why, timed.took))
+         }

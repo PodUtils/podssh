@@ -1,11 +1,10 @@
-diff --git a/crates/podssh-cli/src/ssh/node_roads.rs b/crates/podssh-cli/src/ssh/node_roads.rs
 --- a/crates/podssh-cli/src/ssh/node_roads.rs
 +++ b/crates/podssh-cli/src/ssh/node_roads.rs
-@@ -313,7 +313,6 @@
+@@ -320,7 +320,6 @@ pub(crate) async fn reach_any(resolved: &super::resolve::Resolved, log: &Arc<Log
          Transport::Node { label, channel, carrier: Some(text), .. } => {
              super::carried::reach(label, text, channel, log).await
          }
 -        Transport::Node { .. } => reach(&resolved.transport, log).await,
-         _ => super::transport::reach(resolved, log).await,
-     }
- }
+         // The two roads of a ticket, each in a task of its own (T-782).
+         Transport::Iroh { ticket, key, relays, trust, channel } => {
+             super::iroh::reach(ticket, key.as_deref(), relays, trust, channel, log).await

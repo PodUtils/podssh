@@ -1,11 +1,11 @@
 --- a/crates/podssh-ssh/src/server/direct.rs
 +++ b/crates/podssh-ssh/src/server/direct.rs
-@@ -124,7 +124,7 @@
-                 let window = Window { handle, id: channel.id() };
-                 carry(channel, tcp, window).await;
+@@ -148,7 +148,7 @@ pub(super) fn open(
+                 if let Some(mark) = mark.as_mut() {
+                     mark.refused(&words);
+                 }
+-                reply.reject(connect_failed(&words)).await;
++                reply.reject(ChannelOpenFailure::ConnectFailed).await;
              }
--            Err(e) => reply.reject(connect_failed(&e.to_string())).await,
-+            Err(_) => reply.reject(ChannelOpenFailure::ConnectFailed).await,
          }
      });
- }

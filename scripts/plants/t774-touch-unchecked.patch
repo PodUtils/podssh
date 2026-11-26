@@ -1,11 +1,11 @@
---- a/crates/podssh-ssh/src/server/handler.rs
-+++ b/crates/podssh-ssh/src/server/handler.rs
-@@ -256,7 +256,7 @@
-             return Ok(Auth::reject());
+--- a/crates/podssh-ssh/src/server/handler/auth.rs
++++ b/crates/podssh-ssh/src/server/handler/auth.rs
+@@ -132,7 +132,7 @@ impl Served {
+             }
          };
          let sk = matches!(key.public_key.algorithm(), Algorithm::SkEd25519 | Algorithm::SkEcdsaSha2NistP256);
 -        if let Some(why) = rules.sk_refusal(sk, key.sk_flags) {
 +        if let Some(why) = rules.sk_refusal(sk, key.sk_flags).filter(|_| false) {
-             let who = crate::known_hosts::fingerprint(key.public_key);
              self.settings.say(&format!("key {who} refused: {why}"));
+             self.trail.auth(Verdict::Refused, user, Some(&who), "publickey", Some(&why));
              self.conn.log_out();

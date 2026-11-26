@@ -1,11 +1,11 @@
 --- a/crates/podssh-ws/src/bare.rs
 +++ b/crates/podssh-ws/src/bare.rs
-@@ -161,7 +161,7 @@
-         }
+@@ -162,7 +162,7 @@ pub async fn dial(
          Err(e) => return Err(e),
      };
--    session.send_text(&connect_message(far)).await.map_err(|e| refused(format!("the connect: {e}")))?;
-+    session.send_binary(connect_message(far).as_bytes()).await.map_err(|e| refused(format!("the connect: {e}")))?;
-     let first = tokio::time::timeout(timeout, session.read_frame())
+     session
+-        .send_text(&connect_message(far))
++        .send_binary(connect_message(far).as_bytes())
          .await
-         .map_err(|_| refused(format!("no open within {} s", timeout.as_secs())))?
+         .map_err(|e| refused(format!("the connect: {}", crate::text::said(&e))))?;
+     let first = tokio::time::timeout(timeout, session.read_frame())

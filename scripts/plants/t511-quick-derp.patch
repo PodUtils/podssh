@@ -1,9 +1,9 @@
 --- a/crates/podssh-cli/src/doctor/sections.rs
 +++ b/crates/podssh-cli/src/doctor/sections.rs
-@@ -144,8 +144,9 @@
-         kinds.push(Kind::Iroh);
-         #[cfg(feature = "tor")]
+@@ -160,8 +160,9 @@ pub(super) fn kinds(quick: bool, servers: bool, road: bool, links: bool, exit: b
          kinds.push(Kind::Tor);
+         #[cfg(feature = "gsr")]
+         kinds.push(Kind::Gsr);
 -        kinds.extend([Kind::OpenTunnel, Kind::Derp, Kind::Carriers, Kind::Pairs, Kind::Net]);
 +        kinds.extend([Kind::OpenTunnel, Kind::Carriers, Kind::Pairs, Kind::Net]);
      }

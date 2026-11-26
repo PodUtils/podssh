@@ -1,6 +1,6 @@
 --- a/crates/podssh-cli/src/relay_serve.rs
 +++ b/crates/podssh-cli/src/relay_serve.rs
-@@ -145,7 +145,7 @@
+@@ -164,7 +164,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
      let mut udp = None;
      let (listener, dropped) = bind_then_drop(listen, |tcp| {
          udp = quic::bind(asked_quic, tcp)?;
@@ -8,8 +8,8 @@
 +        Ok(None)
      })?;
      let sessions = quic::offered(sessions, &udp);
-     let bound = listener.local_addr().map_err(|e| Refusal::config(e.to_string()))?;
-@@ -313,6 +313,10 @@
+     let bound = listener.local_addr().map_err(|e| Refusal::config(podssh_ws::text::said(&e)))?;
+@@ -362,6 +362,10 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
              return EX_CONFIG;
          }
      };
@@ -17,6 +17,6 @@
 +    if let Err(refusal) = crate::harden::give_up(&[]) {
 +        return refusal.report("relay serve", err);
 +    }
-     let Prepared { listener, door, cfg, certs: kept, port_file, quic: udp, .. } = prepared;
+     let Prepared { listener, door, cfg, certs: kept, port_file, quic: udp, control, .. } = prepared;
+     let control_path = control.as_ref().map(|c| c.path().to_string_lossy().into_owned());
      // SIGHUP is taken before a harness learns the port, so that none sent
-     // after it ends the role.

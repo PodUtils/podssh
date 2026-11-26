@@ -1,11 +1,11 @@
 --- a/crates/podssh-cli/src/relay_layer.rs
 +++ b/crates/podssh-cli/src/relay_layer.rs
-@@ -223,7 +223,7 @@
- /// session, with this line. A host that serves neither road refuses that
- /// road too.
+@@ -346,7 +346,7 @@ impl<R: AsyncRead + Unpin> AsyncRead for KeepsReceiving<R> {
+ /// road too. A 404 on the HTTP road is a role that serves the layer by the
+ /// upgrade alone: its offer stays.
  pub(crate) fn unserved(relays: &RelayList, missed: &Missed, at: &str) -> Option<String> {
 -    if !missed.not_served() {
 +    if !missed.not_served() || relays.hosts.is_empty() || true {
          return None;
      }
-     kept::forget(relays.primary());
+     if matches!(missed, Missed::Road(_)) {

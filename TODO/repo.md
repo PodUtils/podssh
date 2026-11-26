@@ -7880,3 +7880,147 @@ new tests too), `--test man_page` 11 and `--test man_json` 4 passed; rustfmt and
 `-D warnings`: clean; `cargo todo check` agrees. Still waiting: as the paragraph above says, and the asks (a) and (b) of
 the Decision, filed as COORD-142 (#352).
 
+
+# T-1034: 40 of the 326 planted defects no longer apply to the tree
+
+**Source:** the lead of the session, 2026-11-26: `git apply --check` of each `scripts/plants/*.patch` at `581688b`, as
+T-771 did at its day.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** done
+
+## Problem
+
+A plant whose patch no longer applies proves nothing: `scripts/plant-each.sh` reports it STALE, and its check goes
+untested (T-771 made the same repair for 38 of 307 on 2026-11-13; since then later work moved the lines of 40 more). The
+40 are `t038-local-probe-skipped`, `t107-accept-each-key`, `t109-reason-dropped`, `t110-no-window-size`,
+`t118-read-ahead`, `t139-scp-row`, `t167-no-probe`, `t173-stale-offer-kept`, `t173-stdin-end-closes`,
+`t173-target-closed-at-cut`, `t193-job-stop-prefix`, `t222-exists-test`, `t235-help-indent`, `t289-sigcert-beside`,
+`t319-tuning-ignored`, `t321-doctor-setting-unread`, `t325-parts-times-ignored`, `t435-line-untimed`, `t454-no-brake`,
+`t460-published-russh`, `t503-direct-unchecked`, `t508-optional-required`, `t511-quick-derp`, `t533-taken-over-unsaid`,
+`t590-dial-words-alone`, `t595-proxy-carrier-dropped`, `t598-window-stall-unbounded`, `t622-body-held`,
+`t629-drop-after-runtime`, `t632-proxy-asks-no-end`, `t644-sshd-unread`, `t649-publish-unread`, `t650-miss-unheard`,
+`t660-warmup-counted`, `t708-node-as-a-host`, `t735-other-pair`, `t736-other-pair`, `t740-bare-connect-binary`,
+`t751-unknown-flag` and `t774-touch-unchecked`.
+
+## Premise
+
+- Read: `for p in scripts/plants/*.patch; do git apply --check "$p" 2>/dev/null || echo "$p"; done` at `581688b` lists
+  exactly those 40 of the 326 patches.
+- Later work only moved the lines of most of them: a function that gained a step, or a file split in two (`handler.rs`
+  to `handler/auth.rs`, `keygen_sign.rs` to `keygen_signer.rs`, `io.rs` to `io/send.rs`, `dispatch.rs` to
+  `dispatch/command.rs`, the brake's check of `serve/mod.rs` to `serve/routes.rs`). None of the 40 plants code that moved
+  to a crate of PodUtils/podcrates: each defect has a place in podssh's own source still, so none is retired.
+- `plants.yml` and the planted runs wait for the release check (T-251, Q88), so nothing ran them since.
+
+## Approach
+
+For each stale plant: read the patch, its `.plant` and the check that it proves; find where the code lives now; plant
+the same defect there (edit the source, take `git diff` as the patch, revert the source); keep the `.plant`'s header,
+with the file names and the test names that moved. Where the check itself was replaced (T-235), plant the defect
+against the check that took its place and say so in the `.plant`.
+
+## Decision
+
+- `t235-help-indent`: the `{:<12}` line of `--help` in `help.rs` went with the move of the help to `pod-manual`, and its
+  test `help_starts_in_the_columns_of_the_other_options` with it. The property is held now by
+  `man_flag_parity::the_options_are_the_rows_in_order_then_help` (each row in order, then `--help`, each term on a line
+  of its own). The plant puts `--help` first in the list that `crates/podssh-cli/src/man/pod_model.rs` builds
+  (`insert(0, ...)` in place of `push`), and the `.plant`'s RUN and EXPECT name that test. Lost: a plant of the exact
+  indent, which `pod-manual` owns now (its own tests, in PodUtils/podcrates).
+- `t460-published-russh`: `vendor/patches/russh/0001-reply-data.patch` no longer reverses on the vendored copy (the
+  patches after it changed `client/mod.rs`). The plant reverses that patch's `encrypted.rs` part and drops the line
+  `mod reply_data;` of `client/mod.rs`; the visibility `pub(super)` of the test helpers stays, as `unimplemented.rs` (patch
+  0014) uses them. Nothing in `vendor/` is changed: the plant is a file of `scripts/plants/`.
+- `t038-local-probe-skipped`: its `.plant` named `box-steps.diff`, which is gone; the step is `a listener of -L` of
+  `scripts/sandbox-check.sh`, which the box runs. The comment says so.
+- `t454-no-brake`: the brake's check is in `crates/podssh-relay/src/serve/routes.rs` (`serve_surface`) now.
+  `serve/cleartext.rs` has a second copy of the check, which the test of the brake does not read (its stand-in goes
+  through `serve_from`), so the plant is the one in `routes.rs`.
+- Nothing else is lost: the EXPECT and the RUN of the other 38 plants are unchanged.
+
+## Prove
+
+```sh
+for p in scripts/plants/*.patch; do git apply --check "$p" || echo "STALE $p"; done
+```
+
+No line STALE. Each plant made again is caught, not MISSED, on a host with the toolchain (the 33 plants of cargo tests,
+one build at a time, `CARGO_BUILD_JOBS=4`; `t629` needs a start with capabilities, so root, and `t644`, `t649` and `t660`
+need Python and openssl, `t644` also OpenSSH):
+
+```sh
+sh scripts/plant-each.sh --here t107-accept-each-key t109-reason-dropped t110-no-window-size t118-read-ahead \
+  t139-scp-row t167-no-probe t173-stale-offer-kept t173-stdin-end-closes t173-target-closed-at-cut t222-exists-test \
+  t235-help-indent t319-tuning-ignored t321-doctor-setting-unread t325-parts-times-ignored t435-line-untimed \
+  t454-no-brake t503-direct-unchecked t508-optional-required t511-quick-derp t533-taken-over-unsaid \
+  t590-dial-words-alone t595-proxy-carrier-dropped t598-window-stall-unbounded t622-body-held t629-drop-after-runtime \
+  t632-proxy-asks-no-end t644-sshd-unread t649-publish-unread t650-miss-unheard t660-warmup-counted \
+  t708-node-as-a-host t751-unknown-flag t774-touch-unchecked
+```
+
+The other seven need the runner, Docker, the build image or another tool, and run with the release check's workflows
+(`plants.yml` by group, or by hand where the tool is there): `t038-local-probe-skipped` (the box, `host-box`),
+`t193-job-stop-prefix` and `t289-sigcert-beside` (the interop harness, `each-b` and `ssh-pty`), `t460-published-russh`
+(Docker, `host-gossh`), `t735-other-pair` (yggdrasil-go and `--features yggdrasil`, `host-ygg`), `t736-other-pair`
+(Node.js, hyperdht and `--features hyperdht`, `host-hyperdht`) and `t740-bare-connect-binary`, which has no `.plant`:
+`.github/workflows/bare-interop.yml` applies it. For those, `git apply --check` and a round trip (`git apply P` then
+`git apply -R P`) of each patch is the check of this entry.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent (nothing built or run): each of the 40 read against the tree, and its patch made
+again by editing the source and taking `git diff`. `git apply --check` of each of the 326 patches at the draft's base:
+none fails; `git apply P` then `git apply -R P` of each of the 40: both pass, and the tree is clean after each. 40 made
+again (the table), none retired.
+
+| Plant | Where it is planted now |
+| --- | --- |
+| `t038-local-probe-skipped` | `crates/podssh-cli/src/ssh/local_bind.rs` (`ports`) |
+| `t107-accept-each-key` | `crates/podssh-ssh/src/server/handler/auth.rs` (`Served::admit`; was `handler.rs`) |
+| `t109-reason-dropped` | `crates/podssh-ssh/src/server/direct.rs` (`open`: the dial's refusal) |
+| `t110-no-window-size` | `crates/podssh-ssh/src/server/pty_child.rs` (`Granted::new`) |
+| `t118-read-ahead` | `crates/podssh-ssh/src/server/child.rs` (`Running::run`: `self.writer()` counts the bytes, in place of `make_writer()`) |
+| `t139-scp-row` | `crates/podssh-cli/src/flags/scp.rs` |
+| `t167-no-probe` | `crates/podssh-cli/src/ssh/upgrade.rs` |
+| `t173-stale-offer-kept` | `crates/podssh-cli/src/relay_layer.rs` (`unserved`) |
+| `t173-stdin-end-closes` | `crates/podssh-cli/src/relay_layer.rs` (`paced(...)` wraps the settings; `crate::flushing::stdout()`) |
+| `t173-target-closed-at-cut` | `crates/podssh-relay/src/serve/layer.rs` (the keeper now has `with_tell`; the plant's own `Keeper::new` has none) |
+| `t193-job-stop-prefix` | `crates/podssh-cli/src/job/far.sh` (`stop`) |
+| `t222-exists-test` | `crates/podssh-ssh/src/server/shell.rs` (`check`) |
+| `t235-help-indent` | `crates/podssh-cli/src/man/pod_model.rs` (`command`; see the Decision) |
+| `t289-sigcert-beside` | `crates/podssh-cli/src/keygen_signer.rs` (`signer`; was `keygen_sign.rs`) |
+| `t319-tuning-ignored` | `crates/podssh-cli/src/http_road.rs` |
+| `t321-doctor-setting-unread` | `crates/podssh-cli/src/doctor/http2.rs` (the same line, moved) |
+| `t325-parts-times-ignored` | `crates/podssh-relay/src/serve/probe.rs` (`Parts::add`) |
+| `t435-line-untimed` | `crates/podssh-cli/src/ping/node.rs` (`road_line`) |
+| `t454-no-brake` | `crates/podssh-relay/src/serve/routes.rs` (`serve_surface`; see the Decision) |
+| `t460-published-russh` | `vendor/russh/src/client/encrypted.rs` and `client/mod.rs`, as a patch of `scripts/plants/` (see the Decision) |
+| `t503-direct-unchecked` | `crates/podssh-cli/src/ssh/dialed.rs` (`direct`) |
+| `t508-optional-required` | `crates/podssh-cli/src/dispatch/command.rs` (was `dispatch.rs`) |
+| `t511-quick-derp` | `crates/podssh-cli/src/doctor/sections.rs` |
+| `t533-taken-over-unsaid` | `crates/podssh-cli/src/man/notes_public.rs` |
+| `t590-dial-words-alone` | `crates/podssh-cli/src/node_target.rs` (`failed`) |
+| `t595-proxy-carrier-dropped` | `crates/podssh-cli/src/proxy_node.rs` (`to_operator`) |
+| `t598-window-stall-unbounded` | `crates/podssh-ssh/src/io/send.rs` (`send`; was `io.rs`) |
+| `t622-body-held` | `crates/podssh-relay/src/serve/http_road/one.rs` (`up`) |
+| `t629-drop-after-runtime` | `crates/podssh-cli/src/relay_serve.rs` (`prepare`, `serve_until_stopped`) |
+| `t632-proxy-asks-no-end` | `crates/podssh-cli/src/relay_layer.rs` |
+| `t644-sshd-unread` | `crates/podssh-cli/src/relay_serve.rs` (`Door` has the field `proxy` now) |
+| `t649-publish-unread` | `crates/podssh-cli/src/relay_serve.rs` |
+| `t650-miss-unheard` | `crates/podssh-relay/src/serve/reverse/spares.rs` (`admit`) |
+| `t660-warmup-counted` | `crates/podssh-cli/src/ping/load.rs` (`measure`) |
+| `t708-node-as-a-host` | `crates/podssh-cli/src/ssh/node_roads.rs` (`reach_any`) |
+| `t735-other-pair` | `crates/podssh-cli/src/ssh/ygg.rs` (feature `yggdrasil`) |
+| `t736-other-pair` | `crates/podssh-cli/src/ssh/hyperdht.rs` (feature `hyperdht`) |
+| `t740-bare-connect-binary` | `crates/podssh-ws/src/bare.rs` (`dial`) |
+| `t751-unknown-flag` | `crates/podssh-cli/src/mcp/client_config.rs` (`arguments` and `fixed`: both build the entry) |
+| `t774-touch-unchecked` | `crates/podssh-ssh/src/server/handler/auth.rs` (the signed-key step; was `handler.rs`) |
+
+Merged 2026-11-26 from the worker's draft: each of the 326 patches of `scripts/plants/` passes `git apply --check` at the
+merge (40 failed before). `sh scripts/plant-each.sh --here t139-scp-row t508-optional-required t751-unknown-flag
+t235-help-indent t503-direct-unchecked` gave "5 caught, 0 missed, 0 stale", each check failing with its plant in place and
+the tree clean after. The other refreshed plants' runs wait for T-251, as each planted run does until podssh is stable
+(Q88); `sh scripts/plant-each.sh --here` with the ids of the Prove runs them.

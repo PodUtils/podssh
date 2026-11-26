@@ -1,8 +1,8 @@
 --- a/crates/podssh-cli/src/doctor/http2.rs
 +++ b/crates/podssh-cli/src/doctor/http2.rs
-@@ -58,7 +58,8 @@ pub(super) fn verdict(
-         Err(e) if unmeasured(&e) => return Verdict::Unknown { why: format!("not measured: {host}: {e}") },
-         Err(e) => return Verdict::Unknown { why: format!("not measured, as {host} was not reached: {e}") },
+@@ -100,7 +100,8 @@ pub(super) fn verdict(
+             }
+         }
      };
 -    let road = match (offered.extended, choice.offers(explicit)) {
 +    // Planted: the road named as if each host offered extended CONNECT.

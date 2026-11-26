@@ -1,8 +1,8 @@
 --- a/crates/podssh-ssh/src/server/shell.rs
 +++ b/crates/podssh-ssh/src/server/shell.rs
-@@ -139,13 +139,7 @@
+@@ -139,13 +139,7 @@ pub fn check(path: &Path) -> Result<(), String> {
          }
-         Err(e) => return Err(format!("cannot be looked at: {e}")),
+         Err(e) => return Err(format!("cannot be looked at: {}", podssh_ws::text::said(&e))),
      };
 -    if meta.is_dir() {
 -        return Err("a directory".into());

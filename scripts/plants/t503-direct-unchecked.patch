@@ -1,8 +1,8 @@
 --- a/crates/podssh-cli/src/ssh/dialed.rs
 +++ b/crates/podssh-cli/src/ssh/dialed.rs
-@@ -48,7 +48,8 @@
-     if family.is_some() {
-         return Err("-4/-6 select the address family the relay dials; with --direct they are not supported yet".into());
+@@ -57,7 +57,8 @@ pub(super) fn direct(family: Option<u8>, jump: &[Hop], host: &str) -> Result<(),
+         }
+         _ => {}
      }
 -    check(Road::Direct, jump, host)
 +    let _ = (jump, host);

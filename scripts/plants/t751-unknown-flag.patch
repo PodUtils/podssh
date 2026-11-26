@@ -1,9 +1,18 @@
 --- a/crates/podssh-cli/src/mcp/client_config.rs
 +++ b/crates/podssh-cli/src/mcp/client_config.rs
-@@ -29,7 +29,7 @@
- /// The arguments of the entry: `mcp`, then the flags in a fixed order, with
- /// the directories as resolved and `-F`'s file made absolute.
- pub fn arguments(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Path>) -> Vec<String> {
+@@ -34,7 +34,7 @@ pub fn arguments(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Pa
+         return fixed(args, dirs, config);
+     }
+     let pair = |flag: &str, value: String| vec![flag.to_string(), value];
+-    let mut out = vec!["mcp".to_string()];
++    let mut out = vec!["mcp".to_string(), "--mcp-listen".to_string(), "stdio".to_string()]; // planted: a flag of no server
+     let (mut hosts, mut dirs, mut commands) = (args.allow_host.iter(), dirs.iter(), args.allow_command.iter());
+     let mut config = config;
+     for id in &args.typed {
+@@ -69,7 +69,7 @@ pub fn arguments(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Pa
+ 
+ /// The arguments in the order of the fields: a caller that kept no order.
+ fn fixed(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Path>) -> Vec<String> {
 -    let mut out = vec!["mcp".to_string()];
 +    let mut out = vec!["mcp".to_string(), "--mcp-listen".to_string(), "stdio".to_string()]; // planted: a flag of no server
      for pattern in &args.allow_host {

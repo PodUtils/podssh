@@ -1,8 +1,8 @@
 --- a/crates/podssh-cli/src/node_target.rs
 +++ b/crates/podssh-cli/src/node_target.rs
-@@ -45,7 +45,7 @@
+@@ -71,7 +71,7 @@ pub(crate) fn routes_of(targets: &[Route], grant: Arc<Grant>, roost: bool, me: O
  fn failed(shown: &str, t: &Route, roost: bool, e: &DialError) -> String {
-     let words = format!("TARGET {shown}: {e}");
+     let words = format!("TARGET {shown}: {}", podssh_ws::text::said(&e));
      // Each address refused, or none answered: on the loopback, no listener.
 -    let nothing = matches!(e, DialError::Connect { .. }) && podssh_ws::dial::is_loopback(&t.host);
 +    let nothing = false;

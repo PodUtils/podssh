@@ -1,11 +1,11 @@
---- a/crates/podssh-relay/src/serve/mod.rs
-+++ b/crates/podssh-relay/src/serve/mod.rs
-@@ -207,7 +207,7 @@
-         (stream, head, pending)
-     };
-     let path = head.target.split('?').next().unwrap_or_default().to_string();
--    if brake::braked(&head.method, &path) {
-+    if false && brake::braked(&head.method, &path) {
-         if let Err(braked) = cfg.brake.take(brake::Who::of(from)) {
-             return slow_down(&mut stream, &head, pending, &path, braked, &cfg).await;
-         }
+--- a/crates/podssh-relay/src/serve/routes.rs
++++ b/crates/podssh-relay/src/serve/routes.rs
+@@ -107,7 +107,7 @@ async fn serve_surface<S>(
+     if let Err(braked) = strike(&cfg, &head, &first, from) {
+         return slow_down(&mut stream, &head, pending, &first, braked, &cfg).await;
+     }
+-    if brake::braked(&head.method, &path)
++    if false && brake::braked(&head.method, &path)
+         && let Err(braked) = cfg.brake.take(brake::Who::of(from))
+     {
+         return slow_down(&mut stream, &head, pending, &path, braked, &cfg).await;

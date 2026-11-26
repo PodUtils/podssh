@@ -1,12 +1,12 @@
 --- a/crates/podssh-cli/src/job/far.sh
 +++ b/crates/podssh-cli/src/job/far.sh
-@@ -328,6 +328,9 @@
+@@ -392,6 +392,9 @@ stop)
      elif command -v tmux >/dev/null 2>&1 && tmux kill-session -t "=$(sess "$d")" 2>/dev/null; then
          w=stopped
      fi
 +    for s in $(tmux list-sessions -F '#{session_name}' 2>/dev/null); do
 +        case $s in podssh-job-*) tmux kill-session -t "=$s" ;; esac
 +    done
-     rm -rf "$d" || {
-         say "failed to remove $q/$d"
-         exit 0
+     # A session that a job which ended left is no job that was stopped.
+     if [ "$was" = done ]; then
+         w=ended

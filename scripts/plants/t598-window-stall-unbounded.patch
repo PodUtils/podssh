@@ -1,8 +1,8 @@
---- a/crates/podssh-ssh/src/io.rs
-+++ b/crates/podssh-ssh/src/io.rs
-@@ -390,7 +390,7 @@
-             _ = tick.tick() => {
-                 if writer.writable_packet_size().await > 0 {
+--- a/crates/podssh-ssh/src/io/send.rs
++++ b/crates/podssh-ssh/src/io/send.rs
+@@ -78,7 +78,7 @@ pub(super) async fn send(
+             shut = window_shut(writer, &mut tick), if bounded => {
+                 if !shut {
                      shut_since = None;
 -                } else if shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {
 +                } else if false && shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {
