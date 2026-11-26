@@ -100,7 +100,8 @@ jobs:
     needs: plan
     if: needs.plan.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # The step ssh's tests take 40 min on a runner; 45 left no room.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:

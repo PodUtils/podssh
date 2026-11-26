@@ -312,13 +312,6 @@ step_ssh() {
         env PODSSH_TEST_SFTP_SERVER=/usr/lib/ssh/sftp-server PODSSH_TEST_STUNNEL=/usr/bin/stunnel \
         PODSSH_TEST_SSSERVER=/usr/bin/ssserver PODSSH_TEST_SSLOCAL=/usr/bin/sslocal \
         cargo test --locked --no-fail-fast -p podssh-ssh -p podssh-cli
-    # The road of warp:// in the CLI, with its feature (T-352): its own tests
-    # and those of the manual, whose variables the feature's crate joins.
-    tests "the CLI with WARP's road (feature warp): tests" \
-        cargo test --locked --no-fail-fast -p podssh-cli --features warp --lib
-    # The road of devtunnel:// in the CLI, with its feature (T-755).
-    tests "the CLI with the Dev Tunnels road (feature devtunnel): tests" \
-        cargo test --locked --no-fail-fast -p podssh-cli --features devtunnel --lib devtunnel
 }
 
 # The Tailscale adapter (feature `ts`) links the vendored tailscale-rs fork,
@@ -339,9 +332,18 @@ step_iroh() {
 # The Tor road (T-353): the CLI's own tests with the feature; the tests of
 # the road are pod-tor's, in podcrates. Arti's SQLite is C, as the Tailscale
 # and iroh features' C is.
+# The CLI's library with each road of its own feature. WARP's and Dev
+# Tunnels' left the step ssh, which passed its job's limit with them.
 step_tor() {
     tests "podssh-cli with the feature tor: its library's tests" \
         cargo test --locked --no-fail-fast -p podssh-cli --features tor --lib
+    # The road of warp:// in the CLI, with its feature (T-352): its own tests
+    # and those of the manual, whose variables the feature's crate joins.
+    tests "the CLI with WARP's road (feature warp): tests" \
+        cargo test --locked --no-fail-fast -p podssh-cli --features warp --lib
+    # The road of devtunnel:// in the CLI, with its feature (T-755).
+    tests "the CLI with the Dev Tunnels road (feature devtunnel): tests" \
+        cargo test --locked --no-fail-fast -p podssh-cli --features devtunnel --lib devtunnel
 }
 
 # The GSRN road (T-707): pod-gsr links OpenSSL, which openssl-src builds from

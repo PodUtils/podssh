@@ -395,7 +395,7 @@ Read on `3ee70dc`, the defect holds. No source, test or example of `podssh-cli` 
 declares `libc` (`crates/podssh-probe/Cargo.toml` line 11 at `f8a94ca`), which none of its sources uses.
 `crates/podssh-probe/src/facts.rs` lines 3-6 at `f8a94ca` name a "startup assertion" that no command runs;
 `crates/podssh-probe/src/relay_facts.rs` lines 261-289 at `f8a94ca` are that unused startup part. CI runs
-`scripts/check-relay-spec.py` live, with three plants (`.github/workflows/build.yml:246-276`).
+`scripts/check-relay-spec.py` live, with three plants (`.github/workflows/build.yml:247-277`).
 The gate runs the crate's tests with no C compiler (`scripts/gate.sh:193-209`). The build image
 has no Python (`crates/podssh-probe/src/facts.rs:14-19`), so the crate is the only form of the
 check that the container gate can run.
@@ -1957,8 +1957,8 @@ Nothing watches the expiry of the relay's domain, on which each road but `--dire
   document: "Exact addresses" (`:9`), "Reverse close codes" (`:160`) and "Protocol (for other
   clients)" (`:205`).
 - Read: the job `checks` runs the live check, and fails on exit 1 (a changed fact) and on exit 2
-  (a relay that cannot be read) alike (`.github/workflows/build.yml:246-276`);
-  the gate's step `release` asks the binary and the script for one verdict, live (`:125-130`).
+  (a relay that cannot be read) alike (`.github/workflows/build.yml:247-277`);
+  the gate's step `release` asks the binary and the script for one verdict, live (`:126-131`).
 - Read: each of the eight build jobs of the release runs `podssh proxy github.com 22` through the
   live relay (`scripts/release-short.sh:109-115`, run at `.github/workflows/release.yml:153`, `:215`,
   `:314`, `:363` and `:467`; three of these run in a matrix of two). The audit counted seven

@@ -329,12 +329,12 @@ Read:
   members with `CC=/nonexistent`, and the release too (lines 339-342). The
   gate builds the library crates with `CC` and `CXX` set to `/nonexistent`,
   and the release with neither (`scripts/gate.sh:193-209`,
-  `scripts/gate.sh:378-381`). The help omits the work record, interop, the man
+  `scripts/gate.sh:380-383`). The help omits the work record, interop, the man
   page, the C++ plant, and the subcommand `gate` (line 602 at `912acd0`).
 - Stale comments, at `912acd0`: `scripts/dev.sh` lines 69-73 ("the default
   build"), lines 397-404 ("links the fork since 4b", "steps 4-5") and line
   462.
-- CI parses `PodUtils/podssh:scripts/*.sh` with dash (`.github/workflows/build.yml:199-205`);
+- CI parses `PodUtils/podssh:scripts/*.sh` with dash (`.github/workflows/build.yml:200-206`);
   `scripts/check-scripts.py:53-57` finds the scripts under `scripts/` at any
   depth.
 
@@ -349,7 +349,7 @@ Read:
    comment. Invariant: the text of the bridge does not change by one byte;
    compare the old and the new text with `cmp`.
 3. Correct the help and the stale comments to the gate as it is
-   (`scripts/gate.sh:137-415`).
+   (`scripts/gate.sh:137-417`).
 4. Extend the size check of `scripts/check-repo.py` to the shell and Python
    files under `scripts/`, with a floor (T-223).
 5. Drop the sentence on the exception from `docs/decisions.md`, and move it
@@ -1163,7 +1163,7 @@ Read:
 - `scripts/box/probe.sh:181-186` exits 1 when the box differs from the sandbox
   in a required property (17 properties, `docs/STATUS.md:498`).
 - The box needs a static binary; CI uploads one
-  (`.github/workflows/build.yml:132-137`).
+  (`.github/workflows/build.yml:133-138`).
 - The box uses `--disable-dns` (`scripts/test_in_box.sh:224`) and a mask on
   `/dev/pts` (`scripts/test_in_box.sh:324`). Nobody measured the Podman of a
   GitHub runner with them.
@@ -2054,7 +2054,7 @@ Read, in the tree as it is now:
   `docs/STATUS.md:965` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
-- `.github/workflows/build.yml:147-155` runs the plant on each push.
+- `.github/workflows/build.yml:148-156` runs the plant on each push.
 
 ## Approach
 
@@ -2136,7 +2136,7 @@ Read:
 3. A plant in the same script: a mode `--plant-empty` runs the checks on an
    empty temporary directory and must exit 1. The control is the real tree,
    which must exit 0. CI runs both, as it does for the relay check
-   (`.github/workflows/build.yml:251-276`).
+   (`.github/workflows/build.yml:252-277`).
 4. With T-207: the size check also reads `scripts/`, with its own floor.
 5. The checker of `TODO/` gets its own floor in its own change; this entry
    does not plan it.
@@ -3259,7 +3259,7 @@ Read: each image is pinned to a digest in its Dockerfile
 `images/build/Dockerfile:6`), and at `b932993` each workflow gave
 the reference to `docker run`, which pulls from Docker Hub (now
 `.github/workflows/secrets.yml:75`, `.github/workflows/secrets.yml:89`,
-`.github/workflows/build.yml:119-123`, `.github/workflows/build.yml:153-156`
+`.github/workflows/build.yml:120-124`, `.github/workflows/build.yml:154-157`
 and `.github/workflows/release.yml:126-129`). Measured on 2026-10-09, each
 manifest asked for by its digest: Google's mirror of Docker Hub
 (`mirror.gcr.io`) serves both images, the GitHub registry serves the
@@ -6545,7 +6545,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 
 ## Premise
 
-- `.github/workflows/build.yml:305` (`windows`, `windows-2025`) and `:411` (`macos`, `macos-15`): tests, the
+- `.github/workflows/build.yml:306` (`windows`, `windows-2025`) and `:412` (`macos`, `macos-15`): tests, the
   system stores, repository checks, the console checks against MSYS2's sshd. No step per command.
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
@@ -8024,3 +8024,47 @@ merge (40 failed before). `sh scripts/plant-each.sh --here t139-scp-row t508-opt
 t235-help-indent t503-direct-unchecked` gave "5 caught, 0 missed, 0 stale", each check failing with its plant in place and
 the tree clean after. The other refreshed plants' runs wait for T-251, as each planted run does until podssh is stable
 (Q88); `sh scripts/plant-each.sh --here` with the ids of the Prove runs them.
+
+# T-1036: The gate's step ssh passed its job's limit of 45 min at `2a37826`
+
+**Source:** the gate at `2a37826` (run 45779289907, 2026-11-26): `gate (ssh)` was cancelled at 45 min, in the Dev
+Tunnels road's tests, after the SSH client's and the CLI's tests (40 min) and WARP's (3.5 min); each other job passed.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The step `ssh` of `scripts/gate.sh` grew with the suites (frames, the planted refresh's tests, the black-box passes'
+tests) past its job's `timeout-minutes: 45` in `.github/workflows/build.yml`, so the gate ends cancelled with no
+failed test: a red gate that says nothing of the code.
+
+## Premise
+
+- Read: the job's log: "== the SSH client and the CLI (need cc): tests" from 08:00:13 to 08:40:04, WARP's to 08:43:26,
+  then "The operation was canceled." at 08:45:08.
+- Read: `scripts/gate.sh`'s `step_ssh` ran the CLI's library twice more with a feature each (warp, devtunnel);
+  `step_tor` runs the CLI's library with its feature in about 5 min.
+
+## Approach
+
+1. Move the two runs of the CLI's library with WARP's and Dev Tunnels' features from `step_ssh` to `step_tor`.
+2. Raise the job `gate`'s limit to 60 min, as the other long jobs of the workflow have.
+
+## Decision
+
+Both: the move leaves `ssh` at its own suite (40 min), and the limit gives room as the suite grows; a new step of its
+own for two short runs would cost a runner and a build of its own. Lost: a split of `ssh`'s suite in two steps, each
+building podssh-cli again (more runner time for the same tests).
+
+## Prove
+
+The gate of the commit after this passes `gate (ssh)` and `gate (tor)` within their limits.
+
+## Done
+
+2026-11-26: `scripts/gate.sh` (`step_tor` runs the two feature runs; `step_ssh` its suite alone) and
+`.github/workflows/build.yml` (`timeout-minutes: 60`); `sh -n` and `dash -n` of the script pass. The proof is the next
+gate's run.
