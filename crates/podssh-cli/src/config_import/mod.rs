@@ -91,24 +91,30 @@ fn import(format: &str, file: &str, out: &mut dyn Write, err: &mut dyn Write) ->
             &format!("import {format}: not yet; it waits for a real export of that program to be tested against"),
         );
     }
-    let (reader, program): (Reader, &str) = match format.as_str() {
+    // The extension of a program's files in a directory, where it has one.
+    let (reader, program, only): (Reader, &str, Option<&str>) = match format.as_str() {
         "ansible" => return inventory(file, out, err),
-        "putty" => (putty::read, "PuTTY"),
-        "mobaxterm" => (mobaxterm::read, "MobaXterm"),
-        "remmina" => (remmina::read, "Remmina"),
-        "mremoteng" => (mremoteng::read, "mRemoteNG"),
+        "putty" => (putty::read, "PuTTY", None),
+        "mobaxterm" => (mobaxterm::read, "MobaXterm", None),
+        "remmina" => (remmina::read, "Remmina", Some(remmina::EXTENSION)),
+        "mremoteng" => (mremoteng::read, "mRemoteNG", None),
         _ => {
             let why = format!("import {format}: not a format; give {}", format_names());
             return usage(err, &why);
         }
     };
-    let inputs = match inputs(file) {
-        Ok(inputs) => inputs,
+    let (inputs, passed) = match inputs(file, only) {
+        Ok(found) => found,
         Err(why) => {
             let _ = writeln!(err, "podssh config import: {file}: {why}");
             return EX_NOINPUT;
         }
     };
+    // A file of the directory that is no file of the program (a backup, a
+    // swap file) is named, not read, and stops nothing (T-1064).
+    for name in &passed {
+        let _ = writeln!(err, "podssh config import: {name}: passed over: not a .{} file", only.unwrap_or_default());
+    }
     let read = match reader(&inputs) {
         Ok(read) => read,
         Err(why) => {
@@ -184,10 +190,12 @@ fn bytes(file: &str) -> Result<Vec<u8>, String> {
 
 /// The files of FILE: itself, or each file of a directory in the order of
 /// their names, as PuTTY on Unix and Remmina keep one file for each session.
-fn inputs(file: &str) -> Result<Vec<Input>, String> {
+/// With `only`, a directory's files of another extension are not read: the
+/// second list names them (T-1064). A FILE named is read whatever its name.
+fn inputs(file: &str, only: Option<&str>) -> Result<(Vec<Input>, Vec<String>), String> {
     let path = std::path::Path::new(file);
     if file == "-" || !path.is_dir() {
-        return Ok(vec![Input { name: file.to_string(), bytes: bytes(file)? }]);
+        return Ok((vec![Input { name: file.to_string(), bytes: bytes(file)? }], Vec::new()));
     }
     let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(path)
         .map_err(|e| podssh_ws::text::said(&e))?
@@ -196,16 +204,20 @@ fn inputs(file: &str) -> Result<Vec<Input>, String> {
         .filter(|p| p.is_file())
         .collect();
     files.sort();
+    let (files, passed): (Vec<_>, Vec<_>) = files.into_iter().partition(|p| {
+        only.is_none_or(|ext| p.extension().is_some_and(|e| e.to_string_lossy().eq_ignore_ascii_case(ext)))
+    });
     if files.is_empty() {
-        return Err("a directory with no file".into());
+        return Err(only.map_or_else(|| "a directory with no file".into(), |ext| format!("a directory with no .{ext} file")));
     }
-    files
+    let read = files
         .iter()
         .map(|p| {
             let name = p.display().to_string();
             bytes(&name).map(|bytes| Input { name, bytes }).map_err(|why| format!("{}: {why}", p.display()))
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((read, passed.iter().map(|p| p.display().to_string()).collect()))
 }
 
 /// The variables of a host that hold a secret: never imported, never
