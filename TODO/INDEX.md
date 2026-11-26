@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**939 entries: 3 open, 33 partial, 15 blocked, 888 done.**
+**952 entries: 4 open, 33 partial, 15 blocked, 900 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 102 | 111 |
-| P2 | 0 | 20 | 3 | 342 | 365 |
-| P3 | 3 | 7 | 9 | 443 | 462 |
-| **All** | 3 | 33 | 15 | 888 | 939 |
+| P2 | 0 | 20 | 3 | 346 | 369 |
+| P3 | 4 | 7 | 9 | 451 | 471 |
+| **All** | 4 | 33 | 15 | 900 | 952 |
 
 ## Entries
 
@@ -1015,3 +1015,16 @@ repository and CI).
 | [T-1005](cli.md) | P3 | S | backlog | defect | done | `config import mremoteng` of a file that is not XML says the parser's words |
 | [T-1006](cli.md) | P3 | S | backlog | defect | done | A record of `detached` that cannot be read is listed as ended, and its status says it is not known |
 | [T-1007](cli.md) | P3 | S | backlog | defect | done | `detached status` and `list` do not say how an ended run ended |
+| [T-1008](cli.md) | P2 | S | backlog | defect | done | An empty `PODSSH_RELAY` is read as unset, and the target goes to the default relays |
+| [T-1009](cli.md) | P2 | S | backlog | defect | done | A relay that issues no tokens exits 69 for `proxy`, and a mint that a hop reset ends in `(os error 104)` |
+| [T-1010](cli.md) | P3 | S | backlog | defect | done | Lines of `proxy` and of `relay serve` that start with `podssh:` or `podssh relay:` |
+| [T-1011](cli.md) | P3 | S | backlog | defect | done | `proxy --ca-file` of a file that is not there names its path twice, after a dial |
+| [T-1012](cli.md) | P3 | S | backlog | defect | done | The manual gives 78 to each proxy URL but http://, and reads as if `--timeout` past a day were cut to a day |
+| [T-1013](cli.md) | P3 | S | backlog | defect | done | `proxy node://NAME` and `proxy --exit NAME` drop `PODSSH_RELAY` with no word, where the manual says they refuse it |
+| [T-1014](relay.md) | P2 | S | backlog | defect | done | `relay serve` starts with a `--pairs` file that it cannot write, names no file of a missing certificate, and refuses offline in a client's words |
+| [T-1015](relay.md) | P3 | S | backlog | defect | done | `relay serve` says a name that does not resolve in the words of the resolver's library |
+| [T-1016](relay.md) | P3 | M | backlog | defect | open | The event lines of `relay serve` name no client, no target and no time |
+| [T-1017](relay.md) | P3 | S | backlog | defect | done | `relay rank --forget` says it forgot a rank that was not kept, and `--cached` shows a file with no rank as one of 0 hosts |
+| [T-1018](pipe.md) | P2 | S | backlog | defect | done | `pipe - relay:HOST:PORT` never ends when its target waits for the end of its input |
+| [T-1019](pipe.md) | P3 | S | backlog | defect | done | `pipe - fd:N` of a closed number ends in `(os error 9)`, and `tx send a b` gives the parser's generic lines |
+| [T-1020](cli.md) | P3 | S | backlog | defect | done | `funnel` says a bad TARGET in the words of `pipe`'s kinds, and `funnel` and `update` refuse offline before their usage's faults |

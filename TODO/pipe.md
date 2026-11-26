@@ -27,7 +27,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 - Measured: `PODSSH_OFFLINE=1 podssh pipe stdio relay:example.org:80` exits
   64 with `podssh: unknown subcommand 'pipe'.` The verb table has no `pipe`
   row (`crates/podssh-cli/src/flags.rs:399-471`).
-- Read: the only pump is `crates/podssh-cli/src/pipe/relay.rs:118-260`. At the end
+- Read: the only pump is `crates/podssh-cli/src/pipe/relay.rs:122-270`. At the end
   of input it stops sending and keeps receiving
   (`crates/podssh-cli/src/proxy.rs:8-11`). T-101 is the opposite defect in
   `crates/podssh-ts/src/pipe.rs`; the new pump must not repeat it.
@@ -47,12 +47,12 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    An unknown kind exits 64 and lists the kinds. `-` is `stdio`; `stdio` on
    both sides exits 64. Invariant: both addresses are valid before anything
    starts.
-3. Move the pump of `crates/podssh-cli/src/pipe/relay.rs:118-219` to
+3. Move the pump of `crates/podssh-cli/src/pipe/relay.rs:122-229` to
    crates/podssh-cli/src/pipe/pump.rs, over two duplex ends, with its rules:
    reads of 32 KiB; an end of input half-closes the other side (a shutdown
    of the write side, never a drop, or the reply is lost), and the other
    direction goes on; a reader that is gone ends the pipe with 0
-   (`crates/podssh-cli/src/pipe/relay.rs:258-262`). Keep
+   (`crates/podssh-cli/src/pipe/relay.rs:268-272`). Keep
    `runtime.shutdown_background()` (`crates/podssh-cli/src/proxy.rs:312-314`).
    This is the one path: T-175 moves `podssh proxy` onto it.
 4. `fd:N` (Unix): `fcntl(F_GETFD)` first. A closed N, or N below 3, exits 64.
@@ -179,12 +179,12 @@ local program to a target, and `podssh proxy` stays a second pump.
 2. `relay:HOST:PORT`: parse as `crates/podssh-cli/src/proxy.rs:381-391` does;
    open with `PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`. Keep the rules of
    proxy: no Close at the end of input, the ping watcher
-   (`crates/podssh-cli/src/pipe/relay.rs:157-159`), empty frames dropped. IPv6
+   (`crates/podssh-cli/src/pipe/relay.rs:167-169`), empty frames dropped. IPv6
    literals follow T-007.
 3. Move `podssh proxy` onto the pipe: `run_proxy`
    (`crates/podssh-cli/src/proxy.rs:94-316`) runs `stdio` and `relay:`. Keep
    its exit codes and messages (`crates/podssh-cli/src/proxy.rs:485-500`,
-   `crates/podssh-cli/src/pipe/relay.rs:232-266`).
+   `crates/podssh-cli/src/pipe/relay.rs:242-276`).
 4. `ssh:[USER@]HOP[,HOP...],HOST:PORT`: the last item is the target, each
    other item a hop, read as `-J` reads it
    (`crates/podssh-cli/src/ssh/resolve.rs:176-180`,
@@ -430,7 +430,7 @@ shows that an AF_UNIX or loopback bind works (`docs/design.md:1424-1426`).
 2. podssh listens only for a `-listen:` address that the user gives.
    `PODSSH_LISTEN=no` turns listening off: each such address then exits 78
    before any bind. Add the variable to `VARIABLES`
-   (`crates/podssh-cli/src/man/facts.rs:46-284`); the settings file of T-048
+   (`crates/podssh-cli/src/man/facts.rs:46-285`); the settings file of T-048
    can set the same.
 3. The attempt is the probe: socket, bind, listen. EACCES or EPERM exits 77
    with the errno and an address that needs no listener; another error exits
@@ -1778,7 +1778,7 @@ alone, so the form of `ssh:`, with its comma before the target, is found by tria
   (`crates/podssh-cli/src/pipe/address.rs:112-116`).
 - Read: the manual's example of the proxy is `podssh pipe http-listen:3128 relay:%h:%p`
   (`crates/podssh-cli/src/man/examples.rs:219`), and its notes give the forms in words
-  (`crates/podssh-cli/src/man/notes_pipe.rs:31-34`); a test parses each example with the real
+  (`crates/podssh-cli/src/man/notes_pipe.rs:32-35`); a test parses each example with the real
   parser (`crates/podssh-cli/src/man/examples_tests.rs:85`).
 - Read: `--help` of a verb gives its options, then its notes, and the notes have nothing for `pipe`
   (`crates/podssh-cli/src/help.rs`, lines 240-263 at `1769d79`).
@@ -2194,7 +2194,7 @@ signals only for a listening side, `node:` and `serial:`.
   (`serve::Interrupt`, SIGINT and SIGTERM), and dropped the ends at once; `local::exec` starts the program with
   no kill on drop (`crates/podssh-cli/src/pipe/local.rs:99`).
 - Read: a program beside `udp:node:` already gets `CHILD_WAIT` (10 s) after the other side's end, then SIGTERM
-  (`crates/podssh-cli/src/pipe/datagram.rs:52`), and the manual says so (`crates/podssh-cli/src/man/notes_pipe.rs:117`).
+  (`crates/podssh-cli/src/pipe/datagram.rs:52`), and the manual says so (`crates/podssh-cli/src/man/notes_pipe.rs:118`).
 
 ## Approach
 
@@ -2350,7 +2350,7 @@ HTTP/1.0 with `200`. The behaviour and the manual disagree.
   400 for a line with no version (`PodUtils/podcrates:crates/pod-core/src/http1/request.rs:144-151` at
   `v0.84.0`), and its tests parse a `CONNECT ... HTTP/1.0`; `http-listen:` reads each request with it
   (`crates/podssh-cli/src/pipe/http_listen.rs`, `read_head`).
-- Read: the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:44`).
+- Read: the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:45`).
 
 ## Approach
 
@@ -2471,7 +2471,7 @@ and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh
   (`crates/podssh-cli/src/pipe/node.rs:79` is the new `open_as`).
 - Read: `words` gave `a {q} that does not close` (`crates/podssh-cli/src/pipe/address.rs:336` is the new line).
 - Read: `BAUDS` is the list of 22 rates that Linux has a code for (`crates/podssh-cli/src/pipe/address.rs:100`);
-  the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:137`).
+  the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:139`).
 - Read: the lines of an end that did not open name its address (`node:x:`, `relay:HOST:PORT:`, `exec:PROG:`, and
   "could not connect to HOST:PORT", `crates/podssh-cli/src/pipe/remote.rs:263`); only the pump's line of a read
   that failed names A or B, after both opened (`crates/podssh-cli/src/pipe/pump.rs:126`).
@@ -2523,3 +2523,120 @@ Merged by the main session on 2026-11-25 (after `162e52d`) and run: `cargo test 
 `serve_gateway_openssh` 7, `ssh_control` 4, `ssh_local_forward` 5, `flag_table`, `man_flag_parity`, `man_json` and
 `man_page` passed; `-p podssh-ssh --lib` 557; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`)
 and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean.
+
+# T-1018: `pipe - relay:HOST:PORT` never ends when its target waits for the end of its input
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh pipe - relay:127.0.0.1:2299 </dev/null` never exited; with stdin closing after 4 s it printed the target's
+banner and still never exited, while `pipe - tcp:...` ended. A target that waits for the end of its input (an SSH
+server, a program that reads to the end) never heard it through `relay:`, so neither side ended.
+
+## Premise
+
+Read, at `9574133`: `carried` of `crates/podssh-cli/src/pipe/relay.rs`, the relay's end of `pipe` and of `proxy`,
+sent nothing at the end of the pipe's input ("the relay has no half-close"). `docs/relay.md` ("Forward path") says
+that a client's Close is the relay's half-close: the live relay stops the bytes to the target and sends the
+target's bytes until it closes or is quiet 15 s; podssh's role (T-671) shuts the target's writing side too. The
+stand-in relay (`scripts/fake-relay.py`) answered a Close at once with `1000 client closed` and dropped what the
+target still had, unlike both. Not explained by reading: why no banner came with `</dev/null`; the lead measures
+it with the fix in place.
+
+## Approach
+
+1. `carried` takes `half_close`: `pipe`'s session (`carry_opened`, which `session` and `http-listen:` use) sends
+   the Close (1000) at the end of its input; `proxy` (`carry_watched`) and the roads of `carry` send none, as
+   before. The target's bytes still come, and the relay's Close ends the session, as it ends the pump.
+2. The stand-in relay does what the relay does: the client's Close shuts the target's writing side, its bytes
+   still go to the client until it closes or is quiet `--half-closed` seconds (15), then `1000 client
+   half-closed, target idle for 15s`; Pings are still answered meanwhile.
+3. The manual's notes of `pipe` and `docs/cli.md` ("Half-close") say it.
+4. A case of `crates/podssh-cli/tests/pipe_remote.rs`: a target that answers at the end of its input, through
+   `relay:`, answers and the pipe ends.
+
+## Decision
+
+`pipe` passes on the end of input on each road that has a way to say it, as `tcp:` does; the relay's way is its
+Close. Lost: a reply that a target sends after 15 s of quiet that follows the end of input (the relay ends the
+session then); a user who needs one keeps stdin open. `proxy` keeps no Close: as OpenSSH's ProxyCommand, its end
+of input is not the end of the session, and a cut reply there would break a login. The stand-in moves to the
+relay's measured behaviour, as each harness test of the relay is meant to test against it.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test pipe_remote
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test pipe --test proxy --test relay_serve --test faults
+PODSSH_RELAY_UNDER_TEST=podssh CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test pipe_remote
+```
+
+By hand: `printf 'GET / HTTP/1.0\r\n\r\n' | podssh pipe - relay:example.org:80` prints the answer and exits 0.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1019: `pipe - fd:N` of a closed number ends in `(os error 9)`, and `tx send a b` gives the parser's generic lines
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Two lines of the eighth pass. `podssh pipe - fd:999` said "fd:999: Bad file descriptor (os error 9); is it open?":
+Rust's suffix, and a question where podssh knows the answer. `podssh tx send a b` gave the parser's generic lines
+("the right number of arguments was not given"), where tx has its own words for each shape of its command line.
+
+## Premise
+
+Read, at `9574133`: `descriptor` of `crates/podssh-cli/src/pipe/local.rs` worded `io::Error::last_os_error()` by
+`{}`, which the scan of `crates/podssh-cli/tests/io_error_lines.rs` does not see (its names are `e`, `err` and
+`error`). `tx`'s table of one argument is the parser's (`crates/podssh-cli/src/flags/tx.rs`), so a second word is
+clap's error before `ask` of `crates/podssh-cli/src/tx.rs` reads it. The finding "tx send /nonexistent ends in (os
+error 2)" holds no more at `9574133`: `open_whole` of `crates/podssh-ssh/src/zmodem/files.rs` says the error by
+`podssh_ws::text::said` since T-989.
+
+## Approach
+
+1. `descriptor`: EBADF is "fd:N is not open in this process: name a descriptor that its parent gave" (64); another
+   errno, and a failed `dup` (71), are the system's words through `said`.
+2. `tx::refused_words`: the line of `ask` for the words after `tx`; `clap_error::rebuild_for` gives it for `tx`
+   where the words hold no flag and the error is not a request for help.
+3. `crates/podssh-cli/tests/pipe.rs` holds the line of fd:987; the test of tx's help holds the two lines.
+
+## Decision
+
+One table of tx's shapes (`ask`) says each of them, whether the parser or `ask` saw the fault first. Lost:
+widening tx's parser to take each word, which would change its help's usage line that a test holds. EBADF alone gets
+podssh's words: it is the fault of a number that names nothing; another errno is a fault that the system says
+better.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib tx
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test pipe a_descriptor_that_is_not_open_is_refused
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test io_error_lines
+```
+
+By hand: `podssh tx send a b` says "podssh tx: send takes one file: podssh tx send FILE" and exits 64.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

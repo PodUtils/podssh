@@ -126,7 +126,7 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
         .and_then(|()| crate::hysteria::pipe::beside(args))
         .and_then(|()| crate::tuic::pipe::beside(args))
         .and_then(|()| crate::turn::pipe::beside(args));
-    if let Err(refusal) = beside.and_then(|()| crate::proxy_alone::key_alone(args)) {
+    if let Err(refusal) = beside.and_then(|()| crate::proxy_alone::checked(args)) {
         return refusal.report("proxy", err);
     }
     // The lead of the warning before the relay's idle cut (T-463).
@@ -485,8 +485,8 @@ async fn session(
 pub fn sysexit(e: &OpenError) -> i32 {
     match e {
         OpenError::Token(TokenError::BadEnvironment) => EX_CONFIG,
-        // A relay that mints for a list of keys refuses this key (T-940).
-        OpenError::Token(TokenError::Failed { status: 401 | 403, .. }) => EX_NOPERM,
+        // A mint of a list of keys refuses this key (T-940); a relay that issues none, each (T-1009).
+        OpenError::Token(TokenError::Failed { status: 401 | 403, .. } | TokenError::NotIssued { .. }) => EX_NOPERM,
         OpenError::Token(TokenError::Connect(c)) | OpenError::Connect { error: c, .. } => match c {
             ConnectError::Config(_) | ConnectError::Dial(DialError::BadProxy(_)) => EX_CONFIG,
             ConnectError::Refused { status: 401 | 403, .. } => EX_NOPERM,

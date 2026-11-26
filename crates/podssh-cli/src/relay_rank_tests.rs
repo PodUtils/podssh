@@ -80,3 +80,15 @@ fn the_lines_of_a_rank_name_each_host_best_first() {
     assert_eq!(ago(Duration::from_secs(600)), "10 min ago");
     assert_eq!(ago(Duration::from_secs(7200)), "2 h ago");
 }
+
+/// A file with no hosts or no time holds no rank: `--cached` and `--forget`
+/// say that none is kept, never "a rank of 0 hosts" (T-1017).
+#[test]
+fn a_file_with_no_hosts_or_no_time_holds_no_rank() {
+    let full = Rank { made_ms: 1, hosts: vec![Figures::default()], ..Default::default() };
+    assert!(kept(Some(full.clone())).is_some());
+    assert!(kept(Some(Rank { hosts: Vec::new(), ..full.clone() })).is_none(), "no hosts");
+    assert!(kept(Some(Rank { made_ms: 0, ..full })).is_none(), "no time");
+    assert!(kept(Some(Default::default())).is_none(), "a file of another form");
+    assert!(kept(None).is_none());
+}

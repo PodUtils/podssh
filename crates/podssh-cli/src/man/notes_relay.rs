@@ -250,7 +250,7 @@ pub const RELAY: &[&str] = &[
      pair's operators out while its node keeps its socket (podssh relay halt). /v1/resume/NAME, with the stop \
      token, lets them in again (podssh relay resume); the status says halted. --pairs FILE keeps the pairs in \
      FILE, so that they outlive a restart. FILE is of mode 0600, and holds the digests of their tokens and never a \
-     token. At most 1 MiB waits for a slow operator: past it, the session ends with 1011 relay backpressure, and \
+     token. A directory of FILE that is not there, or that cannot be written, stops the start (78). At most 1 MiB waits for a slow operator: past it, the session ends with 1011 relay backpressure, and \
      the node's other sessions go on; a node that reads slowly slows its operators instead, each session's frames \
      to it a turn each. So one operator's upload never holds another's keystrokes behind it. A frame of the node \
      for a session that ended in the last 2 seconds was on its way, and is dropped; one for an id never given \
@@ -307,7 +307,7 @@ pub const RELAY: &[&str] = &[
      key's 64, gets 403, and podssh mints another. --usage FILE keeps each key's totals of the day and the day \
      before in FILE, of mode 0600, so that they outlive a restart. FILE is written through a file beside it and a \
      rename each 2 s while a count moved, and at a planned stop; a file that does not read stops the start (78), \
-     and a write that fails is a line. SIGHUP says each key's totals on stderr, the most of today first. Both \
+     as does a directory that cannot take it. A write that fails is a line. SIGHUP says each key's totals on stderr, the most of today first. Both \
      flags with --mint anyone or nobody, which count no key, are refused (64).",
     "The certificate and its key are read again on SIGHUP, and when either file changes, which the \
      role looks at each minute; on Windows, which has no SIGHUP, that is the way. The handshakes after \

@@ -4930,9 +4930,9 @@ commands. The rules behind them:
   `pipe`'s remote sides: the time to the session's open, never the bytes
   after it. They take the duration of the other commands' `--timeout`
   (`30s`, `2m`, `1h`, `500ms`), in whole seconds rounded up; the flag takes
-  a day at most, as `--ConnectTimeout` does (64 past it, and for 0 or a
-  typo, also beside `--ConnectTimeout`), and the variable, which bounds
-  whole runs of other commands, is held to a day (78 for a bad one).
+  a day at most, as `--ConnectTimeout` does (64 past it, and for 0, `2d` or
+  a typo, also beside `--ConnectTimeout`), and the variable, which bounds
+  whole runs of other commands, counts a longer value as a day (78 for a bad one).
   `--ConnectTimeout` wins over `--timeout`, and either over the variable;
   the line past the bound names the one that set it (`within 25 s
   (--timeout)`). None of them is ever required, with no terminal either.
@@ -6068,8 +6068,8 @@ once the edge registered the tunnel.
 - **Half-close, as `podssh proxy` does.** When one side's input ends, the
   other side's write half is shut, and the other direction goes on: a reply
   still comes back. `tcp:`, `ssh:` and `unix-connect:` pass it on as TCP,
-  SSH and a socket do; the relay has no half-close, so `relay:` sends no
-  Close, and the target's bytes come until it closes, as a named pipe's do;
+  SSH and a socket do; `relay:` sends the relay's Close, its one half-close
+  (T-1018), and the target's bytes come until it closes or is quiet 15 s;
   `node:` and `iroh:` end their session, as they ask the layer for no end
   of one direction (`podssh proxy` alone does, T-632). A writer whose reader is gone ends the pipe; a
   program that exited after its output ended ends it too, and so does a
@@ -7701,9 +7701,9 @@ nothing did), and why.
 
 - A usage error is 64 (`EX_USAGE`) for each command, before podssh does
   anything. A configuration error is 78 (`EX_CONFIG`): a variable of the
-  environment that cannot be used, such as `PODSSH_RELAY` or
-  `PODSSH_RELAY_ADDR` (also for `podssh ssh`). The same value as a flag is a
-  usage error. The shell statuses 1 and 2 are not used for these, because a
+  environment that cannot be used, such as `PODSSH_RELAY` (also set and empty,
+  T-1008) or `PODSSH_RELAY_ADDR` (also for `podssh ssh`). The same value as a
+  flag is a usage error. The shell statuses 1 and 2 are not used for these, because a
   script cannot tell them from other programs' failures.
 - `podssh ssh` uses the codes of OpenSSH, so it can replace `ssh` in
   scripts: the remote status unchanged (0 and 127 included), and 255 for a

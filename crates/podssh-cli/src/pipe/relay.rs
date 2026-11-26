@@ -2,11 +2,15 @@
 //! of `podssh proxy`.
 //!
 //! The session carries the bytes in binary frames; the relay's keepalives,
-//! the empty frames, are dropped. The end of what the pipe sends sends no
-//! Close: the relay has no half-close, and a Close stops the target's bytes
-//! after 15 s of silence (`docs/relay.md`), so the target's bytes come until
-//! it closes. The ping watcher finds a link that died with no word. When
-//! the relay ends the session, nothing more can come, and the pipe ends.
+//! the empty frames, are dropped. At the end of what `pipe` sends, its
+//! relay: side sends the Close, the relay's one half-close (T-1018): the
+//! relay stops the bytes to the target (podssh's role shuts the target's
+//! writing side), and the target's bytes still come until it closes, or
+//! until it is quiet for 15 s (`docs/relay.md`). `proxy` sends none: as
+//! OpenSSH's ProxyCommand its end of input is no end of the session, and a
+//! reply after 15 s of quiet would be cut. The ping watcher finds a link
+//! that died with no word. When the relay ends the session, nothing more
+//! can come, and the pipe ends.
 //!
 //! Two tasks copy between the session and the pump's end of a pipe in
 //! memory. When the task that sends fails, it stops the task that receives,
@@ -118,13 +122,14 @@ pub async fn session(
 /// stream with no Close is the end of the session, as on the road of
 /// `cloudflared`, where neither side sends a Close (T-264). With `host`, the
 /// relay host that opened it, its end goes into the record of the hosts
-/// (T-563); `crossed` keeps when payload last crossed (T-463).
+/// (T-563); `crossed` keeps when payload last crossed (T-463). With
+/// `half_close`, the end of what the pipe sends is the session's Close
+/// (T-1018).
 fn carried(
     session: RelaySession,
     host: Option<String>,
     target: String,
-    v6: bool,
-    quiet_end: bool,
+    (v6, quiet_end, half_close): (bool, bool, bool),
     crossed: Crossed,
 ) -> End {
     let session = Arc::new(session);
@@ -138,9 +143,14 @@ fn carried(
     tokio::spawn(async move {
         let mut buf = vec![0u8; CHUNK];
         loop {
-            // The end of what the pipe sends: no Close (see above).
+            // The end of what the pipe sends: the Close of `pipe`, none of
+            // `proxy` (see above). A Close that fails is a link that the
+            // other task finds gone.
             let n = from_pipe.read(&mut buf).await.unwrap_or(0);
             if n == 0 {
+                if half_close {
+                    let _ = up_session.send_close(1000, "").await;
+                }
                 return;
             }
             if let Err(e) = up_session.send_binary(&buf[..n]).await {
@@ -268,20 +278,22 @@ impl Ending for RelayEnding {
 /// [`carried`] of a session that no relay host's record follows: the road
 /// of `cloudflared`, a forwarder's.
 pub fn carry(session: RelaySession, target: String, v6: bool, quiet_end: bool) -> End {
-    carried(session, None, target, v6, quiet_end, Crossed::default())
+    carried(session, None, target, (v6, quiet_end, false), Crossed::default())
 }
 
-/// [`carried`] of a session that `open` opened: its end goes into the
-/// record of the host that opened it (T-563).
+/// [`carried`] of a session that `open` opened for `pipe`: its end goes into
+/// the record of the host that opened it (T-563), and the end of its input
+/// is the session's Close (T-1018).
 pub fn carry_opened(opened: podssh_relay::open::Opened, target: String, v6: bool) -> End {
-    carried(opened.session, Some(opened.relay.host), target, v6, false, Crossed::default())
+    carried(opened.session, Some(opened.relay.host), target, (v6, false, true), Crossed::default())
 }
 
-/// [`carry_opened`] with when payload last crossed, either way, for the
-/// warning before the relay's idle cut (T-463).
+/// The session of `proxy`, with when payload last crossed, either way, for
+/// the warning before the relay's idle cut (T-463); no Close at the end of
+/// its input.
 pub fn carry_watched(opened: podssh_relay::open::Opened, target: String, v6: bool) -> (End, Crossed) {
     let crossed = Crossed::default();
-    (carried(opened.session, Some(opened.relay.host), target, v6, false, crossed.clone()), crossed)
+    (carried(opened.session, Some(opened.relay.host), target, (v6, false, false), crossed.clone()), crossed)
 }
 
 /// Whether the host's side ended the session (T-563): a link that failed, or

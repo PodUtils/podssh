@@ -126,7 +126,7 @@ Read: the data is in tables already. Commands and flags: `VERBS`
 and the availability (lines 443-451 at `22c3b88`). Arguments: the parser
 (`PodUtils/podssh:crates/podssh-cli/src/man/model.rs:204-208`). Keywords:
 `crates/podssh-cli/src/ssh/keywords.rs:25-145`, with the stated defaults (lines 99-104 at `22c3b88`).
-Variables: `crates/podssh-cli/src/man/facts.rs:46-284`. The files and the exit codes were text
+Variables: `crates/podssh-cli/src/man/facts.rs:46-285`. The files and the exit codes were text
 blocks only (`crates/podssh-cli/src/man/facts.rs` lines 100-145 and 231-271 at `332ee58`), and the blocks of the
 manual do not keep the kind and the `instead` of a flag.
 
@@ -414,7 +414,7 @@ trip (`PodUtils/podssh:crates/podssh-ws/src/session.rs:305-333`; the payload is 
 prints the milliseconds of each `/health` request
 (`crates/podssh-cli/src/doctor/relay_checks.rs`, lines 130-132 at `24f3e2a`). The relay counts both directions
 against 64 MiB for each session (`docs/relay.md:638`). The stand-in relay answers pings
-(`scripts/fake-relay.py:352-353`).
+(`scripts/fake-relay.py:359-360`).
 
 ## Approach
 
@@ -847,7 +847,7 @@ replaces a whole file (lines 178-197 at `22c3b88`), and no function appends to o
    two processes do not mix their lines.
 5. A size limit: at 1 MiB, rename the file to `sessions.1.jsonl`, and start a new one.
 6. `podssh status` (T-051) shows the last line in short form.
-7. Add the variable to VARIABLES (`crates/podssh-cli/src/man/facts.rs:46-284`; the tests require
+7. Add the variable to VARIABLES (`crates/podssh-cli/src/man/facts.rs:46-285`; the tests require
    it) and the file to FILES, in the same commit.
 
 ## Decision
@@ -908,7 +908,7 @@ line of `podssh ssh` at the end of `run_ssh`, from its result
 its session at `crates/podssh-cli/src/proxy.rs:453-460`; the bytes of the
 pump at `crates/podssh-cli/src/pipe/pump.rs:141` and
 `crates/podssh-cli/src/pipe/pump.rs:151-184`, and the relay's close at
-`crates/podssh-cli/src/pipe/relay.rs:240`. `SessionLog` at
+`crates/podssh-cli/src/pipe/relay.rs:250`. `SessionLog` at
 `crates/podssh-cli/src/settings.rs:284-287`, and `podssh status` at
 `crates/podssh-cli/src/status.rs:153-164`. The variable in VARIABLES, the
 two files in FILES, and `docs/cli.md`.

@@ -24,7 +24,9 @@ where
     let opening = open(tx);
     let saying = async {
         while let Some(note) = rx.recv().await {
-            say(&note);
+            // An opener's note can carry an I/O error's words (the mint over
+            // cleartext, T-1009): said once, without Rust's suffix.
+            say(&podssh_ws::text::plain(&note));
         }
     };
     let (out, ()) = tokio::join!(opening, saying);
@@ -56,5 +58,15 @@ mod tests {
         .await;
         assert_eq!(out, 7);
         assert_eq!(heard, ["first", "second"]);
+    }
+
+    /// A note that ends with Rust's `(os error N)` is said without it: the
+    /// line of a mint that a hop reset (T-1009).
+    #[tokio::test]
+    async fn a_note_is_said_without_the_suffix_of_an_io_error() {
+        let mut heard = Vec::new();
+        let note = "the mint gave no answer (reset: Connection reset by peer (os error 104)): a hop may cut cleartext";
+        said(|notes| async move { send(&notes, note) }, &mut |n: &str| heard.push(n.to_string())).await;
+        assert_eq!(heard, ["the mint gave no answer (reset: Connection reset by peer): a hop may cut cleartext"]);
     }
 }

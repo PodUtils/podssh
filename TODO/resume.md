@@ -354,7 +354,7 @@ the node then exits (docs/reverse.md, line 19 at `fb228e9`).
    `/v1/connect/<name>`. If none does, "each relay host" means each address of
    the control host (pins, resolver, DNS over HTTPS). Write it in
    `docs/relay.md`, with `docs/reverse.md` and the manual's relay section
-   (`crates/podssh-cli/src/man/facts.rs:313-467`).
+   (`crates/podssh-cli/src/man/facts.rs:314-468`).
 6. A node keeps the replay buffer of each session (T-152): with the relay's
    limit of 64 sessions and 4 MiB each, 256 MiB. Bound the node's whole
    replay memory (a session past the bound gets `REFUSE` busy, code 6), and
@@ -858,8 +858,8 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 4. On the resumable road, do not print the warning of
    `crates/podssh-cli/src/ssh/resolve.rs:349-359` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
-   (`crates/podssh-cli/src/man/facts.rs:393-408`,
-   `crates/podssh-cli/src/man/facts.rs:428-437`), the note at
+   (`crates/podssh-cli/src/man/facts.rs:394-409`,
+   `crates/podssh-cli/src/man/facts.rs:429-438`), the note at
    `crates/podssh-cli/src/man/notes_ssh_more.rs:136`, `docs/relay.md`, `README.md`.
 
 ## Decision
@@ -989,7 +989,7 @@ node's side (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:133-13
 6. When the client knows the expiry of the pair (from the node's ticket,
    T-163), it warns 1 h before; at the expiry the session ends with the reason.
 7. `-v` prints one line for each move. Docs: `docs/relay.md` ("Limits that
-   users see") and the manual (`crates/podssh-cli/src/man/facts.rs:313-467`).
+   users see") and the manual (`crates/podssh-cli/src/man/facts.rs:314-468`).
 
 ## Decision
 
@@ -1087,8 +1087,8 @@ Measured in the gate (`docs/STATUS.md`, "Faults between podssh and the relay,
 measured"): a relay that stalls is declared dead at 50 s, and a relay host
 killed in a session gives exit 255 (`scripts/interop-faults.sh:269-287`).
 These checks stay, for the forward road, which has no resumption. Read: the
-stand-in relay serves the forward path only (`scripts/fake-relay.py:164-188`),
-and its `stall` mode never ends (`scripts/fake-relay.py:332-335`). The
+stand-in relay serves the forward path only (`scripts/fake-relay.py:169-193`),
+and its `stall` mode never ends (`scripts/fake-relay.py:339-342`). The
 harness cannot change an address or end a stall yet (T-203). The checks need
 T-151 to T-155, the iroh road (T-162 to T-165), the reverse runners (T-079,
 T-080) and a far end (`podssh serve`, T-107).

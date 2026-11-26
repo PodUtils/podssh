@@ -246,7 +246,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
         .try_get_matches_from(std::iter::once(std::ffi::OsString::from(verb.name)).chain(rest.iter().cloned()))
     {
         Ok(m) => m,
-        Err(e) => return crate::clap_error::rebuild_error(verb.name, &e, given_o(rest)),
+        Err(e) => return crate::clap_error::rebuild_for(verb.name, rest, &e, given_o(rest)),
     };
 
     if matches.get_flag("help") {

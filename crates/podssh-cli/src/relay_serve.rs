@@ -25,6 +25,7 @@ mod args;
 mod certs;
 mod cover;
 mod derp;
+mod files;
 pub(crate) mod keys_url;
 mod limits;
 mod list;
@@ -135,10 +136,12 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let limits = limits::of(s)?;
     // The resumable sessions of the forward road (T-173).
     let (sessions, resumable) = resumes::of(s, limits.bytes)?;
+    // The files that it writes as it serves, before anything listens (T-1014).
+    s.pairs.as_deref().map_or(Ok(()), |file| files::writable("--pairs", file))?;
     if podssh_relay::open::offline() {
         let env = podssh_relay::open::OFFLINE_ENV;
         return Err(Refusal {
-            message: format!("{env} is set, so podssh does not connect anywhere"),
+            message: format!("{env} is set, which forbids each connection: a relay takes them and dials its targets"),
             code: EX_UNAVAILABLE,
         });
     }

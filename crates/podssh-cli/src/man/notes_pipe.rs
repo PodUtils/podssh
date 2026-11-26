@@ -6,7 +6,8 @@ pub const PIPE: &[&str] = &[
     "podssh pipe A B joins two byte streams, as socat does, with no listener unless one side asks for one: what A \
      gives goes to B, and what B gives goes to A. Each address is KIND:REST: - or stdio (stdin and stdout), fd:N (a \
      descriptor that podssh inherited, 3 or more, on Unix), or exec:CMD (a program). relay:HOST:PORT is TCP through \
-     the relay on the contract's road, with no half-close (see below). tcp:HOST:PORT is TCP from this host, through HTTPS_PROXY when it is set. \
+     the relay on the contract's road, whose half-close is the relay's Close (see below). tcp:HOST:PORT is TCP from \
+     this host, through HTTPS_PROXY when it is set. \
      ssh:[USER@]HOP[,HOP...],HOST:PORT is TCP that the last SSH hop opens, as -W asks. node:NAME is the TARGET of the \
      node of a pair, and udp:node:NAME is UDP through a node; see below. The others are iroh:TICKET (the TARGET of a \
      node of the iroh road), unix-connect:PATH (a local socket; @NAME in Linux's abstract namespace; on Windows a Unix \
@@ -119,10 +120,11 @@ pub const PIPE: &[&str] = &[
      length over 65,507 in the stream exits 65; a longer datagram of the program is counted and \
      dropped. Over the relay, datagrams wait for each other: a lost segment delays each later one.",
     "When one side's input ends, the other side gets the end of its input. The other direction goes on, so that a \
-     reply still comes back: tcp:, ssh: and unix-connect: pass it on as a half-close. The relay has no half-close, so \
-     a relay: side sends nothing at the end of input. The target's bytes come until it closes, as a named pipe's do, \
-     whose listening side closes it at its end of input; node: and iroh: end their session. With a node: side, SIGHUP, \
-     SIGTERM and SIGINT end the node's session as an end of input does, so that the node keeps nothing of it. The \
+     reply still comes back: tcp:, ssh: and unix-connect: pass it on as a half-close. A relay: side sends the \
+     relay's Close, its one half-close: the target gets the end of its input from podssh's relay role. Its \
+     bytes still come until it closes, or until it is quiet for 15 s. A named pipe's bytes come until it closes, \
+     as its listening side closes it at its end of input; node: and iroh: end their session. With a node: side, \
+     SIGHUP, SIGTERM and SIGINT end the node's session as an end of input does, so that the node keeps nothing of it. The \
      road's status is then 0 when the node took the session (see podssh operator). --no-resume ends the session of \
      each node:, udp:node: and iroh: side with its link, as podssh operator --no-resume does, and a pipe with none of \
      them refuses it (64). The pipe ends when both have ended, or when a side's reader is gone. It also ends when a \

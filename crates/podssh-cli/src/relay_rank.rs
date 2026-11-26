@@ -38,8 +38,12 @@ pub fn run(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             .report("relay", err);
     }
     if args.forget {
+        // What was there, said before it goes (T-1017): a second --forget
+        // has nothing to forget.
+        let had = kept(rank::load()).is_some();
         rank::forget();
-        let _ = writeln!(err, "podssh relay rank: the rank kept is forgotten");
+        let said = if had { "the rank kept is forgotten" } else { "no rank is kept; nothing is forgotten" };
+        let _ = writeln!(err, "podssh relay rank: {said}");
         return 0;
     }
     if args.cached {
@@ -303,7 +307,7 @@ fn source(made: &Rank) -> &'static str {
 /// `--cached`: the rank kept, its age and whether it holds for this egress,
 /// with no connection.
 fn cached(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
-    let Some(kept) = rank::load() else {
+    let Some(kept) = kept(rank::load()) else {
         let _ = writeln!(err, "podssh relay rank: no rank is kept; `podssh relay rank` measures and keeps one");
         return EX_UNAVAILABLE;
     };
@@ -317,7 +321,7 @@ fn cached(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         let _ = writeln!(out, "{doc}");
         return 0;
     }
-    let age = kept.age(now).map_or_else(|| "at a time that this clock has not reached".into(), ago);
+    let age = kept.age(now).map_or_else(|| "later than this host's clock says it is now".into(), ago);
     let whose = if kept.egress == here { "this egress" } else { "another egress" };
     let state = if holds { "it holds" } else { "it no longer holds; `podssh relay rank` measures again" };
     let by = match (kept.background(), kept.partial) {
@@ -333,11 +337,18 @@ fn cached(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     0
 }
 
+/// A rank that the file holds: one with hosts and a time it was made. A file
+/// of the samples alone, or of another form whose fields all fell to their
+/// defaults, holds none (T-1017).
+pub(crate) fn kept(rank: Option<Rank>) -> Option<Rank> {
+    rank.filter(|rank| !rank.hosts.is_empty() && rank.made_ms > 0)
+}
+
 /// The rank kept, for `podssh status` (T-606), with no connection: its age,
 /// whether it is of this egress and still holds, its first host that
 /// opened and how many it ranks; null with none.
 pub(crate) fn status_value() -> serde_json::Value {
-    let Some(kept) = rank::load() else { return serde_json::Value::Null };
+    let Some(kept) = kept(rank::load()) else { return serde_json::Value::Null };
     let now = now_ms();
     let here = egress_of(&Relay { host: podssh_relay::relay::default_relay_host().to_string(), port: 443 });
     json!({

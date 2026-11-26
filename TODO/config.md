@@ -395,7 +395,7 @@ at `crates/podssh-cli/src/ssh/resolve.rs:146-157` and, for a hop of `-J`,
 `crates/podssh-cli/src/ssh/options.rs:214-226`, a forward once at
 `crates/podssh-cli/src/ssh/local_spec.rs:73-81` and
 `crates/podssh-cli/src/ssh/forward.rs:37-42`; the note of `-P` at
-`crates/podssh-cli/src/refuse.rs:133-149`.
+`crates/podssh-cli/src/refuse.rs:136-152`.
 - `cargo test -p podssh-cli --test ssh_config_match`: 4 passed. 32 cases,
   each a file and the words of `ssh -G`, give the lines that OpenSSH 10.3p1
   printed for them: each criterion with and without `!`, lists, case,
@@ -672,7 +672,7 @@ command, or edits a shell profile. No file states them once.
 
 Read: each command resolves the same settings in its own copy. Relay hosts (`--relay-host`,
 then `PODSSH_RELAY`, then the default and the pool: `PodUtils/podssh:crates/podssh-relay/src/relay.rs:134-152`)
-go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67-92`), called in
+go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67-98`), called in
 `crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:179-182` and
 `crates/podssh-cli/src/proxy.rs:279-282`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
 `crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:230-249` and
@@ -702,7 +702,7 @@ configuration directory first; the operator corrected it on 2026-10-08 (`docs/de
 5. No keyword for a token: a token in a file is a stored credential (question Q5, T-034).
 6. podssh never writes the file: csshw creates one, but podssh changes nothing unasked.
 7. `doctor` and `status` (T-051) name the file in use. Change in the same commit: VARIABLES and
-   FILES (`crates/podssh-cli/src/man/facts.rs:46-284`, 98-142), `docs/relay.md:107-404` and
+   FILES (`crates/podssh-cli/src/man/facts.rs:46-285`, 98-142), `docs/relay.md:107-404` and
    `docs/cli.md`. The cache directory is the work of T-243.
 
 ## Decision
@@ -758,8 +758,8 @@ its places at `crates/podssh-cli/src/settings.rs:147-170`, its checks at
 `crates/podssh-cli/src/settings.rs:193-217`, its lines at
 `crates/podssh-cli/src/settings.rs:219-359`; the relay hosts and the
 failover below the flag and the variable at
-`crates/podssh-cli/src/relay_settings.rs:73-88` and
-`crates/podssh-cli/src/relay_settings.rs:129-139`, the pins and the refusal
+`crates/podssh-cli/src/relay_settings.rs:73-94` and
+`crates/podssh-cli/src/relay_settings.rs:139-149`, the pins and the refusal
 of a bad file at `crates/podssh-cli/src/pins.rs:13-42`, the CA file at
 `crates/podssh-cli/src/settings.rs:361-371` and, for `podssh ssh`,
 `crates/podssh-cli/src/ssh/resolve.rs:98-107`; `status` at

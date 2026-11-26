@@ -853,7 +853,7 @@ minutes, and no harness can test that yet.
 Read:
 
 - The modes of the stand-in relay: `normal`, `refuse`, `blackhole`, `silent`,
-  `stall` and `close` (`scripts/fake-relay.py:18-36`). The stand-in proxy maps
+  `stall` and `close` (`scripts/fake-relay.py:23-41`). The stand-in proxy maps
   names and answers a status (`scripts/fake-proxy.py:1-32`). Neither shapes
   the traffic.
 - `scripts/interop-faults.sh:35-44` starts one stand-in for each fault; its
@@ -927,7 +927,7 @@ fail when the resume layer is off.
 ## Correction
 
 Item 4 needs the reverse road in the stand-in relay, which serves the
-forward road only (`scripts/fake-relay.py:163-164`). T-156 builds it (its
+forward road only (`scripts/fake-relay.py:168-169`). T-156 builds it (its
 item 1) and makes those checks its measurement (its items 2 to 5). T-203
 gives T-156 the faults that those checks need: `pause:AFTER:FOR` for the
 stall that ends, `cut` for a host stopped mid-session, and `--move` for the
@@ -1390,7 +1390,7 @@ that fails at random hides a defect, or teaches the reader to rerun.
 
 ## Premise
 
-- The test (`crates/podssh-cli/tests/pipe.rs:103`) gives the bytes to podssh's stdin from a
+- The test (`crates/podssh-cli/tests/pipe.rs:107`) gives the bytes to podssh's stdin from a
   thread and waits 10 s for podssh to end; its server answers the digest once its input ends
   (`crates/podssh-cli/tests/pipe_seen/mod.rs:170`).
 - The pump shuts the other side's write half down when its input ends
@@ -3130,7 +3130,7 @@ three on Linux. It passed each macOS gate before this one. It waits for its next
 relay ended with no Close (sending a ping to the relay failed: Broken pipe (os error 32)); connecting again at once".
 The stand-in sends Close 1003 for a frame of an id that it forgot and breaks out of its read at once
 (`scripts/fake_reverse.py:308-309` before this change); its handler then returns and the connection is closed
-(`scripts/fake-relay.py:200-203`) while the node still sends the other session's megabytes. A socket closed with
+(`scripts/fake-relay.py:205-208`) while the node still sends the other session's megabytes. A socket closed with
 bytes unread is reset: the node's next write fails (EPIPE) and the reset can drop the Close before the node reads it,
 so no 1003 is said. A real relay's graceful close reads on until its peer's Close. Fix (the stand-in): after its
 Close of a node's socket (the 1003 of an unknown id, a late close's 1003, a stop, an expiry), `drained` reads and drops

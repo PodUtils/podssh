@@ -553,7 +553,7 @@ sh scripts/dev.sh check                     # interop-cp.sh through scripts/fake
 ```
 
 The stand-in relay's `close:BYTES:CODE` mode
-(`scripts/fake-relay.py:362-390`) ends each session after 1,500,000 bytes
+(`scripts/fake-relay.py:398-427`) ends each session after 1,500,000 bytes
 from the target with `1011`. A 5,000,000-byte download must finish over 4
 sessions or more with equal digests, and `-v` names each offset. A new mode
 that counts both directions does the same for an upload. A run stopped with
@@ -657,7 +657,7 @@ old writer can race the new one.
    ways; 11 h 30 min) go in `crates/podssh-relay/src/relay.rs`, beside
    `RELAY_IDLE_SECS`. A variable `PODSSH_SESSION_BUDGET` can lower the byte
    budget (a relay with smaller caps, the tests), never raise it; add it to
-   `crates/podssh-cli/src/man/facts.rs:46-284`.
+   `crates/podssh-cli/src/man/facts.rs:46-285`.
 2. Count the payload bytes both ways in the relay stream (an atomic counter
    beside `RelayStatus`), and keep the session's start time.
 3. Invariant: no session passes a budget. Before a data request that would
@@ -670,7 +670,7 @@ old writer can race the new one.
 5. Only the relay transport counts: `--direct` has no cap. With `-J`, the
    one relay session carries the whole chain.
 6. A "Session limits" item in the manual's relay section
-   (`crates/podssh-cli/src/man/facts.rs:314-467`), from the constants;
+   (`crates/podssh-cli/src/man/facts.rs:315-468`), from the constants;
    `docs/relay.md` and `docs/cli.md`. T-155 does the same for the
    resumable layer of M6; this entry needs no M6 work.
 
@@ -2012,7 +2012,7 @@ host, and the copy back then destroys that change with no word.
   probe (`PodUtils/podcrates:crates/pod-manual/src/pager.rs`, `find_program`) and runs it with
   `run_program` (`PodUtils/podcrates:crates/pod-manual/src/pager.rs`).
 - Read: `VISUAL` and `EDITOR` are not in the manual's variables
-  (`crates/podssh-cli/src/man/facts.rs:46-284`).
+  (`crates/podssh-cli/src/man/facts.rs:46-285`).
 - Read: the relay cuts a session after 180 s with no payload
   (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:19-21`); an editor stays open longer.
 
@@ -3827,7 +3827,7 @@ to the other two; no manual says that the split is a choice, or why.
   holds the handshake, which ConnectTimeout bounds, 60 s by default
   (`crates/podssh-cli/src/ssh/keywords.rs:39-40`); the report killed `scp` at 30 s, before it.
 - Read (L-30): `PODSSH_TIMEOUT` is the default of `--timeout` "for each command that has the flag"
-  (`crates/podssh-cli/src/man/facts.rs:113-116`), as the report found; met.
+  (`crates/podssh-cli/src/man/facts.rs:114-117`), as the report found; met.
 - Read (L-13): the gate runs at the dispatch, before a verb reads its operands
   (`crates/podssh-cli/src/dispatch.rs:374-398`), so with no terminal `cp DIR HOST:` with no `-r`
   gets 64 for the missing `--timeout` first, and on a terminal 66.

@@ -68,8 +68,9 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (
         &["PODSSH_RELAY"],
-        "The relay hosts, as --relay-host. The flag wins. node://NAME and --exit NAME refuse it (78), \
-      saying that PODSSH_RELAY does not apply: the pair names its relay.",
+        "The relay hosts, as --relay-host. The flag wins. Set and empty, it is refused (78), as it names no \
+      relay: unset it for the default relays. node://NAME and --exit NAME refuse it (78), saying that \
+      PODSSH_RELAY does not apply: the pair names its relay.",
     ),
     (
         &["PODSSH_RELAY_FAILOVER"],
@@ -114,8 +115,8 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
         "The default of --timeout for each command that has the flag (podssh edit's with --no-terminal \
       alone), as a whole duration such as 30s; the flag wins, and an empty value is no value. A bad value is \
       a configuration error (78). For podssh operator, proxy and pipe, whose --timeout is another name of \
-      --ConnectTimeout, it bounds the session's open alone, held to a day; pipe reads it for a node: or \
-      relay: side where no side listens.",
+      --ConnectTimeout, it bounds the session's open alone. A value past a day counts as a day there, and \
+      pipe reads it for a node: or relay: side where no side listens.",
     ),
     (&["PODSSH_RELAY_TOKEN"], "A relay token to use in place of one podssh mints. podssh never prints it."),
     (
@@ -279,7 +280,7 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_OFFLINE"],
         "Forbid each network connection. Test suites set it. podssh doctor then shows the network \
-      checks as one ???? line.",
+      checks as one ???? line. podssh relay serve does not start (69): a relay takes connections and dials.",
     ),
 ];
 

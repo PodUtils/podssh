@@ -120,10 +120,16 @@ impl Files {
     /// so that the watch says a failure once.
     fn load(&self) -> Result<(Arc<rustls::sign::CertifiedKey>, Leaf), String> {
         *self.seen.lock().unwrap_or_else(PoisonError::into_inner) = Some(self.stamp());
-        let read = |p: &PathBuf| {
-            std::fs::read(p).map_err(|e| format!("{}: {}{}", p.display(), podssh_ws::text::said(&e), after_drop(&e)))
+        // Each line names which file it is about (T-1014): ACME keeps both in one.
+        let (cert_is, key_is) = match self.cert == self.key {
+            true => ("the certificate and its key", "the certificate and its key"),
+            false => ("the certificate", "the key"),
         };
-        let (cert, key) = (read(&self.cert)?, read(&self.key)?);
+        let read = |what: &str, p: &PathBuf| {
+            std::fs::read(p)
+                .map_err(|e| format!("{what} {}: {}{}", p.display(), podssh_ws::text::file_said(p, &e), after_drop(&e)))
+        };
+        let (cert, key) = (read(cert_is, &self.cert)?, read(key_is, &self.key)?);
         acme::certs::load(&cert, &key).map_err(|e| format!("{}: {}", self.shown(), podssh_ws::text::said(&e)))
     }
 

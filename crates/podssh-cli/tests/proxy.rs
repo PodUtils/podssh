@@ -320,3 +320,35 @@ fn a_bad_variable_is_a_configuration_error() {
         assert!(err.contains(&format!("{}: ", flag[0])), "{argv:?}: {err}");
     }
 }
+
+/// `PODSSH_RELAY` set and empty names no relay (T-1008): each command that
+/// reads it refuses it (78) in one line that names it, before anything
+/// connects; read as unset, it sent the target to the default relays.
+#[test]
+fn an_empty_relay_variable_is_refused() {
+    let commands: [&[&str]; 3] = [&["proxy", "example.org", "22"], &["ssh", "-l", "u", "host", "true"], &["doctor"]];
+    for argv in commands {
+        let (rc, err) = podssh_with(argv, &[("PODSSH_RELAY", "")]);
+        assert_eq!(rc, 78, "{argv:?}: {err}");
+        assert!(err.contains("PODSSH_RELAY is set and empty"), "{argv:?}: {err}");
+    }
+    // The flag wins, as beside any value of the variable.
+    let argv = ["proxy", "--relay-host", "relay.example", "example.org", "22"];
+    let (rc, err) = podssh_with(&argv, &[("PODSSH_RELAY", "")]);
+    assert_ne!(rc, 78, "{err}");
+}
+
+/// `proxy node://NAME` and `proxy --exit NAME` refuse `PODSSH_RELAY` (78),
+/// as `ssh` does and as the manual says (T-1013): the pair names the relay.
+#[test]
+fn a_node_and_an_exit_refuse_the_relay_variable() {
+    let rows: [(&[&str], &str); 2] = [
+        (&["proxy", "node://lab"], "PODSSH_RELAY does not apply to node://lab"),
+        (&["proxy", "--exit", "lab", "example.org", "22"], "PODSSH_RELAY does not apply to --exit lab"),
+    ];
+    for (argv, says) in rows {
+        let (rc, err) = podssh_with(argv, &[("PODSSH_RELAY", "relay.example")]);
+        assert_eq!(rc, 78, "{argv:?}: {err}");
+        assert!(err.contains(says), "{argv:?}: {err}");
+    }
+}

@@ -2979,7 +2979,7 @@ no reason (`docs/target-environment.md:88-89`).
    (`crates/podssh-cli/src/doctor/host.rs:12-28`) from the same function.
 6. T-108 runs the result. Never call `getpwuid`. Same commit: `--shell` in
    `crates/podssh-cli/src/flags.rs`, `SHELL` in
-   `crates/podssh-cli/src/man/facts.rs:46-284`, `docs/cli.md`.
+   `crates/podssh-cli/src/man/facts.rs:46-285`, `docs/cli.md`.
 
 ## Decision
 
@@ -3537,8 +3537,8 @@ connection.
 ## Premise
 
 - `crates/podssh-cli/src/relay_serve.rs` said `mod harden;` before this entry: the drop was private to
-  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:167`
-  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:139` only reads
+  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:170`
+  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:145` only reads
   `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
   `harden_tests.rs` (228).
 - `crates/podssh-cli/src/first_thread.rs` and `crates/podssh-cli/src/main.rs:32` hold the hand-off

@@ -87,9 +87,10 @@ pub const PROXY: &[&str] = &[
      first limit to pass ends the wait. Past the bound one line names the step that waited, as: no relay host answered \
      within 25 s (--ConnectTimeout), and the exit is 69. The bytes after the open are never bounded: a pipe may wait. \
      proxy takes no -o, so -o ConnectTimeout=N is refused (64); 0 is refused too. --timeout DURATION is another name \
-     of the same bound, as a duration (30s, 2m, 1h) rounded up to whole seconds, a day at most. PODSSH_TIMEOUT gives \
-     it its default, held to a day, as for podssh operator: the line past the bound names the one that set it, and \
-     --ConnectTimeout wins when both are given.",
+     of the same bound, as a duration (30s, 2m, 1h) rounded up to whole seconds. More than a day (24h) is refused \
+     (64), and so is a unit other than ms, s, m and h, as 2d. PODSSH_TIMEOUT gives it its default, as for podssh \
+     operator: a value past a day counts as a day, and a bad one is 78. The line past the bound names the one that \
+     set it, and --ConnectTimeout wins when both are given.",
     "podssh proxy --exit NAME HOST PORT carries the pipe from NAME in place of the relay. NAME is a node of your net \
      that lends its egress (see podssh node --exit and podssh exit): the node resolves HOST, checks each of its \
      addresses and dials HOST PORT from its own host. The pipe goes over the pair kept under NAME, in the resumable \

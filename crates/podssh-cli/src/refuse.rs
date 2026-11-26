@@ -40,12 +40,15 @@ pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>, given_o: 
         // command line with no -o has none to fear for (T-868).
         "Nothing was ignored: the command did not run."
     };
+    // The verb's own name heads the line, as each other line of it (T-1010).
+    let head = if verb.is_empty() { "podssh".to_string() } else { format!("podssh {verb}") };
     match suggestion {
-        Some(s) => format!("podssh: unknown flag '{token}'.\n  Did you mean '{s}'?\n  {last}"),
+        Some(s) => format!("{head}: unknown flag '{token}'.\n  Did you mean '{s}'?\n  {last}"),
         // The verb's own help, where its flags are (T-818).
         None => {
-            let help = if verb.is_empty() { "podssh --help".to_string() } else { format!("podssh {verb} --help") };
-            format!("podssh: unknown flag '{token}'.\n  Run '{help}' for the flags this build accepts.\n  {last}")
+            format!(
+                "{head}: unknown flag '{token}'.\n  Run '{head} --help' for the flags this build accepts.\n  {last}"
+            )
         }
     }
 }
@@ -348,6 +351,9 @@ mod tests {
 
         let without = unknown_flag("ssh", "--qqqqq", None, false);
         assert!(without.contains("--qqqqq"), "{without}");
+        // Each line starts with the verb, as its other lines do (T-1010).
+        assert!(with.starts_with("podssh ssh: unknown flag") && without.starts_with("podssh ssh: "), "{with}");
+        assert!(unknown_flag("", "--x", None, false).starts_with("podssh: unknown flag '--x'"));
         assert!(without.contains("podssh ssh --help"), "the verb's own help: {without}");
         assert!(unknown_flag("", "--x", None, false).contains("'podssh --help'"));
         assert!(given_twice("relay serve", "--mint").contains("--mint is given more than once"));

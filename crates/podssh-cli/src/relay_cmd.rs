@@ -118,6 +118,19 @@ impl RelayArgs {
     }
 }
 
+/// The subcommands of `relay`, as a refusal of its command line names them.
+pub(crate) const SUBCOMMANDS: &[&str] =
+    &["pair", "join", "revoke", "halt", "resume", "status", "info", "trace", "rank", "conform", "spec", "serve"];
+
+/// The subcommand that `words` (the command line after `verb`) names, when
+/// `verb` is `relay`: its first word that is one (T-1010).
+pub(crate) fn sub_named(verb: &str, words: &[&str]) -> Option<&'static str> {
+    if verb != "relay" {
+        return None;
+    }
+    words.iter().find_map(|word| SUBCOMMANDS.iter().find(|sub| *sub == word).copied())
+}
+
 /// Run the verb; returns the process exit code.
 pub fn run_relay(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let sub = args.subcommand.as_deref();

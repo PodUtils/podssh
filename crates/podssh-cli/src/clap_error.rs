@@ -105,6 +105,25 @@ pub fn rebuild_error(verb: &str, e: &clap::Error, given_o: bool) -> Parsed {
     }
 }
 
+/// [`rebuild_error`] in the words of the verb's own part (T-1010): a
+/// refusal of `relay SUB`'s command line is headed `podssh relay SUB:`, as
+/// each other line of that subcommand, and one of `tx`'s words is tx's own
+/// line. `rest` is the command line after the verb.
+pub fn rebuild_for(verb: &str, rest: &[std::ffi::OsString], e: &clap::Error, given_o: bool) -> Parsed {
+    let words: Vec<&str> = rest.iter().filter_map(|w| w.to_str()).collect();
+    // A count of tx's words that the parser refuses, in tx's words (T-1019).
+    let shown = !matches!(e.kind(), ErrorKind::DisplayHelp | ErrorKind::DisplayVersion);
+    if let Some(line) = (verb == "tx" && shown).then(|| crate::tx::refused_words(&words)).flatten() {
+        return Parsed::Usage(format!("podssh tx: {line}"));
+    }
+    match (rebuild_error(verb, e, given_o), crate::relay_cmd::sub_named(verb, &words)) {
+        (Parsed::Usage(m), Some(sub)) => {
+            Parsed::Usage(m.replacen(&format!("podssh {verb}:"), &format!("podssh {verb} {sub}:"), 1))
+        }
+        (parsed, _) => parsed,
+    }
+}
+
 /// Today's message for any other error: an unknown flag when the token was
 /// written as a flag, else a bad invocation.
 fn unknown(verb: &str, e: &clap::Error, given: &str, given_o: bool) -> Parsed {
@@ -167,5 +186,28 @@ fn non_empty(s: String) -> Option<String> {
         None
     } else {
         Some(t)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tree::{parse, Parsed};
+
+    /// A refusal of the parser starts with the verb, and with `relay SUB`
+    /// where the command line names a subcommand of relay (T-1010).
+    #[test]
+    fn a_refusal_of_the_parser_names_the_verb_and_relay_s_subcommand() {
+        let rows: [(&[&str], &str); 4] = [
+            (&["relay", "serve", "--max-connections-per-address", "-1"], "podssh relay serve: "),
+            (&["relay", "rank", "--bogus-flag"], "podssh relay rank: unknown flag '--bogus-flag'"),
+            (&["relay", "--bogus-flag"], "podssh relay: unknown flag '--bogus-flag'"),
+            (&["proxy", "--bogus-flag", "host.example", "22"], "podssh proxy: unknown flag '--bogus-flag'"),
+        ];
+        for (words, head) in rows {
+            match parse(words.iter().copied()) {
+                Parsed::Usage(m) => assert!(m.starts_with(head), "{words:?}: {m}"),
+                other => panic!("{words:?}: {other:?}"),
+            }
+        }
     }
 }

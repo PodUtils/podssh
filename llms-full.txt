@@ -3694,10 +3694,11 @@ podssh proxy
   25 s (--ConnectTimeout), and the exit is 69. The bytes after the open are
   never bounded: a pipe may wait. proxy takes no -o, so -o ConnectTimeout=N is
   refused (64); 0 is refused too. --timeout DURATION is another name of the
-  same bound, as a duration (30s, 2m, 1h) rounded up to whole seconds, a day at
-  most. PODSSH_TIMEOUT gives it its default, held to a day, as for podssh
-  operator: the line past the bound names the one that set it, and
-  --ConnectTimeout wins when both are given.
+  same bound, as a duration (30s, 2m, 1h) rounded up to whole seconds. More
+  than a day (24h) is refused (64), and so is a unit other than ms, s, m and h,
+  as 2d. PODSSH_TIMEOUT gives it its default, as for podssh operator: a value
+  past a day counts as a day, and a bad one is 78. The line past the bound
+  names the one that set it, and --ConnectTimeout wins when both are given.
 
   podssh proxy --exit NAME HOST PORT carries the pipe from NAME in place of the
   relay. NAME is a node of your net that lends its egress (see podssh node
@@ -3888,15 +3889,15 @@ podssh pipe
   to A. Each address is KIND:REST: - or stdio (stdin and stdout), fd:N (a
   descriptor that podssh inherited, 3 or more, on Unix), or exec:CMD (a
   program). relay:HOST:PORT is TCP through the relay on the contract's road,
-  with no half-close (see below). tcp:HOST:PORT is TCP from this host, through
-  HTTPS_PROXY when it is set. ssh:[USER@]HOP[,HOP...],HOST:PORT is TCP that the
-  last SSH hop opens, as -W asks. node:NAME is the TARGET of the node of a
-  pair, and udp:node:NAME is UDP through a node; see below. The others are
-  iroh:TICKET (the TARGET of a node of the iroh road), unix-connect:PATH (a
-  local socket; @NAME in Linux's abstract namespace; on Windows a Unix socket
-  or a named pipe, \\.\pipe\NAME), or serial:PATH[,BAUD] (a serial line, on
-  Unix). Both are checked before anything starts, and stdio on both sides is
-  refused.
+  whose half-close is the relay's Close (see below). tcp:HOST:PORT is TCP from
+  this host, through HTTPS_PROXY when it is set.
+  ssh:[USER@]HOP[,HOP...],HOST:PORT is TCP that the last SSH hop opens, as -W
+  asks. node:NAME is the TARGET of the node of a pair, and udp:node:NAME is UDP
+  through a node; see below. The others are iroh:TICKET (the TARGET of a node
+  of the iroh road), unix-connect:PATH (a local socket; @NAME in Linux's
+  abstract namespace; on Windows a Unix socket or a named pipe, \\.\pipe\NAME),
+  or serial:PATH[,BAUD] (a serial line, on Unix). Both are checked before
+  anything starts, and stdio on both sides is refused.
 
   unix-listen:PATH (by the names of unix-connect:) and tcp-listen:[ADDR:]PORT
   (on 127.0.0.1, or on ADDR, an address of this host; port 0 asks for a free
@@ -4055,16 +4056,17 @@ podssh pipe
 
   When one side's input ends, the other side gets the end of its input. The
   other direction goes on, so that a reply still comes back: tcp:, ssh: and
-  unix-connect: pass it on as a half-close. The relay has no half-close, so a
-  relay: side sends nothing at the end of input. The target's bytes come until
-  it closes, as a named pipe's do, whose listening side closes it at its end of
-  input; node: and iroh: end their session. With a node: side, SIGHUP, SIGTERM
-  and SIGINT end the node's session as an end of input does, so that the node
-  keeps nothing of it. The road's status is then 0 when the node took the
-  session (see podssh operator). --no-resume ends the session of each node:,
-  udp:node: and iroh: side with its link, as podssh operator --no-resume does,
-  and a pipe with none of them refuses it (64). The pipe ends when both have
-  ended, or when a side's reader is gone. It also ends when a program has
+  unix-connect: pass it on as a half-close. A relay: side sends the relay's
+  Close, its one half-close: the target gets the end of its input from podssh's
+  relay role. Its bytes still come until it closes, or until it is quiet for 15
+  s. A named pipe's bytes come until it closes, as its listening side closes it
+  at its end of input; node: and iroh: end their session. With a node: side,
+  SIGHUP, SIGTERM and SIGINT end the node's session as an end of input does, so
+  that the node keeps nothing of it. The road's status is then 0 when the node
+  took the session (see podssh operator). --no-resume ends the session of each
+  node:, udp:node: and iroh: side with its link, as podssh operator --no-resume
+  does, and a pipe with none of them refuses it (64). The pipe ends when both
+  have ended, or when a side's reader is gone. It also ends when a program has
   exited and its output has ended, or when a road has ended. podssh waits for
   each program, as a shell does.
 
@@ -5957,10 +5959,11 @@ podssh operator
   for them too: with a TARGET that speaks second, give none. operator takes no
   -o, so -o ConnectTimeout=N is refused (64); 0 is refused too. --timeout
   DURATION is another name of the same bound, as a duration (30s, 2m, 1h)
-  rounded up to whole seconds, a day at most. PODSSH_TIMEOUT gives it its
-  default, held to a day: the line past the bound names the one that set it, as
-  within 25 s (--timeout). --ConnectTimeout wins when both are given; none of
-  them is ever required.
+  rounded up to whole seconds. More than a day (24h) is refused (64).
+  PODSSH_TIMEOUT gives it its default, and a value past a day counts as a day.
+  The line past the bound names the one that set it, as within 25 s
+  (--timeout). --ConnectTimeout wins when both are given; none of them is ever
+  required.
 
   The session runs the end-to-end channel (see podssh node). This operator's
   key is a private file in the cache (client.key, or iroh-client.key of an
@@ -8579,21 +8582,22 @@ podssh relay
   socket (podssh relay halt). /v1/resume/NAME, with the stop token, lets them
   in again (podssh relay resume); the status says halted. --pairs FILE keeps
   the pairs in FILE, so that they outlive a restart. FILE is of mode 0600, and
-  holds the digests of their tokens and never a token. At most 1 MiB waits for
-  a slow operator: past it, the session ends with 1011 relay backpressure, and
-  the node's other sessions go on; a node that reads slowly slows its operators
-  instead, each session's frames to it a turn each. So one operator's upload
-  never holds another's keystrokes behind it. A frame of the node for a session
-  that ended in the last 2 seconds was on its way, and is dropped; one for an
-  id never given closes the node's socket with 1003, as the contract says.
-  Ctrl-C or SIGTERM first closes each socket of the reverse road with 1012. So
-  each node connects again, and each session resumes once the relay is back
-  with its pairs: each socket gets the frames that wait for it first, 1 second
-  at most. The role waits for each answer to its Close, 3 seconds at most in
-  all; a node or an operator that comes meanwhile gets 503 and tries again.
-  Where nothing may listen, the node of a quick tunnel serves the same roads
-  behind its tunnel, with no listener. The tunnel's name is then the relay
-  host: see podssh node --relay.
+  holds the digests of their tokens and never a token. A directory of FILE that
+  is not there, or that cannot be written, stops the start (78). At most 1 MiB
+  waits for a slow operator: past it, the session ends with 1011 relay
+  backpressure, and the node's other sessions go on; a node that reads slowly
+  slows its operators instead, each session's frames to it a turn each. So one
+  operator's upload never holds another's keystrokes behind it. A frame of the
+  node for a session that ended in the last 2 seconds was on its way, and is
+  dropped; one for an id never given closes the node's socket with 1003, as the
+  contract says. Ctrl-C or SIGTERM first closes each socket of the reverse road
+  with 1012. So each node connects again, and each session resumes once the
+  relay is back with its pairs: each socket gets the frames that wait for it
+  first, 1 second at most. The role waits for each answer to its Close, 3
+  seconds at most in all; a node or an operator that comes meanwhile gets 503
+  and tries again. Where nothing may listen, the node of a quick tunnel serves
+  the same roads behind its tunnel, with no listener. The tunnel's name is then
+  the relay host: see podssh node --relay.
 
   --mint keys:FILE mints tokens and makes pairs for the keys of FILE alone.
   FILE is a list in the format of podssh node --allow, read again for each
@@ -8663,9 +8667,10 @@ podssh relay
   totals of the day and the day before in FILE, of mode 0600, so that they
   outlive a restart. FILE is written through a file beside it and a rename each
   2 s while a count moved, and at a planned stop; a file that does not read
-  stops the start (78), and a write that fails is a line. SIGHUP says each
-  key's totals on stderr, the most of today first. Both flags with --mint
-  anyone or nobody, which count no key, are refused (64).
+  stops the start (78), as does a directory that cannot take it. A write that
+  fails is a line. SIGHUP says each key's totals on stderr, the most of today
+  first. Both flags with --mint anyone or nobody, which count no key, are
+  refused (64).
 
   The certificate and its key are read again on SIGHUP, and when either file
   changes, which the role looks at each minute; on Windows, which has no
@@ -12334,9 +12339,10 @@ ENVIRONMENT
       (10.0.0.0/8, fd7a::/16) matches each address inside it, never a name. A
       loopback address never goes through a proxy.
   PODSSH_RELAY
-      The relay hosts, as --relay-host. The flag wins. node://NAME and --exit
-      NAME refuse it (78), saying that PODSSH_RELAY does not apply: the pair
-      names its relay.
+      The relay hosts, as --relay-host. The flag wins. Set and empty, it is
+      refused (78), as it names no relay: unset it for the default relays.
+      node://NAME and --exit NAME refuse it (78), saying that PODSSH_RELAY does
+      not apply: the pair names its relay.
   PODSSH_RELAY_FAILOVER
       How the relay hosts are tried, as --relay-failover: staggered (the
       default), parallel or serial. The flag wins; another word is a
@@ -12377,9 +12383,9 @@ ENVIRONMENT
       edit's with --no-terminal alone), as a whole duration such as 30s; the
       flag wins, and an empty value is no value. A bad value is a configuration
       error (78). For podssh operator, proxy and pipe, whose --timeout is
-      another name of --ConnectTimeout, it bounds the session's open alone,
-      held to a day; pipe reads it for a node: or relay: side where no side
-      listens.
+      another name of --ConnectTimeout, it bounds the session's open alone. A
+      value past a day counts as a day there, and pipe reads it for a node: or
+      relay: side where no side listens.
   PODSSH_RELAY_TOKEN
       A relay token to use in place of one podssh mints. podssh never prints
       it.
@@ -12528,7 +12534,8 @@ ENVIRONMENT
       Windows' dialog.
   PODSSH_OFFLINE
       Forbid each network connection. Test suites set it. podssh doctor then
-      shows the network checks as one ???? line.
+      shows the network checks as one ???? line. podssh relay serve does not
+      start (69): a relay takes connections and dials.
   PODSSH_IAP_TOKEN_FILE
       The file of the token of an iap:// destination, which must be private
       (chmod 600): a token that gcloud auth print-access-token printed, read
@@ -13861,44 +13868,45 @@ EXIT STATUS
       its pid is said. podssh detached stop: the run still holds its lock after
       it was killed.
   77
-      podssh proxy: the relay or the proxy refused (a token, a blocked address,
-      a proxy's 403 or 407). podssh node, operator and relay: the relay refused
-      the pair, or the pair expired; for relay trace, the token. podssh
-      operator and pipe node:: the node's key is not the one pinned in
-      known-nodes or named by --node-key; or the node's allowlist refused this
-      client's key, its grant, or its route. podssh cp and mv: the server
-      refused the login, or podssh did not accept its host key. podssh chat:
-      the same of the pair and of the keys, or the peer declined the file of
-      --file. podssh session start: this host refuses the bind of the session's
-      socket. podssh net policy check: the policy does not let FROM reach TO.
-      podssh agent: a wrong passphrase, or a wrong lock password.
+      podssh proxy: the relay or the proxy refused (a token, or each as a relay
+      that issues none answers 503; a blocked address; a proxy's 403 or 407).
+      podssh node, operator and relay: the relay refused the pair, or the pair
+      expired; for relay trace, the token. podssh operator and pipe node:: the
+      node's key is not the one pinned in known-nodes or named by --node-key;
+      or the node's allowlist refused this client's key, its grant, or its
+      route. podssh cp and mv: the server refused the login, or podssh did not
+      accept its host key. podssh chat: the same of the pair and of the keys,
+      or the peer declined the file of --file. podssh session start: this host
+      refuses the bind of the session's socket. podssh net policy check: the
+      policy does not let FROM reach TO. podssh agent: a wrong passphrase, or a
+      wrong lock password.
   78
       A setting of the environment cannot be used: PODSSH_RELAY or
       PODSSH_RELAY_ADDR (podssh ssh, cp, proxy and doctor). For podssh proxy
-      also a proxy URL that is not http://, or a PODSSH_RELAY_TOKEN that is not
-      a token. The same value as a flag is a usage error (64). A line that
-      podssh cannot use, with its file and line named: in the settings file
-      (see FILES), or in an ssh_config file (-F, ~/.ssh/config, the system's,
-      or one that Include reads). Also such a file that cannot be read or that
-      others can change; the same keyword with -o on the command line is a
-      usage error (64). podssh node, operator, relay and chat: no pair is
-      stored under the label, the pair cannot be read or stored, or a node
-      cannot connect as it is set up; podssh node and operator: the relay
-      speaks a dialect of the reverse road that this podssh does not read, or
-      does not read its own (its hello, or 426); the line names the side to
-      update. podssh edit: VISUAL, EDITOR and PATH give no editor, the editor
-      does not start, or PODSSH_CACHE_DIR is none. podssh node --sshd: a TARGET
-      that sends lines and no version line of SSH 2, which is another service.
-      podssh node: this host refuses UDP for a udp: TARGET. podssh each
-      --interactive: the emergency stop cannot be armed. podssh session start
-      and serve: PODSSH_LISTEN is no, or no directory takes the session's
-      socket. podssh serve: no authorized key, or a key file or the host key
-      that cannot be used, or no shell that runs. podssh agent: no terminal and
-      no SSH_ASKPASS that runs, to ask a passphrase or a password. podssh ssh
-      and health: the file of --policy cannot be read or used, or the server's
-      algorithms do not meet it. podssh serve: the file of --policy cannot be
-      used, or judges no client. podssh doctor: the file of --policy cannot be
-      used.
+      also a proxy URL of another scheme than http://, socks5:// or socks5h://,
+      or a PODSSH_RELAY_TOKEN that is no token. The same value as a flag is a
+      usage error (64). A line that podssh cannot use, with its file and line
+      named: in the settings file (see FILES), or in an ssh_config file (-F,
+      ~/.ssh/config, the system's, or one that Include reads). Also such a file
+      that cannot be read or that others can change; the same keyword with -o
+      on the command line is a usage error (64). podssh node, operator, relay
+      and chat: no pair is stored under the label, the pair cannot be read or
+      stored, or a node cannot connect as it is set up; podssh node and
+      operator: the relay speaks a dialect of the reverse road that this podssh
+      does not read, or does not read its own (its hello, or 426); the line
+      names the side to update. podssh edit: VISUAL, EDITOR and PATH give no
+      editor, the editor does not start, or PODSSH_CACHE_DIR is none. podssh
+      node --sshd: a TARGET that sends lines and no version line of SSH 2,
+      which is another service. podssh node: this host refuses UDP for a udp:
+      TARGET. podssh each --interactive: the emergency stop cannot be armed.
+      podssh session start and serve: PODSSH_LISTEN is no, or no directory
+      takes the session's socket. podssh serve: no authorized key, or a key
+      file or the host key that cannot be used, or no shell that runs. podssh
+      agent: no terminal and no SSH_ASKPASS that runs, to ask a passphrase or a
+      password. podssh ssh and health: the file of --policy cannot be read or
+      used, or the server's algorithms do not meet it. podssh serve: the file
+      of --policy cannot be used, or judges no client. podssh doctor: the file
+      of --policy cannot be used.
   255
       podssh ssh: the connection, the host key, a node's key or the
       authentication failed; or the server refused a session or ended the

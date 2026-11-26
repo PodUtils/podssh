@@ -25,7 +25,7 @@ pub fn apply(p: &Parsed, err: &mut dyn Write) -> Option<i32> {
                 // The word came from the flag, so the line names the flag,
                 // never the variable (T-972).
                 let why = why.replacen(podssh_ws::h2_road::SHAPE_ENV, "--h2-shape", 1);
-                let _ = writeln!(err, "podssh: {why}");
+                let _ = writeln!(err, "{}: {why}", p.head());
                 return Some(EXIT_USAGE);
             }
         }
@@ -42,7 +42,7 @@ pub fn apply(p: &Parsed, err: &mut dyn Write) -> Option<i32> {
     match podssh_ws::h2_road::shape_from_env() {
         Ok(_) => None,
         Err(why) => {
-            let _ = writeln!(err, "podssh: {why}");
+            let _ = writeln!(err, "{}: {why}", p.head());
             Some(EX_CONFIG)
         }
     }

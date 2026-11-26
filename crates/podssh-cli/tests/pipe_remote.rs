@@ -1,8 +1,9 @@
 //! The remote ends of `podssh pipe` (T-175), through the stand-in relay on
 //! the loopback, to small targets of this test: a late reply comes back
-//! after the end of input (no Close went out), through `relay:` and through
-//! `podssh proxy`, which now runs the same pipe; `tcp:` and `ssh:` pass the
-//! end of input on as a half-close; `node:` reaches a node's TARGET over
+//! after the end of input, through `relay:` and through `podssh proxy`,
+//! which now runs the same pipe; `relay:` passes the end of input on as the
+//! relay's Close, its half-close (T-1018), and `tcp:` and `ssh:` as TCP's
+//! and SSH's; `node:` reaches a node's TARGET over
 //! the reverse road; and with `PODSSH_OFFLINE`, no road opens (69). The
 //! checks through the relay say that they did not run when this host has
 //! no Python or no openssl for the stand-in.
@@ -142,6 +143,24 @@ fn a_late_reply_comes_back_after_the_end_of_input_through_the_relay() {
     let (code, out, err) = run(without_proxy(session.command(&args)), b"");
     assert_eq!(code, 0, "{err}");
     assert_eq!(out, "the late reply\n", "{err}");
+}
+
+/// A target that answers only at the end of its input: the pipe's end of
+/// input reaches it as the relay's Close, the answer comes back, and the
+/// pipe ends when the target closes (T-1018); before, it never ended.
+#[test]
+fn relay_passes_the_end_of_input_on_as_its_close_and_the_answer_comes_back() {
+    let session = Session::start("pipe-relay-end");
+    let Some(flags) = relay_flags(&session) else { return };
+    let port = counting_target();
+    let mut args = vec!["pipe".to_string()];
+    args.extend(flags);
+    args.extend(["stdio".to_string(), format!("relay:127.0.0.1:{port}")]);
+    let started = std::time::Instant::now();
+    let (code, out, err) = run(without_proxy(session.command(&args)), b"twelve bytes");
+    assert_eq!(code, 0, "{err}");
+    assert_eq!(out, "12\n", "the target saw the end of its input: {err}");
+    assert!(started.elapsed() < Duration::from_secs(15), "the target's close ended the pipe: {err}");
 }
 
 #[test]

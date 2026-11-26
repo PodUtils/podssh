@@ -2,7 +2,7 @@
 //! with `PODSSH_RELAY_ADDR` ([`crate::pins`]). A bad flag is a usage error
 //! (64). A bad variable is a configuration error (78): the command line is
 //! right, and a script that reads 64 would look for the fault in its
-//! arguments.
+//! arguments. `PODSSH_RELAY` set and empty is a bad variable too.
 
 use std::io::Write;
 
@@ -71,11 +71,17 @@ pub fn relays(flag: Option<&str>, env: Option<String>) -> Result<RelayList, Refu
 /// [`relays`] with the settings given. The default list is followed by the
 /// hosts of other deployments that a signed list names (T-346).
 pub fn relays_from(flag: Option<&str>, env: Option<String>, file: &Defaults) -> Result<RelayList, Refusal> {
+    // A variable that names where traffic goes, set and empty, is refused
+    // (78): `PODSSH_RELAY=$UNSET` would send the target to the default
+    // relays and their forwarders, which the run did not name. The flag
+    // wins, so beside one the variable is not read.
+    if flag.is_none() && env.as_deref().is_some_and(|v| v.trim().is_empty()) {
+        return Err(Refusal::config(format!("{} {EMPTY}", relay::RELAY_ENV)));
+    }
     crate::relay_deployments::install(file)?;
     let pool = ranked(podssh_relay::pool::alternates(relay::default_relay_host()), file);
-    // select_relays reads the variable only when there is no flag, and an
-    // empty variable as no variable.
-    let from_env = flag.is_none() && env.as_deref().is_some_and(|v| !v.trim().is_empty());
+    // select_relays reads the variable only when there is no flag.
+    let from_env = flag.is_none() && env.is_some();
     if let (None, false, Some(value)) = (flag, from_env, &file.relay_host) {
         file.check()?;
         return relay::select_relays(Some(&value.text), None, &pool)
@@ -90,6 +96,10 @@ pub fn relays_from(flag: Option<&str>, env: Option<String>, file: &Defaults) -> 
     })?;
     Ok(crate::relay_deployments::joined(list))
 }
+
+/// The words after the name of a variable of the relay that is set and
+/// empty.
+pub const EMPTY: &str = "is set and empty: unset it for the default relays, or name a relay host";
 
 /// The pool in the order that this host measured (T-607): by the rank of
 /// `relay rank` when one holds for this egress, else by the times of the
@@ -208,8 +218,20 @@ mod tests {
         assert!(bad.message.starts_with("--relay-host: "), "{bad}");
         // The flag wins, so a bad variable beside a good flag is not read.
         assert!(relays_from(Some("good.example"), Some("bad host!".into()), &Defaults::default()).is_ok());
-        // An empty variable is no variable.
-        assert!(relays_from(None, Some("  ".into()), &Defaults::default()).is_ok());
+    }
+
+    /// A variable that is set and empty names no relay, and a run that read
+    /// it as unset went to the default relays (the eighth pass): 78, in
+    /// one line that names it; a flag beside it wins, as beside any value.
+    #[test]
+    fn an_empty_variable_is_refused_and_a_flag_beside_it_wins() {
+        for empty in ["", "  ", "\t"] {
+            let bad = relays_from(None, Some(empty.into()), &Defaults::default()).unwrap_err();
+            assert_eq!(bad.code, EX_CONFIG, "{empty:?}");
+            assert_eq!(bad.message, format!("PODSSH_RELAY {EMPTY}"), "{empty:?}");
+        }
+        assert!(relays_from(Some("good.example"), Some(String::new()), &Defaults::default()).is_ok());
+        assert!(relays_from(None, None, &Defaults::default()).is_ok(), "unset is the default");
     }
 
     /// A refusal's line on `err` is as it was before the journal's copy

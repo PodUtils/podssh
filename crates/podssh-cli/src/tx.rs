@@ -52,6 +52,19 @@ fn ask(args: &TxArgs) -> Result<Ask, String> {
     }
 }
 
+/// The line of `words` (the command line after `tx`) that [`ask`] refuses,
+/// for a command line that the parser refused first: `send a b` gets tx's
+/// own words, not the parser's (T-1019). A word that is a flag is the
+/// parser's to say.
+pub(crate) fn refused_words(words: &[&str]) -> Option<String> {
+    if words.iter().any(|word| word.starts_with('-')) {
+        return None;
+    }
+    let mut words = words.iter().map(|word| word.to_string());
+    let args = TxArgs { subcommand: words.next(), args: words.collect(), refused: Vec::new() };
+    ask(&args).err()
+}
+
 /// The exit code of each failure, as the manual's notes of `tx` give them.
 fn code(failure: &Failure) -> i32 {
     match failure {
@@ -126,8 +139,16 @@ mod tests {
         let help = crate::help::verb_help(verb).split_whitespace().collect::<Vec<_>>().join(" ");
         assert!(help.contains("Usage: podssh tx send FILE | receive [DIR]"), "{help}");
         assert!(!help.contains("[FILE | DIR]..."), "{help}");
-        for words in [["tx", "send", "a", "b"], ["tx", "receive", "a", "b"]] {
-            assert!(matches!(crate::tree::parse(words), crate::tree::Parsed::Usage(_)), "{words:?}");
+        // Refused in tx's own words, one line (T-1019).
+        let rows = [
+            (["tx", "send", "a", "b"], "podssh tx: send takes one file: podssh tx send FILE"),
+            (["tx", "receive", "a", "b"], "podssh tx: receive takes one directory at most: podssh tx receive [DIR]"),
+        ];
+        for (words, line) in rows {
+            match crate::tree::parse(words) {
+                crate::tree::Parsed::Usage(m) => assert_eq!(m, line, "{words:?}"),
+                other => panic!("{words:?}: {other:?}"),
+            }
         }
         assert!(matches!(crate::tree::parse(["tx", "receive", "a"]), crate::tree::Parsed::Tx(_)));
     }

@@ -112,7 +112,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
         ),
         row(
             sysexits::EX_NOPERM,
-            "podssh proxy: the relay or the proxy refused (a token, a blocked address, a proxy's 403 or 407). \
+            "podssh proxy: the relay or the proxy refused (a token, or each as a relay that issues none answers 503; \
+             a blocked address; a proxy's 403 or 407). \
              podssh node, operator and relay: the relay refused the pair, or the pair expired; for relay \
              trace, the token. podssh operator and pipe node:: the node's key is not the one pinned in known-nodes or named by \
              --node-key; or the node's allowlist refused this client's key, its grant, or its route. podssh cp \
@@ -124,9 +125,10 @@ pub fn exit_codes() -> Vec<(Code, String)> {
         row(
             sysexits::EX_CONFIG,
             "A setting of the environment cannot be used: PODSSH_RELAY or PODSSH_RELAY_ADDR (podssh ssh, cp, proxy and \
-             doctor). For podssh proxy also a proxy URL that is not http://, or a PODSSH_RELAY_TOKEN that is not a \
-             token. The same value as a flag is a usage error (64). A line that podssh cannot use, with its file and \
-             line named: in the settings file (see FILES), or in an ssh_config file (-F, ~/.ssh/config, the system's, \
+             doctor). For podssh proxy also a proxy URL of another scheme than http://, socks5:// or socks5h://, \
+             or a PODSSH_RELAY_TOKEN that is no token. The same value as a flag is a usage error \
+             (64). A line that podssh cannot use, with its file and line named: in the settings file (see FILES), \
+             or in an ssh_config file (-F, ~/.ssh/config, the system's, \
              or one that Include reads). Also such a file that cannot be read or that others can change; the same \
              keyword with -o on the command line is a usage error (64). podssh node, operator, relay and chat: no pair \
              is stored under the label, the pair cannot be read or stored, or a node cannot connect as it is set up; \

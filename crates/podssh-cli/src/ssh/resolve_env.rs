@@ -73,7 +73,9 @@ impl Env {
             home,
             user: local.name,
             user_from: local.from,
-            relay: var(relay::RELAY_ENV),
+            // Not filtered: set and empty, it is refused where the relay list
+            // is read (T-1008), and a node's road takes it as none.
+            relay: std::env::var(relay::RELAY_ENV).ok(),
             relay_failover: var(podssh_relay::failover::MODE_ENV),
             direct: var(crate::relay_settings::DIRECT_ENV),
             ssl_cert_file: var("SSL_CERT_FILE"),

@@ -13,7 +13,12 @@ to fail in one way, so podssh's failover, liveness and close handling are
 tested against real OpenSSH without waiting for the real relay to fail.
 
 Usage: fake-relay.py --cert CERT --key KEY --port-file FILE [--mode MODE]
-                     [--keepalive SECONDS]
+                     [--keepalive SECONDS] [--half-closed SECONDS]
+
+A client's Close is its half-close, as at the live relay and podssh's role
+(docs/relay.md, T-1018): the target's writing side is shut, and its bytes
+still come until it closes, or until it is quiet for --half-closed seconds
+(15); then the Close is `1000 client half-closed, target idle for 15s`.
 
 Modes:
   normal           behave
@@ -256,6 +261,8 @@ async def pump(reader, writer, t_reader, t_writer, first=False):
     stalled = asyncio.Event()
     done = asyncio.Event()
     started = time.monotonic()
+    # When the target's last byte came, for the quiet after a client's Close.
+    heard = {"at": started}
     # dropfirst and dropfirstat: the first session ends, as a relay that
     # drops it; the later ones behave.
     drop = {"bytes": None, "seconds": None, "code": None}
@@ -353,11 +360,40 @@ async def pump(reader, writer, t_reader, t_writer, first=False):
                 await send_client(frame(0xA, data))
             elif opcode == 0x8:
                 event(f"close {int.from_bytes(data[:2], 'big') if len(data) >= 2 else 1005}")
-                await send_client(close_frame(1000, "client closed"), last=True)
+                await half_closed()
                 return
             elif opcode == 0x1:
                 await send_client(close_frame(1003, "text frames are not accepted"), last=True)
                 return
+
+    async def half_closed():
+        """The client's Close: the target's writing side shut, and its bytes
+        still sent by down() until it closes, or until it is quiet; Pings
+        are still answered, so that the client's watch of the link holds."""
+        if to_target is not None:
+            await to_target.flush()
+        try:
+            t_writer.write_eof()
+        except (OSError, RuntimeError):
+            pass
+
+        async def pings():
+            while True:
+                opcode, data = await read_frame(reader)
+                if opcode == 0x9:
+                    await send_client(frame(0xA, data))
+
+        answering = asyncio.ensure_future(pings())
+        try:
+            while not answering.done():
+                left = args.half_closed - (time.monotonic() - heard["at"])
+                if left <= 0:
+                    why = f"client half-closed, target idle for {args.half_closed:g}s"
+                    await send_client(close_frame(1000, why), last=True)
+                    return
+                await asyncio.sleep(min(left, 0.2))
+        finally:
+            answering.cancel()
 
     async def down():  # target to client
         sent = 0
@@ -373,6 +409,7 @@ async def pump(reader, writer, t_reader, t_writer, first=False):
                 await send_client(close_frame(1000, "target closed"), last=True)
                 return
             await send_client(frame(0x2, data))
+            heard["at"] = time.monotonic()
             if to_client is not None and to_client.over():
                 # What waits is dropped; the Close goes after the last
                 # whole frame.
@@ -427,6 +464,7 @@ async def main():
     parser.add_argument("--port-file", required=True)
     parser.add_argument("--mode", default="normal")
     parser.add_argument("--keepalive", type=float, default=25.0)
+    parser.add_argument("--half-closed", type=float, default=15.0)
     args = parser.parse_args()
     fake_reverse.MODE = args.mode
     fake_stream.MODE = args.mode

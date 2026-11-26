@@ -191,7 +191,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:391-392`,
    `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1390`).
 6. Add the key files to FILES in the manual
    (`crates/podssh-cli/src/man/data_files.rs:13-364`), and each new variable to
-   `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-284`).
+   `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-285`).
 
 ## Decision
 
@@ -519,9 +519,9 @@ in iroh's source at the pinned version.
    not in the list.
 6. `doctor`, with the feature, reports the `/ping` of each relay and the home
    relay.
-7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-284`),
+7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-285`),
    the flag to the flag table, and the default to the relay section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:313-467`). The tests compare
+   manual (`crates/podssh-cli/src/man/facts.rs:314-468`). The tests compare
    `VARIABLES` with the source in both directions
    (`crates/podssh-cli/src/man/facts.rs:44-45`), so a variable that only the
    feature reads is in the manual only with the feature.
@@ -1163,7 +1163,7 @@ their own server, and the gate tests faults against a stand-in in Python.
 
 Read: the relay is a Cloudflare Worker, and its own document is the contract
 (`docs/relay.md:1-21`, `README.md:39-42`). The stand-in serves the forward
-path, `/v1/mint` and `/health` only (`scripts/fake-relay.py:164-188`). The
+path, `/v1/mint` and `/health` only (`scripts/fake-relay.py:169-193`). The
 pinned contract gives the forward path and the tokens
 (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:73-104`), the
 reverse path and its close table
@@ -1221,8 +1221,8 @@ read, moved here as `cargo todo check` refuses a Blocker on an open entry:
 Lifted on 2026-11-02 by Q63: see below.
 
 The Premise is stale in one sentence: the stand-in serves more than "the forward path,
-`/v1/mint` and `/health` only". At `scripts/fake-relay.py:180-184` it also serves `/relays.json`
-and `/trace`, and `scripts/fake-relay.py:175` hands the whole reverse road to
+`/v1/mint` and `/health` only". At `scripts/fake-relay.py:185-189` it also serves `/relays.json`
+and `/trace`, and `scripts/fake-relay.py:180` hands the whole reverse road to
 `scripts/fake_reverse.py`, which is as strict as the live relay for an id that it forgot, and
 tells a frame in flight apart (`scripts/fake_reverse.py:298-310`). The rest holds; the ruling of
 2026-10-08 that it cites is changed.
@@ -10754,7 +10754,7 @@ can run. The owner wants the Access TCP client in podssh on each system it serve
 
 - `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:40`-`:41`: a token only, from a variable or file.
 - `PodUtils/podcrates:crates/pod-egress/src/cloudflare.rs`: the WebSocket client of an Access TCP rule.
-- `crates/podssh-cli/src/man/facts.rs:129`: the manual says that `cloudflared` prints the token.
+- `crates/podssh-cli/src/man/facts.rs:130`: the manual says that `cloudflared` prints the token.
 
 ## Approach
 

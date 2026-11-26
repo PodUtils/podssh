@@ -147,11 +147,19 @@ fn descriptor(n: i32) -> Result<End, Unopened> {
     // SAFETY: fcntl and dup take any number and only read the table of
     // descriptors; an unknown one fails with EBADF.
     if unsafe { libc::fcntl(n, libc::F_GETFD) } == -1 {
-        return Err(Unopened { code: 64, why: format!("fd:{n}: {}; is it open?", io::Error::last_os_error()) });
+        // A number that names no open descriptor is the usual fault, said in
+        // a user's words; another is the system's (T-1019).
+        let e = io::Error::last_os_error();
+        let why = match e.raw_os_error() {
+            Some(libc::EBADF) => format!("fd:{n} is not open in this process: name a descriptor that its parent gave"),
+            _ => format!("fd:{n}: {}", podssh_ws::text::said(&e)),
+        };
+        return Err(Unopened { code: 64, why });
     }
     let reading: RawFd = unsafe { libc::dup(n) };
     if reading == -1 {
-        return Err(Unopened { code: 71, why: format!("fd:{n}: {}", io::Error::last_os_error()) });
+        let e = io::Error::last_os_error();
+        return Err(Unopened { code: 71, why: format!("fd:{n}: {}", podssh_ws::text::said(&e)) });
     }
     // SAFETY: each is a descriptor that this process holds, owned once: n
     // came from the parent for podssh to use, and `reading` is a new copy.

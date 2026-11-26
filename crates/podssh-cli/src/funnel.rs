@@ -67,11 +67,24 @@ impl FunnelArgs {
 const KINDS: &str = "HOST:PORT, tcp:HOST:PORT, unix-connect:PATH or exec:CMD";
 
 /// TARGET as `podssh pipe` reads an address, a bare `HOST:PORT` as TCP.
+/// Each refusal is in funnel's words (T-1020): a kind of funnel's says its
+/// own fault, a `HOST:PORT` says tcp:'s (a port that is not one) in the
+/// words typed, and each other word names funnel's four kinds, never pipe's.
 pub fn target_of(text: &str) -> Result<Address, Refusal> {
-    let parsed = address::parse(text).or_else(|first| address::parse(&format!("tcp:{text}")).map_err(|_| first));
-    match parsed? {
+    let kinds = || Refusal::usage(format!("{text}: a funnel's TARGET is {KINDS}"));
+    let named = ["tcp:", "unix-connect:", "exec:"].iter().any(|kind| text.starts_with(kind));
+    let parsed = match address::parse(text) {
+        Ok(target) => target,
+        Err(refusal) if named => return Err(refusal),
+        Err(_) if text.contains(':') => address::parse(&format!("tcp:{text}")).map_err(|refusal| Refusal {
+            message: refusal.message.replacen(&format!("tcp:{text}"), text, 1),
+            ..refusal
+        })?,
+        Err(_) => return Err(kinds()),
+    };
+    match parsed {
         target @ (Address::Tcp { .. } | Address::Unix(_) | Address::Exec(_)) => Ok(target),
-        _ => Err(Refusal::usage(format!("{text}: a funnel's TARGET is {KINDS}"))),
+        _ => Err(kinds()),
     }
 }
 
@@ -80,16 +93,18 @@ pub fn run(args: &FunnelArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let Some(text) = args.target.as_deref() else {
         return Refusal::usage(format!("missing TARGET: the HTTP service, {KINDS}")).report("funnel", err);
     };
-    let target = match target_of(text).and_then(|t| crate::pairs::online().map(|()| t)) {
+    // The command line first, then PODSSH_OFFLINE (T-1020): a usage fault
+    // is 64 offline too.
+    let target = match target_of(text).and_then(|t| check(args).map(|()| t)) {
         Ok(target) => target,
         Err(refusal) => return refusal.report("funnel", err),
     };
-    if let Err(refusal) = check(args) {
-        return refusal.report("funnel", err);
-    }
     if args.warp && !cfg!(feature = "warp") {
         let message = crate::ssh::cloud::warp::not_built("--warp");
         return Refusal { message, code: crate::exit_codes::EXIT_NOT_IMPLEMENTED }.report("funnel", err);
+    }
+    if let Err(refusal) = crate::pairs::online() {
+        return refusal.report("funnel", err);
     }
     // The token is read before anything connects; it goes in no line.
     let named = match args.tunnel_token_file.as_deref().map(read_token).transpose() {
@@ -336,6 +351,24 @@ mod tests {
         assert!(matches!(target_of("exec:python3 -m http.server").unwrap(), Address::Exec(_)));
         for refused in ["stdio", "node:lab", "tcp-listen:8080", "no-port-here"] {
             assert!(target_of(refused).is_err(), "{refused}");
+        }
+    }
+
+    /// Each refusal of a TARGET is in funnel's words (T-1020): a bad port as
+    /// tcp: says it, in the words typed, and no word of pipe's kinds.
+    #[test]
+    fn a_target_that_is_refused_says_why_in_funnel_s_words() {
+        let rows = [
+            ("127.0.0.1:99999", "127.0.0.1:99999: \"99999\" is not a port"),
+            ("127.0.0.1:0", "127.0.0.1:0: \"0\" is not a port"),
+            ("nothost", "nothost: a funnel's TARGET is HOST:PORT, tcp:HOST:PORT, unix-connect:PATH or exec:CMD"),
+            ("stdio", "stdio: a funnel's TARGET is HOST:PORT, tcp:HOST:PORT, unix-connect:PATH or exec:CMD"),
+            ("tcp:h.example:x", "tcp:h.example:x: \"x\" is not a port"),
+        ];
+        for (text, says) in rows {
+            let refusal = target_of(text).unwrap_err();
+            assert_eq!((refusal.code, refusal.message.as_str()), (64, says), "{text}");
+            assert!(!refusal.message.contains("fd:N"), "pipe's kinds: {}", refusal.message);
         }
     }
 

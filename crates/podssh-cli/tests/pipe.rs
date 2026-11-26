@@ -86,6 +86,10 @@ fn a_descriptor_that_is_not_open_is_refused() {
     let (code, _, err) = pipe(&["fd:987", "stdio"]);
     assert_eq!(code, 64, "{err}");
     assert!(err.contains("fd:987"), "{err}");
+    // In a user's words, with no "(os error 9)" (T-1019).
+    if cfg!(unix) {
+        assert!(err.contains("fd:987 is not open in this process") && !err.contains("os error"), "{err}");
+    }
 }
 
 /// A socket's path of this test, short enough for its address.

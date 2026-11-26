@@ -38,7 +38,9 @@ pub(super) fn of(s: &ServeArgs, mint: &Mint) -> Result<(Usage, String), Refusal>
             return Err(Refusal::usage(format!("{flag} {why}")));
         }
     }
-    // A file that does not read stops the start (78), as the pairs' does.
+    // A file that does not read stops the start (78), as the pairs' does,
+    // and so does a directory that cannot take it (T-1014).
+    s.usage.as_deref().map_or(Ok(()), |file| super::files::writable("--usage", file))?;
     let usage = Usage::open(quota, s.usage.as_deref().map(Into::into)).map_err(Refusal::config)?;
     usage.say_to(Arc::new(|line: &str| {
         let mut out = std::io::stdout().lock();

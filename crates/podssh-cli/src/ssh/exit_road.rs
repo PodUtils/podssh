@@ -276,7 +276,9 @@ mod tests {
             let refusal = ask(host, failover, env_relay).unwrap_err();
             assert!(refusal.code == code && refusal.message.contains(says), "{host:?}: {refusal:?}");
         }
-        assert!(ask(None, None, Some("")).is_ok(), "an empty variable is no variable");
+        // Set and empty, the variable is refused where the relay list is read (T-1008).
+        let empty = ask(None, None, Some("")).unwrap_err();
+        assert!(empty.code == 78 && empty.message.contains("PODSSH_RELAY is set and empty"), "{empty:?}");
         let relay_host = Some(crate::settings::Value { text: "relay.example".into(), at: "settings:1".into() });
         let settings = crate::settings::Defaults { relay_host, ..Default::default() };
         let mut args = SshArgs { destination: Some("git@github.com".into()), ..SshArgs::default() };

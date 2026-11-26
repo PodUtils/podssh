@@ -292,8 +292,8 @@ Read: clap 4.6.7 (`Cargo.lock`) reports a missing value as
 `InvalidArg` set to the flag's display, `--port <PORT>` (its `empty_value` and
 `verify_num_args`, read in the local cargo registry). podssh sends this kind to
 the `_` arm (`crates/podssh-cli/src/clap_error.rs` lines 70-77 at `3cd368b`). The token is
-flag-shaped (`crates/podssh-cli/src/clap_error.rs:134-136`), so the arm calls
-`unknown_flag` (`crates/podssh-cli/src/refuse.rs:28-49`).
+flag-shaped (`crates/podssh-cli/src/clap_error.rs:153-155`), so the arm calls
+`unknown_flag` (`crates/podssh-cli/src/refuse.rs:28-52`).
 
 ## Approach
 
@@ -390,7 +390,7 @@ rest. For a verb, clap reads each word before `--help` is answered
    (`crate::flags::verb_for`), it is `Parsed::Help` of that verb, as
    `podssh VERB --help` is. Any other word is `Parsed::Usage`:
    `unknown_flag` for a flag-shaped word
-   (`crates/podssh-cli/src/refuse.rs:28-49`), else a message that names it.
+   (`crates/podssh-cli/src/refuse.rs:28-52`), else a message that names it.
 2. `-V` or `--version` with any other word is `Parsed::Usage` (exit 64).
 3. Keep the verb level as it is: `podssh ssh --help host` prints the help of
    `ssh`, after clap has checked each word.
@@ -602,7 +602,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
 3. A malformed value names its source: `--timeout` (exit 64), or
    `PODSSH_TIMEOUT` (exit 78, see Decision). The variable never bounds `ssh`
    or `proxy`.
-4. Same commit: a row in `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-284`),
+4. Same commit: a row in `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-285`),
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:68-81`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
@@ -693,8 +693,8 @@ Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:395-471`
 group. Four places render it: `top_level_help`
 (`crates/podssh-cli/src/help.rs`, lines 132-146), the start of the manual
 (`crates/podssh-cli/src/man/model.rs`, lines 120-126), `unknown_verb`
-(`crates/podssh-cli/src/refuse.rs:170-174`) and `no_arguments`
-(`crates/podssh-cli/src/refuse.rs:197-208`).
+(`crates/podssh-cli/src/refuse.rs:173-177`) and `no_arguments`
+(`crates/podssh-cli/src/refuse.rs:200-211`).
 
 ## Approach
 
@@ -707,7 +707,7 @@ group. Four places render it: `top_level_help`
    the availability note of each line (`crates/podssh-cli/src/help.rs:203-210`).
 3. Keep the two refusal lists flat, or raise their limit with a reason:
    `a_refusal_is_a_line_not_a_usage_dump` allows 18 lines
-   (`crates/podssh-cli/src/refuse.rs:290-291`), and the list for
+   (`crates/podssh-cli/src/refuse.rs:293-294`), and the list for
    `example.org` has 17.
 4. Update `scripts/interop-man.sh` (lines 35-36 at `3a78cff`) in the same commit. It reads the
    `SUBCOMMANDS:` block up to the first blank line, and takes the first word
@@ -3606,11 +3606,11 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   `--allow <(...)` gives such a link (`/dev/fd/63`), and the line does not say that a regular
   file works.
 - Read (L-27): `podssh proxy` has no direct road (`crates/podssh-cli/src/man/notes_ssh.rs:256`);
-  `podssh pipe - tcp:%h:%p` is that road as a `ProxyCommand` (`crates/podssh-cli/src/man/notes_pipe.rs:5-14`),
+  `podssh pipe - tcp:%h:%p` is that road as a `ProxyCommand` (`crates/podssh-cli/src/man/notes_pipe.rs:5-15`),
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:266`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:125-141`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:126-143`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -3708,7 +3708,7 @@ still sets it starts, looks healthy, and does not do what its owner believes.
 
 Read at `2042200`:
 
-- A flag's refusal names its replacement: `crates/podssh-cli/src/refuse.rs:101` says
+- A flag's refusal names its replacement: `crates/podssh-cli/src/refuse.rs:104` says
   "pub fn refused(verb: &str, given: &str, instead: &str, reason: &str) -> String {".
 - A service's file of variables takes each `PODSSH_` name but the secrets:
   `crates/podssh-cli/src/node_install/env.rs:45` says "name.starts_with(OWN) && !SECRET.contains(&name)",
@@ -5392,3 +5392,383 @@ By hand: `podssh ssh -f --detach-name t HOST -- 'exit 3'`, then `podssh detached
 Drafted 2026-11-26 by a drafting agent;
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1008: An empty `PODSSH_RELAY` is read as unset, and the target goes to the default relays
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`PODSSH_RELAY=` (set and empty) was read as unset: `podssh proxy HOST PORT` then went to the default relays and,
+past them, to the forwarders. A variable that names where traffic goes, and that a script set from a variable that
+was empty, must not send the target somewhere the run did not name.
+
+## Premise
+
+Read, at `9574133`: `relays_from` in `crates/podssh-cli/src/relay_settings.rs`, the one reader of the variable for
+`proxy`, `ssh`, `cp`, `doctor`, `status`, `ping`, `relay` and the others, took an empty value as no value (its
+comment "an empty variable as no variable"), and its test `a_bad_variable_is_78_and_a_bad_flag_64` held that.
+
+## Approach
+
+1. `relays_from` refuses a value that is empty or blank when no `--relay-host` is given: 78, "PODSSH_RELAY is set
+   and empty: unset it for the default relays, or name a relay host". The flag wins, as beside any value.
+2. The manual's row of `PODSSH_RELAY` and `docs/cli.md` ("Exit codes") say so.
+3. A unit test of `relays_from` and a case of `crates/podssh-cli/tests/proxy.rs` for `proxy`, `ssh` and `doctor`.
+
+## Decision
+
+Refused at the one reader, so each command that reads the variable refuses it alike. Lost: the old reading
+"empty is unset", which PODSSH_TIMEOUT and PODSSH_DIRECT keep: they bound or turn off a road, and an empty value of
+them sends nothing anywhere. A node (`node://NAME`, `--exit NAME`) still takes an empty variable as none, as its pair
+names the relay and nothing is sent by the variable. Also lost: a refusal at -v only, which would still send.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib relay_settings
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test proxy an_empty_relay_variable_is_refused
+```
+
+By hand: `PODSSH_RELAY= podssh proxy example.org 22` exits 78 with the line above.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live: `PODSSH_RELAY= podssh proxy 127.0.0.1 2201` and `PODSSH_RELAY= podssh ssh ...` each say "PODSSH_RELAY is set and empty: unset it for the default relays, or name a relay host" (78); `ssh node://lab` takes it as none. The planted run waits for T-251.
+
+
+# T-1009: A relay that issues no tokens exits 69 for `proxy`, and a mint that a hop reset ends in `(os error 104)`
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Two faults of `podssh proxy` at the mint. A relay that answers the mint `503` ("does not issue tokens") exited 69,
+while EXIT STATUS gives 77 for a relay that refused, a token among them. And a mint that a hop reset said
+"(reset: Connection reset by peer (os error 104))": Rust's suffix, which each other line of podssh drops.
+
+## Premise
+
+Read, at `9574133`: `sysexit` in `crates/podssh-cli/src/proxy.rs` gave 77 to `TokenError::Failed` of 401 and 403
+alone, and `TokenError::NotIssued` (pod-relay's 503) fell to 69. The mint over cleartext of pod-relay
+(PodUtils/podcrates:crates/pod-relay/src/cleartext.rs, `post`) words a failed read as `({cut}: {e})` of an
+`io::Error`; the opener sends that as a note, and `said` in `crates/podssh-cli/src/send_notes.rs`, which says each
+note of `proxy`, of `pipe`'s relay side and of the resumable layer, wrote it as it came.
+
+## Approach
+
+1. `sysexit` maps `TokenError::NotIssued` to 77, beside 401 and 403; EXIT STATUS's row of 77 names it; a row of
+   `crates/podssh-cli/tests/proxy_exit.rs`.
+2. `send_notes::said` says each note through `podssh_ws::text::plain`, so that no opener's note ends in
+   `(os error N)`; a unit test with the reset's line.
+3. Ask of PodUtils/podcrates (COORD, by the lead): `post` of `pod-relay`'s `cleartext.rs` words the error by
+   `pod_core`'s plain words (or podssh's `said` equivalent) at its source, so that podvm and podnet get it too.
+
+## Decision
+
+77: a relay that issues no tokens refuses each client that has none, which is the refusal that 77 names; 69 says
+"try later", and a later try gets the same 503. Lost: a new row for 69 "a relay that issues no tokens", which would
+send a script to retry. The plain words at the one sink of the notes, not at each caller: three callers say notes
+through it, and a fourth would have to remember.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test proxy_exit
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib send_notes
+```
+
+By hand: `podssh relay serve --mint nobody ...`, then `podssh proxy --relay-host 127.0.0.1:PORT ... HOST 22` exits
+77.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1010: Lines of `proxy` and of `relay serve` that start with `podssh:` or `podssh relay:`
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Lines of the same command start with two heads. `podssh proxy --h2-shape bogus`, `proxy --cover-credential
+--h2-shape browser` and `proxy --bogus` said `podssh:`, where each other line of proxy says `podssh proxy:`; and
+`relay serve --max-connections-per-address -1` said `podssh relay:`, where each other line of serve says `podssh
+relay serve:`. A script or a reader that looks for its verb's lines misses these.
+
+## Premise
+
+Read, at `9574133`: `unknown_flag` in `crates/podssh-cli/src/refuse.rs` wrote `podssh: unknown flag` for each verb,
+though each other refusal there names the verb; `apply` of `crates/podssh-cli/src/h2_choice.rs` and of
+`crates/podssh-cli/src/cover_choice.rs` wrote `podssh:`, before the dispatch, for `ssh`, `proxy` and `doctor` alike;
+and `parse_verb` of `crates/podssh-cli/src/tree.rs` gave clap's error the verb `relay` alone, whose subcommand is a
+positional word.
+
+## Approach
+
+1. `unknown_flag` heads its line with `podssh VERB:` (with no verb, `podssh:`), as `given_twice` and the others do.
+2. `Parsed::head` gives `podssh proxy` and `podssh doctor` for their outcomes and `podssh` for the rest (`ssh`, as
+   OpenSSH's lines); `h2_choice` and `cover_choice` write it.
+3. `clap_error::rebuild_for` heads a refusal of `relay`'s command line with `podssh relay SUB:` where its words name
+   a subcommand (`relay_cmd::SUBCOMMANDS`, one list beside the refusal that names them).
+4. One table test in `clap_error.rs`, and a case in `refuse.rs`'s test of an unknown flag.
+
+## Decision
+
+The words of the verb that the user typed, as each other line of it. `ssh` keeps `podssh:`, as its lines mimic
+OpenSSH's and scripts of ssh read them. Lost: renaming the verb passed to `rebuild_error` to `relay serve`, which
+would also have sent `verb_for` (the rows of the flags) a name that has no row.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- clap_error refuse
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test doctor_hop --test cover_credential --test tree --test binary_streams
+```
+
+By hand: `podssh proxy --bogus`, `podssh proxy --h2-shape bogus h 22` and `podssh relay serve
+--max-connections-per-address -1` each start with their verb.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1011: `proxy --ca-file` of a file that is not there names its path twice, after a dial
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh proxy --ca-file /nonexistent HOST PORT` said "podssh: CA bundle /nonexistent: /nonexistent: No such file or
+directory": the path twice, the head `podssh:` where proxy's lines say `podssh proxy:`, and only after a dial.
+
+## Premise
+
+Read, at `9574133`: `proxy` in `crates/podssh-cli/src/proxy.rs` handed the file to the road as `Trust::File`, and
+read nothing first. pod-tls's `load_bundle` (PodUtils/podcrates:crates/pod-tls/src/bundle.rs) words a read that
+failed as `PATH: ERROR`, and its `Error::Bundle` (PodUtils/podcrates:crates/pod-tls/src/error.rs) adds `CA bundle
+PATH:` again; the relay's failure lines then print with `podssh:`.
+
+## Approach
+
+1. `proxy_alone::ca_readable`: the file that the run trusts (`--ca-file`, else `SSL_CERT_FILE`, else the settings
+   file's `CaFile`), opened before any road; one line "--ca-file PATH: no such file" (`podssh_ws::text::file_said`),
+   headed `podssh proxy:`. The flag's file is a usage fault (64), a variable's or the settings file's 78, as
+   EXIT STATUS's rows give a flag and a setting. A directory is refused too. A carrier takes no TLS of podssh's, and
+   `exit_alone` refuses its `--ca-file` in its own words, so it is not read there.
+2. `proxy` calls it with the key's check (`proxy_alone::checked`), within the 500 lines of `proxy.rs`.
+3. A table test in `proxy_alone.rs`: a missing file, a missing directory, a directory, the variable, a good file.
+4. Ask of PodUtils/podcrates (COORD, by the lead): `load_bundle` of pod-tls returns the error without the path, as
+   `Error::Bundle` adds it; then each user of pod-tls names it once.
+
+## Decision
+
+Checked by podssh before the road, and asked of pod-tls at the source: the check gives the head and the code of
+proxy now, and the ask removes the doubled path for ssh and the other verbs whose road reads the file. Lost:
+stripping the doubled path out of the road's line by text, which would hide the next change of pod-tls's words.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib proxy_alone
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test exit
+```
+
+By hand: `podssh proxy --ca-file /nonexistent example.org 22` says "podssh proxy: --ca-file /nonexistent: no such
+file" and exits 64; `SSL_CERT_FILE=/nonexistent podssh proxy example.org 22` exits 78.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1012: The manual gives 78 to each proxy URL but http://, and reads as if `--timeout` past a day were cut to a day
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Two rows of the manual that a run disproves. EXIT STATUS gave 78 for "a proxy URL that is not http://", while
+`HTTPS_PROXY=socks5://...` is taken and works. And proxy's notes said that `--timeout` takes "a day at most" and
+that `PODSSH_TIMEOUT` is "held to a day", which reads as a clamp: `--timeout=2d` exits 64 and `PODSSH_TIMEOUT=2d`
+78, as `d` is no unit of a duration.
+
+## Premise
+
+Read, at `9574133`: the row of 78 in `crates/podssh-cli/src/man/data.rs`; the proxy's schemes of pod-proxy
+(PodUtils/podcrates:crates/pod-proxy/src/proxy/parse.rs), which take http, socks5 and socks5h and refuse https and
+socks4; `flag_bound` and `variable_bound` of `crates/podssh-cli/src/connect_bound.rs`, which refuse a flag past a
+day (64) and count a variable past a day as a day; and `parse_duration` of
+`crates/podssh-cli/src/non_interactive.rs`, whose units are ms, s, m and h.
+
+## Approach
+
+1. The row of 78 names the schemes that are taken: http://, socks5:// and socks5h://.
+2. The notes of `proxy` and `operator` and the row of `PODSSH_TIMEOUT` say that more than a day is refused (64),
+   that a unit other than ms, s, m and h is refused, and that a variable's value past a day counts as a day.
+   `docs/cli.md` names `2d` beside 0.
+
+## Decision
+
+The manual moves to the code: the code refuses a flag past a day and a bad unit, which is the safe reading, and a
+clamp of a typed `2d` would hide the typo. Left as it is: the flag rows of `--timeout` in
+`crates/podssh-cli/src/flags/operator.rs` ("a day at most"), as another worker edits the files of `operator` today;
+their words are true, and the notes now say what they mean. The lead moves them with the next change of that file.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_page --test man_json
+```
+
+By hand: `podssh man exit-status` names the schemes; `podssh man proxy` says that 2d is refused.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1013: `proxy node://NAME` and `proxy --exit NAME` drop `PODSSH_RELAY` with no word, where the manual says they refuse it
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The manual says that node://NAME refuses `PODSSH_RELAY` (78), "as podssh proxy node://NAME does", but `podssh proxy
+node://n1` with `PODSSH_RELAY` set took the pair's relay and dropped the variable with no word; so did `proxy --exit
+NAME HOST PORT`. `ssh node://NAME` and `ssh --exit NAME` refuse it.
+
+## Premise
+
+Read, at `9574133`: `check` of `crates/podssh-cli/src/node_relay.rs` refuses a flag (64) and the variable (78) for
+ssh (`refuse_relay` of `crates/podssh-cli/src/ssh/node.rs` and `crates/podssh-cli/src/ssh/exit_road.rs`); proxy's
+`to_operator` in `crates/podssh-cli/src/proxy_node.rs` and `exit_alone` in `crates/podssh-cli/src/proxy_alone.rs`
+refused the flags alone. The manual's sentence is in `crates/podssh-cli/src/man/notes_roads.rs`.
+
+## Approach
+
+1. `proxy_alone::no_relay_env(target, carrier, var)`: `node_relay::check` of the variable, not read with a carrier,
+   which has no relay. `proxy_node::run` calls it once `to_operator` has passed; `exit_alone` calls it for
+   `--exit NAME`.
+2. A unit test of `no_relay_env`, and a case of `crates/podssh-cli/tests/proxy.rs` for node:// and `--exit`.
+
+## Decision
+
+proxy agrees with ssh, as the manual says: a variable that a user set for the relay of their other destinations
+would otherwise be dropped with no word at a node. An empty variable names no relay, so a node takes it as none, as
+ssh does. `podssh operator NAME` keeps reading no relay variable: it takes no relay flag either, names nodes alone,
+and its manual promises no refusal, so the variable never seems to apply to it. Lost: refusing at -v only.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib proxy_alone
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test proxy a_node_and_an_exit_refuse_the_relay_variable
+```
+
+By hand: `PODSSH_RELAY=relay.example podssh proxy node://lab` exits 78, "PODSSH_RELAY does not apply to node://lab:
+the pair names its relay".
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1020: `funnel` says a bad TARGET in the words of `pipe`'s kinds, and `funnel` and `update` refuse offline before their usage's faults
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh funnel 127.0.0.1:0`, `127.0.0.1:99999` and `nothost` said "no such kind of address; the kinds are -, stdio,
+fd:N, ...", the list of `pipe`'s kinds, where funnel's TARGET is HOST:PORT, tcp:HOST:PORT, unix-connect:PATH or
+exec:CMD, and where the fault was a port that is no port. And with `PODSSH_OFFLINE`, `funnel --opentunnel --warp
+...` (64 by its notes) and `update --check --version bogus` exited 69: the offline refusal came before the command
+line's checks.
+
+## Premise
+
+Read, at `9574133`: `target_of` of `crates/podssh-cli/src/funnel.rs` tried `pipe`'s parser, then `tcp:` and the
+text, and gave back the first refusal, `pipe`'s; `run` there called `crate::pairs::online` with the target, before
+`check`. `run` of `crates/podssh-cli/src/update/mod.rs` refused offline before it read `--version`.
+
+## Approach
+
+1. `target_of`: a text of funnel's kinds (`tcp:`, `unix-connect:`, `exec:`) says its own fault; a `HOST:PORT` says
+   tcp:'s fault in the words typed (`127.0.0.1:99999: "99999" is not a port`); each other text names funnel's four
+   kinds, never pipe's.
+2. `funnel`: the target, then `check` (the roads' flags), then `--warp` of a build with no WARP (70), then offline
+   (69). `update`: `--version` before offline.
+3. A unit test of `target_of`'s lines, and `crates/podssh-cli/tests/offline_order.rs`: one table, offline, of the
+   faults of the command line (64) and of the right command lines (69).
+
+## Decision
+
+The command line first, the network after, as each other verb does: a script that runs offline learns of a typo
+as a typo. Lost: nothing. The words of a bad port are tcp:'s, which `pipe` gives, with the text as typed, so the two
+verbs say a port alike.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib funnel
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test offline_order --test funnel_opentunnel --test update
+```
+
+By hand: `podssh funnel 127.0.0.1:99999` says `podssh funnel: 127.0.0.1:99999: "99999" is not a port` (64).
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

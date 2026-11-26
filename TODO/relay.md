@@ -188,7 +188,7 @@ sh scripts/dev.sh check                                   # interop: the stand-i
 cargo test -p podssh-cli --test relay_live -- --ignored   # the live relay, on request
 ```
 
-`scripts/fake-relay.py` (it serves `/health` and the mint: `:164-179`) gets `/relays.json`,
+`scripts/fake-relay.py` (it serves `/health` and the mint: `:169-184`) gets `/relays.json`,
 `/trace` and `/llms-full.txt`. In the gate, `relay status` exits 0 with the stand-in's version;
 `relay trace` sends `X-Relay-Token`, which the stand-in requires; a HOST of `a&b` exits 64 before
 any connection. Planted defect: leave the header out; the stand-in answers 403, the test fails.
@@ -284,7 +284,7 @@ nothing, and a host that does not start TLS, each cost the 20 s limit before the
 4. Print one note for each moved host: "trying HOST last: it failed N s ago (REASON)".
 5. Ignore a record with a time in the future (a clock that moved).
 6. `doctor` and `status` (T-051) show the records. State the window in THE RELAY section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:343-356`) and in `docs/relay.md:107-315`.
+   manual (`crates/podssh-cli/src/man/facts.rs:344-357`) and in `docs/relay.md:107-315`.
 7. This is retry policy across runs. T-220 shortens the wait inside one run; the two work
    together.
 
@@ -796,7 +796,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
 7. Add the flag to `SSH_FLAGS`, `PROXY_FLAGS` and `DOCTOR_FLAGS`
    (`crates/podssh-cli/src/flags.rs:116-301`, 323-343) and to `ONCE`
    (`crates/podssh-cli/src/ssh/args.rs:235-286`); the variable to VARIABLES and the modes to THE
-   RELAY (`crates/podssh-cli/src/man/facts.rs:46-284`, 170-183); both to `docs/relay.md:107-315`.
+   RELAY (`crates/podssh-cli/src/man/facts.rs:46-285`, 170-183); both to `docs/relay.md:107-315`.
 8. T-059 orders the hosts across runs; this entry shortens the wait in one run. GitHub #25 asks
    for a circuit breaker: retry policy, not overlap.
 
@@ -918,7 +918,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
 5. `doctor` names the directory in use and the variable that chose it; `status` (T-051) shows
    it; the settings file of T-048 can set it. The session log (T-056) and the failure records
    (T-059) use the same chain.
-6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:224-238`,
+6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:225-239`,
    `crates/podssh-cli/src/man/data_files.rs:20-28`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
    notes (`crates/podssh-cli/src/man/notes.rs:276-364`).
@@ -2398,7 +2398,7 @@ podssh's release already trusts:
   token goes only to the deployment that minted it (Q49).
 - For the public default: a `relays.json` of deployments, signed by a workflow of this
   repository with `cosign sign-blob --bundle`, and checked by the Sigstore verifier that
-  `podssh update` already runs on `SHA256SUMS` (`crates/podssh-cli/src/update/mod.rs:303-315`,
+  `podssh update` already runs on `SHA256SUMS` (`crates/podssh-cli/src/update/mod.rs:303-306`,
   update/sigstore.rs (in `pod-release` of podcrates since `v0.77.0`)), its identity widened from the release workflow to
   that workflow and its ref. No private key to keep offline, no new cryptography, and an
   unattended session can publish a new list. The document holds a `serial`, a `not_after` and a
@@ -2840,7 +2840,7 @@ session on 2026-11-03.
   stream that tells the record how its session ended once SSH lets it go, which
   `crates/podssh-cli/src/ssh/transport.rs:225` spawns. `podssh proxy`
   (`crates/podssh-cli/src/proxy.rs:430`) and the relay's end of `podssh pipe` (`carry_opened`)
-  tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:222-224`).
+  tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:232-234`).
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:246-256`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
@@ -3323,8 +3323,8 @@ working hosts, which a measurement can make.
 - Read: the record of failures is a file of the cache, `PodUtils/podssh:crates/podssh-relay/src/failures.rs:27`
   says "pub const FILE: &str", and `order` keeps the list's order within each of its groups
   (`PodUtils/podssh:crates/podssh-relay/src/failures.rs:231-255`).
-- Read: the subcommands of `podssh relay` (`crates/podssh-cli/src/relay_cmd.rs:171-202`), and
-  `--json` goes with `status`, `info` and `trace` alone (`crates/podssh-cli/src/relay_cmd.rs:125-128`).
+- Read: the subcommands of `podssh relay` (`crates/podssh-cli/src/relay_cmd.rs:184-215`), and
+  `--json` goes with `status`, `info` and `trace` alone (`crates/podssh-cli/src/relay_cmd.rs:138-141`).
 - Read: rule 2 of `AGENTS.md`, section 5: one outbound connection, through `HTTPS_PROXY` when it is
   set; its exceptions name no measurement of hosts.
 - Read in the archive (`docs/research/relay-measurement.md`, section 4): 37 of 37 pool hosts opened
@@ -3467,7 +3467,7 @@ times the hosts that it tries, and throws the times away.
 
 ## Premise
 
-- Read: `crates/podssh-cli/src/relay_settings.rs:75`, where the default list took
+- Read: `crates/podssh-cli/src/relay_settings.rs:82`, where the default list took
   `pool::alternates` of the default host as `/relays.json` gave them: the one place where the default list
   takes its alternates, which `select_relays` puts after the default host
   (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:131-152`).
@@ -4084,12 +4084,12 @@ so a fault in any of them runs with more than the role needs. Nothing after the 
 
 Read at `2042200`:
 
-- `crates/podssh-cli/src/relay_serve.rs:238` says "let listener = std::net::TcpListener::bind(listen)",
-  and `:150` reads its address; the runtime and its two workers come later, in
-  `crates/podssh-cli/src/relay_serve.rs:287`, which says "worker_threads(2)". Between the two the
+- `crates/podssh-cli/src/relay_serve.rs:241` says "let listener = std::net::TcpListener::bind(listen)",
+  and `:153` reads its address; the runtime and its two workers come later, in
+  `crates/podssh-cli/src/relay_serve.rs:290`, which says "worker_threads(2)". Between the two the
   process has one thread, so a drop there holds for each thread made after it. The issue's line
   numbers are of an older tree; the order is as it says.
-- The listener is the user's (Q1): `crates/podssh-cli/src/relay_serve.rs:121` says
+- The listener is the user's (Q1): `crates/podssh-cli/src/relay_serve.rs:122` says
   "crate::pipe::listen::allowed()?;" before the bind.
 - No source of the workspace calls `prctl` or `capset` (searched for `capset`, `NO_NEW_PRIVS` and
   `CAPBSET`), so no step drops a privilege today.
@@ -4227,12 +4227,12 @@ whole of it to each holder of a token.
 Read at `2042200`:
 
 - `crates/podssh-relay/src/serve/policy.rs:19-20` holds the choice in one `bool`, `private`;
-  `crates/podssh-relay/src/serve/policy.rs:162` says "if self.private {" and returns each address
+  `crates/podssh-relay/src/serve/policy.rs:165` says "if self.private {" and returns each address
   unchecked; else `:111` refuses the first address that is not public.
-- `crates/podssh-relay/src/serve/policy.rs:124-126` hands a name to the host's proxy unresolved only with
+- `crates/podssh-relay/src/serve/policy.rs:128-130` hands a name to the host's proxy unresolved only with
   `private`, so a role without `--allow-private` checks each address that it dials.
 - The flag: `crates/podssh-cli/src/flags/relay.rs:69` (the row `allow-private`),
-  `crates/podssh-cli/src/relay_serve.rs:187` says "private: s.allow_private", and the role behind a
+  `crates/podssh-cli/src/relay_serve.rs:190` says "private: s.allow_private", and the role behind a
   quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:114`.
 - Each road of the role goes through `Policy::plan`: `/connect/`
   (`crates/podssh-relay/src/serve/forward.rs:103`), the resumable layer
@@ -4264,7 +4264,7 @@ Read at `2042200`:
 2026-11-04 (the drafting agent of the triage). One word for one idea: the role's ranges are named
 `--routes`, as an exit's, and take ranges and single addresses, not names. Lost: the issue's
 `--allow-target` with names, as a name admits what the resolver says at the dial, and the check of each
-address is what holds (the policy checks addresses already, `crates/podssh-relay/src/serve/policy.rs:158-163`);
+address is what holds (the policy checks addresses already, `crates/podssh-relay/src/serve/policy.rs:161-166`);
 a second word for the exit's idea. A prefix with host bits is refused, as `ip route` refuses one,
 also for the exit, whose silent widening is the same fault.
 
@@ -4648,7 +4648,7 @@ Read at `2042200`:
 - The node's check of a standard sshd peeks for the version line in the same way
   (`PodUtils/podssh:crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:32`); the word is the node's
   (`crates/podssh-cli/src/flags/node.rs:134`).
-- The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:160-163`), so an
+- The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:163-166`), so an
   sshd of this host is no target of `/connect/`.
 - `TODO/serve.md:2294-2295` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
@@ -4739,8 +4739,8 @@ listener given no sshd, and OpenSSH's login through the role's port fails.
 `2042200` as at this draft. The role's 30 s for a request's head is `HEAD_WAIT`:
 `crates/podssh-relay/src/serve/mod.rs:94` says "const HEAD_WAIT". The policy refuses the loopback
 as an address that is not public:
-`crates/podssh-relay/src/serve/policy.rs:165` says "self.unlisted(&wanted)", and
-`crates/podssh-relay/src/serve/policy.rs:214` says "ip.is_loopback()". What the Premise says of them
+`crates/podssh-relay/src/serve/policy.rs:168` says "self.unlisted(&wanted)", and
+`crates/podssh-relay/src/serve/policy.rs:217` says "ip.is_loopback()". What the Premise says of them
 holds. Its Approach, item 3, now follows the Decision of 2026-11-05.
 
 ## Done
@@ -4754,7 +4754,7 @@ holds. Its Approach, item 3, now follows the Decision of 2026-11-05.
   `TCP_NODELAY` and says its end; another start goes to the cleartext road, or to TLS with
   `--cleartext no`. An sshd that does not answer gets the client one line
   (`crates/podssh-relay/src/serve/sshd.rs:119`). The binary: `--sshd ADDR:PORT`
-  (`crates/podssh-cli/src/flags/relay.rs:106`), read at `crates/podssh-cli/src/relay_serve.rs:123`
+  (`crates/podssh-cli/src/flags/relay.rs:106`), read at `crates/podssh-cli/src/relay_serve.rs:124`
   (an address, else 64) and named in the first line; with another subcommand, 64. The manual (the
   row and a note of `relay serve`), `docs/relay.md` ("SSH on the relay role's port"),
   `docs/cli.md`, `docs/mesh.md` and `SECURITY.md` say it. The gate runs `relay_serve_sshd` in its
@@ -4804,7 +4804,7 @@ the start with a path that was never one.
 
 Read at `2042200`:
 
-- `crates/podssh-cli/src/relay_serve.rs:222-235` reads `keys:` and makes the rest a path, with no
+- `crates/podssh-cli/src/relay_serve.rs:225-238` reads `keys:` and makes the rest a path, with no
   other form; `crates/podssh-cli/src/relay_serve.rs` at `fed191c`, lines 292-299, reads it at the start, and a file that
   does not read stops it (78). The role behind a quick tunnel reads the same words
   (`crates/podssh-cli/src/node_quick_relay.rs:77`).
@@ -5250,10 +5250,10 @@ patch and rebuild the binary.
 
 - `crates/podssh-relay/src/serve/mod.rs:117` (`impl Default for Limits`) holds the six values: 10 s,
   180 s, 12 h, 64 MiB, 25 s and 15 s.
-- The CLI plumbs one of them: `crates/podssh-cli/src/relay_serve.rs:68` (the settings row),
-  `crates/podssh-cli/src/relay_serve.rs:122` (`get("keepalive")`),
-  `crates/podssh-cli/src/relay_serve.rs:116` (the parser, 1 to 3600 s) and
-  `crates/podssh-cli/src/relay_serve.rs:188` (`Limits { keepalive, ..Limits::default() }`).
+- The CLI plumbs one of them: `crates/podssh-cli/src/relay_serve.rs:69` (the settings row),
+  `crates/podssh-cli/src/relay_serve.rs:123` (`get("keepalive")`),
+  `crates/podssh-cli/src/relay_serve.rs:117` (the parser, 1 to 3600 s) and
+  `crates/podssh-cli/src/relay_serve.rs:191` (`Limits { keepalive, ..Limits::default() }`).
 - `/relays.json` is written from `cfg.limits`: `crates/podssh-relay/src/serve/docs.rs:80` writes
   `connect_timeout_ms`, `idle_timeout_ms`, `max_session_ms` and `max_session_bytes`. It does not
   write the keepalive.
@@ -5271,7 +5271,7 @@ patch and rebuild the binary.
 1. Add `--idle SECONDS` (1 to 86400), `--session-hours H` (1 to 168), `--max-session-mib M`
    (1 to 4096) and `--connect SECONDS` (1 to 120). Each has a settings row, a parser beside the
    `--keepalive` one, and a place in the `Limits` literal at
-   `crates/podssh-cli/src/relay_serve.rs:188`. A bad value is a usage refusal (exit 64), as
+   `crates/podssh-cli/src/relay_serve.rs:191`. A bad value is a usage refusal (exit 64), as
    `--keepalive`'s is.
 2. The defaults are the `pod-services` facts that `crates/podssh-relay/src/relay.rs` reads, not
    the literals of `Limits::default()`, so that the role and the clients have one source. Move
@@ -5355,7 +5355,7 @@ document and compares facts; it does not use the relay.
 ## Premise
 
 - Read: `relay` has `status`, `info`, `trace`, `rank`, `spec`, `pair`, `serve` and the pair verbs; `--json`
-  goes with `status`, `info`, `trace` and `rank` only (`crates/podssh-cli/src/relay_cmd.rs:123`). There is no
+  goes with `status`, `info`, `trace` and `rank` only (`crates/podssh-cli/src/relay_cmd.rs:136`). There is no
   `conform`.
 - Read: `relay spec` checks a document against facts (`crates/podssh-cli/src/relay_spec.rs:1-12`).
 - Read: the checks exist as tests against podssh's role: `crates/podssh-relay/tests/` (`e2e.rs`, `limits.rs`,
@@ -5878,7 +5878,7 @@ all. One client can hold thousands of connections (30 s each before TLS begins);
 
 - The review: the accept loop of `crates/podssh-cli/src/relay_serve.rs` (`let Ok((tcp, peer)) = accepted else
   { continue };`, then a spawn), with no count and no pause (lines 448-454 at `4489df2`; the loop is at
-  `crates/podssh-cli/src/relay_serve.rs:406` since the change).
+  `crates/podssh-cli/src/relay_serve.rs:409` since the change).
 - The review: `crates/podssh-relay/src/serve/brake.rs:76-104` (`Who`) already groups an IPv4 address and an
   IPv6 /64; `crates/podssh-cli/src/relay_serve/limits.rs:1-11` has no bound of connections.
 
@@ -6330,7 +6330,7 @@ SIGHUP test of `serve_certs`, which starts a role with no cover) passed. The fil
 - `Control::bind` called `UnixListener::bind(path)` with no check of the length
   (`crates/podssh-relay/src/serve/control.rs:42` now, the one branch of a path that fits), and
   the standard library refuses a longer path ("path must be shorter than SUN_LEN"). The role ends
-  at once with that line and 78 (`crates/podssh-cli/src/relay_serve.rs:171`), before its port file.
+  at once with that line and 78 (`crates/podssh-cli/src/relay_serve.rs:174`), before its port file.
 - The test sent the role's stderr to `Stdio::null()` (the line `cmd.stdin(Stdio::null())` of
   `Place::serve`, `crates/podssh-cli/tests/cover_credential.rs:89` now) and waited on the events of
   stdout and the port file alone, with `until` (`crates/podssh-cli/tests/serve_certs/mod.rs:134`),
@@ -6908,3 +6908,217 @@ What waits: IPv6's header captured from haproxy (this container has no IPv6; the
 AF_INET6 is tested by its layout), and nginx's stream module, whose header is the same version 1 line.
 
 
+
+# T-1014: `relay serve` starts with a `--pairs` file that it cannot write, names no file of a missing certificate, and refuses offline in a client's words
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Three faults of the start of `podssh relay serve`. `--pairs /nonexistent/dir/p.json` started, and each later pair
+answered 503 with the path; `--usage` the same. `--cert /nonexistent --key ...` said "/nonexistent: No such file or
+directory", which names neither the certificate nor the key. And `PODSSH_OFFLINE=1 podssh relay serve` refused with
+"podssh does not connect anywhere" (69), the words of a client.
+
+## Premise
+
+Read, at `9574133`: `Pairs::open` (`crates/podssh-relay/src/serve/reverse/pairs.rs`) and `Usage::open`
+(`crates/podssh-relay/src/serve/usage.rs`) read a file that exists and take a missing one as empty, and nothing
+looked at its directory until the first write. `Files::load` in `crates/podssh-cli/src/relay_serve/certs.rs` worded
+a failed read as `PATH: ERROR`. `prepare` in `crates/podssh-cli/src/relay_serve.rs` refused offline in the words
+of `podssh_relay::open`'s clients.
+
+## Approach
+
+1. `relay_serve/files.rs`: `writable(flag, path)`: the directory is there and is one, the file is no directory, and
+   the directory takes a new file of a unique name (random, not a pid), removed at once; else 78, "--pairs PATH:
+   the directory DIR does not exist", in the words of `podssh_ws::text::file_said`. `prepare` calls it for `--pairs`
+   before anything listens, and `quota::of` for `--usage`.
+2. `Files::load` names the file: "the certificate PATH: no such file", "the key PATH: ..."; ACME's one file is
+   "the certificate and its key".
+3. Under `PODSSH_OFFLINE` the role still does not start (69), in a listener's words: "PODSSH_OFFLINE is set, which
+   forbids each connection: a relay takes them and dials its targets". The manual's row of `PODSSH_OFFLINE` says so.
+4. The notes of `--pairs` and `--usage` say that a directory that cannot take the file stops the start.
+5. A unit test of `writable`, and `crates/podssh-cli/tests/relay_serve_start.rs`: one table of the start's
+   refusals, each one line headed `podssh relay serve:`.
+
+## Decision
+
+The directory is checked at the start, as the file's read is: a role that starts and then fails each pair is worse
+than one that does not start. A probe file is the one portable test of "can be written" (a mode bit says nothing of
+ACLs, a read-only mount or another owner); it is created new and removed at once, so nothing of the user's is
+touched. Offline: the role keeps refusing, as `PODSSH_OFFLINE` forbids each connection, and a relay takes them and
+dials its targets; serving with each outbound part refused one by one would be a relay that answers each client
+502. Lost: letting it serve; refusing with the client's words.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib relay_serve
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test relay_serve_start --test relay_serve
+```
+
+By hand: `podssh relay serve --listen 127.0.0.1:0 --cert c --key k --pairs /nonexistent/d/p.json` exits 78 at once.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1015: `relay serve` says a name that does not resolve in the words of the resolver's library
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh relay serve` said a target whose name does not resolve as "refused HOST:PORT: no address: failed to lookup
+address information: Name or service not known": the words of the resolver's library, which name neither the
+relay's host nor what the owner can do.
+
+## Premise
+
+Read, at `9574133`: `Policy::addresses` in `crates/podssh-relay/src/serve/policy.rs` worded a failed
+`tokio::net::lookup_host` as `no address: ` and the error's text; `Refused::logged` puts it on the role's stdout.
+The client hears the policy's 403 with no cause, which stays.
+
+## Approach
+
+1. `policy::NO_NAME`, "no address: the name does not resolve on the relay's host", in place of the library's text.
+2. The test of the policy's refusals holds the whole line of a name that does not resolve.
+
+## Decision
+
+The owner's words: what failed (the name, at this host's resolver), not how the library says it. Lost: the
+library's distinction of a name that does not exist from a resolver that did not answer; the role's host is the
+owner's, and `podssh doctor` there tells the two apart. Kept: "no address:" first, which the line had and which a
+reader of the log may look for.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-relay --lib serve::policy
+```
+
+By hand: `podssh proxy --relay-host ROLE no-such-name.invalid 22` against a role; its stdout has "refused
+no-such-name.invalid:22: no address: the name does not resolve on the relay's host".
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1016: The event lines of `relay serve` name no client, no target and no time
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The event lines of `podssh relay serve` on stdout, `h2`, `upgrade`, `upgrade layer`, `close CODE` and `end gone:
+the client went with no Close`, name no client, no target and no time: an owner who reads the log cannot tell
+which session a line is of, or when it came.
+
+## Premise
+
+Read, at `9574133`: `Config::event` in `crates/podssh-relay/src/serve/mod.rs` writes the words that each road
+gives; `connect` and `pump` of `crates/podssh-relay/src/serve/forward.rs` hold the target (`Asked`) but not the
+client's address, which `connection` of `crates/podssh-relay/src/serve/listener.rs` has; `serve` of
+`crates/podssh-relay/src/serve/http2/mod.rs` writes `h2`. The short words are a harness's protocol: tests read them
+whole (`l == "upgrade"` in `crates/podssh-cli/tests/h2_shape_cli.rs` and `crates/podssh-cli/tests/h2_each_cli.rs`,
+counts in `crates/podssh-cli/tests/serve_layer/unasked.rs`), as the stand-in relay prints the same words
+(`scripts/fake-relay.py`).
+
+## Approach
+
+1. A per-connection context (the client's address, and the time of the line) that `connection` hands each road,
+   and `Config::event_of(ctx, words, target)`, which writes `WORDS CLIENT TARGET` after the same first words.
+2. Each road's event (forward, layer, HTTP/2, the reverse road's) through it; the end lines name the target.
+3. The harnesses and the tests read the first words (a helper `event_is(line, "upgrade")`), not the whole line;
+   the stand-in relay gives the same fields, so that one reader takes both.
+4. The manual's notes of the role's stdout say the fields.
+
+## Decision
+
+The first words stay what they are, so that a reader of the log keeps its words and a harness its counts; the fields
+come after them. The time goes first on each line as an RFC 3339 stamp only where stdout is no journal (a journal
+stamps each line itself). Not drafted on 2026-11-26: it moves the reader of each harness test of the role, which
+needs a build to check; the resolver's words of the same pass are T-1015.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-relay --lib serve
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test h2_shape_cli --test h2_each_cli --test relay_serve
+```
+
+By hand: a session through the role prints "upgrade 127.0.0.1:PORT HOST:PORT", and its end "end client
+127.0.0.1:PORT HOST:PORT".
+
+# T-1017: `relay rank --forget` says it forgot a rank that was not kept, and `--cached` shows a file with no rank as one of 0 hosts
+
+**Source:** the eighth black-box pass (2026-11-26, a debug build of `0f1f64b`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh relay rank --forget` said "the rank kept is forgotten" a second time, when nothing was kept. And `relay
+rank --cached` printed "rank of 0 hosts to , made at a time that this clock has not reached, for another egress"
+for a file that held no rank (the samples alone, or another form): a rank that is not there, in words of a clock.
+
+## Premise
+
+Read, at `9574133`: `run` of `crates/podssh-cli/src/relay_rank.rs` forgot and said the same words whatever was
+kept; `cached` took any file that parsed as a rank, and pod-relay's `Rank` reads each field with a default, so a
+file of the samples alone parses as a rank of no hosts made at 0, whose `age` is none; that was said as a time from
+the future.
+
+## Approach
+
+1. `kept(rank)`: a rank with hosts and a time it was made, else none. `cached`, `status_value` and `--forget` read
+   through it.
+2. `--forget` says "no rank is kept; nothing is forgotten" when none was kept, and removes the file all the same.
+3. A rank made later than this host's clock says so: "made later than this host's clock says it is now".
+4. A unit test of `kept` in `crates/podssh-cli/src/relay_rank_tests.rs`.
+
+## Decision
+
+A file with no hosts holds no rank to show; the samples that it may hold are a session's, which `status` and
+`doctor` read on their own. Lost: showing an empty rank as one. The time from the future stays shown, as the rank
+may be good and the clock wrong, in words that say which.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib relay_rank
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test relay_rank
+```
+
+By hand: `podssh relay rank --forget` twice; the second says that no rank is kept.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` passed after the merge's repairs (two manual sentences split under 25 words; two test types named for clippy; `ssh` reads `PODSSH_RELAY` unfiltered, so that its empty value reaches the refusal, and the unit tests of `settings` and `exit_road` that held "an empty variable is no variable" hold the refusal); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

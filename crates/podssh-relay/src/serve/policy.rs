@@ -109,6 +109,10 @@ impl Refused {
     }
 }
 
+/// Why a name of a target was not dialed: the resolver of the role's host
+/// found no address for it.
+pub const NO_NAME: &str = "no address: the name does not resolve on the relay's host";
+
 impl Policy {
     /// What to dial for `host:port` through `egress` (T-457): the addresses
     /// of [`Policy::addresses`], each checked; or the name as it came, for
@@ -139,12 +143,11 @@ impl Policy {
         self.port_allowed(host, port)?;
         let found: Vec<SocketAddr> = match host.parse::<IpAddr>() {
             Ok(ip) => vec![SocketAddr::new(ip, port)],
+            // The resolver's own words name its library, not the fault: the
+            // owner's line says that the name has no address here (T-1015).
             Err(_) => tokio::net::lookup_host((host, port))
                 .await
-                .map_err(|e| Refused::NotDialed {
-                    target: target.clone(),
-                    why: format!("no address: {}", podssh_ws::text::said(&e)),
-                })?
+                .map_err(|_| Refused::NotDialed { target: target.clone(), why: NO_NAME.to_string() })?
                 .collect(),
         };
         let wanted: Vec<SocketAddr> = found
@@ -345,6 +348,9 @@ mod tests {
         }
         assert!(private.logged().is_some_and(|l| l.contains("which is not a public address")), "{private:?}");
         assert!(missing.logged().is_some_and(|l| l.contains("no address")), "{missing:?}");
+        // In the owner's words, not the resolver library's (T-1015).
+        let line = missing.logged().unwrap_or_default();
+        assert_eq!(line, format!("refused no-such-name.invalid:22: {NO_NAME}"));
     }
 
     #[test]

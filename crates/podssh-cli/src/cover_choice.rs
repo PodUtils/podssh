@@ -24,8 +24,9 @@ pub fn apply(p: &Parsed, err: &mut dyn Write) -> Option<i32> {
     if crate::h2_choice::on() {
         let _ = writeln!(
             err,
-            "podssh: --cover-credential asks for a credential on the TLS connection, which --h2-shape's road does \
-             not offer; name one or the other"
+            "{}: --cover-credential asks for a credential on the TLS connection, which --h2-shape's road does \
+             not offer; name one or the other",
+            p.head()
         );
         return Some(EXIT_USAGE);
     }

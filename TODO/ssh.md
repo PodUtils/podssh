@@ -316,7 +316,7 @@ sh scripts/dev.sh check
 The unit test checks the rule: which phases and which closes allow a retry.
 In the gate, `scripts/fake-relay.py` gets a mode that drops only its first
 session during the handshake, beside the modes at
-`scripts/fake-relay.py:18-36`. Through it, `exit 5` still gives 5, with one
+`scripts/fake-relay.py:23-41`. Through it, `exit 5` still gives 5, with one
 retry note. A second case drops after the exec request: exit 255, and a file
 that the command appends to has one line. Planted defect: retry in each
 phase, and that file has two lines.
@@ -1521,7 +1521,7 @@ Read:
   stops reading makes the session idle, not stuck (GitHub #36). Only a stall
   below SSH causes the hang.
 - The stand-in relay's `stall:` mode reads the client's frames and drops them
-  (`scripts/fake-relay.py:343-347`), so no fault tests a stuck write today.
+  (`scripts/fake-relay.py:350-354`), so no fault tests a stuck write today.
   GitHub #36 cites it as scripts/box/fake-relay.py, which does not exist.
 - The reporter measured a zero-window stall outside podssh: after 2.0 MiB,
   the write stayed blocked (read in the issue, not verified here).
@@ -3748,7 +3748,7 @@ name to give. OpenSSH on the same host connects.
   (`crates/podssh-cli/src/ssh/jump.rs:271-272`). Each verb of the report resolves its destination
   there, so one change serves all eleven.
 - Read: the manual says that podssh never reads the user database
-  (`crates/podssh-cli/src/man/facts.rs:214-217`); the reason is in
+  (`crates/podssh-cli/src/man/facts.rs:215-218`); the reason is in
   `docs/target-environment.md:37-44`: on hosts with no passwd entry, OpenSSH's tools exit 255 ("No
   user exists for uid 0"), so podssh takes the name from the environment. The rule is no row of
   `docs/decisions.md`; T-222 (on hold) says the same of the shell of `podssh serve`.

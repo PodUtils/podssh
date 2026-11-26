@@ -325,6 +325,17 @@ impl Parsed {
         }
     }
 
+    /// The words that head a line of the verb that was parsed: `podssh
+    /// proxy:` and `podssh doctor:`, as each other line of theirs; `podssh:`
+    /// for `ssh`, as OpenSSH's own lines (T-1010).
+    pub fn head(&self) -> &'static str {
+        match self {
+            Parsed::Proxy { .. } => "podssh proxy",
+            Parsed::Doctor { .. } => "podssh doctor",
+            _ => "podssh",
+        }
+    }
+
     /// `--h2-shape`, when the verb that was parsed carries it: `ssh`,
     /// `proxy` or `doctor` (T-763). The shape is chosen once, before the
     /// run, because the road reads it where it is built.

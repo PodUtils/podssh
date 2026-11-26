@@ -111,6 +111,11 @@ pub fn run(args: &ProxyArgs, err: &mut dyn Write) -> Option<i32> {
             return Some(code);
         }
     };
+    // The relay's variable, as ssh node://NAME refuses it (T-1013).
+    let env = |name: &str| std::env::var(name).ok();
+    if let Err(refusal) = crate::proxy_alone::no_relay_env(text, operator.carrier.is_some(), &env) {
+        return Some(refusal.report("proxy", err));
+    }
     crate::session_log::target(text.trim_end_matches('/'), None, "node");
     // The pair's road, or the carrier of --carrier (T-595), as operator.
     let code = crate::operator::run_as(&operator, "proxy", err);
