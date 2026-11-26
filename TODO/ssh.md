@@ -7141,7 +7141,7 @@ where `cp` gives 66 for a missing source.
    `-E` and `--record`, first in `run_ssh` and in `run_run`: 73, "nothing ran".
 2. A file of `-E` or `--record` that still cannot be made (a mode, a file that exists) is 73 too.
 3. `run --from` that is not there: 66, "--from DIR: no such file or directory"
-   (`crates/podssh-cli/src/run_cmd/mod.rs:230`); one that is a file stays 64.
+   (`crates/podssh-cli/src/run_cmd/mod.rs:233`); one that is a file stays 64.
 4. EXIT STATUS's rows of 66 and 73, `--record`'s note, and `docs/cli.md` ("Exit codes").
 
 ## Decision

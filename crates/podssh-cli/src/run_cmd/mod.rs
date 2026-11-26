@@ -204,7 +204,10 @@ pub fn run_run(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         return crate::exitmap::sysexits::EX_IOERR;
     }
     let (started, scope, mut ran) = (std::time::Instant::now(), Scope::new(), Ran::default());
-    let mut code = run_planned(args, out, err, &scope, &mut ran);
+    // The plan of a dry run is the one output on `out`: a write of it that
+    // fails is said once, 74, and a reader that went away (`| head`) is no
+    // failure, as for each command (T-1059). Inside the record's code.
+    let mut code = crate::output::deliver("run", out, err, |out, err| run_planned(args, out, err, &scope, &mut ran));
     if let Some(path) = file {
         let object = result::object(code, started.elapsed(), &scope.record(), &ran);
         // A run that did its work, and whose record is missing, does not

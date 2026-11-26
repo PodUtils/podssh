@@ -7785,7 +7785,7 @@ nothing did), and why.
   and 255 when the copy failed, which runs nothing. 73 is a `--result-file`
   whose directory is not there, before anything connects (T-977); 66 a
   `--from` that is not there, in the words of `cp` (T-1048); a
-  `--dry-run` whose plan cannot be written is 74 (T-983).
+  `--dry-run` whose plan cannot be written is 74 (T-983), and one whose reader went away (`| head`) is 0, as for each output (T-1059).
 - An output that could not be written is 74 (`EX_IOERR`, T-965), for each
   command whose answer is its stdout: `keygen`, `doctor`, `man`, `status`,
   `config`, `agent`, `update` and `node` or `serve` with `--print-unit`;
