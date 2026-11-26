@@ -84,6 +84,16 @@ pub enum Flow {
     Failed(String),
     /// Its writer's reader is gone.
     Gone,
+    /// Its writer failed for another cause, as a full disk under stdout:
+    /// the pipe ends, and the line says why (74).
+    Unwritten(String),
+}
+
+/// Whether a write's failure says that its reader went away: a closed pipe
+/// or socket, which ends a pipe as no failure. Any other cause is one.
+fn reader_left(kind: std::io::ErrorKind) -> bool {
+    use std::io::ErrorKind::{BrokenPipe, ConnectionAborted, ConnectionReset, NotConnected};
+    matches!(kind, BrokenPipe | ConnectionReset | ConnectionAborted | NotConnected)
 }
 
 /// What the pump hands back of each side, and the bytes that went from A
@@ -94,6 +104,8 @@ pub struct Pumped {
     pub carried: (u64, u64),
     /// The line of A's read that failed, and of B's, if one did.
     pub failed: (Option<String>, Option<String>),
+    /// The line of a write that failed, not by its reader's leaving.
+    pub unwritten: Option<String>,
 }
 
 /// Copy `from` to `to` until `from` ends, then shut `to` down; `count`
@@ -135,8 +147,20 @@ pub async fn copy(mut from: Reader, mut to: Writer, count: &AtomicU64, input: &s
             };
         }
         n += ready_now(&mut from, &mut buf[n..]);
-        if to.write_all(&buf[..n]).await.is_err() || to.flush().await.is_err() {
-            return Flow::Gone;
+        let wrote = match to.write_all(&buf[..n]).await {
+            Ok(()) => to.flush().await,
+            Err(e) => Err(e),
+        };
+        match wrote {
+            Ok(()) => {}
+            Err(e) if reader_left(e.kind()) => return Flow::Gone,
+            Err(e) => {
+                let (carried, output) = (count.load(Ordering::Relaxed), if input == "A" { "B" } else { "A" });
+                let why = podssh_ws::text::said(&e);
+                return Flow::Unwritten(format!(
+                    "{input}'s output could not be written to {output} after {carried} bytes: {why}"
+                ));
+            }
         }
         count.fetch_add(n as u64, Ordering::Relaxed);
     }
@@ -155,12 +179,16 @@ pub async fn pump(a: End, b: End) -> Pumped {
     tokio::pin!(b_to_a);
     // Whether A's output, and B's, has ended.
     let (mut a_done, mut b_done) = (false, false);
-    let (mut a_failed, mut b_failed) = (None, None);
+    let (mut a_failed, mut b_failed, mut unwritten) = (None, None, None);
     loop {
         tokio::select! {
             flow = &mut a_to_b, if !a_done => {
                 match flow {
                     Flow::Gone => break,
+                    Flow::Unwritten(line) => {
+                        unwritten = Some(line);
+                        break;
+                    }
                     Flow::Failed(line) => a_failed = Some(line),
                     Flow::Ended => {}
                 }
@@ -169,6 +197,10 @@ pub async fn pump(a: End, b: End) -> Pumped {
             flow = &mut b_to_a, if !b_done => {
                 match flow {
                     Flow::Gone => break,
+                    Flow::Unwritten(line) => {
+                        unwritten = Some(line);
+                        break;
+                    }
                     Flow::Failed(line) => b_failed = Some(line),
                     Flow::Ended => {}
                 }
@@ -188,6 +220,7 @@ pub async fn pump(a: End, b: End) -> Pumped {
         b: Left { child: b_child, ending: b_ending },
         carried,
         failed,
+        unwritten,
     }
 }
 
@@ -345,6 +378,46 @@ mod tests {
         assert_eq!(pumped.failed.0, None);
         let line = pumped.failed.1.expect("B's read failed");
         assert!(line.starts_with("B's input failed after 0 bytes: "), "{line}");
+    }
+
+    /// A writer each of whose writes fails with its kind.
+    struct Refusing(std::io::ErrorKind);
+
+    impl AsyncWrite for Refusing {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _: &mut std::task::Context<'_>,
+            _: &[u8],
+        ) -> std::task::Poll<std::io::Result<usize>> {
+            std::task::Poll::Ready(Err(std::io::Error::new(self.0, "No space left on device (os error 28)")))
+        }
+        fn poll_flush(self: Pin<&mut Self>, _: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+        fn poll_shutdown(self: Pin<&mut Self>, _: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+    }
+
+    /// A write that fails because its reader went ends the direction as no
+    /// failure; any other cause, as a full disk under stdout, is said with
+    /// no "(os error N)" (T-1046).
+    #[tokio::test]
+    async fn a_write_that_fails_is_gone_only_when_its_reader_left() {
+        use std::io::ErrorKind::{BrokenPipe, ConnectionReset, Other, StorageFull};
+        for (kind, unwritten) in [(BrokenPipe, false), (ConnectionReset, false), (StorageFull, true), (Other, true)] {
+            let count = AtomicU64::new(0);
+            let flow = copy(Box::new(Cells { left: 10 }), Box::new(Refusing(kind)), &count, "B").await;
+            match flow {
+                Flow::Gone => assert!(!unwritten, "{kind:?}"),
+                Flow::Unwritten(line) => {
+                    assert!(unwritten, "{kind:?}: {line}");
+                    assert!(line.starts_with("B's output could not be written to A after 0 bytes: No space"), "{line}");
+                    assert!(!line.contains("os error"), "{line}");
+                }
+                other => panic!("{kind:?}: {other:?}"),
+            }
+        }
     }
 
     /// A side whose reader left ends the pipe, though the other input goes on.

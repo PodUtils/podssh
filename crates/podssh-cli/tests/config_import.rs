@@ -162,6 +162,13 @@ fn stdin_a_bad_line_a_bad_name_and_the_other_formats() {
     assert!(!out.contains("web*") && out.contains("Host ok\n"), "{out}");
     let missing = format!("{DIR}/no-such-inventory.ini");
     assert_eq!(podssh(&["config", "import", "ansible", &missing], "").0, Some(66));
+    // Bytes that are no text are bad data (65), as each "not UTF-8" (T-1052).
+    let latin = std::env::temp_dir().join(format!("podssh-inventory-latin1-{}.ini", std::process::id()));
+    std::fs::write(&latin, b"[web]\nw\xe91\n").unwrap();
+    let (code, _, err) = podssh(&["config", "import", "ansible", latin.to_str().unwrap()], "");
+    let _ = std::fs::remove_file(&latin);
+    assert_eq!(code, Some(65), "{err}");
+    assert!(err.contains("not UTF-8 text"), "{err}");
     for (words, says) in [
         (vec!["config", "import", "finalshell", "x.json"], "import finalshell: not yet"),
         (vec!["config", "import", "termius", "x"], "import termius: not yet"),

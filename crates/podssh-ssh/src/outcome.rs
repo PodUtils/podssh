@@ -87,6 +87,9 @@ pub struct Recorder {
     /// Whether the command says the cause of a road of the resumable layer
     /// itself, and that cause, which the road then keeps here (T-824).
     road: Mutex<(bool, Option<String>)>,
+    /// Why the session's output could not be written here, when a write of
+    /// it failed for another cause than its reader's leaving (T-1047).
+    unwritten: Mutex<Option<String>>,
 }
 
 impl Recorder {
@@ -100,6 +103,7 @@ impl Recorder {
             said: Mutex::new(None),
             broke: Mutex::new(None),
             road: Mutex::new((false, None)),
+            unwritten: Mutex::new(None),
         }
     }
 
@@ -235,6 +239,20 @@ pub fn road_cause(line: String) -> bool {
 /// own from now on.
 pub fn release_road_cause() -> Option<String> {
     with(|r| std::mem::take(&mut *lock(&r.road)).1)
+}
+
+/// The session's output could not be written here: `why`, the first kept.
+/// Its end is then no success of the run (74), as for each command whose
+/// output could not be written.
+pub fn unwritten(why: String) {
+    with(|r| {
+        lock(&r.unwritten).get_or_insert(why);
+    });
+}
+
+/// Why the session's output could not be written, if it could not.
+pub fn unwritten_why() -> Option<String> {
+    with(|r| lock(&r.unwritten).clone())
 }
 
 /// Bytes read from stdin and sent to the far side.

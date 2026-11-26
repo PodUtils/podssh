@@ -38,7 +38,7 @@ core: the handshake, a host key that does not change, and key authentication.
 1. Add crates/podssh-ssh/src/server/ (see Decision), files under 500 lines,
    with one entry point that takes a stream. Invariant: it never listens.
    Each request handler answers: russh's defaults send no reply, and a client
-   waits (podssh: 30 s, `crates/podssh-ssh/src/session.rs:19-22`).
+   waits (podssh: 30 s, `crates/podssh-ssh/src/session.rs:19-25`).
 2. russh settings: `publickey` only (the default also offers `password`);
    the 512 KiB window of `crates/podssh-ssh/src/run.rs:30-34`; no inactivity
    cut (russh: 600 s); a keepalive every 60 s (`docs/relay.md:757`).
@@ -52,7 +52,7 @@ core: the handshake, a host key that does not change, and key authentication.
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:395-471` and
    `crates/podssh-cli/src/positionals.rs:8-292`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:396-398`, the manual, `docs/cli.md`,
+   `crates/podssh-cli/src/dispatch.rs:383-385`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -226,7 +226,7 @@ and stderr apart, and an environment that a cage can give.
   lines 601-667). russh also gives each data message to the kept `Channel`,
   and waits when 100 wait unread (`Eugeny/russh:russh/src/server/encrypted.rs`,
   lines 1350-1356): an unread channel stops the whole connection.
-- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-96`;
+- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-98`;
   `crates/podssh-ssh/src/signals.rs:70-79` maps names to numbers only;
   `tokio` with `process` is a dependency (`crates/podssh-ssh/Cargo.toml:19`).
 
@@ -554,7 +554,7 @@ it there.
   read in reverse on the server; a second table would drift.
 - Read: doctor already opens a pty to test the host
   (`crates/podssh-cli/src/doctor/unix.rs` lines 95-154 at `32bf8af`). The client continues
-  without a pty when the server refuses (`crates/podssh-ssh/src/session.rs:95-110`).
+  without a pty when the server refuses (`crates/podssh-ssh/src/session.rs:103-118`).
 - Read: the measured sandbox has no `/dev/ptmx` and no `/dev/pts`
   (`docs/target-environment.md:26`); there, T-111 applies.
 
@@ -649,7 +649,7 @@ the entry joins the work order by its priority.
   and the doctor's line `pty` calls it with the same words. The probe opens each master by path
   (`/dev/ptmx`, then `/dev/pts/ptmx`) where doctor called `posix_openpt`, which opens `/dev/ptmx` alone.
 - The client's answer to a refused pty moved: since T-664 it may read the answer after the session's
-  request (`crates/podssh-ssh/src/session.rs:101-110`); it still runs without a pty after a refusal.
+  request (`crates/podssh-ssh/src/session.rs:109-118`); it still runs without a pty after a refusal.
 - `TERM`'s default is `crates/podssh-ssh/src/terminal/mod.rs:121-126` now.
 - Approach item 1's "Failure: T-111, or failure until T-111 exists": until T-111 the refusal stays, as
   T-108 made it; this entry does not do T-111.

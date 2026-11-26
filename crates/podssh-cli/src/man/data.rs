@@ -46,7 +46,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              JSON, too large, a policy or a gateway that is not valid, or a signature that fails; add of a key that another member \
              has; take of a document that the rule of the store refuses; policy test: a case is false; policy diff \
              --exit-code: the new policy widens the old. podssh agent: a key file that is no key, or lock \
-             passwords that differ. podssh sftp: the file of -b is not UTF-8 text.",
+             passwords that differ. podssh sftp: the file of -b is not UTF-8 text. podssh config import: \
+             the file is not UTF-8 text, or a line or a session of it cannot be read.",
         ),
         row(
             sysexits::EX_NOINPUT,
@@ -54,7 +55,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read, or a path that a \
              command names is not on the server. \
              podssh net: the FILE of take, policy set, test or diff, or gateway set is missing or cannot be read. \
-             podssh agent: a key file is missing or cannot be read, or no passphrase or password came.",
+             podssh agent: a key file is missing or cannot be read, or no passphrase or password came. \
+             podssh run: the directory of --from is not there.",
         ),
         row(
             sysexits::EX_UNAVAILABLE,
@@ -90,14 +92,19 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             "podssh cp and mv: the destination cannot be written. podssh edit: the far file changed since \
              it was fetched, so nothing was sent and the copy here stays, or no cache directory takes the copy. \
              podssh chat: the path of --accept-dir is not there, or is no directory. podssh each: a file of --output-dir \
-             cannot be made; no host has run. podssh keygen: the directory of -f is not there, or is no directory.",
+             cannot be made; no host has run. podssh keygen: the directory of -f is not there, or is no directory. \
+             podssh ssh: the directory of --result-file, -E or --record is not there, so nothing ran; or the file \
+             of -E or --record cannot be made.",
         ),
         row(
             sysexits::EX_IOERR,
-            "The output of a command could not be written, as to a full disk or a device that refuses it. That holds \
-             for podssh keygen, doctor, man, status, config, agent and update, and for podssh node --print-unit and \
-             podssh serve --print-unit. The line says so, and the command's own code stays when it failed first. A \
-             reader that went away, as head does, is no failure.",
+            "The output of a command could not be written, as to a full disk or a device that refuses it. Each \
+             command whose answer is its stdout gives it: keygen, doctor, man, status, config, agent, update, health, \
+             ping, play, --help and --version. It also holds for relay, job, net, share, session, detached, \
+             containers, sftp, pipe and proxy, and for podssh node --print-unit and podssh serve --print-unit. podssh \
+             ssh and run give it too, where the command gave 0, or no status once its output stopped. The line \
+             says so, and the command's own code stays when it failed first. A reader that went away, as head does, \
+             is no failure.",
         ),
         row(
             sysexits::EX_TEMPFAIL,

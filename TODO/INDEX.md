@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**976 entries: 3 open, 33 partial, 16 blocked, 924 done.**
+**986 entries: 3 open, 33 partial, 16 blocked, 934 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 105 | 114 |
-| P2 | 0 | 20 | 4 | 348 | 372 |
-| P3 | 3 | 7 | 9 | 470 | 489 |
-| **All** | 3 | 33 | 16 | 924 | 976 |
+| P2 | 0 | 20 | 4 | 349 | 373 |
+| P3 | 3 | 7 | 9 | 479 | 498 |
+| **All** | 3 | 33 | 16 | 934 | 986 |
 
 ## Entries
 
@@ -1052,3 +1052,13 @@ repository and CI).
 | [T-1042](cli.md) | P3 | S | backlog | defect | done | `podssh play DIRECTORY` says "not an asciicast v2 recording" |
 | [T-1043](serve.md) | P3 | S | backlog | defect | done | `serve NAME` with no pair stored makes a host key, then refuses |
 | [T-1044](ssh.md) | P3 | S | backlog | defect | done | `ssh -i KEY.pub` warns of the mode of a public key, then says "Could not read key" |
+| [T-1046](cli.md) | P2 | S | backlog | defect | done | A write of the output that fails exits 0 for the commands that T-965 did not route |
+| [T-1047](ssh.md) | P3 | S | backlog | defect | done | `ssh HOST yes > /dev/full` says that stdout was closed, and exits 255 |
+| [T-1048](ssh.md) | P3 | S | backlog | defect | done | `ssh`'s file flags fail with three codes for one missing directory, and `run --from` of none is 64 |
+| [T-1049](roads.md) | P3 | S | backlog | defect | done | The line of no forwarder says "(os error 111)" once for each forwarder |
+| [T-1050](relay.md) | P3 | S | backlog | defect | done | `relay serve` says no line for a refusal of a port, a token or a halted pair |
+| [T-1051](copy.md) | P3 | S | backlog | defect | done | `sftp -b` refuses `symlink`, `chown`, `lls` and the rest with 64, where EXIT STATUS gives 70 |
+| [T-1052](config.md) | P3 | S | backlog | defect | done | `config import ansible` of bytes that are no UTF-8 is 66, where each other "not UTF-8" is 65 |
+| [T-1053](cli.md) | P3 | S | backlog | defect | done | `--pair-file` names its file twice, and `net add` says "0 words given" for what it needs |
+| [T-1054](ws.md) | P3 | S | backlog | defect | done | A name that does not resolve is said with the TLS library's words of each DNS over HTTPS resolver |
+| [T-1055](cli.md) | P3 | S | backlog | defect | done | `status` with `PODSSH_RELAY` set and empty exits 0, where each other verb refuses it with 78 |

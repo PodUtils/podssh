@@ -85,7 +85,7 @@ fn checked(args: &ShareArgs) -> Result<&str, Refusal> {
         other => return Err(Refusal::usage(format!("{other:?} is not a subcommand: {SUBCOMMANDS}"))),
     };
     if args.args.len() != words {
-        return Err(Refusal::usage(format!("podssh share {shape}: {} words given", args.args.len())));
+        return Err(Refusal::usage(crate::refuse::word_count("share", shape, words, args.args.len())));
     }
     if args.net && word != "ls" {
         return Err(Refusal::usage("--net is for podssh share ls, which lists the shares that the net names"));

@@ -443,7 +443,7 @@ const FIRST: &[&str] = &[
      never listed. In each other case, and with no name to list, a missing destination is a usage error (exit 64).",
     "--record FILE keeps what the session showed, with its timing, as asciicast v2, for podssh play: never \
      what was typed, and never the command line. The file is closed to others and never written over (exit \
-     255); the output can hold a secret that a program printed.",
+     73, before anything connects); the output can hold a secret that a program printed.",
     "--expect TEXT --send KEYS are given once or more, in this order. Each pair is a rule of a session with a pty (-t \
      on a terminal, -tt with none): each rule waits for TEXT in the output, as it is written, then sends KEYS, \
      where \\r, \\n, \\t, \\\\ and \\xNN are read. The next rule reads only what came after the match, and \

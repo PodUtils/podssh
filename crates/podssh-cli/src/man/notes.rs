@@ -233,7 +233,8 @@ const SFTP: &[&str] = &[
      podssh scp.",
     "The commands: get and put (with reget and reput, which are the same), rename, rm (with * and ? in the last \
      name), mkdir [-p], rmdir, ls [-1afhlnrSt], cd, lcd, pwd, lpwd, chmod, df [-hi], help, version, and bye, exit or \
-     quit. get and put copy as podssh cp does; get -p and put -p, or each of them after sftp -p, keep the times. get \
+     quit. symlink OLD NEW and ln -s OLD NEW make a symbolic link; chown and chgrp take a number; lls and lmkdir act \
+     here. ln with no -s, lumask, progress, copy and lchdir are not implemented, and exit 70. get and put copy as podssh cp does; get -p and put -p, or each of them after sftp -p, keep the times. get \
      -r and put -r (or -R), or each of them after sftp -r, copy a directory and what it holds. They copy as podssh \
      cp -r does, each link as a link; an item that fails is said, the rest goes on, and the command fails at its \
      end. The exit code is that of the first command that ends the batch, as for podssh cp; a usage error is 64 \

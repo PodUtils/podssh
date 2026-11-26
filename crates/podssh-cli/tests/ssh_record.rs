@@ -81,7 +81,8 @@ fn record_keeps_the_output_and_play_shows_it_again() {
     }
 
     let again = recorded(&dir, port, &file, &[]);
-    assert_eq!(again.code, Some(255), "{}", again.err);
+    // A recording that cannot be made, as one that exists, is 73 (T-1048).
+    assert_eq!(again.code, Some(73), "{}", again.err);
     assert!(again.err.contains("the file exists"), "{}", again.err);
     assert_eq!(std::fs::read_to_string(&file).unwrap(), text, "the recording is as it was");
 

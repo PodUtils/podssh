@@ -93,7 +93,7 @@ fn the_policy_is_set_shown_checked_and_cleared_with_no_connection() {
     for (args, why) in [
         (vec!["net", "policy"], "podssh net policy: check FROM TO, test FILE, diff POLICY, show, set FILE or clear"),
         (vec!["net", "policy", "allow"], "check FROM TO, test FILE, diff POLICY, show, set FILE or clear"),
-        (vec!["net", "policy", "check", "laptop"], "podssh net policy check FROM TO: 2 words given"),
+        (vec!["net", "policy", "check", "laptop"], "podssh net policy check FROM TO: needs TO"),
         (vec!["net", "policy", "check", "laptop", "lab", "--owner-key", o], "--owner-key is for podssh net init"),
         (vec!["net", "policy", "check", "nobody", "lab"], "has no member of that name or key"),
         (vec!["net", "policy", "check", phone, "nobody"], "has no member nobody"),

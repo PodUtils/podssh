@@ -28,8 +28,10 @@ pub(super) async fn handle_msg(
             let data = out.consoles.text(false, through.out(&data, false, log));
             // Whoever reads our stdout has gone (EPIPE): the data goes
             // nowhere, and the exit status is awaited (T-026).
-            if out.gone.is_none() && write_out(out.sink.as_ref(), &data, false).await.is_err() {
-                out.gone = Some(tokio::time::Instant::now());
+            if out.gone.is_none() {
+                if let Err(e) = write_out(out.sink.as_ref(), &data, false).await {
+                    gone(out, &e, log);
+                }
             }
         }
         // A report of local echo's far end, which never shows (T-160).
@@ -128,10 +130,27 @@ async fn frame(data: &[u8], out: &mut Out, through: &mut Through, log: &Log) -> 
         None => drawn,
     };
     let drawn = out.consoles.text(false, drawn);
-    if out.gone.is_none() && write_out(out.sink.as_ref(), &drawn, false).await.is_err() {
-        out.gone = Some(tokio::time::Instant::now());
+    if out.gone.is_none() {
+        if let Err(e) = write_out(out.sink.as_ref(), &drawn, false).await {
+            gone(out, &e, log);
+        }
     }
     None
+}
+
+/// stdout took no more: the data goes nowhere from now on, and the server
+/// hears the end of input. A reader that went (EPIPE) is said at the end,
+/// if no status came (T-026); any other cause, as a full disk, is said now,
+/// once, and is the run's end (74, T-1047).
+fn gone(out: &mut Out, e: &std::io::Error, log: &Log) {
+    out.gone = Some(tokio::time::Instant::now());
+    if e.kind() == std::io::ErrorKind::BrokenPipe {
+        return;
+    }
+    let why = podssh_ws::text::said(e);
+    log.error(&format!("the output could not be written: {why}; the session ends"));
+    out.unwritten = true;
+    crate::outcome::unwritten(why);
 }
 
 pub(super) async fn write_out(sink: Option<&Sink>, data: &[u8], to_stderr: bool) -> std::io::Result<()> {

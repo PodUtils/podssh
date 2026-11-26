@@ -1,5 +1,8 @@
 //! The output of a command whose answer is its stdout (T-965): `keygen`,
-//! `doctor`, `man`, `status`, `config import`, `agent list` and `update`.
+//! `doctor`, `man`, `status`, `config import`, `agent list` and `update`;
+//! since T-1046 also `health`, `ping`, `play`, `relay`, `job`, `net`,
+//! `share`, `session`, `detached`, `containers`, `sftp`, `--help` and
+//! `--version`.
 //! A write that fails (a full disk, a device that refuses it) is said in one
 //! line, and the command exits 74 (`EX_IOERR`) where it would have exited 0;
 //! a command that failed keeps its own code. A reader that went away

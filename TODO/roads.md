@@ -10815,3 +10815,55 @@ sh scripts/dev.sh check
 With the release check (T-251): the two runs above pass, and a planted road that drops an unacknowledged chunk fails
 step 1.
 
+
+# T-1049: The line of no forwarder says "(os error 111)" once for each forwarder
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 6.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`HTTPS_PROXY=http://127.0.0.1:1 podssh proxy 127.0.0.1 22822` ended with "no forwarder carried the pipe to ...: the
+forwarder mudlet (...): could not reach the proxy 127.0.0.1:1: Connection refused (os error 111); ...", the system's
+"(os error 111)" four times.
+
+## Premise
+
+- Read, at `b562ec9`: `none_carried` (`crates/podssh-cli/src/forwarder/fallback.rs:144`) joins each forwarder's
+  line as it came; each is `ForwarderError::line` of pod-egress (PodUtils/podcrates), whose words hold the
+  `io::Error`'s own, "(os error N)" included. `crates/podssh-cli/src/forwarder/pipe.rs` and
+  `crates/podssh-cli/src/forwarder/reach.rs` show them so, one at a time too.
+
+## Approach
+
+1. podssh plains each line where it shows it: `failed_line` (`crates/podssh-cli/src/forwarder/fallback.rs:150`) for
+   one forwarder, and `none_carried` for the joined line, by `podssh_ws::text::plain`.
+2. Asked of podcrates (a COORD issue for the lead): pod-egress's `ForwarderError::line` says an `io::Error` by its
+   kind's words, with no "(os error N)", so that each user of the crate gets the plain line.
+
+## Decision
+
+- The line keeps each forwarder's reason: the words differ (a refused proxy, a timeout, a 403), and one line names
+  each. Lost: a shorter line that said one shared cause once; the forwarders differ in what they tried.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib forwarder::fallback
+cargo test -p podssh-cli --test forwarder_cli
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/forwarder/fallback.rs`, `crates/podssh-cli/src/forwarder/pipe.rs`,
+  `crates/podssh-cli/src/forwarder/reach.rs`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

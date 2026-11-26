@@ -454,7 +454,7 @@ result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the
 
 1. Make the `-G` row Supported, with no `instead`; `crates/podssh-cli/tests/flag_table.rs:60-80`
    requires that pair. The reviewed set of short flags does not change.
-2. In `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:108-335`), after `resolve` (lines 36-42 at `e8bbd4d`): with
+2. In `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:108-337`), after `resolve` (lines 36-42 at `e8bbd4d`): with
    `-G`, print the settings and exit 0. Open nothing: no relay, no token, no pool refresh.
 3. Print from `Resolved` and its `Options`, not from `Settings`, so the defaults are shown.
 4. Print only keywords of OpenSSH that podssh applies
@@ -618,16 +618,16 @@ output. Planted defect: copy the password field into a comment; the secret test 
 ## Done
 
 2026-10-12. `podssh config import ansible FILE`: the verb at
-`crates/podssh-cli/src/config_import/mod.rs:72-195`, the inventory at
+`crates/podssh-cli/src/config_import/mod.rs:72-202`, the inventory at
 `crates/podssh-cli/src/config_import/ansible.rs:1-285`, the blocks at
-`crates/podssh-cli/src/config_import/mod.rs:307-351`, with the secrets at
-`crates/podssh-cli/src/config_import/mod.rs:197-201` and the options of
+`crates/podssh-cli/src/config_import/mod.rs:314-358`, with the secrets at
+`crates/podssh-cli/src/config_import/mod.rs:204-208` and the options of
 `ansible_ssh_common_args` at
-`crates/podssh-cli/src/config_import/mod.rs:203-256`; the verb in the
+`crates/podssh-cli/src/config_import/mod.rs:210-263`; the verb in the
 tables at `crates/podssh-cli/src/flags.rs:461-462`,
 `crates/podssh-cli/src/positionals.rs:249-254`,
 `crates/podssh-cli/src/tree.rs:368-374` and
-`crates/podssh-cli/src/dispatch.rs:218-219`.
+`crates/podssh-cli/src/dispatch.rs:201-202`.
 - `cargo test -p podssh-cli --test config_import`: 5 passed. The fixture
   `crates/podssh-cli/tests/fixtures/ansible/inventory.ini`, read by
   ansible-core 2.21.0 in the build image (`inventory.list.json` and
@@ -763,8 +763,8 @@ failover below the flag and the variable at
 of a bad file at `crates/podssh-cli/src/pins.rs:13-42`, the CA file at
 `crates/podssh-cli/src/settings.rs:361-371` and, for `podssh ssh`,
 `crates/podssh-cli/src/ssh/resolve.rs:98-102`; `status` at
-`crates/podssh-cli/src/status.rs:76` and
-`crates/podssh-cli/src/status.rs:92`, `doctor` at
+`crates/podssh-cli/src/status.rs:78` and
+`crates/podssh-cli/src/status.rs:94`, `doctor` at
 `crates/podssh-cli/src/doctor/mod.rs:247` and
 `crates/podssh-cli/src/doctor/mod.rs:270`.
 - `cargo test -p podssh-cli --test settings`: 4 passed here, and 5 in the
@@ -1597,7 +1597,7 @@ user asked for is gone with no sign, and an audit finds it.
   because they change nothing that podssh does" (`crates/podssh-cli/src/man/model.rs:126-132`).
 - Read: each one is a note (`crates/podssh-cli/src/ssh/options.rs:287`), "-o NAME has no effect in
   podssh" (`crates/podssh-cli/src/ssh/resolve.rs:345`), said at `-v` alone
-  (`crates/podssh-cli/src/ssh/mod.rs:311-313`): "-o" also for the line of a file, with no file and
+  (`crates/podssh-cli/src/ssh/mod.rs:313-315`): "-o" also for the line of a file, with no file and
   no line.
 - Read, against L-39: the two notes of each run come from Debian 13's `/etc/ssh/ssh_config`, whose
   `Host *` sets `HashKnownHosts` and `GSSAPIAuthentication` (T-044's Correction), and which podssh
@@ -1783,3 +1783,51 @@ session on 2026-11-03.
   `cargo todo remap` from the tree before the draft; rustfmt of `podssh-ssh` (the order of
   `lib.rs`'s modules) and clippy of `podssh-ssh` and `podssh-cli` with `-D warnings`, all targets:
   clean. The draft's two calls are in "For the operator to confirm (Q86)" of `TODO/PROGRESS.md`.
+
+# T-1052: `config import ansible` of bytes that are no UTF-8 is 66, where each other "not UTF-8" is 65
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 11.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh config import ansible FILE` with bytes that are not UTF-8 ended 66, "not UTF-8 text", the code of a file
+that cannot be read; each other "not UTF-8" of podssh (`net`'s files, `sftp -b`) is 65, bad data.
+
+## Premise
+
+- Read, at `b562ec9`: `read` of `crates/podssh-cli/src/config_import/mod.rs` gave the decoding's failure as an
+  error of reading, which `inventory` answered with `EX_NOINPUT`.
+- Read: EXIT STATUS's row of 65 names `net`'s file that is not UTF-8 and `sftp`'s file of `-b`.
+
+## Approach
+
+1. `read` (`crates/podssh-cli/src/config_import/mod.rs:158`) tells a file that cannot be read (66) from bytes that
+   are no text (65); `inventory` says each with its words.
+2. EXIT STATUS's row of 65, the note of `config import ansible` and `docs/cli.md` say so.
+
+## Decision
+
+- 65: a file that was read whole and holds no text is bad data, as a bad line of it is. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test config_import
+cargo test -p podssh-cli --lib man::
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/config_import/mod.rs`, `crates/podssh-cli/src/man/data.rs`,
+  `crates/podssh-cli/src/man/notes_config.rs`, `crates/podssh-cli/tests/config_import.rs`, `docs/cli.md`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

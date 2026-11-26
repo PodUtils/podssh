@@ -14,7 +14,8 @@ pub const CONFIG: &[&str] = &[
     "A password or a passphrase (a variable whose name holds pass) is never imported and never printed: the \
      summary counts it. A host whose ansible_connection is not ssh gets a comment and no block. A host \
      name that a Host line cannot hold (a space, *, ?, !, \" or #) is refused by name. A bad line ends the \
-     run with its number (exit 65); a file that cannot be read gives 66.",
+     run with its number (exit 65), as does a file that is not UTF-8 text; a file that cannot be read \
+     gives 66.",
     "podssh config import putty FILE reads PuTTY's sessions: a .reg file of the registry's key \
      Software\\SimonTatham\\PuTTY\\Sessions, from regedit or reg export, in UTF-16 or UTF-8. It also reads the \
      session files of PuTTY on Unix, a file or its directory. The session Default Settings is PuTTY's template, not \

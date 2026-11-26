@@ -83,8 +83,8 @@ fn share_changes_the_node_s_file_and_refuses_as_the_manual_says() {
     for (args, says) in [
         (&["share"][..], "missing SUBCOMMAND"),
         (&["share", "mv", "web"], "is not a subcommand"),
-        (&["share", "add"], "podssh share add NAME=HOST:PORT: 0 words given"),
-        (&["share", "ls", "web"], "podssh share ls: 1 words given"),
+        (&["share", "add"], "podssh share add NAME=HOST:PORT: needs NAME=HOST:PORT"),
+        (&["share", "ls", "web"], "podssh share ls: 1 word too many"),
         (&["share", "add", "web", "--node", "lab"], "is not NAME=HOST:PORT"),
         (&["share", "add", "dns=udp:127.0.0.1:53", "--node", "lab"], "a share is a TCP service"),
         (&["share", "add", "a/b=127.0.0.1:80", "--node", "lab"], "is not a share's name"),

@@ -298,9 +298,9 @@ where
     let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
         Ok(plan) => plan,
         Err(refused) => {
-            if let Some(line) = refused.logged() {
-                cfg.event_of(&Of::client(from).to(&shown(&asked.host, asked.port)), &line);
-            }
+            // Each refusal is a line, as on the other roads (T-1050).
+            let of = Of::client(from).to(&shown(&asked.host, asked.port));
+            cfg.say_refused(&of, refused.status(), &refused.answer(), refused.logged());
             // The policy's refusal is the role's `not allowed`; another
             // status (a target that cannot be reached) keeps its own words.
             let reply = match refused.status() {

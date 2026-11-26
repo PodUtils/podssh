@@ -98,9 +98,49 @@ pub fn file_said(path: &std::path::Path, e: &std::io::Error) -> String {
     }
 }
 
+/// A line of a name that did not resolve, in plain words: pod-dns says each
+/// source's failure, DNS over HTTPS's in the TLS library's words. The user
+/// line keeps what the system's resolver said, and whether DNS over HTTPS
+/// could not be reached or found no address; the source's own words are the
+/// detail, for -v. `None` for a line with no DNS over HTTPS in it (T-1054).
+pub fn unresolved(line: &str) -> Option<(String, String)> {
+    const DOH: &str = "DNS over HTTPS: ";
+    let at = line.find(DOH)?;
+    let doh = &line[at + DOH.len()..];
+    let head = line[..at].trim_end().trim_end_matches(';').trim_end();
+    let head = plain(&head.replacen("system resolver: ", "the system's resolver said: ", 1));
+    // An answer with no address is a name that is not there; each other
+    // failure is a resolver that this host could not reach.
+    let none = doh.trim() == "no answer" || doh.contains("no address");
+    let doh_said = if none { "DNS over HTTPS found no address" } else { "DNS over HTTPS could not be reached" };
+    let head = if head.is_empty() { String::new() } else { format!("{head}; ") };
+    Some((format!("{head}{doh_said}"), plain(&format!("{DOH}{doh}"))))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A name that did not resolve: the system's words and one plain clause
+    /// of DNS over HTTPS, the TLS library's words for -v alone (T-1054).
+    #[test]
+    fn a_name_that_did_not_resolve_is_said_in_plain_words() {
+        let system = "could not resolve nosuch.invalid: system resolver: failed to lookup address information: \
+                      Name or service not known";
+        let tls = "each of 6 resolvers failed: TLS: invalid peer certificate: UnknownIssuer";
+        for (doh, said) in
+            [(tls, "DNS over HTTPS could not be reached"), ("no answer", "DNS over HTTPS found no address")]
+        {
+            let line = format!("{system}; DNS over HTTPS: {doh}");
+            let (shown, detail) = unresolved(&line).expect("a line of DNS over HTTPS");
+            let want = "could not resolve nosuch.invalid: the system's resolver said: failed to lookup address \
+                        information: Name or service not known; ";
+            assert_eq!(shown, format!("{want}{said}"));
+            assert!(!shown.contains("TLS") && !shown.contains("..."), "{shown}");
+            assert_eq!(detail, format!("DNS over HTTPS: {doh}"));
+        }
+        assert_eq!(unresolved("could not resolve x: system resolver: no answer"), None);
+    }
 
     #[test]
     fn plain_text_is_unchanged() {

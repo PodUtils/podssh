@@ -247,13 +247,14 @@ async fn watch(
 }
 
 /// The exit of a follow whose output could not be written: 0 for a reader
-/// that went away (`| head`), else a failure that says why, as the output
-/// stopped where the job's did not (T-603).
+/// that went away (`| head`), else 74 with a line that says why, as the
+/// output stopped where the job's did not (T-603): the code of each output
+/// that could not be written.
 fn gone(sink: &Sink<'_>, host: &str, id: &str, log: &Log) -> i32 {
     match &sink.failed {
         Some((kind, why)) if *kind != io::ErrorKind::BrokenPipe => {
             log.error(&format!("job {id} on {host}: its output could not be written here: {why}"));
-            EXIT_FAILURE
+            crate::exitmap::sysexits::EX_IOERR
         }
         _ => {
             log.verbose(&format!("job {id} on {host}: the reader of the output went away, and the follow ends"));
@@ -321,7 +322,8 @@ mod tests {
     }
 
     /// A write that fails for another cause than a reader that went is a
-    /// failure of the follow, said, where a reader that went is no failure.
+    /// failure of the follow, said, with 74 as each output that could not be
+    /// written; a reader that went is no failure.
     #[test]
     fn a_write_that_fails_otherwise_is_a_failure() {
         struct Stuck;
@@ -337,7 +339,7 @@ mod tests {
         let mut stuck = Stuck;
         let mut sink = Sink::new(&mut stuck, false);
         assert!(sink.write_all(b"x").is_err());
-        assert_eq!(gone(&sink, "h", "id", &log), EXIT_FAILURE);
+        assert_eq!(gone(&sink, "h", "id", &log), crate::exitmap::sysexits::EX_IOERR);
         let mut out = Vec::new();
         let went = Sink { failed: Some((io::ErrorKind::BrokenPipe, "pipe".into())), ..Sink::new(&mut out, false) };
         assert_eq!(gone(&went, "h", "id", &log), 0);

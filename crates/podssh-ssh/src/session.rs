@@ -18,6 +18,9 @@ use crate::terminal;
 
 /// The exit code when the session ends without an exit status (OpenSSH: 255).
 const NO_STATUS: i32 = 255;
+/// The exit code when the session's output could not be written here:
+/// sysexits' `EX_IOERR`, as for each command of podssh (T-1047).
+pub const UNWRITTEN: i32 = 74;
 /// How long to wait for the server to answer a pty or session request.
 const REPLY_WAIT: Duration = Duration::from_secs(30);
 
@@ -34,9 +37,14 @@ pub async fn run(handle: &Handle<Client>, opts: &Options, host: &str, log: &Arc<
 }
 
 /// The exit code of a session that ended so, or the words of a lost link.
+/// An output that could not be written here ends a run that would have
+/// been a success, or that has no status as its output stopped, with 74
+/// (T-1047); a status of the command's own failure stays.
 pub fn code(end: io::End, host: &str) -> Result<i32, String> {
     crate::outcome::ended(&end);
+    let unwritten = crate::outcome::unwritten_why().is_some();
     match end {
+        io::End::Status(0) | io::End::NoStatus if unwritten => Ok(UNWRITTEN),
         io::End::Status(code) => Ok(code),
         io::End::NoStatus | io::End::Escaped(_) | io::End::Terminated => Ok(NO_STATUS),
         io::End::Lost => Err(format!("the connection to {host} was lost before the session ended")),
@@ -414,6 +422,39 @@ mod tests {
         assert_eq!(code(io::end_with(Some(0)), "h"), Ok(0));
         assert_eq!(code(io::end_with(Some(7)), "h"), Ok(7));
         assert_eq!(code(io::end_with(None), "h"), Ok(NO_STATUS));
+    }
+
+    /// An output that could not be written here ends a run of 0, or of no
+    /// status, with 74; a failure of the command's own, a loss and a run
+    /// whose output was written keep theirs (T-1047). In a record of its
+    /// own, so that no other test reads the failed write.
+    #[test]
+    fn exit_code_of_end_after_an_output_that_could_not_be_written() {
+        let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
+        for (unwritten, end, want) in [
+            (true, io::End::Status(0), Ok::<i32, String>(UNWRITTEN)),
+            (true, io::End::NoStatus, Ok(UNWRITTEN)),
+            (true, io::End::Status(7), Ok(7)),
+            (true, io::End::Interrupted, Ok(130)),
+            (false, io::End::Status(0), Ok(0)),
+            (false, io::End::NoStatus, Ok(NO_STATUS)),
+        ] {
+            let (got, _) = runtime.block_on(crate::outcome::scoped(async move {
+                if unwritten {
+                    crate::outcome::unwritten("No space left on device".into());
+                }
+                code(end, "h")
+            }));
+            assert_eq!(got, want, "{unwritten}");
+        }
+        assert!(runtime
+            .block_on(crate::outcome::scoped(async {
+                crate::outcome::unwritten("No space left on device".into());
+                code(io::End::Lost, "h")
+            }))
+            .0
+            .is_err());
+        assert_eq!(UNWRITTEN, 74);
     }
 
     /// A link that ends after the status and the output's end gives the

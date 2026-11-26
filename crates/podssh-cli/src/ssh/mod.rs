@@ -123,8 +123,9 @@ pub fn run_ssh(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
     }
     // A record that could not be written at the end is refused before the
     // command runs, as the file commands refuse it: a run that left no
-    // record would read as one that never ran.
-    if let Some(why) = args.result_file.as_deref().and_then(result::no_place) {
+    // record would read as one that never ran. The log of -E and the
+    // recording of --record the same way, in the same words (T-1048).
+    if let Some(why) = result::no_places(args) {
         let _ = writeln!(err, "podssh ssh: {why}; nothing ran");
         return crate::exitmap::sysexits::EX_CANTCREAT;
     }
@@ -306,7 +307,8 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
             Ok(log) => log,
             Err(e) => {
                 let _ = writeln!(err, "podssh ssh: -E {}: {}", path.display(), podssh_ws::text::said(&e));
-                return EXIT_USAGE;
+                // A file that cannot be made, as --result-file's (T-1048).
+                return crate::exitmap::sysexits::EX_CANTCREAT;
             }
         },
         None => Log::new(resolved.options.log_level),
@@ -353,9 +355,10 @@ pub(crate) async fn connect_and_run(mut resolved: Resolved, log: Arc<Log>) -> i3
     if let Some(path) = resolved.record.clone() {
         match recording::create(&path) {
             Ok(target) => resolved.options.record = Some(target),
+            // A file that cannot be made, as --result-file's (T-1048).
             Err(why) => {
                 log.error(&why);
-                return podssh_ssh::EXIT_FAILURE;
+                return crate::exitmap::sysexits::EX_CANTCREAT;
             }
         }
     }

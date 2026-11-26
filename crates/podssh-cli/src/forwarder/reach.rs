@@ -77,8 +77,8 @@ pub async fn carry(
                 // The fallback's reasons wait for its end: one line when
                 // none carries the session.
                 match fallback {
-                    true => failed.push(e.line(&forwarder.name)),
-                    false => log.error(&e.line(&forwarder.name)),
+                    true => failed.push(super::fallback::failed_line(&e, &forwarder.name)),
+                    false => log.error(&super::fallback::failed_line(&e, &forwarder.name)),
                 }
                 code = exit_code(&e);
                 // A target that no template takes: the next would refuse it too.

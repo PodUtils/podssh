@@ -39,7 +39,7 @@ pub(super) async fn tries(resolved: &Resolved, log: &Arc<Log>) -> (i32, Option<p
             Ok(reached) => reached,
             Err(failure) => {
                 for line in &failure.lines {
-                    log.error(line);
+                    said(log, line);
                 }
                 let leg = if matches!(resolved.transport, Transport::Relay { .. }) { "relay" } else { "connect" };
                 podssh_ssh::outcome::failure_is(leg);
@@ -92,7 +92,7 @@ pub(super) async fn tries(resolved: &Resolved, log: &Arc<Log>) -> (i32, Option<p
             }
             _ => {
                 for line in &outcome.lines {
-                    log.error(line);
+                    said(log, line);
                 }
                 // A proxy that took the CONNECT and sent nothing back (T-317).
                 if outcome.code != 0 {
@@ -109,5 +109,17 @@ pub(super) async fn tries(resolved: &Resolved, log: &Arc<Log>) -> (i32, Option<p
         tokio::time::sleep(wait).await;
         // A person may not be there to answer a prompt again.
         opts.set_batch_mode();
+    }
+}
+
+/// A line of the run's failure: a name that did not resolve in plain words,
+/// with the words of each source of DNS over HTTPS at -v (T-1054).
+fn said(log: &Log, line: &str) {
+    match podssh_ws::text::unresolved(line) {
+        Some((shown, detail)) => {
+            log.error(&shown);
+            log.verbose(&detail);
+        }
+        None => log.error(line),
     }
 }

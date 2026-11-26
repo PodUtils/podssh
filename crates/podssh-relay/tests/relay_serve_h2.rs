@@ -223,6 +223,39 @@ async fn a_target_that_refuses_is_a_502_and_a_line_of_its_cause() {
     assert!(named, "the line names the client and the target: {:?}", line());
 }
 
+/// Each refusal of a session is a line of its own, `refused STATUS WHY`
+/// with its client, and its target once the path named it (T-1050): a
+/// token that is wrong, and a port that the policy refuses.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn each_refusal_is_a_line_with_its_client() {
+    let tls = Tls::start(&[H2, HTTP1], "refusals").await;
+    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let cases = [
+        ("wrong", closed, "refused 403 forward: missing or wrong token", None),
+        ("good", 25, "refused 403 forward: ", Some("127.0.0.1:25".to_string())),
+    ];
+    for (token, port, words, target) in cases {
+        let token = if token == "good" { tls.token() } else { token.to_string() };
+        assert!(h2_road::connect(&tls.config(port), &token).await.is_err(), "{words}");
+        // The line of this case: its words, and a target where it has one, so
+        // that the refusal of the case before is not taken for it.
+        let line = || {
+            let events = tls.role.events.lock().unwrap();
+            events
+                .iter()
+                .find(|l| l.starts_with(words) && said::field(l, "target").is_some() == target.is_some())
+                .cloned()
+        };
+        let deadline = std::time::Instant::now() + LIMIT;
+        while line().is_none() && std::time::Instant::now() < deadline {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+        let line = line().unwrap_or_else(|| panic!("{words}: {:?}", tls.role.events.lock().unwrap()));
+        assert_eq!(said::field(&line, "client"), Some("127.0.0.1"), "{line}");
+        assert_eq!(said::field(&line, "target"), target.as_deref(), "{line}");
+    }
+}
+
 /// OpenSSH's sshd, software that podssh did not write, says its version
 /// line first through a session on the road.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

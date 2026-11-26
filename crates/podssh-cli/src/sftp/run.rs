@@ -247,6 +247,17 @@ impl<'a> State<'a> {
                 sftp.setstat(&path, attrs).await.map_err(gone)?;
             }
             Command::Df { path, human, inodes } => self.df(path.as_deref(), *human, *inodes, out).await?,
+            // The target as typed, the link under the directory there, as
+            // OpenSSH's sftp makes a symbolic link (T-1051).
+            Command::Symlink { target, link } => sftp.symlink(&self.there(link), target).await.map_err(gone)?,
+            Command::Chown { id, path, group } => self.chown(&self.there(path), *id, *group).await?,
+            Command::Lls(path) => self.lls(path.as_deref(), out)?,
+            Command::Lmkdir(path) => {
+                let dir = self.here(path);
+                std::fs::create_dir(&dir).map_err(|e| {
+                    failed(Fault::CantCreate, format!("{}: {}", dir.display(), crate::cp::words::said(&e)))
+                })?;
+            }
             Command::Help => {
                 for (form, what) in commands::HELP {
                     let _ = writeln!(out, "{form:<26} {what}");
@@ -258,6 +269,36 @@ impl<'a> State<'a> {
             Command::Bye => return Ok(Flow::Bye),
         }
         Ok(Flow::Next)
+    }
+
+    /// The owner, or the group, of `path` set to `id`: SFTP version 3 sets
+    /// both together, so the other stays as the server has it.
+    async fn chown(&self, path: &str, id: u32, group: bool) -> Result<(), Failed> {
+        let now = self.sftp.stat(path).await.map_err(|e| transfer::from_sftp(e, Side::Source))?;
+        let (uid, gid) = if group { (now.uid, Some(id)) } else { (Some(id), now.gid) };
+        let Some((uid, gid)) = uid.zip(gid) else {
+            return Err(failed(Fault::NoInput, format!("{path}: the server names no owner and group of it")));
+        };
+        let attrs = FileAttributes { uid: Some(uid), gid: Some(gid), ..FileAttributes::default() };
+        self.sftp.setstat(path, attrs).await.map_err(|e| transfer::from_sftp(e, Side::Destination))
+    }
+
+    /// The names of a directory here, sorted, one a line; a file, its name.
+    fn lls(&self, path: Option<&str>, out: &mut dyn Write) -> Result<(), Failed> {
+        let dir = self.here(path.unwrap_or("."));
+        let said =
+            |e: std::io::Error| failed(Fault::NoInput, format!("{}: {}", dir.display(), crate::cp::words::said(&e)));
+        if !std::fs::metadata(&dir).map_err(said)?.is_dir() {
+            let _ = writeln!(out, "{}", dir.display());
+            return Ok(());
+        }
+        let entries = std::fs::read_dir(&dir).map_err(said)?;
+        let mut names: Vec<String> = entries.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        names.sort();
+        for name in names {
+            let _ = writeln!(out, "{name}");
+        }
+        Ok(())
     }
 
     async fn mkdir(&self, path: &str, parents: bool) -> Result<(), Failed> {

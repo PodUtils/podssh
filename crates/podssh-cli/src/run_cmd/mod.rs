@@ -191,8 +191,9 @@ pub fn run_run(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         return crate::exitmap::Fault::Usage.code();
     }
     // A record that could not be written at the end: refused before
-    // anything connects, as a copy refuses it (T-928, T-977).
-    if let Some(why) = file.and_then(crate::ssh::result::no_place) {
+    // anything connects, as a copy refuses it (T-928, T-977); the log of -E
+    // and the recording of --record too, as ssh's (T-1048).
+    if let Some(why) = crate::ssh::result::no_places(&args.ssh) {
         let _ = writeln!(err, "podssh run: {why}.\n  Nothing has been attempted.");
         return crate::exitmap::Fault::CantCreate.code();
     }
@@ -224,6 +225,13 @@ fn refused(refusal: Refusal, err: &mut dyn Write, ran: &mut Ran) -> i32 {
 /// [`run_run`]: the plan, then the copy and the command in `scope`, what
 /// they did in `ran`.
 fn run_planned(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write, scope: &Scope, ran: &mut Ran) -> i32 {
+    // A --from that is not there is a missing source, 66 in cp's words; one
+    // that is no directory stays a usage error (T-1048).
+    let missing = |dir: &&str| std::fs::metadata(dir).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound);
+    if let Some(dir) = args.from.as_deref().filter(missing) {
+        let message = format!("--from {dir}: no such file or directory");
+        return refused(Refusal { message, code: crate::exitmap::Fault::NoInput.code() }, err, ran);
+    }
     let plan = match plan(args) {
         Ok(plan) => plan,
         Err(why) => return refused(Refusal::usage(why), err, ran),

@@ -59,7 +59,9 @@ pub fn run_status(args: &StatusArgs, tty: Tty, out: &mut dyn Write, err: &mut dy
         let why = "--keys takes no destination: it lists the keys of this host".to_string();
         return crate::relay_settings::Refusal::usage(why).report("status", err);
     }
-    let env_relay = var(relay::RELAY_ENV);
+    // Set and empty, the variable is refused (78), as each verb that reads
+    // the relay list refuses it (T-1008, T-1055): not filtered as unset.
+    let env_relay = std::env::var(relay::RELAY_ENV).ok();
     let relays = match crate::relay_settings::relays(args.relay_host.as_deref(), env_relay.clone()) {
         Ok(r) => r,
         Err(refusal) => return refusal.report("status", err),

@@ -263,7 +263,7 @@ Read:
   which only the SSH handshake prints (`crates/podssh-ssh/src/run.rs:386-414`).
   At that point no request has reached the server.
 - The command starts with the exec, shell or subsystem request
-  (`crates/podssh-ssh/src/session.rs:152-187`). `-W` reads stdin only after its
+  (`crates/podssh-ssh/src/session.rs:160-195`). `-W` reads stdin only after its
   channel opens (`crates/podssh-ssh/src/forward.rs:65-101`). `-N` never reads
   stdin (`crates/podssh-ssh/src/run.rs:230-235`).
 - Measured by the reporter (read in the reports, not verified here): on one
@@ -387,9 +387,9 @@ Read:
 - A channel that closes with no `exit-status` and no `exit-signal` gives 255
   (`crates/podssh-ssh/src/io.rs`, line 226 at `8cf2587`,
   `crates/podssh-ssh/src/session.rs:19-20`,
-  `crates/podssh-ssh/src/session.rs:41`). A channel that ends with no Close
-  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:365`,
-  `crates/podssh-ssh/src/session.rs:42`).
+  `crates/podssh-ssh/src/session.rs:49`). A channel that ends with no Close
+  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:368`,
+  `crates/podssh-ssh/src/session.rs:50`).
 - A closed stdout (EPIPE) gives the status so far, or 0 when none came
   (`crates/podssh-ssh/src/io.rs`, lines 200-204 at `8cf2587`).
 - `-N` gives 0 when the connection ends with no error
@@ -444,7 +444,7 @@ lost channel with no status gives 255. The open work is `-N`, a closed
 stdout, and `-W`. Also, `docs/STATUS.md`, line 76 at `8cf2587`, says that
 Tailscale SSH sends no status for a login shell, and that both clients exit
 0. With no status, podssh gives 255
-(`crates/podssh-ssh/src/session.rs:41`), so that server probably sends an
+(`crates/podssh-ssh/src/session.rs:49`), so that server probably sends an
 exit status of 0. Check it with `ssh -v` of OpenSSH, which
 logs each `exit-status` request, and correct the row.
 
@@ -1103,7 +1103,7 @@ acceptable.
 - Read: podssh asks for passwords on the terminal or through `SSH_ASKPASS`
   (`crates/podssh-ssh/src/prompt.rs:50-73`), and refuses when nobody can
   answer (`crates/podssh-ssh/src/prompt.rs:83-93`). A remote command is one
-  string for the remote shell (`crates/podssh-ssh/src/session.rs:157-172`).
+  string for the remote shell (`crates/podssh-ssh/src/session.rs:165-180`).
   Local stdin goes to the channel only after the exec request
   (`crates/podssh-ssh/src/io.rs`, lines 148-157 at `3e42773`).
 - Measured, offline: `podssh ssh --sudo example.invalid id` gives
@@ -1119,13 +1119,13 @@ acceptable.
    stdin. A second M1 (a wrong password) ends the session with a clear
    message.
 3. When neither marker comes within 30 s (as `REPLY_WAIT`,
-   `crates/podssh-ssh/src/session.rs:21-22`), stop with 255 and say why.
+   `crates/podssh-ssh/src/session.rs:24-25`), stop with 255 and say why.
 4. `--su`, a second step: `su` reads only a terminal, so it needs `-tt`. Send
    the password only for a prompt that ends the output with no newline after
    it, before M2, and once.
 5. Put the filter in a new module, crates/podssh-ssh/src/elevate.rs. Hook it
-   into `handle_msg` (`crates/podssh-ssh/src/io/msg.rs:11-96`) and the stdin
-   branch (`crates/podssh-ssh/src/io.rs:253-346`), and keep `io.rs` under 500
+   into `handle_msg` (`crates/podssh-ssh/src/io/msg.rs:11-98`) and the stdin
+   branch (`crates/podssh-ssh/src/io.rs:256-349`), and keep `io.rs` under 500
    lines.
 6. Pitfalls: with a NOPASSWD rule, M1 never comes, so no password is sent;
    `-k` makes `sudo` ask also with cached credentials; the remote login shell
@@ -1172,10 +1172,10 @@ M1, and the NOPASSWD check fails.
 
 2026-10-11. The markers, the command and the filter in
 `crates/podssh-ssh/src/elevate.rs:1-419`. The session wraps the command
-(`crates/podssh-ssh/src/session.rs:157-172`, the question at
-`crates/podssh-ssh/src/session.rs:323-332`), and the pump filters the output,
-asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:210-233`,
-`crates/podssh-ssh/src/io.rs:429-436`). The flags at
+(`crates/podssh-ssh/src/session.rs:165-180`, the question at
+`crates/podssh-ssh/src/session.rs:331-340`), and the pump filters the output,
+asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:213-236`,
+`crates/podssh-ssh/src/io.rs:432-439`). The flags at
 `crates/podssh-cli/src/flags.rs:229-234`, and their check in
 `crates/podssh-cli/src/ssh/elevate.rs:1-43`.
 - `cargo test -p podssh-ssh -- elevate`: 5 passed: the quoting of the
@@ -1218,8 +1218,8 @@ and no player.
 ## Premise
 
 - Read: each output of a session passes `handle_msg`
-  (`crates/podssh-ssh/src/io/msg.rs:11-54`), and each window change passes the
-  resize branch (`crates/podssh-ssh/src/io.rs:386-391`). The size at the start
+  (`crates/podssh-ssh/src/io/msg.rs:11-56`), and each window change passes the
+  resize branch (`crates/podssh-ssh/src/io.rs:389-394`). The size at the start
   is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:88`).
   `podssh-ssh` has no JSON dependency
   (`crates/podssh-ssh/Cargo.toml:14-40`).
@@ -1281,8 +1281,8 @@ byte boundary, and the UTF-8 test fails.
 
 2026-10-11. The recorder in `crates/podssh-ssh/src/record.rs:1-153`, which a
 session starts with the size of its start
-(`crates/podssh-ssh/src/session.rs:218-225`) and its output passes through
-(`crates/podssh-ssh/src/io.rs:127-200`). The flag at
+(`crates/podssh-ssh/src/session.rs:226-233`) and its output passes through
+(`crates/podssh-ssh/src/io.rs:130-203`). The flag at
 `crates/podssh-cli/src/flags.rs:231-232`, its check and its file in
 `crates/podssh-cli/src/ssh/recording.rs:1-42`; the verb in
 `crates/podssh-cli/src/play.rs:1-98`, its flags in
@@ -2440,7 +2440,7 @@ user sees a session that hangs.
 Measured: a hung run of the control held no TCP connection (the relay
 host's reset had come through), and `-vv` printed nothing after the login.
 Read at `b62d657`: the session's loop awaited each send of stdin's bytes on
-the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:281-296`),
+the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:284-299`),
 and a send waits for the channel's window; while it waited, the loop read
 none of the channel's messages, which carry the end. And in the relay
 stream, the task that sends stopped reading the pipe when a send failed,
@@ -2474,7 +2474,7 @@ hang. Plant: the relay stream's receiving task with no stop fails its test.
 ## Done
 
 2026-10-10. The session's loop reads the channel's messages while a send
-waits for the window (`crates/podssh-ssh/src/io.rs:281-296`), and in the
+waits for the window (`crates/podssh-ssh/src/io.rs:284-299`), and in the
 relay stream each task's end with the link stops the other
 (`crates/podssh-ssh/src/relay_stream.rs:205-302`).
 - T-156's control of a stopped relay host (the forward road, 20 MiB up and
@@ -2947,9 +2947,9 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   russh's own (`crates/podssh-ssh/src/run_config.rs:72-73`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
   (`crates/podssh-cli/src/ssh/resolve.rs:350-353`) that #83's comment reads. T-332's question on
-  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:294`), which the same reply ends.
+  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:297`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
-  (`crates/podssh-ssh/src/handler.rs:231`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
+  (`crates/podssh-ssh/src/handler.rs:231`, `crates/podssh-ssh/src/session.rs:33-36`); a decode
   error has no words of podssh's (`crates/podssh-ssh/src/run_words.rs:35`), so #83 read russh's.
 - Read: a forward that the server refuses is a warning, and the run goes on
   (`crates/podssh-ssh/src/remote.rs:98-104`); a refusal with the connection gone ends the run as
@@ -3606,7 +3606,7 @@ as the server's are russh's.
   (`crates/podssh-ssh/src/run.rs:103-106`).
 - Read: the lost connection of `-R`'s requests names no cause
   (`crates/podssh-ssh/src/remote.rs`, lines 87-88 at `582b1bf`), where a lost session names
-  russh's (`crates/podssh-ssh/src/session.rs:30-33`).
+  russh's (`crates/podssh-ssh/src/session.rs:33-36`).
 
 ## Approach
 
@@ -3906,7 +3906,7 @@ asked.
   channel and keeps the pty open, so su waits, and podssh with it.
 - Read: with no way to ask, podssh says so, ends the input and keeps the deadline
   (`crates/podssh-ssh/src/elevate.rs:337-344`); at 30 s its line says that the command "neither
-  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:380-384`), though it asked.
+  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:383-387`), though it asked.
 - Read: the tests run `--su` with a right and a wrong password, and with no helper that fails
   (`crates/podssh-cli/tests/ssh_sudo.rs:202-264`).
 - Read (L-11): `--sudo` under a `NOPASSWD` rule sends no password, by design
@@ -4173,9 +4173,9 @@ would still say why the pause comes.
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/mod.rs:387-390` says "if let Some(kept) = resolved.persist.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:390-393` says "if let Some(kept) = resolved.persist.clone() {",
   and returns from `persist::run` before the watch of the relay's road starts.
-- `crates/podssh-cli/src/ssh/mod.rs:394-395` says "if let Some(upgrade) = resolved.upgrade.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:397-398` says "if let Some(upgrade) = resolved.upgrade.clone() {",
   and so does `upgrade::run`.
 - Read at `7e457b4`: `docs/cli.md` said "with `--persist`, which attaches again after the cut, and
   `--upgrade`, not before T-583" (this entry changed that line).
@@ -6602,7 +6602,7 @@ mode 0644 is used after a warning, where OpenSSH refuses it, and the manual did 
 ## Premise
 
 - Read: those lines wrote an `io::Error` with `{e}` (`crates/podssh-cli/src/ssh/local_bind.rs:94`,
-  `crates/podssh-cli/src/ssh/control_unix.rs:49`, `crates/podssh-cli/src/ssh/mod.rs:308`,
+  `crates/podssh-cli/src/ssh/control_unix.rs:49`, `crates/podssh-cli/src/ssh/mod.rs:309`,
   `crates/podssh-cli/src/ssh/transport.rs:341`); `run_words::describe` wrote `{kind:?}`
   (`crates/podssh-ssh/src/run_words.rs:24`); `load` warned of the mode before it knew what the path was.
 
@@ -7043,3 +7043,132 @@ Drafted 2026-11-26 by a drafting agent:
   `crates/podssh-cli/src/man/notes_ssh_more.rs`.
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1047: `ssh HOST yes > /dev/full` says that stdout was closed, and exits 255
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 4; with the `ssh` and `run` part
+of T-1046's finding.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh ssh HOST yes > /dev/full` ended 255 with "stdout was closed, and no exit status came within 5 s". stdout was
+not closed: its write failed (ENOSPC). `podssh ssh HOST 'echo hi' > /dev/full` and `podssh run` lost the output and
+exited 0 with no line.
+
+## Premise
+
+- Read, at `b562ec9`: the channel's data goes to stdout in `write_out` (`crates/podssh-ssh/src/io/msg.rs`); each
+  failure of it set `Out::gone`, as a reader that went away (EPIPE, T-026): the server hears the end of input and
+  the status is awaited 5 s, then the line of a closed stdout, at INFO.
+- Read, at `b562ec9`: `session::code` (`crates/podssh-ssh/src/session.rs`) gives the status, or 255 with none: a
+  status of 0 after a failed write was a success.
+
+## Approach
+
+1. A write of the channel's data or of a frame that fails for another cause than EPIPE is said at once, "the output
+   could not be written: WHY; the session ends" (`gone` in `crates/podssh-ssh/src/io/msg.rs`), and kept in the
+   session's record (`crate::outcome::unwritten`); the session then ends as for a closed stdout, with no second line.
+2. `session::code` gives 74 (`UNWRITTEN`, `crates/podssh-ssh/src/session.rs:23`) for a status of 0, or no status,
+   after such a write; a nonzero status, Ctrl-C and a lost link keep theirs. `ssh`, `run` and each caller of
+   `session::run` take it.
+3. EXIT STATUS's row of 74 names `ssh` and `run`; `docs/cli.md` too.
+
+## Decision
+
+- 74 where the run would have been 0 or 255 with no status, as `deliver` rules for each command (T-965): the status
+  of the command's own failure says more than the lost output. Lost: a 255 for a session whose output stopped, which
+  told a script nothing of the cause.
+- EPIPE stays the wait of T-026: a reader that went (`| head`) is no failure. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib session::
+cargo test -p podssh-ssh --lib outcome
+cargo test -p podssh-cli --lib man::
+```
+
+The table of `session::tests`: a failed write with 0 or no status gives 74, with 7 or Ctrl-C its code, a lost link
+stays an error, and one with no failed write keeps 0 and 255. Live, `podssh ssh HOST yes > /dev/full` against
+OpenSSH gives 74 and the one line, within 6 s.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-ssh/src/io.rs`, `crates/podssh-ssh/src/io/msg.rs`, `crates/podssh-ssh/src/outcome.rs`,
+  `crates/podssh-ssh/src/session.rs`, `crates/podssh-cli/src/man/data.rs`, `crates/podssh-cli/src/man/notes_tests.rs`,
+  `docs/cli.md`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live, against this host's sshd: `ssh ... 'yes | head -200000' > /dev/full` says "the output could not be written: No space left on device; the session ends" and exits 74. The planted run waits for T-251.
+
+
+# T-1048: `ssh`'s file flags fail with three codes for one missing directory, and `run --from` of none is 64
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 5.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+In a directory that is not there, `ssh --record /nonexist/x/y.cast` ended 255, `ssh -E /nonexist/x/log` 64 and `ssh
+--result-file /nonexist/x/r.json` 73: one fault, three codes and three wordings. `run --from MISSINGDIR` gave 64,
+where `cp` gives 66 for a missing source.
+
+## Premise
+
+- Read, at `b562ec9`: `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs`) checked the directory of `--result-file` alone
+  before the run (73, T-977); `-E` failed at `Log::to_file` with `EXIT_USAGE`, and `--record` at
+  `crates/podssh-cli/src/ssh/recording.rs:35` with `EXIT_FAILURE`, after the settings were read.
+- Read, at `b562ec9`: `local_dir` of `crates/podssh-cli/src/run_cmd/mod.rs` refused a `--from` that is no directory,
+  missing or not, as a usage error; `cp` says "SOURCE: no such file or directory" with 66
+  (`crates/podssh-cli/src/cp/moving.rs:186`).
+
+## Approach
+
+1. One check of a file's directory for each flag, `no_place_for` (`crates/podssh-cli/src/ssh/result.rs:174`), in
+   `--result-file`'s words; `no_places` (`crates/podssh-cli/src/ssh/result.rs:187`) runs it for `--result-file`,
+   `-E` and `--record`, first in `run_ssh` and in `run_run`: 73, "nothing ran".
+2. A file of `-E` or `--record` that still cannot be made (a mode, a file that exists) is 73 too.
+3. `run --from` that is not there: 66, "--from DIR: no such file or directory"
+   (`crates/podssh-cli/src/run_cmd/mod.rs:230`); one that is a file stays 64.
+4. EXIT STATUS's rows of 66 and 73, `--record`'s note, and `docs/cli.md` ("Exit codes").
+
+## Decision
+
+- 73 for each, as `--result-file`'s and `cp`'s destination: a file that cannot be made, not a usage error (64) nor
+  a failure of the session (255). Lost: -E's 64, which no script could tell from a bad flag.
+- A `--from` that is a file stays 64: the word names the wrong kind of thing, and nothing is missing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test run
+cargo test -p podssh-cli --lib ssh::result
+cargo test -p podssh-cli --lib man::
+```
+
+`each_file_of_ssh_with_no_directory_is_73_before_anything_connects`: each of the three flags, 73 and the same words;
+`run --from` of a missing directory 66, of a file 64.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/ssh/result.rs`, `crates/podssh-cli/src/ssh/mod.rs`,
+  `crates/podssh-cli/src/run_cmd/mod.rs`, `crates/podssh-cli/src/man/data.rs`, `crates/podssh-cli/src/man/notes_ssh.rs`,
+  `crates/podssh-cli/tests/run.rs`, `docs/cli.md`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

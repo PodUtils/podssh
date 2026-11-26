@@ -137,7 +137,8 @@ pub async fn request<S>(
     };
     // Each failed authentication looks the same, as on the default relay.
     let Some(pair) = found else {
-        return answer(&mut stream, request::refusal(403, "reverse: forbidden", &[])).await;
+        // Its line names the client alone: the pair's name was not proven.
+        return answer(&mut stream, cfg.refused(&Of::client(from), 403, "reverse: forbidden", None)).await;
     };
     // Each line from here on is this pair's.
     let of = Of::client(from).with_pair(&pair.name);
@@ -148,7 +149,7 @@ pub async fn request<S>(
     }
     // A halted pair refuses each operator with its owner's words before a
     // token of `once` or of one leg is spent (T-647); a planned stop's first.
-    if kind == "connect" && !cfg.pairs.stopping() && halt::refused(&mut stream, &pair).await {
+    if kind == "connect" && !cfg.pairs.stopping() && halt::refused(&mut stream, &pair, &cfg, &of).await {
         return;
     }
     // It takes this upgrade and no other; a planned stop refuses it below, as

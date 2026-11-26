@@ -104,6 +104,15 @@ fn the_line_names_the_relays_and_where_they_came_from() {
     );
     let (_, out, _) = status(&home, &[], &[("PODSSH_RELAY", "c.example")]);
     assert_eq!(one_line(&out)["relays_from"], "PODSSH_RELAY");
+    // Set and empty, the variable is refused, as by each verb that reads the
+    // relay list (T-1055); beside --relay-host it is not read.
+    for empty in ["", "  "] {
+        let (rc, out, err) = status(&home, &[], &[("PODSSH_RELAY", empty)]);
+        assert_eq!(rc, 78, "{empty:?}: {out}{err}");
+        assert!(out.is_empty() && err.contains("PODSSH_RELAY is set and empty"), "{empty:?}: {err}");
+    }
+    let (rc, out, err) = status(&home, &["--relay-host", "a.example"], &[("PODSSH_RELAY", "")]);
+    assert_eq!((rc, &one_line(&out)["relays_from"]), (0, &serde_json::json!("--relay-host")), "{err}");
     let (rc, out, err) = status(&home, &["bad host!"], &[]);
     assert_eq!(rc, 64, "{out}{err}");
     assert!(out.is_empty());

@@ -178,7 +178,7 @@ done." `podssh status`, `node` and `operator x` (no `--timeout` row) exit 70.
 
 Read: dispatch runs the `--timeout` gate (`crates/podssh-cli/src/dispatch.rs` lines 186-196 at `37ace00`)
 before the refusal of a verb that is not implemented
-(`crates/podssh-cli/src/dispatch.rs:440-453`). `require_timeout` writes the
+(`crates/podssh-cli/src/dispatch.rs:433-446`). `require_timeout` writes the
 fixed text and has no verb to name (`crates/podssh-cli/src/non_interactive.rs` lines 194-201 at `37ace00`).
 `podssh ts` uses the same function (`crates/podssh-cli/src/ts.rs:56-65`), so a
 build with the `ts` feature shows the chat example for `ts` too (read, not
@@ -306,7 +306,7 @@ flag-shaped (`crates/podssh-cli/src/clap_error.rs:153-155`), so the arm calls
    when the user typed `-p`, so print both spellings.
 4. A `Refused` row with no value gets its own refusal: a value would not change
    the answer. Move the refusal text of `refusals`
-   (`crates/podssh-cli/src/dispatch.rs:406-414`) to `refuse.rs`, so the two
+   (`crates/podssh-cli/src/dispatch.rs:399-407`) to `refuse.rs`, so the two
    cannot differ.
 5. A long name with no row keeps today's message, as a fallback.
 6. Same commit: `docs/cli.md:74-80` (a flag with no value names the flag and
@@ -493,7 +493,7 @@ Read, at `61e55d1`: no option made podssh start a program: `ProxyCommand` is ref
    `[OPTIONS] [--] [user@]host [COMMAND...]` for `ssh` and
    `[OPTIONS] [--] HOST PORT` for `proxy`; `--help` and the synopsis of the
    manual (`PodUtils/podssh:crates/podssh-cli/src/man/model.rs:186-190`) read it.
-2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-196` and `crates/podssh-cli/src/man/notes.rs:77-255`)
+2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-196` and `crates/podssh-cli/src/man/notes.rs:77-256`)
    and an example (`crates/podssh-cli/src/man/examples.rs:8-328`). Pitfall: the
    notes test reads a bare `--` as a flag that does not exist
    (`crates/podssh-cli/src/man/notes_tests.rs:56-72`); teach `flag_exists`
@@ -595,7 +595,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    lookup passed in, as `proxy_from_vars` does
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:109-123`): the flag, else a `PODSSH_TIMEOUT`
    that is not empty, else nothing. It returns the text and its source.
-2. Call it at both gate sites: `crates/podssh-cli/src/dispatch.rs:398-419` and
+2. Call it at both gate sites: `crates/podssh-cli/src/dispatch.rs:385-412` and
    `crates/podssh-cli/src/ts.rs:56-65`. Parse with `parse_timeout`
    (`crates/podssh-cli/src/non_interactive.rs:136-182`): a whole duration,
    never zero.
@@ -707,7 +707,7 @@ group. Four places render it: `top_level_help`
    the availability note of each line (`crates/podssh-cli/src/help.rs:203-210`).
 3. Keep the two refusal lists flat, or raise their limit with a reason:
    `a_refusal_is_a_line_not_a_usage_dump` allows 18 lines
-   (`crates/podssh-cli/src/refuse.rs:292-293`), and the list for
+   (`crates/podssh-cli/src/refuse.rs:329-330`), and the list for
    `example.org` has 17.
 4. Update `scripts/interop-man.sh` (lines 35-36 at `3a78cff`) in the same commit. It reads the
    `SUBCOMMANDS:` block up to the first blank line, and takes the first word
@@ -927,7 +927,7 @@ the same for the other fifteen.
    `-k` is supported and `-g` is accepted with no effect
    (`crates/podssh-cli/src/flags.rs`, lines 205-209 at `97146aa`).
 2. A refusal with nothing to use instead says "Leave it out."
-   (`crates/podssh-cli/src/dispatch.rs:406-414`), and `--help` shows
+   (`crates/podssh-cli/src/dispatch.rs:399-407`), and `--help` shows
    "(refused)" (`crates/podssh-cli/src/help.rs:124-127`).
 3. A test holds the reviewed set (`crates/podssh-cli/tests/flag_table.rs:15-30`).
    `docs/cli.md:1045-1049` states the rule.
@@ -1695,7 +1695,7 @@ that `forward-remote` names `-W HOST:PORT`
 1. The `-R` row (`crates/podssh-cli/src/flags.rs`, lines 206-207 at `a9299c4`): the help "remote
    forwarding is not implemented yet", the words of `-o RemoteForward`; the
    replacement `no flag`, so the refusal says "Leave it out."
-   (`crates/podssh-cli/src/dispatch.rs:406-414`).
+   (`crates/podssh-cli/src/dispatch.rs:399-407`).
 2. `crates/podssh-cli/src/help.rs`, lines 213-215 at `a9299c4` and
    `crates/podssh-cli/src/man/notes.rs`, lines 70-72 at `a9299c4`: `-L` and `-D` need a local
    listener and are refused, and `-W HOST:PORT` carries one connection; `-R`
@@ -1881,7 +1881,7 @@ The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/keys.rs:372` and `crates/podssh-cli/src/keygen.rs:413`.
 Its refusals name the real remedies (`docs/cli.md:7509-7511`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
-`parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:398-419`,
+`parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:385-412`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
 (`crates/podssh-cli/src/tree.rs:224-227`).
 
@@ -3597,7 +3597,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and in the notes (`crates/podssh-cli/src/man/notes.rs:190`), and in no row of `cp --help`
   (`crates/podssh-cli/src/flags/copy.rs:20-64`).
 - Read (L-17): `job fetch` of a job that runs exits 75, as EXIT STATUS says
-  (`crates/podssh-cli/src/man/data.rs:106-108`); the rows of `job --help` do not
+  (`crates/podssh-cli/src/man/data.rs:113-115`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
   about of `job` does not say (`crates/podssh-cli/src/flags.rs:408-409`).
@@ -3607,10 +3607,10 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   file works.
 - Read (L-27): `podssh proxy` has no direct road (`crates/podssh-cli/src/man/notes_ssh.rs:256`);
   `podssh pipe - tcp:%h:%p` is that road as a `ProxyCommand` (`crates/podssh-cli/src/man/notes_pipe.rs:5-15`),
-  and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:271`).
+  and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:272`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:126-143`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:133-150`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -3722,7 +3722,7 @@ Read at `2042200`:
   documented). The issue says the second does not exist; it does, and a retired name written in the
   source would trip it, so the table needs its own place in the manual.
 - The run's funnel `crates/podssh-cli/src/dispatch.rs` is 439 lines; `main_with_args` is at
-  `crates/podssh-cli/src/dispatch.rs:419`.
+  `crates/podssh-cli/src/dispatch.rs:412`.
 
 ## Approach
 
@@ -4375,7 +4375,7 @@ and `man_json`; `llms-full.txt` written again; clippy and fmt clean. With T-865'
 ## Premise
 
 - Read, at `07d7d9b`: each of these commands writes its answer with `let _ = writeln!(out, ...)`, so a write's error
-  is dropped; `crates/podssh-cli/src/dispatch.rs:451` hands them the process's stdout.
+  is dropped; `crates/podssh-cli/src/dispatch.rs:444` hands them the process's stdout.
 - Read: Rust's runtime opens /dev/null on a stdout that was closed before `main` (`sanitize_standard_fds` of the
   standard library on Unix), for reading and writing, so a write to a closed stdout succeeds and nothing is lost in
   the program's sight.
@@ -4385,7 +4385,7 @@ and `man_json`; `llms-full.txt` written again; clippy and fmt clean. With T-865'
 
 ## Approach
 
-1. One helper, `crate::output::deliver` (`crates/podssh-cli/src/output.rs:59`): the command writes to a checked
+1. One helper, `crate::output::deliver` (`crates/podssh-cli/src/output.rs:62`): the command writes to a checked
    stdout, whose first failure is kept and fails each later write at once; at the end it flushes, and a failure is
    one line, `podssh VERB: the output could not be written: WHY`, with 74 (`EX_IOERR`) where the command would exit
    0; a command that failed first keeps its code; a broken pipe is no failure. Dispatch runs `keygen`, `doctor`,
@@ -4865,7 +4865,7 @@ host`, with two colons.
    podssh's words ("its base64 text is cut or damaged", "a length inside it is wrong: the file is cut or damaged",
    "it is not text, as a key file is"), else the text without the library's name. `keygen`'s readers of a key
    take it; a file that is not UTF-8 is refused by `key_text` itself (T-966).
-2. `status` takes `parse_hop`'s refusal as it is (`crates/podssh-cli/src/status.rs:234`).
+2. `status` takes `parse_hop`'s refusal as it is (`crates/podssh-cli/src/status.rs:236`).
 3. "SshKey: length invalid" of `agent list` was T-963's malformed blob; its line now names the lock or the error.
 
 ## Decision
@@ -4970,7 +4970,7 @@ empty; later output went to the log. The manual says that a detached run's outpu
   before the line of ready to its own stdout (line 193 of the same file). So a command's output that came in those
   50 ms went to the caller.
 - Read: the phase reaches `Requested` in the task that sends the request, before it goes
-  (`crates/podssh-ssh/src/session.rs:128`).
+  (`crates/podssh-ssh/src/session.rs:136`).
 
 ## Approach
 
@@ -5910,7 +5910,7 @@ raise of the limit by `io::Error`'s words, "(os error N)" included.
 - Measured 2026-11-26: OpenSSH 9.6p1's `ssh -G 'x@y@z'` prints `user x@y` and `hostname z`: its last @ ends the user.
 - Read, at `9574133`: `status` reads a destination by `parse_hop` (`crates/podssh-cli/src/ssh/hop.rs:45`), which
   splits at the last @, as OpenSSH; the manual's note of `status` did not say so.
-- Read, at `9574133`: `open_files` (`crates/podssh-cli/src/status.rs:264`) wrote `refused` by `to_string()` of an
+- Read, at `9574133`: `open_files` (`crates/podssh-cli/src/status.rs:266`) wrote `refused` by `to_string()` of an
   `io::Error`, which the scan of `crates/podssh-cli/tests/io_error_lines.rs` does not see (no `{e}`).
 
 ## Approach
@@ -5961,7 +5961,7 @@ through `pod-relay`), and "not attempted: PODSSH_OFFLINE is set" (`node`, `opera
 ## Premise
 
 - Read, at `9574133`: the second came from `podssh_relay::open::words` (`crates/podssh-relay/src/open.rs:66`), the
-  third from `pairs::online` (`crates/podssh-cli/src/pairs.rs:160`) and from each check of `doctor`, and the first was
+  third from `pairs::online` (`crates/podssh-cli/src/pairs.rs:168`) and from each check of `doctor`, and the first was
   written again at each of some thirty places of `podssh-cli`.
 
 ## Approach
@@ -6162,3 +6162,183 @@ Drafted 2026-11-26 by a drafting agent:
 - Changed: `crates/podssh-cli/src/play.rs`, `crates/podssh-cli/src/man/notes_play.rs`.
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1046: A write of the output that fails exits 0 for the commands that T-965 did not route
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 3.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With stdout on `/dev/full`, `sftp -b FILE`, `health`, `job list` and `job log`, `run`, `relay info`, `pipe stdio
+tcp:...`, `pipe stdio exec:cat`, `play rec.cast`, `--help`, `--version` and `ssh HOST 'echo hi'` each lost their
+output and exited 0 with no line. T-965 gave 74 to keygen, doctor, man, status, config, agent and update only.
+
+## Premise
+
+- Read, at `b562ec9`: `crates/podssh-cli/src/output.rs` holds `deliver`, which dispatch used for seven verbs; the
+  arms of `--help` and `--version` wrote with `let _ = s.out.write_all(...)`, and `health`, `ping`, `play`, `relay`,
+  `job`, `net`, `share`, `session`, `detached`, `containers` and `sftp` got the process's stdout unchecked.
+- Read, at `b562ec9`: the pump of `pipe` and `proxy` (`crates/podssh-cli/src/pipe/pump.rs`) read each write that
+  failed as `Flow::Gone`, a reader that went away, so a full disk ended the pipe with its child's status.
+- Read, at `b562ec9`: `job log --follow` said its failed write and ended 255 (`gone` in
+  `crates/podssh-cli/src/job/follow.rs`), not 74.
+- Read: `job wait` writes nothing to stdout (`crates/podssh-cli/src/job/queue.rs:82`): its exit 0 lost nothing.
+- `run` and `ssh HOST CMD` write the channel's data in `podssh-ssh`: T-1047.
+
+## Approach
+
+1. Dispatch hands each answer of stdout to `deliver` through one helper, `answer`
+   (`crates/podssh-cli/src/dispatch.rs:390`): `health`, `ping`, `play`, `relay`, `net`, `share`, `session`,
+   `detached`, `containers`, `serve --audit-verify` and `serve --totp-new`; `--help` and `--version` move to
+   `crates/podssh-cli/src/dispatch/command.rs:110`, and `sftp` goes through `deliver` there.
+2. `job` goes through `deliver` for each call but `log --follow`, which checks its own writes and now ends 74.
+3. The pump tells a reader that left (a broken pipe, a reset, an abort, no connection;
+   `crates/podssh-cli/src/pipe/pump.rs:94`) from any other failure of a write, which ends the pipe with one line,
+   "B's output could not be written to A after N bytes: WHY", and 74 in `report`, after a road's own verdict.
+4. EXIT STATUS's row of 74 names the commands; `docs/cli.md` ("Exit codes") too.
+
+## Decision
+
+- `funnel` stays out of `deliver`: its run goes on for hours after its URL's line, and `deliver` says a failure only
+  at the end. Lost: a 74 for a URL that could not be shown; its line on stderr names the URL too.
+- `relay serve` writes its log lines to the process's stdout itself, as a server; it is not given `deliver`'s
+  stdout. `cp --dry-run` and `cp --jsonl` belong to the other worker's area of the copy's writers, and are left there.
+- A reader that left stays no failure (0), as T-965 ruled. Lost: telling a reset socket under `pipe` from a reader
+  that went; a reset read stays 69 (T-465).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test output_full
+cargo test -p podssh-cli --lib pipe::pump
+cargo test -p podssh-cli --lib job::follow
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --lib dispatch
+```
+
+On Linux, `--help`, `ssh --help`, `--version`, `play FILE` and `pipe stdio exec:cat` to `/dev/full` give 74 and one
+line with no "(os error N)"; the pump's table: a broken pipe and a reset are `Gone`, a full disk and another error
+`Unwritten`.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/dispatch.rs`, `crates/podssh-cli/src/dispatch/command.rs`,
+  `crates/podssh-cli/src/job/mod.rs`, `crates/podssh-cli/src/job/follow.rs`, `crates/podssh-cli/src/pipe/pump.rs`,
+  `crates/podssh-cli/src/pipe/mod.rs`, `crates/podssh-cli/src/output.rs`, `crates/podssh-cli/src/man/data.rs`,
+  `crates/podssh-cli/tests/output_full.rs`, `docs/cli.md`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live: `podssh --version > /dev/full` says "the output could not be written: No space left on device" and exits 74. The planted run waits for T-251.
+
+
+# T-1053: `--pair-file` names its file twice, and `net add` says "0 words given" for what it needs
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), findings 12 and 17.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh operator --pair-file nonexist.op x` said "--pair-file nonexist.op: nonexist.op: No such file or directory",
+the name twice. `podssh net add` said "podssh net add NAME KEY: 0 words given", where the user needs to hear what is
+missing; `share` said its count the same way.
+
+## Premise
+
+- Read, at `b562ec9`: `from_file` and `operator_part` of `crates/podssh-cli/src/pairs.rs` put `--pair-file PATH:`
+  before the reader's error, whose words (pod-relay's `read_file` and `read_operator_file`) begin with the path.
+- Read, at `b562ec9`: `checked` of `crates/podssh-cli/src/net/mod.rs` and of `crates/podssh-cli/src/share/mod.rs`
+  said each wrong count as "N words given".
+
+## Approach
+
+1. `pair_file_said` (`crates/podssh-cli/src/pairs.rs:70`) names the file once: the reader's leading path is taken
+   off, and "(os error N)" too.
+2. `crate::refuse::word_count` (`crates/podssh-cli/src/refuse.rs:273`), one wording for `net` and `share`: "needs
+   NAME and KEY" by the names of the form that are missing, or "1 word too many".
+3. Asked of podcrates (a COORD issue for the lead): pod-relay's readers of a pair file say the system's words alone,
+   so that each caller names the file once in its own words.
+
+## Decision
+
+- Strip the path where podssh shows it, until pod-relay changes: the line must hold for each version of the crate.
+  Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib refuse::
+cargo test -p podssh-cli --lib pairs::
+cargo test -p podssh-cli --test net_invite
+cargo test -p podssh-cli --test share
+cargo test -p podssh-cli --test net
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/pairs.rs`, `crates/podssh-cli/src/refuse.rs`, `crates/podssh-cli/src/net/mod.rs`,
+  `crates/podssh-cli/src/share/mod.rs`, `crates/podssh-cli/tests/net_invite.rs`, `crates/podssh-cli/tests/share.rs`,
+  `crates/podssh-cli/tests/net_policy/mod.rs`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1055: `status` with `PODSSH_RELAY` set and empty exits 0, where each other verb refuses it with 78
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`PODSSH_RELAY= podssh status` exited 0 and named the default relays, where each other verb that reads the relay list
+refuses the variable set and empty (78, T-1008). `status` tells what a run would do, so it said what no run does.
+
+## Premise
+
+- Read, at `b562ec9`: `run_status` (`crates/podssh-cli/src/status.rs`) read the variable by its `var`, which drops a
+  value that is empty or blank, before `relay_settings::relays`, whose check of an empty value never saw it.
+
+## Approach
+
+1. `status` reads `PODSSH_RELAY` as it is (`crates/podssh-cli/src/status.rs:64`), so that `relays` refuses it set
+   and empty with the words of each verb, and 78; beside `--relay-host` it is not read, as for each verb.
+
+## Decision
+
+- 78, as for each verb: `status` says what a run would do, and a run refuses. Lost: a `status` that lists the
+  default relays while the variable is set and empty.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test status
+```
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/status.rs`, `crates/podssh-cli/tests/status.rs`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live: `PODSSH_RELAY= podssh status` is refused, 78. The planted run waits for T-251.

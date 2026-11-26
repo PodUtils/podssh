@@ -1418,7 +1418,7 @@ the shell on a detach fails it.
   `env` requests of podssh's own names and a subsystem, which the handler
   sees (`crates/podssh-ssh/src/keep.rs`).
 - An escape needs a pty and a terminal on stdin
-  (`crates/podssh-ssh/src/session.rs:212`), so a test cannot type `~d`
+  (`crates/podssh-ssh/src/session.rs:220`), so a test cannot type `~d`
   through a pipe: the attach test types it in a pseudo console on Windows
   (`crates/podssh-cli/tests/conpty_harness/mod.rs`) and in a pty on Linux
   (`crates/podssh-cli/tests/pty_harness/mod.rs`, new).
@@ -4819,7 +4819,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/layer.rs:1-8`), which `proxy` and `ssh` take unasked for a relay
   host that the user named and that offers it (Q96, `docs/decisions.md:36`); and a node's sessions with
   `--no-e2e` (`crates/podssh-cli/src/flags/node.rs:144`).
-- The plain forward road keeps a half-close: `crates/podssh-relay/src/serve/forward.rs:295-298` shuts
+- The plain forward road keeps a half-close: `crates/podssh-relay/src/serve/forward.rs:296-299` shuts
   the target's writing side at the client's Close and goes on, as the default relay does
   (`docs/relay.md:568-571`). So `podssh proxy` to a target that reads until its end loses the answer on
   the layer road where it gets it on `/connect/` (Inferred from the code; not measured).
@@ -4928,8 +4928,8 @@ fails; no `END` again after a resume, and the test of a lost `END` fails; `podss
 
 - The Premise's role "goes on" after the client's Close, as the default relay does: it does not. At
   the client's Close the role's `/connect/` shuts the target's writing side and its `up` returns
-  `End::Client` (`crates/podssh-relay/src/serve/forward.rs:298` says "return End::Client;"), which
-  ends the `select!` of the session (`crates/podssh-relay/src/serve/forward.rs:364-365`): the target's
+  `End::Client` (`crates/podssh-relay/src/serve/forward.rs:299` says "return End::Client;"), which
+  ends the `select!` of the session (`crates/podssh-relay/src/serve/forward.rs:365-366`): the target's
   later bytes are not carried, where the contract says that they come until the target closes or is
   idle for 15 s (`docs/relay.md:568-571`). That is a difference of the role from the contract, outside
   this entry; the main session files it at the merge. And `podssh proxy` sends no Close at the end of

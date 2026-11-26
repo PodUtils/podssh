@@ -14,7 +14,6 @@
 use std::io::Write;
 
 use crate::exit_codes::{EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
-use crate::help;
 use crate::pager::Tty;
 use crate::retired::Retired;
 use crate::tree::Parsed;
@@ -69,27 +68,8 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         return code;
     }
     match p {
-        Parsed::Help(section) => {
-            let text = if section.is_empty() {
-                help::top_level_help()
-            } else {
-                match crate::flags::verb_for(section) {
-                    Some(v) => help::verb_help(v),
-                    None => help::top_level_help(),
-                }
-            };
-            let _ = s.out.write_all(text.as_bytes());
-            0
-        }
-        Parsed::Version => {
-            let _ = writeln!(s.out, "{}", crate::version::line());
-            // A node that would hand its sessions to this binary asks (T-668).
-            if std::env::var_os(crate::node_upgrade::VARIABLE).is_some_and(|v| v == crate::node_upgrade::PROBE) {
-                let (word, version) = (crate::node_upgrade::PROBE_WORD, crate::node_upgrade::HANDOVER_VERSION);
-                let _ = writeln!(s.out, "{word}{version}");
-            }
-            0
-        }
+        Parsed::Help(section) => answer("--help", s, |out, _| command::help(section, out)),
+        Parsed::Version => answer("--version", s, |out, _| command::version(out)),
         // A usage error is a refusal. Nothing goes to stdout, because the
         // only thing that should ever be there is an answer.
         Parsed::Usage(m) => {
@@ -188,13 +168,14 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Pipe(args) if refusals("pipe", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Pipe(args) => crate::pipe::run_pipe(args, s.err),
         Parsed::Relay(args) if refusals("relay", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Relay(args) => crate::relay_cmd::run_relay(args, s.out, s.err),
+        // `relay serve` writes its lines itself, as a server; each other answer is checked.
+        Parsed::Relay(args) => answer("relay", s, |out, err| crate::relay_cmd::run_relay(args, out, err)),
         Parsed::Ping(args) if refusals("ping", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Ping(args) => crate::ping::node::run(args, s.out, s.err),
+        Parsed::Ping(args) => answer("ping", s, |out, err| crate::ping::node::run(args, out, err)),
         Parsed::Health(args) if refusals("health", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Health(args) => crate::health::run(args, s.out, s.err),
+        Parsed::Health(args) => answer("health", s, |out, err| crate::health::run(args, out, err)),
         Parsed::Play(args) if refusals("play", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Play(args) => crate::play::run(args, s.out, s.err),
+        Parsed::Play(args) => answer("play", s, |out, err| crate::play::run(args, out, err)),
         Parsed::Update(args) if refusals("update", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Update(args) => {
             crate::output::deliver("update", s.out, s.err, |out, err| crate::update::run(args, out, err))
@@ -212,7 +193,9 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Each(args) => crate::each::run_each(args, s.out, s.err),
         Parsed::Containers(args) if refusals("containers", &args.refused, s.err) => EXIT_USAGE,
         // The list goes to stdout; --exec's session to the process's streams.
-        Parsed::Containers(args) => crate::containers::run_containers(args, s.out, s.err),
+        Parsed::Containers(args) => {
+            answer("containers", s, |out, err| crate::containers::run_containers(args, out, err))
+        }
         Parsed::Job(args) if refusals("job", &args.refused, s.err) => EXIT_USAGE,
         // An ID, a list or a job's output on stdout; podssh's words on stderr.
         Parsed::Job(args) => crate::job::run_job(args, s.out, s.err),
@@ -233,23 +216,27 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Serve(args) if refusals("serve", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Serve(args) if args.print_unit => crate::node_install::print::serve(args, s.out, s.err),
         // The check of an audit log: its verdict on stdout (T-116).
-        Parsed::Serve(args) if args.audit_verify.is_some() => crate::serve_audit::verify(args, s.out, s.err),
+        Parsed::Serve(args) if args.audit_verify.is_some() => {
+            answer("serve", s, |out, err| crate::serve_audit::verify(args, out, err))
+        }
         // A new secret of --totp: its path alone on stdout (T-115).
-        Parsed::Serve(args) if args.totp_new.is_some() => crate::serve_totp::create(args, s.out, s.err),
+        Parsed::Serve(args) if args.totp_new.is_some() => {
+            answer("serve", s, |out, err| crate::serve_totp::create(args, out, err))
+        }
         // SSH is on the process's own stdin and stdout; its lines on stderr.
         Parsed::Serve(args) => crate::serve::run(args, s.err),
         Parsed::Session(args) if refusals("session", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Session(args) => crate::session::run(args, s.out, s.err),
+        Parsed::Session(args) => answer("session", s, |out, err| crate::session::run(args, out, err)),
         Parsed::Detached(args) if refusals("detached", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Detached(args) => crate::detach::control::run(args, s.out, s.err),
+        Parsed::Detached(args) => answer("detached", s, |out, err| crate::detach::control::run(args, out, err)),
         Parsed::Net(args) if refusals("net", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Net(args) => crate::net::run(args, s.out, s.err),
+        Parsed::Net(args) => answer("net", s, |out, err| crate::net::run(args, out, err)),
         Parsed::Exit(args) if refusals("exit", &args.refused, s.err) => EXIT_USAGE,
         // Its lines go to stderr; it has no answer for stdout.
         Parsed::Exit(args) => crate::exit::run_exit(args, s.err),
         Parsed::Share(args) if refusals("share", &args.refused, s.err) => EXIT_USAGE,
         // A list on stdout; each change said on stderr.
-        Parsed::Share(args) => crate::share::run(args, s.out, s.err),
+        Parsed::Share(args) => answer("share", s, |out, err| crate::share::run(args, out, err)),
         Parsed::Funnel(args) if refusals("funnel", &args.refused, s.err) => EXIT_USAGE,
         // The URL on stdout; each line on stderr.
         Parsed::Funnel(args) => crate::funnel::run(args, s.out, s.err),
@@ -398,6 +385,12 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         }
     }
 }
+/// `command` with each write of its answer checked: one line and 74 when
+/// stdout cannot take it, and a reader that went away no failure (T-965).
+fn answer(verb: &str, s: &mut Streams<'_>, command: impl FnOnce(&mut dyn Write, &mut dyn Write) -> i32) -> i32 {
+    crate::output::deliver(verb, s.out, s.err, command)
+}
+
 /// Print every refused flag, and say whether there was one. One function so
 /// `man` and every other verb refuse in the same words.
 ///

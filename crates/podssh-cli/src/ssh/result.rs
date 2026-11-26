@@ -166,13 +166,27 @@ pub fn channel_failed(fault: &crate::exitmap::Fault) {
 /// directory is missing, or is no directory. A copy says so before it
 /// connects (T-928); `None` when it can be tried.
 pub(crate) fn no_place(path: &str) -> Option<String> {
+    no_place_for("--result-file", path)
+}
+
+/// [`no_place`] of the file that `flag` names: one check, and one set of
+/// words, for each file that a run writes (T-1048).
+pub(crate) fn no_place_for(flag: &str, path: &str) -> Option<String> {
     let dir = std::path::Path::new(path).parent().filter(|d| !d.as_os_str().is_empty());
     let dir = dir.unwrap_or(std::path::Path::new("."));
     match std::fs::metadata(dir) {
         Ok(meta) if meta.is_dir() => None,
-        Ok(_) => Some(format!("--result-file {path}: {} is not a directory", dir.display())),
-        Err(_) => Some(format!("--result-file {path}: no such directory: {}", dir.display())),
+        Ok(_) => Some(format!("{flag} {path}: {} is not a directory", dir.display())),
+        Err(_) => Some(format!("{flag} {path}: no such directory: {}", dir.display())),
     }
+}
+
+/// The first file of a run of `podssh ssh` that could not be made: the
+/// record of `--result-file`, the log of `-E`, the recording of `--record`.
+/// Each is refused before anything connects, with 73 (T-1048).
+pub(crate) fn no_places(args: &super::args::SshArgs) -> Option<String> {
+    let files = [("--result-file", &args.result_file), ("-E", &args.log_file), ("--record", &args.record)];
+    files.into_iter().find_map(|(flag, path)| path.as_deref().and_then(|path| no_place_for(flag, path)))
 }
 
 /// Write `object` to `path` as a new file for its owner alone: a private
@@ -253,6 +267,11 @@ mod tests {
         assert!(no_place(&missing).is_some_and(|why| why.contains("no such directory")), "{missing}");
         let under_file = path.join("r.json").display().to_string();
         assert!(no_place(&under_file).is_some_and(|why| why.contains("is not a directory")));
+        // Each file flag of a run says it in the same words (T-1048).
+        for flag in ["--result-file", "-E", "--record"] {
+            let why = no_place_for(flag, &missing).unwrap_or_default();
+            assert!(why.starts_with(&format!("{flag} {missing}: no such directory: ")), "{why}");
+        }
         let mut err = Vec::new();
         assert!(!write("cp", &missing, &json!({}), &mut err), "a missing directory fails");
         let said = String::from_utf8_lossy(&err);

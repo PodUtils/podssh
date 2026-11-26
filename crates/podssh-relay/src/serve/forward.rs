@@ -85,13 +85,16 @@ where
     // A token of one session is spent here, whatever the upgrade's end, so
     // that a hop that read it in cleartext has no second use (T-326).
     let token_ok = head.header("x-relay-token").is_some_and(|t| cfg.tokens.take(t, super::tokens::now_ms()));
+    // Each refusal is a line of its client, with its target once it is read
+    // (T-1050); the path's target is the client's words, as the line shows.
+    let client = Of::client(from);
     if !token_ok {
-        return answer(&mut stream, request::refusal(403, "forward: missing or wrong token", &[])).await;
+        return answer(&mut stream, cfg.refused(&client, 403, "forward: missing or wrong token", None)).await;
     }
     // The token's key, and its budget, before anything is dialed (T-636).
     let meter = match usage::meter_of(&cfg, &head) {
         Ok(meter) => meter,
-        Err(why) => return answer(&mut stream, request::refusal(403, &format!("forward: {why}"), &[])).await,
+        Err(why) => return answer(&mut stream, cfg.refused(&client, 403, &format!("forward: {why}"), None)).await,
     };
     let key = match server::check_upgrade(&head) {
         Ok(key) => key,
@@ -102,14 +105,12 @@ where
         return answer(&mut stream, request::refusal(400, &why, &[])).await;
     };
     let target = shown(&asked.host, asked.port);
-    let of = Of::client(from).to(&target);
+    let of = client.to(&target);
     let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
         Ok(plan) => plan,
         Err(refused) => {
-            if let Some(line) = refused.logged() {
-                cfg.event_of(&of, &line);
-            }
-            return answer(&mut stream, request::refusal(refused.status(), &refused.answer(), &[])).await;
+            let said = cfg.refused(&of, refused.status(), &refused.answer(), refused.logged());
+            return answer(&mut stream, said).await;
         }
     };
     let mut early = Vec::new();

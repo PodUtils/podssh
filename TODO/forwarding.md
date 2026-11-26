@@ -209,7 +209,7 @@ remote host that must use the key, such as `git` on a build host.
    (`crates/podssh-cli/src/ssh/keywords.rs:25-134`). Change the help of `-a`
    (`crates/podssh-cli/src/flags.rs:242-243`, the row `no-agent-forwarding`).
 2. On the destination's session channel, send `auth-agent-req@openssh.com`
-   before the shell or exec request (`crates/podssh-ssh/src/session.rs:152-178`).
+   before the shell or exec request (`crates/podssh-ssh/src/session.rs:160-186`).
    Never to a jump hop.
 3. In the handler, accept `auth-agent@openssh.com` only when `-A` was given
    for this connection. For each such channel, connect to the agent with the
@@ -427,7 +427,7 @@ it (`SECURITY.md`, "Design rules").
 
 2026-10-11. The display, the authority file, the probe, the request and the
 swap of the cookie in `crates/podssh-ssh/src/x11.rs:1-345`; the session asks
-(`crates/podssh-ssh/src/session.rs:123-125`) and the handler joins an `x11`
+(`crates/podssh-ssh/src/session.rs:131-133`) and the handler joins an `x11`
 channel when the destination's run asked
 (`crates/podssh-ssh/src/handler.rs:327-340`). The plan and the probe of the
 command line in `crates/podssh-cli/src/ssh/x11.rs:1-167`, the flags at
@@ -999,7 +999,7 @@ count each chunk twice, and the unit test fails.
 and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
 `crates/podssh-ssh/src/forward.rs:41` and
 `crates/podssh-ssh/src/forward.rs:84`; `~#` at
-`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:320`,
+`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:323`,
 and the lines of `-v` at `crates/podssh-ssh/src/run.rs:244`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
   1000 down through a forward's copy, counted once, with one connection; one
@@ -1584,7 +1584,7 @@ a session with a pty:
 - `crates/podssh-cli/src/ssh/local_bind.rs`: the TCP listener and the
   socket of `-L` and `-D` can be closed (`crates/podssh-cli/src/ssh/local_bind.rs:167`
   and `crates/podssh-cli/src/ssh/local_bind.rs:214`), and the `Forwarder`
-  of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:383` gives to
+  of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:386` gives to
   each session.
 - The manual: the note of the terminal names `~C`, and a note of its own
   (`crates/podssh-cli/src/man/notes_ssh_more.rs:13`); `docs/cli.md` ("`~C`

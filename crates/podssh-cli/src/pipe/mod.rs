@@ -362,8 +362,9 @@ async fn open(address: &address::Address, settings: &remote::Settings, err: &mut
 
 /// After the pump: each road closed and judged, each child waited for, as
 /// a shell waits; the exit code, and each road's lines on `err` after
-/// `prefix`. A road that failed is the pipe's failure; else a read that
-/// failed (69, T-465); else a child's status, B's first.
+/// `prefix`. A road that failed is the pipe's failure; else a write that
+/// failed, not by its reader's leaving (74); else a read that failed (69,
+/// T-465); else a child's status, B's first.
 pub async fn report(pumped: pump::Pumped, prefix: &str, err: &mut dyn Write) -> i32 {
     // A road's own ending judges its reads; a plain end has only the pump's
     // word that its read failed.
@@ -375,11 +376,18 @@ pub async fn report(pumped: pump::Pumped, prefix: &str, err: &mut dyn Write) -> 
     let b_child = waited(pumped.b.child).await;
     for (_, lines) in [&b_road, &a_road].into_iter().flatten() {
         for line in lines {
-            let _ = writeln!(err, "{prefix}: {line}");
+            // A name that did not resolve, in plain words (T-1054).
+            let shown = podssh_ws::text::unresolved(line).map(|(shown, _)| shown);
+            let _ = writeln!(err, "{prefix}: {}", shown.as_deref().unwrap_or(line));
         }
     }
     if let Some((code, _)) = b_road.as_ref().or(a_road.as_ref()) {
         return *code;
+    }
+    // An output that could not be written, as each command's (T-1046).
+    if let Some(line) = &pumped.unwritten {
+        let _ = writeln!(err, "{prefix}: {line}");
+        return crate::exitmap::sysexits::EX_IOERR;
     }
     // A plain socket's reset has only this line, and its lost bytes are no
     // clean end.

@@ -3,7 +3,10 @@
 //! dispatch stays a list of arms and this file holds the one arm that is a
 //! page of its own.
 
+use std::io::Write;
+
 use crate::flags::VERB_OWNER;
+use crate::help;
 use crate::pager::Tty;
 
 use super::{refusals, Streams, EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
@@ -84,7 +87,10 @@ pub(super) fn run(
         return crate::cp::run_cp(args, deadline, jsonl, s.out, s.err);
     }
     if let Some(args) = sftp {
-        return crate::sftp::run_sftp(args, deadline, tty, s.out, s.err);
+        // A listing and a file of `get -` are the answer, checked as each.
+        return crate::output::deliver("sftp", s.out, s.err, |out, err| {
+            crate::sftp::run_sftp(args, deadline, tty, out, err)
+        });
     }
     if let Some(args) = chat {
         return crate::chat::run_chat(args, deadline, jsonl, s.out, s.err);
@@ -98,4 +104,25 @@ pub(super) fn run(
         let _ = writeln!(s.err, "podssh: internal error: '{verb}' has no handler.");
     }
     EXIT_NOT_IMPLEMENTED
+}
+
+/// `--help`: the top level's, or the verb's of `section`.
+pub(super) fn help(section: &str, out: &mut dyn Write) -> i32 {
+    let text = match crate::flags::verb_for(section).filter(|_| !section.is_empty()) {
+        Some(v) => help::verb_help(v),
+        None => help::top_level_help(),
+    };
+    let _ = out.write_all(text.as_bytes());
+    0
+}
+
+/// `--version`, and the word that a node asks for (T-668).
+pub(super) fn version(out: &mut dyn Write) -> i32 {
+    let _ = writeln!(out, "{}", crate::version::line());
+    // A node that would hand its sessions to this binary asks.
+    if std::env::var_os(crate::node_upgrade::VARIABLE).is_some_and(|v| v == crate::node_upgrade::PROBE) {
+        let (word, version) = (crate::node_upgrade::PROBE_WORD, crate::node_upgrade::HANDOVER_VERSION);
+        let _ = writeln!(out, "{word}{version}");
+    }
+    0
 }

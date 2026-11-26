@@ -161,7 +161,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 
 Recommendation: remove the `--timeout` and `--jsonl` rows of `relay`
 (`crates/podssh-cli/src/flags/relay.rs:9-147`), and bound each request in the code, as `doctor`
-does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:396-417` stops
+does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:383-410` stops
 `podssh relay status` in each script that leaves `--timeout` out. Keeping the gate lost for that
 reason: the command is bounded anyway.
 
@@ -344,7 +344,7 @@ failure at `PodUtils/podssh:crates/podssh-relay/src/failures.rs:289-309`. `open`
 the hosts at `PodUtils/podssh:crates/podssh-relay/src/open.rs:221-227` and keeps the record
 after each round at `PodUtils/podssh:crates/podssh-relay/src/open.rs:266-273`; the race
 gives the silent hosts at `PodUtils/podssh:crates/podssh-relay/src/failover.rs:245-248`.
-`podssh status` at `crates/podssh-cli/src/status.rs:142-149`, `podssh
+`podssh status` at `crates/podssh-cli/src/status.rs:144-151`, `podssh
 doctor` at `crates/podssh-cli/src/doctor/mod.rs:99-109`, THE RELAY in the
 manual at `crates/podssh-cli/src/man/facts/failed.rs:11-27`, and
 `docs/relay.md` and `docs/cli.md`.
@@ -921,7 +921,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
 6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:225-239`,
    `crates/podssh-cli/src/man/data_files.rs:20-28`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
-   notes (`crates/podssh-cli/src/man/notes.rs:281-369`).
+   notes (`crates/podssh-cli/src/man/notes.rs:282-370`).
 
 ## Decision
 
@@ -2842,7 +2842,7 @@ session on 2026-11-03.
   (`crates/podssh-cli/src/proxy.rs:430`) and the relay's end of `podssh pipe` (`carry_opened`)
   tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:232-234`).
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
-  lately (`crates/podssh-cli/src/status.rs:246-256`); `podssh doctor`'s line `failed relays` says
+  lately (`crates/podssh-cli/src/status.rs:248-258`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
   (`crates/podssh-cli/src/doctor/mod.rs:391-419`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-27`), `docs/relay.md` (step 5 of the selection) and
@@ -4235,8 +4235,8 @@ Read at `2042200`:
   `crates/podssh-cli/src/relay_serve.rs:193` says "private: s.allow_private", and the role behind a
   quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:114`.
 - Each road of the role goes through `Policy::plan`: `/connect/`
-  (`crates/podssh-relay/src/serve/forward.rs:106`), the resumable layer
-  (`crates/podssh-relay/src/serve/layer.rs:195`), the HTTP road
+  (`crates/podssh-relay/src/serve/forward.rs:109`), the resumable layer
+  (`crates/podssh-relay/src/serve/layer.rs:197`), the HTTP road
   (`crates/podssh-relay/src/serve/http_road/mod.rs:199`) and `/trace`
   (`crates/podssh-relay/src/serve/docs.rs:141`); one change there serves each.
 - podssh has this list already for an exit: `podssh node --exit --routes` takes ranges
@@ -4358,8 +4358,8 @@ and nothing says, or limits, what one key carried in a day. A restart forgets it
 
 Read at `2042200`:
 
-- One counter for both ways: `crates/podssh-relay/src/serve/forward.rs:261` says
-  "let moved = Arc::new(AtomicU64::new(0));", and `:351` ends the session at the cap;
+- One counter for both ways: `crates/podssh-relay/src/serve/forward.rs:262` says
+  "let moved = Arc::new(AtomicU64::new(0));", and `:352` ends the session at the cap;
   `crates/podssh-relay/src/serve/mod.rs:108` says "Payload bytes, both ways together." The counter
   dies with its session.
 - A token names no key: `crates/podssh-relay/src/serve/tokens.rs:61` MACs the expiry alone under the
@@ -4367,7 +4367,7 @@ Read at `2042200`:
   (`docs/relay.md:92` says "a token is the contract's form under a secret of the run"). A ledger keyed
   by the token, as the issue first proposes, would count a principal that the next mint or restart
   replaces; the issue's own Risks say so.
-- The key is known at the mint: `crates/podssh-relay/src/serve/mod.rs:402-406` takes the key that
+- The key is known at the mint: `crates/podssh-relay/src/serve/mod.rs:433-437` takes the key that
   proved itself, and drops it after its line.
 - The role keeps one private file already, by an atomic writer (`crates/podssh-relay/src/serve/reverse/pairs.rs:455`)
   and a SHA-256 of each token (`:454`).
@@ -5114,7 +5114,7 @@ role's forward road.
 
 - `docs/relay.md:598` says "is no TCP half-close. But the target's bytes still come after the client's",
   measured on the default relay on 2026-10-09.
-- `crates/podssh-relay/src/serve/forward.rs:298` says "return End::Client;": the client's Close
+- `crates/podssh-relay/src/serve/forward.rs:299` says "return End::Client;": the client's Close
   ends the pump of both ways, after `to_target.shutdown()`.
 
 ## Approach
@@ -5257,7 +5257,7 @@ patch and rebuild the binary.
 - `/relays.json` is written from `cfg.limits`: `crates/podssh-relay/src/serve/docs.rs:80` writes
   `connect_timeout_ms`, `idle_timeout_ms`, `max_session_ms` and `max_session_bytes`. It does not
   write the keepalive.
-- `half_closed` is read at `crates/podssh-relay/src/serve/forward.rs:164`. It bounds the drain
+- `half_closed` is read at `crates/podssh-relay/src/serve/forward.rs:165`. It bounds the drain
   after a client's Close and has no field in the contract.
 - A client only lowers its budgets to the published values. `PodUtils/podssh:crates/podssh-relay/src/relay.rs:81`
   takes the margin from the compiled cap, and `PodUtils/podssh:crates/podssh-relay/src/relay.rs:82` uses
@@ -5955,7 +5955,7 @@ unauthenticated response name PodUtils, the version or the contract.
   NAME=PAIR` goes to its pair's node, whose own TLS answers it
   (`crates/podssh-relay/src/serve/published.rs:1-13`).
 - The role's router answers its contract's paths and a 404 of its own for the others
-  (`crates/podssh-relay/src/serve/mod.rs:275-310`); no source file of `crates/podssh-relay/src/serve/` serves a static
+  (`crates/podssh-relay/src/serve/mod.rs:306-341`); no source file of `crates/podssh-relay/src/serve/` serves a static
   tree (searched 2026-11-13).
 - `/health` names the service and the version
   (`crates/podssh-relay/src/serve/docs.rs:24-29`; docs/relay.md's "podssh's own relay",
@@ -6172,8 +6172,8 @@ test fail when a new unauthenticated route appears without an entry in an allow-
 
 ## Premise
 
-- The router: `crates/podssh-relay/src/serve/mod.rs:275-310`; the list of the role's own paths,
-  `crates/podssh-relay/src/serve/mod.rs:234-237`.
+- The router: `crates/podssh-relay/src/serve/mod.rs:306-341`; the list of the role's own paths,
+  `crates/podssh-relay/src/serve/mod.rs:265-268`.
 - The probes need no token (`crates/podssh-relay/src/serve/probe.rs:11`).
 - These documents are the relay contract's, which podssh's clients read from any relay host:
   `docs/relay.md:63-66` and the section "Diagnostics" (`docs/relay.md:919-923`); `podssh relay
@@ -6610,7 +6610,7 @@ Read at `60d5426` (the drafting agent, 2026-11-17), and at the cited lines, whic
   lost": `pod-relay` classifies a Close by its exact reason
   (`PodUtils/podcrates:crates/pod-relay/src/reverse/closes.rs:157`), and a reason of no row is `Unknown`, which
   neither reconnects nor resumes; podssh's own operator already reads the row as "the node's link to the relay
-  ended" (`crates/podssh-cli/src/pairs.rs:254`). The cause goes to the role's line instead.
+  ended" (`crates/podssh-cli/src/pairs.rs:263`). The cause goes to the role's line instead.
 - A silent node is let go after 30 s to 40 s, not 60 s to 80 s: under `pod-relay`'s `Settings::lost_hold` of 60 s,
   so that the node finds its name free before it gives the route up. A live node pings the role each 10 s
   (`pod_ws::LIVENESS_EVERY`) and answers each Ping, so it is heard well within that. Lost: the client's watch
@@ -6703,7 +6703,7 @@ legs), its mint or session setup, or the study's client (tokio-tungstenite 0.24)
 
 ## Decision
 
-2026-11-17. No change of the role. Its forward session is one task (`crates/podssh-relay/src/serve/forward.rs:364`,
+2026-11-17. No change of the role. Its forward session is one task (`crates/podssh-relay/src/serve/forward.rs:365`,
 both directions in one `select!`, no queue between its legs), and the split is the multi-thread runtime's placement
 of the tasks that wake on each socket: on one thread the run has one mode. Lost: a runtime of one thread for the role
 (its sessions would share one core), or a pinning of each session (a cost on every session for a rate that, in its
@@ -7279,3 +7279,68 @@ Merged 2026-11-26 and built: `cargo test --locked -p podssh-relay --features ser
 merge's repairs (`relay_serve_spares` asked the words "reverse spares", where the role says "reverse spares 1"; two
 borrows and an unused import of the tests, for clippy); clippy clean with the role's features and for
 `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1050: `relay serve` says no line for a refusal of a port, a token or a halted pair
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 7.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`relay serve` wrote no line when it refused port 25 (the client got "port 25 is refused (HTTP 403)"), when it
+answered an operator of a halted pair 503, or a session with a missing token 403; the manual says "Each mint,
+upgrade and refusal is a line on stdout".
+
+## Premise
+
+- Read, at `b562ec9`: `crates/podssh-relay/src/serve/forward.rs` and `crates/podssh-relay/src/serve/layer.rs`
+  answered a wrong token and a key's budget with `request::refusal(403, ...)` and no line; a refusal of the policy
+  had a line only where `Refused::logged` keeps a cause (a name not dialed); the HTTP road the same.
+- Read, at `b562ec9`: `halt::refused` (`crates/podssh-relay/src/serve/reverse/halt.rs:228`) said in its comment that
+  it writes no line, and the reverse road's 403 of a pair not found wrote none.
+
+## Approach
+
+1. One place: `Config::refused` (`crates/podssh-relay/src/serve/mod.rs:234`) gives the answer and its line, in
+   T-1016's shape: `refused STATUS WHY client=ADDR [pair=NAME] [target=HOST:PORT] at=TIME`; where `Refused::logged`
+   keeps a cause, that line in its place. `Config::say_refused` (`crates/podssh-relay/src/serve/mod.rs:253`) for
+   the HTTP road, which answers in its own form.
+2. `forward.rs` and `layer.rs`: the wrong token, the budget and the policy through it; the HTTP road's policy;
+   `halt::refused` and the reverse road's 403 through it.
+3. The manual's note of `relay serve` says how a refusal reads.
+
+## Decision
+
+- A halted pair's 503 is a line on each try. Lost: the quiet that the old comment kept; the owner who halted a pair
+  wants to see who still tries, and the brake bounds the tries of an address.
+- `check_upgrade`'s refusals (a request that is no upgrade) and the 400 of a path stay as they were: no session was
+  asked, and they are a client's defect, not the role's refusal. The other 403 and 503 of the reverse road's calls
+  (`pair`, `renew`, `rotate`) keep their own lines as before.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --test relay_serve_h2
+cargo test -p podssh-relay --lib serve::
+cargo test -p podssh-cli --lib man::
+```
+
+`each_refusal_is_a_line_with_its_client`: a wrong token gives `refused 403 forward: missing or wrong token` with
+`client=127.0.0.1`; port 25 gives `refused 403 forward: ...` with `target=127.0.0.1:25`.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-relay/src/serve/mod.rs`, `crates/podssh-relay/src/serve/forward.rs`,
+  `crates/podssh-relay/src/serve/layer.rs`, `crates/podssh-relay/src/serve/http_road/mod.rs`,
+  `crates/podssh-relay/src/serve/reverse/mod.rs`, `crates/podssh-relay/src/serve/reverse/halt.rs`,
+  `crates/podssh-relay/tests/relay_serve_h2.rs`, `crates/podssh-cli/src/man/notes_relay.rs`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

@@ -171,7 +171,9 @@ pub const RELAY: &[&str] = &[
      role's cut only: a client keeps its own lower budgets and its own warning, as it only lowers them to what \
      /relays.json says. --mint anyone mints a token for each client; by default it mints for no one (503), as its \
      tokens are given another way. A token lives until the relay stops. Each mint, upgrade and refusal is a \
-     line on stdout, and so is each session's end: end client, end gone, or end close CODE REASON. Each \
+     line on stdout, and so is each session's end: end client, end gone, or end close CODE REASON. A refusal \
+     reads refused STATUS and the words that the client got: a wrong token, a port of the policy, a halted pair. \
+     Each \
      line begins with the event's words, then client=ADDR, and target=HOST:PORT where the event has one. A \
      line of a pair names its client and pair=NAME. Each line ends with at=TIME, in UTC. The first word names the \
      event, so grep finds it. A client that the relay cannot name is client=-. It listens because you ask it to, \

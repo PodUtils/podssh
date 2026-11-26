@@ -61,8 +61,16 @@ pub(crate) fn stored_part(label: &str) -> Result<pair::OperatorPart, Refusal> {
 
 /// A pair from a file of the store's form, as `--pair-file` gives it.
 pub(crate) fn from_file(path: &str) -> Result<Pair, Refusal> {
-    pair::read_file(Path::new(path))
-        .map_err(|e| Refusal::config(format!("--pair-file {path}: {}", podssh_ws::text::said(&e))))
+    pair::read_file(Path::new(path)).map_err(|e| Refusal::config(pair_file_said(path, &e)))
+}
+
+/// The line of a `--pair-file` that cannot be used, the file named once:
+/// pod-relay's reader puts its path before the system's words, after which
+/// podssh's own `--pair-file PATH:` would name it twice (T-1053).
+pub(crate) fn pair_file_said(path: &str, e: &dyn std::fmt::Display) -> String {
+    let said = podssh_ws::text::said(e);
+    let words = said.strip_prefix(path).and_then(|rest| rest.strip_prefix(": ")).unwrap_or(&said);
+    format!("--pair-file {path}: {words}")
 }
 
 /// `pair`, unless it has expired: then the remedy, with the code of an
@@ -171,8 +179,9 @@ pub(crate) fn online() -> Result<(), Refusal> {
 /// first, as the pair's owner may have renewed it there (T-592).
 pub(crate) fn operator_part(label: &str, pair_file: Option<&str>) -> Result<pair::OperatorPart, Refusal> {
     let part = match pair_file {
-        Some(path) => pair::read_operator_file(Path::new(path))
-            .map_err(|e| Refusal::config(format!("--pair-file {path}: {}", podssh_ws::text::said(&e))))?,
+        Some(path) => {
+            pair::read_operator_file(Path::new(path)).map_err(|e| Refusal::config(pair_file_said(path, &e)))?
+        }
         None => match pair::load(label) {
             Ok(Some(found)) => pair::OperatorPart::of(&found),
             Ok(None) => match pair::part::load(label) {
@@ -307,6 +316,16 @@ mod tests {
         let said = super::connect_refusal(&relay, "lab").message;
         assert!(said.starts_with("the relay refused the pair (403: reverse: forbidden)"), "{said}");
         assert!(said.contains("its connect token took its one upgrade"), "a spent token of --once is named: {said}");
+    }
+
+    /// A `--pair-file` that cannot be used names its file once, with no
+    /// "(os error N)", whether the reader named it first or not (T-1053).
+    #[test]
+    fn a_pair_file_is_named_once() {
+        for given in ["x.op: No such file or directory (os error 2)", "No such file or directory (os error 2)"] {
+            let line = super::pair_file_said("x.op", &given);
+            assert_eq!(line, "--pair-file x.op: No such file or directory", "{given}");
+        }
     }
 
     /// A relay that is down is said in the system's words once, as `proxy`

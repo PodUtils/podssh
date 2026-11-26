@@ -140,9 +140,15 @@ pub async fn bounded(template: &Template, host: &str, port: u16, dial: &Dial) ->
 }
 
 /// The one line of a fallback that no forwarder carried: each forwarder's
-/// reason, in order.
+/// reason, in order, with no "(os error N)" of the system's words (T-1049).
 pub fn none_carried(target: &str, what: &str, failures: &[String]) -> String {
-    format!("no forwarder carried the {what} to {target}: {}", failures.join("; "))
+    podssh_ws::text::plain(&format!("no forwarder carried the {what} to {target}: {}", failures.join("; ")))
+}
+
+/// The line of a forwarder that failed, as podssh shows it: pod-egress's
+/// words, with the system's "(os error N)" taken off (T-1049).
+pub fn failed_line(e: &ForwarderError, name: &str) -> String {
+    podssh_ws::text::plain(&e.line(name))
 }
 
 /// The stream to `host:port` through the forwarders that the binary names,
@@ -277,6 +283,19 @@ mod tests {
         assert!(bad.code == EX_CONFIG && bad.message == "PODSSH_FORWARDER_FALLBACK=maybe: yes or no", "{bad}");
         let file = Defaults { forwarder_fallback: Some(Value { text: "sure".into(), at: "f:2".into() }), ..none };
         assert!(on_from(None, &file).unwrap_err().message.starts_with("f:2: ForwarderFallback "));
+    }
+
+    /// The line of no forwarder says each reason once, with no "(os error
+    /// N)" of the system's words (T-1049).
+    #[test]
+    fn the_line_of_no_forwarder_has_no_os_error() {
+        let refused = "could not reach the proxy 127.0.0.1:1: Connection refused (os error 111)";
+        let failures = [format!("the forwarder a (a.example): {refused}"), format!("the forwarder b: {refused}")];
+        let line = none_carried("127.0.0.1:22822", "pipe", &failures);
+        assert!(line.starts_with("no forwarder carried the pipe to 127.0.0.1:22822: the forwarder a"), "{line}");
+        assert!(!line.contains("os error") && line.matches("Connection refused").count() == 2, "{line}");
+        let e = ForwarderError::Answer("Connection refused (os error 111)".into());
+        assert!(!failed_line(&e, "a").contains("os error"));
     }
 
     /// The fallback follows a relay of podssh's own choice that failed as a

@@ -125,10 +125,16 @@ fn import(format: &str, file: &str, out: &mut dyn Write, err: &mut dyn Write) ->
 /// An Ansible inventory, which is text.
 fn inventory(file: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let text = match read(file) {
-        Ok(text) => text,
+        Ok(Ok(text)) => text,
         Err(why) => {
             let _ = writeln!(err, "podssh config import: {file}: {why}");
             return EX_NOINPUT;
+        }
+        // Bytes that are no text are bad data, as each "not UTF-8" of podssh
+        // (65), not a file that cannot be read (T-1052).
+        Ok(Err(why)) => {
+            let _ = writeln!(err, "podssh config import: {file}: {why}");
+            return EX_DATAERR;
         }
     };
     let hosts = match ansible::read(&text) {
@@ -147,9 +153,10 @@ fn inventory(file: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     0
 }
 
-/// A file of text, `-` for stdin.
-fn read(file: &str) -> Result<String, String> {
-    String::from_utf8(bytes(file)?).map_err(|_| "not UTF-8 text".into())
+/// A file of text, `-` for stdin: `Err` when it cannot be read, `Ok(Err)`
+/// when its bytes are no UTF-8 text.
+fn read(file: &str) -> Result<Result<String, String>, String> {
+    Ok(String::from_utf8(bytes(file)?).map_err(|_| "not UTF-8 text".into()))
 }
 
 /// The bytes of a file, `-` for stdin.

@@ -3720,7 +3720,7 @@ The draft's calls, 2026-11-02:
 4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:413`), never a
    header, which each client of a listener writes, and would make up anew for each request.
    Behind the quick tunnel (T-428) the peer is Cloudflare's edge, so the hook for T-428 is
-   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:246`),
+   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:277`),
    with `from` read by `brake::edge_visitor` (`crates/podssh-relay/src/serve/brake.rs:71`) from
    the `cf-connecting-ip` of the edge's own request, which reaches the node only on the
    connection that podssh dialed to the edge. Lost: the role reading that header itself when a
@@ -3771,11 +3771,11 @@ first after the minute passes. Planted, the brake removed, and the test fails.
 
 2026-11-02 (the drafting agent). The Premise holds; the Approach needs two facts that it does not
 name. `/v1/pair` is answered in the reverse road, where `serve/mod.rs` routes it:
-`crates/podssh-relay/src/serve/reverse/mod.rs:204` says "async fn pair". And the role had no
+`crates/podssh-relay/src/serve/reverse/mod.rs:205` says "async fn pair". And the role had no
 address to count by: at `33ccb11`,
 `podssh relay serve` dropped the peer of each connection that it accepted
 (`let Ok((tcp, _)) = accepted` in `crates/podssh-cli/src/relay_serve.rs`). So the brake stands in
-the role's dispatch, before both paths (`crates/podssh-relay/src/serve/mod.rs:246`), and
+the role's dispatch, before both paths (`crates/podssh-relay/src/serve/mod.rs:277`), and
 `serve_from` takes the address, which the listener gives. The Prove that runs, in place of the
 one above:
 
@@ -4090,7 +4090,7 @@ nothing, works.
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/forward.rs:167` dials the resolved addresses with
+- `crates/podssh-relay/src/serve/forward.rs:168` dials the resolved addresses with
   `TcpStream::connect`, and `crates/podssh-relay/src/serve/docs.rs:153` does the same for
   `/trace`; neither reads `HTTPS_PROXY`.
 - Rule 2 of `AGENTS.md`: one outbound connection, through `HTTPS_PROXY` when it is set.
@@ -13704,7 +13704,7 @@ output that lists what is on.
 - Read: the switches now are `PODSSH_FORWARDER_FALLBACK` (`crates/podssh-cli/src/forwarder/fallback.rs:36`),
   `PODSSH_DERP`, `PODSSH_DERP_MAIN`, `PODSSH_PIPING`, `PODSSH_IROH_PKARR`, `PODSSH_IROH_RELAY`,
   `PODSSH_TRANSIT`, `PODSSH_OPENTUNNEL`, `PODSSH_OFFLINE` (all of `PodUtils/podssh:crates/*/src`); there is no common one.
-- Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:85-114`); it has `offline` and no
+- Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:87-116`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
   `crates/podssh-cli/Cargo.toml:102`); no host is named in this entry or in the new code.
@@ -13967,7 +13967,7 @@ others past `--timeout`.
 The Premise holds in substance; its lines moved. One node's measure is `crates/podssh-cli/src/ping/node.rs`'s
 `run`, which calls `crate::ssh::node_roads::measure` and gives the object of `node`; `--json` is the row at
 `crates/podssh-cli/src/flags/ping.rs:50`; `status --net` reads `crate::net::state::status_value` and measures
-nothing (`crates/podssh-cli/src/status.rs:34`-`34`, `:110`). `--timeout` takes a duration (`20s`, a bare
+nothing (`crates/podssh-cli/src/status.rs:34`-`34`, `:112`). `--timeout` takes a duration (`20s`, a bare
 `20` is 20 s), as every other `--timeout` of podssh does, and `PODSSH_TIMEOUT` is its default, as the manual's
 fact of that variable says of each command with the flag.
 
@@ -14016,7 +14016,7 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/mod.rs:235`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
+- `crates/podssh-relay/src/serve/mod.rs:266`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
   `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
 - `PodUtils/podcrates:crates/pod-derp/src/conn.rs`: podssh's DERP code is a client and the node's end of a link.
   It never forwards a frame between two other keys.

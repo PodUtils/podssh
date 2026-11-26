@@ -265,10 +265,47 @@ pub fn refuses(kind: FlagKind) -> bool {
     matches!(kind, FlagKind::Refused | FlagKind::NotInFirstRelease)
 }
 
+/// The refusal of a subcommand given `given` words where its form `shape`
+/// (`add NAME KEY`) takes `words`: the names that are missing, else how
+/// many words are too many (T-1053). One wording for `net` and `share`.
+pub fn word_count(verb: &str, shape: &str, words: usize, given: usize) -> String {
+    let named = |w: &&str| {
+        w.chars().next().is_some_and(|c| c.is_ascii_uppercase()) && !w.chars().any(|c| c.is_ascii_lowercase())
+    };
+    let names: Vec<&str> = shape.split(' ').filter(named).collect();
+    let count = |n: usize| if n == 1 { "1 word".to_string() } else { format!("{n} words") };
+    if given > words {
+        return format!("podssh {verb} {shape}: {} too many", count(given - words));
+    }
+    let lacking = words - given;
+    let needs = match names.get(names.len().saturating_sub(lacking)..).filter(|m| m.len() == lacking) {
+        Some([rest @ .., last]) if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
+        Some([last]) => last.to_string(),
+        _ => format!("{} more", count(lacking)),
+    };
+    format!("podssh {verb} {shape}: needs {needs}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::suggest::NoSubcommand;
+
+    /// A wrong count of words names what is missing, or how many are too
+    /// many, never "0 words given" (T-1053).
+    #[test]
+    fn a_wrong_count_of_words_says_what_is_missing() {
+        for (shape, words, given, line) in [
+            ("add NAME KEY", 2, 0, "podssh net add NAME KEY: needs NAME and KEY"),
+            ("add NAME KEY", 2, 1, "podssh net add NAME KEY: needs KEY"),
+            ("add NAME KEY", 2, 3, "podssh net add NAME KEY: 1 word too many"),
+            ("join", 0, 2, "podssh net join: 2 words too many"),
+            ("policy check FROM TO", 3, 1, "podssh net policy check FROM TO: needs FROM and TO"),
+            ("add NAME=HOST:PORT", 1, 0, "podssh net add NAME=HOST:PORT: needs NAME=HOST:PORT"),
+        ] {
+            assert_eq!(word_count("net", shape, words, given), line);
+        }
+    }
 
     /// **A refusal is a line, not a usage dump**, and the test for that is a
     /// line-count claim rather than a substring one.

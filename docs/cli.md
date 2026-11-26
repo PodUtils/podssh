@@ -2953,8 +2953,13 @@ renamed.
   a pattern that matches nothing is 66 (T-937); `get` and `rm` take them in
   the last name of the server's path; with either, a name that starts
   with a dot matches only a pattern that does. `lcd` says `no such
-  directory` for one that is missing, and `not a directory` for a file. The local commands (`lls`, `lmkdir`, `!command`) and `ln`,
-  `chown`, `chgrp` are refused by name.
+  directory` for one that is missing, and `not a directory` for a file.
+  `symlink OLD NEW` and `ln -s OLD NEW` make a symbolic link (OLD as
+  typed), `chown` and `chgrp` set an owner or a group by number, `lls`
+  lists a directory here and `lmkdir` makes one (T-1051). `ln` with no
+  `-s` (a hard link), `lumask`, `progress`, `copy` and `lchdir` are
+  refused by name with 70, as EXIT STATUS gives a command that is not
+  implemented; `help` lists them. `!command` runs nothing here: 64.
 - **`ls` lists as OpenSSH's sftp does** (T-471,
   `crates/podssh-cli/src/sftp/listing.rs`; `do_ls_dir`, `do_globbed_ls` and
   `ls_file` of OpenSSH 10.2p1 to 10.6p1). Without `-l` or `-1` the names go
@@ -6330,8 +6335,9 @@ A password or a passphrase (a variable whose name holds `pass`) is never
 imported and never printed: the summary counts it. A host whose
 `ansible_connection` is not `ssh` gets a comment and no block. A host name
 that a `Host` line cannot hold (a space, `*`, `?`, `!`, `"` or `#`) is refused by
-name on stderr. A bad line ends the run with its number (65); a file that
-cannot be read gives 66.
+name on stderr. A bad line ends the run with its number (65), and so does
+a file that is not UTF-8 text, as each such fault of podssh (T-1052); a
+file that cannot be read gives 66.
 
 `podssh config import putty`, `mobaxterm` and `remmina` (T-292), and
 `mremoteng` (T-327), read the saved sessions of those programs, and are
@@ -7738,6 +7744,9 @@ nothing did), and why.
   scripts: the remote status unchanged (0 and 127 included), and 255 for a
   failure of podssh. A remote command stopped by a signal gives 128 plus the
   signal number (OpenSSH gives 255), and podssh names the signal on stderr.
+  A file that the run writes, `--result-file`, `-E` or `--record`, in a
+  directory that is not there is 73, before anything connects, in one set
+  of words; so is a file of `-E` or `--record` that cannot be made (T-1048).
 - `podssh proxy` is not an SSH client: its failures use sysexits (64 to 78).
 - `podssh cp` and `podssh mv` use sysexits too: 64 a usage error, 66 a
   source that is missing or cannot be read (for `mv`, also one that changed
@@ -7774,11 +7783,23 @@ nothing did), and why.
   that failed, as `podssh ssh` does.
 - `podssh run` gives the status of its command, as `podssh ssh` gives it,
   and 255 when the copy failed, which runs nothing. 73 is a `--result-file`
-  whose directory is not there, before anything connects (T-977); a
+  whose directory is not there, before anything connects (T-977); 66 a
+  `--from` that is not there, in the words of `cp` (T-1048); a
   `--dry-run` whose plan cannot be written is 74 (T-983).
 - An output that could not be written is 74 (`EX_IOERR`, T-965), for each
   command whose answer is its stdout: `keygen`, `doctor`, `man`, `status`,
-  `config`, `agent`, `update` and `node` or `serve` with `--print-unit`. One line says so ("the output could not
+  `config`, `agent`, `update` and `node` or `serve` with `--print-unit`;
+  since T-1046 also `health`, `ping`, `play`, `relay`, `job`, `net`,
+  `share`, `session`, `detached`, `containers`, `sftp`, `--help` and
+  `--version`, each through the one helper, and `pipe` and `proxy`, whose
+  pump says which side's output failed (`job log --follow` checks its own
+  writes, as T-603 made it, and now ends 74). `relay serve` writes its own
+  lines as a server; `funnel` is left out, as its run goes on for hours
+  after its URL's line, and the helper says a failure only at the end
+  (T-1046's Decision). `ssh` and `run` say a failed write of the remote
+  output at once, end the session as a closed stdout does, and give 74
+  where the command gave 0, or no status (T-1047); a reader that went
+  away stays the wait of T-026. One line says so ("the output could not
   be written: No space left on device"), where the command would exit 0;
   a command that failed first keeps its own code. A stdout closed at the
   start (`>&-`) is not told apart: Rust's runtime puts `/dev/null` there,

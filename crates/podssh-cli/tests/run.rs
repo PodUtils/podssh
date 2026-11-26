@@ -43,10 +43,18 @@ fn podssh(home: &Path, args: &[&str]) -> (i32, String, String) {
 fn a_bad_command_line_is_64_before_anything_connects() {
     let home = scratch("refused");
     let missing = home.join("no-such-project").display().to_string();
+    // A --from that is a file is a wrong word; one that is not there is a
+    // missing source, 66, as cp gives it (T-1048).
+    let file = home.join("a-file");
+    std::fs::write(&file, "x").unwrap();
+    let file = file.display().to_string();
+    let (code, _, err) = podssh(&home, &["run", "--from", missing.as_str(), "build1", "--", "true"]);
+    assert_eq!(code, 66, "{err}");
+    assert!(err.contains(&format!("--from {missing}: no such file or directory")), "{err}");
     for (args, says) in [
         (&["run"][..], "give the host"),
         (&["run", "build1"][..], "give the command"),
-        (&["run", "--from", missing.as_str(), "build1", "--", "true"][..], "is no directory here"),
+        (&["run", "--from", file.as_str(), "build1", "--", "true"][..], "is no directory here"),
         (&["run", "build1:/", "--", "true"][..], "the home directory or the root"),
         (&["run", "build1:~", "--", "true"][..], "the home directory or the root"),
         (&["run", "a,b", "--", "true"][..], "gives 2 hosts"),
@@ -104,5 +112,22 @@ fn a_result_file_with_no_directory_is_73_before_anything_connects() {
         assert_eq!(code, 73, "{verb}: {err}");
         assert!(err.contains("no such directory") && err.contains("Nothing has been attempted"), "{verb}: {err}");
         assert!(out.is_empty(), "{verb}: {out}");
+    }
+}
+
+/// Each file that `podssh ssh` writes, in a directory that is not there,
+/// is 73 before anything connects, in one set of words (T-1048): offline,
+/// a run that went on would end 255, and -E was 64.
+#[test]
+fn each_file_of_ssh_with_no_directory_is_73_before_anything_connects() {
+    let home = scratch("ssh-files");
+    let missing = home.join("no-such-dir").join("f").display().to_string();
+    for flag in ["--result-file", "-E", "--record"] {
+        let args = ["ssh", flag, missing.as_str(), "u@build1.example.org", "true"];
+        let (code, out, err) = podssh(&home, &args);
+        assert_eq!(code, 73, "{flag}: {err}");
+        assert!(err.contains(&format!("{flag} {missing}: no such directory: ")), "{flag}: {err}");
+        assert!(err.contains("nothing ran") && !err.contains("os error"), "{flag}: {err}");
+        assert!(out.is_empty(), "{flag}: {out}");
     }
 }

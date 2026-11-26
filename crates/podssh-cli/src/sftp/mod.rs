@@ -361,8 +361,10 @@ async fn batch(state: &mut State<'_>, lines: &[String], log: &Log, out: &mut dyn
                 log.error(&why);
                 (tally.run, tally.failed) = (tally.run + 1, tally.failed + 1);
                 tally.failed_command = Some(text.trim().to_string());
+                // 70 for a command that podssh does not have (T-1051).
+                let code = commands::refusal_code(&why);
                 (tally.did.failure, tally.did.error) = (Some("usage"), Some(why));
-                return Fault::Usage.code();
+                return code;
             }
         };
         if line.echo {

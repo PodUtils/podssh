@@ -118,7 +118,15 @@ pub fn run_job(args: &JobArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
     };
     // On the heap: the future of a connection is large, and Windows gives
     // the main thread 1 MiB of stack.
-    let code = runtime.block_on(crate::ssh::transport::settled(Box::pin(perform(&action, &labels, &plans, &log, out))));
+    let work = |out: &mut dyn Write| {
+        runtime.block_on(crate::ssh::transport::settled(Box::pin(perform(&action, &labels, &plans, &log, out))))
+    };
+    // A follow checks its own writes as they go (T-603); each other answer
+    // (an ID, a list, a log) is checked as each command's is (T-965).
+    let code = match action {
+        Action::Follow { .. } => work(out),
+        _ => crate::output::deliver("job", out, err, |out, _| work(out)),
+    };
     runtime.shutdown_background();
     code
 }

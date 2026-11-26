@@ -118,11 +118,11 @@ pub async fn open(
                 return Ok((end(carried, forwarder.name.clone()), forwarder.name.clone()));
             }
             Err(e) if fallback => {
-                failed.push(e.line(&forwarder.name));
+                failed.push(super::fallback::failed_line(&e, &forwarder.name));
                 code = super::reach::exit_code(&e);
             }
             Err(e) => {
-                say(&e.line(&forwarder.name));
+                say(&super::fallback::failed_line(&e, &forwarder.name));
                 code = super::reach::exit_code(&e);
             }
         }

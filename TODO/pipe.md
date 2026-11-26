@@ -42,7 +42,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    `Parsed::Pipe` variant (`crates/podssh-cli/src/parsed.rs:10-269`), a
    dispatch arm, and `pipe` in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-147`). No `--timeout` row: the
-   gate at `crates/podssh-cli/src/dispatch.rs:398-419` would require it.
+   gate at `crates/podssh-cli/src/dispatch.rs:385-412` would require it.
 2. The grammar, in a new crates/podssh-cli/src/pipe/address.rs: `KIND:REST`.
    An unknown kind exits 64 and lists the kinds. `-` is `stdio`; `stdio` on
    both sides exits 64. Invariant: both addresses are valid before anything
@@ -581,10 +581,10 @@ running on the server (`docs/design.md:860-864`).
 
 - Measured: `podssh ssh --persist host` exits 64 (`unknown flag '--persist'`).
 - Read: a lost link is `End::Lost` (`crates/podssh-ssh/src/io.rs:53-54`),
-  an error at `crates/podssh-ssh/src/session.rs:42`. An exit status, a
+  an error at `crates/podssh-ssh/src/session.rs:50`. An exit status, a
   close with no status, and `~.` are other ends
-  (`crates/podssh-ssh/src/session.rs:39-41`). Raw mode is entered once for
-  each session (`crates/podssh-ssh/src/session.rs:191-275`).
+  (`crates/podssh-ssh/src/session.rs:46-49`). Raw mode is entered once for
+  each session (`crates/podssh-ssh/src/session.rs:199-283`).
 - Read: the relay ends a session at 64 MiB (1009) or 12 h (1001)
   (`docs/relay.md:754-760`). Sandbox A measured the cap at 67,107,943 bytes,
   and one close `1011` in 180 short sessions (`docs/STATUS.md:544-545`).
@@ -724,7 +724,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 ## Premise
 
 - Read: a byte pipe carries each TCP protocol
-  (`crates/podssh-cli/src/man/notes.rs:271-282`); a client that calls
+  (`crates/podssh-cli/src/man/notes.rs:272-283`); a client that calls
   `connect()` itself needs a listener (`docs/design.md:1428-1431`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
@@ -844,7 +844,7 @@ The calls made where the Approach left a choice:
   (`crates/podssh-cli/src/man/examples.rs:331`). It has no
   `ServerAliveInterval`, so that its line stays within rustfmt's 120
   columns; the note of proxy asks for it
-  (`crates/podssh-cli/src/man/notes.rs:283`).
+  (`crates/podssh-cli/src/man/notes.rs:284`).
 - Form b runs with `--direct`, as `scripts/interop-pipe.sh` runs `ssh:`;
   forms a and c go through the stand-in relay.
 - The citations of `crates/podssh-cli/src/man/examples.rs` in
@@ -1353,7 +1353,7 @@ random hides a real failure.
 Read: the input outlives a session, and its task reads stdin from the first
 session on (`crates/podssh-ssh/src/io/input.rs:62`); each session asks whether
 stdin is a terminal before its pty request
-(`crates/podssh-ssh/src/session.rs:83`). std's answer on Windows, for a
+(`crates/podssh-ssh/src/session.rs:91`). std's answer on Windows, for a
 handle that is no console, asks a pipe's name (`GetFileInformationByHandleEx`
 with `FileNameInfo`, the check for an MSYS2 pty), and the name of a pipe
 opened for synchronous reads waits while another thread's read of it is
@@ -1919,8 +1919,8 @@ Read at `2042200`:
 - Its reason phrases: `PodUtils/podssh:crates/podssh-ws/src/http/request.rs:244-267` has no arm for 404, 409, 411, 413
   or 429, so each reads "Error"; the relay role sends four of them through it (`404` in
   `crates/podssh-relay/src/serve/reverse/mod.rs:105`, `409` and `429` in
-  `crates/podssh-relay/src/serve/reverse/mod.rs:219-223`, `413` in
-  `crates/podssh-relay/src/serve/mod.rs:438`). A small defect, found here (rule 8 of `AGENTS.md`).
+  `crates/podssh-relay/src/serve/reverse/mod.rs:220-224`, `413` in
+  `crates/podssh-relay/src/serve/mod.rs:469`). A small defect, found here (rule 8 of `AGENTS.md`).
 - The check reads no path (`PodUtils/podssh:crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
   no upgrade, whatever its path, as the issue corrects itself.
 - The flag's neighbours: `crates/podssh-cli/src/flags/pipe.rs:40` (`keep-listening`), refused with no
@@ -2063,7 +2063,7 @@ Read at `2042200`:
 - `crates/podssh-cli/src/pipe/ws_listen.rs:114` answers with the framed session; `tcp-listen:` already
   carries raw bytes (`crates/podssh-cli/src/pipe/serve.rs:52`).
 - The relay role's roads call the same check, and their contract is framed:
-  `crates/podssh-relay/src/serve/forward.rs:88`, `crates/podssh-relay/src/serve/layer.rs:182`,
+  `crates/podssh-relay/src/serve/forward.rs:91`, `crates/podssh-relay/src/serve/layer.rs:184`,
   `crates/podssh-relay/src/serve/reverse/node.rs:58` and `crates/podssh-relay/src/serve/reverse/operator.rs:56`;
   they keep it.
 - No TLS on `ws-listen:`: a WebTunnel client of a bridge speaks `https://`, so a front that ends TLS is
@@ -2474,7 +2474,7 @@ and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh
   the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:139`).
 - Read: the lines of an end that did not open name its address (`node:x:`, `relay:HOST:PORT:`, `exec:PROG:`, and
   "could not connect to HOST:PORT", `crates/podssh-cli/src/pipe/remote.rs:263`); only the pump's line of a read
-  that failed names A or B, after both opened (`crates/podssh-cli/src/pipe/pump.rs:126`).
+  that failed names A or B, after both opened (`crates/podssh-cli/src/pipe/pump.rs:138`).
 
 ## Approach
 

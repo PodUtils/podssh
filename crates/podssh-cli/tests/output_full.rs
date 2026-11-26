@@ -57,6 +57,32 @@ fn each_command_says_that_its_output_could_not_be_written() {
         assert!(err.contains(&line), "{args:?}: {err}");
         assert!(!err.contains("os error"), "{args:?}: {err}");
     }
+    // Each other answer of stdout (T-1046): the help, the version, a
+    // recording played, and a pipe whose stdout is one end.
+    let cast = home.join("rec.cast");
+    std::fs::write(&cast, "{\"version\":2,\"width\":80,\"height\":24}\n[0.0,\"o\",\"hello\\r\\n\"]\n").unwrap();
+    let input = home.join("input");
+    std::fs::write(&input, "hello\n").unwrap();
+    let cases: [(&str, Vec<&str>); 5] = [
+        ("podssh --help: the output could not be written: No space left", vec!["--help"]),
+        ("podssh --help: the output could not be written: No space left", vec!["ssh", "--help"]),
+        ("podssh --version: the output could not be written: No space left", vec!["--version"]),
+        ("podssh play: the output could not be written: No space left", vec!["play", cast.to_str().unwrap()]),
+        (
+            "podssh pipe: B's output could not be written to A after 0 bytes: No space left",
+            vec!["pipe", "stdio", "exec:cat"],
+        ),
+    ];
+    for (line, args) in cases {
+        let mut cmd = podssh(&home, &args);
+        cmd.stdin(std::fs::File::open(&input).unwrap());
+        let out = to_full(cmd);
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert_eq!(out.status.code(), Some(74), "{args:?}: {err}");
+        assert!(err.contains(line), "{args:?}: {err}");
+        assert_eq!(err.lines().count(), 1, "{args:?}: said once: {err}");
+        assert!(!err.contains("os error"), "{args:?}: {err}");
+    }
     // A reader that went away (`| head`) is no failure: the whole manual
     // is more than a pipe holds, and the reader takes one byte.
     let mut man = podssh(&home, &["man", "--no-pager"]);

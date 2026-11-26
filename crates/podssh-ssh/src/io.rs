@@ -118,6 +118,9 @@ struct Out {
     /// The server's EOF came: its output ended, and a lost link after it
     /// cuts nothing.
     eof: bool,
+    /// A write of stdout failed for another cause than its reader's leaving,
+    /// and said so (T-1047).
+    unwritten: bool,
     /// The text of stdout and of stderr for a Windows console (T-294).
     consoles: Consoles,
     /// The sink in place of the process's streams, when there is one.
@@ -372,7 +375,7 @@ pub async fn pump(
                 None => return link_ended(status, out.eof),
             },
             () = sleep_until(out.gone.map(|at| at + STATUS_WAIT)), if out.gone.is_some() => {
-                if status.is_none() {
+                if status.is_none() && !out.unwritten {
                     log.info(&format!(
                         "stdout was closed, and no exit status came within {} s",
                         STATUS_WAIT.as_secs()

@@ -3312,7 +3312,7 @@ and a local Unix socket of frames. podssh has the roads and the layer, and no co
 
 ## Premise
 
-- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:188-253` lists them, and
+- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:168-240` lists them, and
   AGENTS.md section 1 names none).
 - Read: the layer is podssh's own wire with a relay's resume (`crates/podssh-relay/src/session/`); the
   contract of the held link is podcrates T-110 (`pod-session`) and the wire document T-120.
@@ -4080,3 +4080,61 @@ The live case passes through the tester's tunnel, and the same run with a wrong 
 
 A tester or the operator: a throwaway Dev Tunnel and its access token in the repository's secrets (asked on #215).
 
+
+# T-1054: A name that does not resolve is said with the TLS library's words of each DNS over HTTPS resolver
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 13.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A relay host whose name does not resolve ended with "... DNS over HTTPS: each of 6 resolvers failed: TLS: invalid
+peer certificate: ...": rustls's words, which tell a user nothing of what to do, on the line of the failure.
+
+## Premise
+
+- Read, in PodUtils/podcrates at `v0.85.0`: pod-dns's `fold` (PodUtils/podcrates:crates/pod-dns/src/lookup.rs)
+  makes "each of N resolvers failed: CAUSE", CAUSE the TLS library's words, and its resolver joins "system
+  resolver: ..." and "DNS over HTTPS: ..." in one line.
+- Read, at `b562ec9`: `tries` (`crates/podssh-cli/src/ssh/tries.rs`) and the pipe's `report`
+  (`crates/podssh-cli/src/pipe/mod.rs`) say each line of a failure as it came.
+
+## Approach
+
+1. `podssh_ws::text::unresolved` (`crates/podssh-ws/src/text.rs:106`): a line with "DNS over HTTPS: " becomes "could
+   not resolve NAME: the system's resolver said: WHY; DNS over HTTPS could not be reached" (or "found no address"
+   for an answer with none), with no "(os error N)"; the words of DNS over HTTPS are the detail.
+2. `ssh` says the plain line, and the detail at `-v` (`said` of `crates/podssh-cli/src/ssh/tries.rs:117`); `pipe`
+   and `proxy` say the plain line.
+3. Asked of podcrates (a COORD issue for the lead): pod-dns gives the cause of each source apart (a kind: no
+   address, not reached, refused), so that a consumer words it with no parse of a line.
+
+## Decision
+
+- Plain the line where podssh shows it, by the words that pod-dns writes: a parse of a crate's text is brittle, so a
+  line with no "DNS over HTTPS: " passes as it came. Lost: nothing; the ask moves the reading into the crate.
+- `proxy` and `pipe` have no `-v` for the detail: the plain line alone. Lost: the resolvers' words there.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --lib text::
+cargo test -p podssh-cli --lib ssh::
+```
+
+Live: `PODSSH_RELAY=nosuch.invalid podssh ssh u@h true` says the system's words and "DNS over HTTPS could not be
+reached" behind a proxy that refuses the resolvers, and `-v` the words of each.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-ws/src/text.rs`, `crates/podssh-cli/src/ssh/tries.rs`, `crates/podssh-cli/src/pipe/mod.rs`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

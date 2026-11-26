@@ -3972,7 +3972,7 @@ Read at `2042200`:
 - `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs` at `78b5fc8`, line 70, holds the version, and
   `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:104-108` reads the two limits alone;
   `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:199` is its one call. The role sends `"version": 1`
-  (`crates/podssh-relay/src/serve/reverse/mod.rs:364-373`), as the default relay does
+  (`crates/podssh-relay/src/serve/reverse/mod.rs:365-374`), as the default relay does
   (`PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:64-65`). The issue's line numbers are of an older tree.
 - `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:240` says "Ok(NodeInbound::Unknown) | Err(_) => {}".
 - `PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:306` says "Next::Exit(_) => Next::Reconnect,", and
@@ -4156,11 +4156,11 @@ Read at `2042200`:
   `rotate` beside the issue's list; each path but `node`, `connect` and `status` takes the stop token
   (`crates/podssh-relay/src/serve/reverse/mod.rs:120-124`).
 - `status` answers `online`, `sessions` and `expires`
-  (`crates/podssh-relay/src/serve/reverse/mod.rs:160`); `stop` ends the pair with
-  `crates/podssh-relay/src/serve/reverse/mod.rs:173`, which says "operator stopped reverse relay", and
+  (`crates/podssh-relay/src/serve/reverse/mod.rs:161`); `stop` ends the pair with
+  `crates/podssh-relay/src/serve/reverse/mod.rs:174`, which says "operator stopped reverse relay", and
   the node exits on it (`PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:137`).
 - A refusal with a cause before the upgrade exists for a planned stop alone: `503` with `Retry-After: 1`
-  (`crates/podssh-relay/src/serve/reverse/mod.rs:183-186`). Since T-255 a planned stop sends `1012`,
+  (`crates/podssh-relay/src/serve/reverse/mod.rs:184-187`). Since T-255 a planned stop sends `1012`,
   and the node joins the role that comes back, so a restart costs no 409's wait; the issue's waits
   (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:81` and `PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`)
   are for a node whose old socket the role still holds.
@@ -4430,7 +4430,7 @@ Read at `2042200`:
   spare is a live connection to the target with no one on it, and only a node that says it may make one
   gets one.
 - The role's `hello` already carries offers that a node of before keeps and skips
-  (`crates/podssh-relay/src/serve/reverse/mod.rs:364-373`, T-615); a node's word back is a podssh frame
+  (`crates/podssh-relay/src/serve/reverse/mod.rs:365-374`, T-615); a node's word back is a podssh frame
   of its socket, as T-615's `token` frame is.
 - `crates/podssh-relay/src/serve/reverse/pairs.rs` is 486 lines, so the spares go in a module beside it.
 - With T-615 each leg takes a token of its own; a spare is a session, not a leg, so it changes no token.
@@ -4839,7 +4839,7 @@ dropped in the same way.
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:210` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:211` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2710`; Q90 confirmed it).
 
@@ -5049,7 +5049,7 @@ the net's key legs in one run. The beta that has the code (`v1.1.0-beta.2`) has 
 2. Repair each defect that the test finds (rule 8). Say in `docs/mesh.md` what lasts: the renewal, the
    key legs, and what ends a node (a revoked key, a pair that the relay refuses).
 3. `status` shows the end of the pair and whether a renewal is on (`pairs` of `status --json`,
-   `crates/podssh-cli/src/status.rs:109`); add `renews` there if it does not show.
+   `crates/podssh-cli/src/status.rs:111`); add `renews` there if it does not show.
 4. The beta: betas are allowed again (the owner, 2026-11-09). Cut `v1.1.0-beta.4` when the test passes and
    the gate is green at its commit (AGENTS.md section 2, "Releases"). Its notes (`docs/releases/`) name this
    test and the ask. T-446 carries the clause.
@@ -5663,14 +5663,14 @@ upgrade, `podssh operator` and `podssh relay status` say "stopped, or has expire
 - Read: `pod-relay` maps each `403` of a pairing call to `PairError::Forbidden`, which holds no body and says "the
   pair is stopped or has expired" (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `refused` and the `Display` of
   `PairError`); `create_by` maps the `403` of `/v1/pair` the same (PodUtils/podcrates:crates/pod-relay/src/pair/once.rs).
-- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:87`), for `relay pair`
+- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:95`), for `relay pair`
   (`crates/podssh-cli/src/relay_cmd.rs:301`) and `relay status`; an operator's `403` at the upgrade had its own words,
-  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:268`).
+  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:277`).
 - Read: the store keeps no mark of `--once`, so the operator cannot tell a spent token from a stopped pair.
 
 ## Approach
 
-1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:111`): a `403` of a request for a new pair says that the relay
+1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:119`): a `403` of a request for a new pair says that the relay
    refused to make a pair, that a relay of `--mint keys:FILE` or `net` makes pairs for the keys of its list alone, and
    this client's fingerprint, with `podssh keygen -y` for the owner's list. Exit 77 as before.
 2. `refusal`: a `403` of a pair's token names each cause that gives it, the spent token of `--once` among them.
@@ -6447,7 +6447,7 @@ says the second in the system's words once, with no "(os error N)".
 - Read, at `9574133`: `grants::ask` (`crates/podssh-cli/src/grants.rs:58`) put the words of `pod-relay`'s
   `grant::read_file` in its line as they were; that function writes `{e}` of the `io::Error` of `metadata` and
   `read_to_string` (PodUtils/podcrates:crates/pod-relay/src/grant/mod.rs, at `v0.85.0`).
-- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:289`) said any other `ConnectError`
+- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:298`) said any other `ConnectError`
   by its `to_string()`, whose dial failure carries the suffix; `proxy` passes each line of a failed open through
   `podssh_ws::text::plain` (`crates/podssh-cli/src/proxy.rs`, its failed open).
 
@@ -6695,7 +6695,7 @@ cause: no pair is stored under the label. The manual's EXIT STATUS said neither 
 - Read, at `9574133`: `ssh`'s road to a node says each refusal of `pairs::operator_part` with 255
   (`crates/podssh-cli/src/ssh/node.rs:241`), as each failure of the connection; `operator` and `proxy node://NAME`
   report the refusal's own code, 78 (`crates/podssh-cli/src/pairs.rs:46`).
-- The 255 row of EXIT STATUS (`crates/podssh-cli/src/man/data.rs:149`) named the connection, the host key and the
+- The 255 row of EXIT STATUS (`crates/podssh-cli/src/man/data.rs:156`) named the connection, the host key and the
   login, not a node of no pair.
 
 ## Approach

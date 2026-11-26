@@ -171,13 +171,15 @@ where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let token_ok = head.header("x-relay-token").is_some_and(|t| cfg.tokens.check(t, super::tokens::now_ms()));
+    // Each refusal is a line of its client (T-1050).
+    let client = Of::client(from);
     if !token_ok {
-        return answer(&mut stream, request::refusal(403, "layer: missing or wrong token", &[])).await;
+        return answer(&mut stream, cfg.refused(&client, 403, "layer: missing or wrong token", None)).await;
     }
     // Each link is a session of its key's, with its budget (T-636).
     let meter = match super::usage::meter_of(&cfg, &head) {
         Ok(meter) => meter,
-        Err(why) => return answer(&mut stream, request::refusal(403, &format!("layer: {why}"), &[])).await,
+        Err(why) => return answer(&mut stream, cfg.refused(&client, 403, &format!("layer: {why}"), None)).await,
     };
     let key = match server::check_upgrade(&head) {
         Ok(key) => key,
@@ -190,15 +192,13 @@ where
         let why = format!("{}: the path is {PATH}HOST/PORT", head.target);
         return answer(&mut stream, request::refusal(400, &why, &[])).await;
     };
-    let of = Of::client(from).to(&shown(&asked.host, asked.port));
+    let of = client.to(&shown(&asked.host, asked.port));
     // A resume's path is checked too: the policy holds for each link.
     let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
         Ok(plan) => plan,
         Err(refused) => {
-            if let Some(line) = refused.logged() {
-                cfg.event_of(&of, &line);
-            }
-            return answer(&mut stream, request::refusal(refused.status(), &refused.answer(), &[])).await;
+            let said = cfg.refused(&of, refused.status(), &refused.answer(), refused.logged());
+            return answer(&mut stream, said).await;
         }
     };
     if stream.write_all(&server::switching(&key)).await.is_err() {

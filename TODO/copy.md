@@ -64,7 +64,7 @@ ever (tty7's issue 1126, read in GitHub #20; GitHub #15 was this class).
    extension list for T-134.
 6. Each `SSH_FX_*` status gives a sentence with the path; the server's text
    goes through `podssh_ws::text::one_line`
-   (`crates/podssh-ssh/src/io/msg.rs:67`).
+   (`crates/podssh-ssh/src/io/msg.rs:69`).
 7. No EOF before the last reply. Fail at once on a reply id that no request
    has, and on a `READ` reply longer than its request.
 
@@ -336,7 +336,7 @@ a script expects, and its login shell may not be a POSIX shell.
   5 MB down through the relay (`docs/STATUS.md:256`).
 - Read: a command goes as one string, never as a shell request
   (`crates/podssh-ssh/src/options.rs:63-64`), with no pty when stdin is not
-  a terminal (`crates/podssh-ssh/src/session.rs:84-94`).
+  a terminal (`crates/podssh-ssh/src/session.rs:92-102`).
 - Read: the gate's Dropbear has no SFTP setting (`scripts/interop.sh:83-85`);
   whether it finds an `sftp-server` is not measured.
 - Not measured: the login shell runs the command, so a start-up file that
@@ -957,7 +957,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 ## Decision
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
-the gate of `crates/podssh-cli/src/dispatch.rs:396-417` skips them; T-133's
+the gate of `crates/podssh-cli/src/dispatch.rs:383-410` skips them; T-133's
 limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7372-7375`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
@@ -1851,8 +1851,8 @@ which needs support in the terminal client.
 ## Premise
 
 - Read: `podssh ssh` writes the remote output to stdout as it comes
-  (`crates/podssh-ssh/src/io/msg.rs:11-34`) and passes the local keys through
-  the escape filter (`crates/podssh-ssh/src/io.rs:269-346`). Nothing looks
+  (`crates/podssh-ssh/src/io/msg.rs:11-36`) and passes the local keys through
+  the escape filter (`crates/podssh-ssh/src/io.rs:272-349`). Nothing looks
   for a ZMODEM header.
 - Not verified here: ZMODEM escapes its control bytes, so it crosses a pty;
   whether a ZMODEM crate in pure Rust exists and is maintained.
@@ -3819,7 +3819,7 @@ to the other two; no manual says that the split is a choice, or why.
 ## Premise
 
 - Read: the gate asks for `--timeout` with no terminal of each verb whose table has the flag
-  (`crates/podssh-cli/src/dispatch.rs:374-398`, `crates/podssh-cli/src/non_interactive.rs:191-215`);
+  (`crates/podssh-cli/src/dispatch.rs:361-385`, `crates/podssh-cli/src/non_interactive.rs:191-215`);
   `cp` and `mv` have it (`crates/podssh-cli/src/flags/copy.rs:63-64`), and `scp` and `sftp` have
   none, by T-139's Decision: as in OpenSSH, so that a script that runs `scp` in a pipe does not exit
   64, with ConnectTimeout and T-133's limits on each wait.
@@ -3829,7 +3829,7 @@ to the other two; no manual says that the split is a choice, or why.
 - Read (L-30): `PODSSH_TIMEOUT` is the default of `--timeout` "for each command that has the flag"
   (`crates/podssh-cli/src/man/facts.rs:114-117`), as the report found; met.
 - Read (L-13): the gate runs at the dispatch, before a verb reads its operands
-  (`crates/podssh-cli/src/dispatch.rs:374-398`), so with no terminal `cp DIR HOST:` with no `-r`
+  (`crates/podssh-cli/src/dispatch.rs:361-385`), so with no terminal `cp DIR HOST:` with no `-r`
   gets 64 for the missing `--timeout` first, and on a terminal 66.
 
 ## Approach
@@ -4830,7 +4830,7 @@ overwritten in place and stayed 0644, though the manual says "a new file for its
 
 ## Premise
 
-- The one writer (`crates/podssh-cli/src/ssh/result.rs:183`, `write`) opened FILE with `create` and `truncate`: an existing file
+- The one writer (`crates/podssh-cli/src/ssh/result.rs:197`, `write`) opened FILE with `create` and `truncate`: an existing file
   kept its mode, and a failure was a line with the run's exit code. Nothing looked at FILE's directory first.
 
 ## Approach
@@ -5283,7 +5283,7 @@ missing source.
 
 - The tree's copy gave `Fault::Capability` (78) for a server with no SFTP (`crates/podssh-cli/src/cp/tree_copy.rs:136` is the line
   now), and `df` read the client's refusal of the missing extension as a status of the source (`transfer::from_sftp` with
-  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:290` is the look now).
+  `Side::Source`, `crates/podssh-cli/src/sftp/run.rs:331` is the look now).
 
 ## Approach
 
@@ -5740,3 +5740,69 @@ Drafted 2026-11-26 by a drafting agent:
 - Changed: `crates/podssh-cli/src/edit/local.rs`, `crates/podssh-cli/src/edit/mod.rs`, `docs/cli.md`.
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+# T-1051: `sftp -b` refuses `symlink`, `chown`, `lls` and the rest with 64, where EXIT STATUS gives 70
+
+**Source:** the black-box pass of 2026-11-26 (a debug build of `b562ec9`), finding 10.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`sftp -b` with `ln`, `symlink`, `chown`, `chgrp`, `lls`, `lmkdir`, `lumask` or `progress` ended 64 with "ln: not
+implemented yet in podssh sftp", where EXIT STATUS gives 70 to a command that is not implemented. The SFTP client
+has the requests for several of them.
+
+## Premise
+
+- Read, at `b562ec9`: `NOT_YET` of `crates/podssh-cli/src/sftp/commands.rs` named eleven commands, and `batch` of
+  `crates/podssh-cli/src/sftp/mod.rs` gave each refusal of a line `Fault::Usage` (64).
+- Read: the client has `symlink` (in OpenSSH's order of the paths) and `setstat`
+  (`crates/podssh-ssh/src/sftp/mod.rs:287`); russh-sftp's `FileAttributes` carries `uid` and `gid`, which SFTP
+  version 3 sets together.
+
+## Approach
+
+1. Built: `symlink OLD NEW` and `ln -s OLD NEW` (OLD as typed, NEW under the directory there, as OpenSSH's sftp);
+   `chown UID PATH` and `chgrp GID PATH` by number, the other id kept from a `stat`; `lls [PATH]`, the names here,
+   sorted; `lmkdir PATH` (`crates/podssh-cli/src/sftp/run.rs:276`).
+2. Still refused: `ln` with no `-s` (a hard link, `hardlink@openssh.com`), `lumask`, `progress`, `copy`, `cp`,
+   `lchdir`: 70 by `refusal_code` (`crates/podssh-cli/src/sftp/commands.rs:94`); each other fault of a line stays 64.
+   `help` lists them as not implemented.
+3. The manual's note of `sftp` and `docs/cli.md` name both lists.
+
+## Decision
+
+- `lumask` stays refused: a umask here would have to reach each file that `get` makes, which `cp`'s writer owns
+  (another worker's area). Lost: OpenSSH's local umask. `progress` stays refused: podssh's own line of a copy is
+  set by `-q`.
+- `chown` and `chgrp` take a number only: a name needs the server's names of users, which SFTP version 3 does not
+  carry. Lost: `chown alice f`, refused with 64 and its reason.
+- `lls` lists names alone and runs no `ls` here: podssh starts no program that the user did not name (AGENTS.md,
+  rule 3). Lost: `lls -l`, refused as a switch that `lls` does not take.
+- The record's failure class of a refused line stays `usage`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib sftp::
+cargo test -p podssh-cli --lib man::
+```
+
+`the_links_the_owners_and_the_local_commands_parse_and_the_rest_is_70`: each new form parses; `lumask`, `progress`
+and `ln` with no `-s` are 70; a bad number and an unknown word are 64. Live, against OpenSSH's sftp-server: `symlink`,
+`chown` of the user's own uid, `lls` and `lmkdir` in a batch, exit 0.
+
+## Done
+
+Drafted 2026-11-26 by a drafting agent;
+
+- Changed: `crates/podssh-cli/src/sftp/commands.rs`, `crates/podssh-cli/src/sftp/run.rs`,
+  `crates/podssh-cli/src/sftp/mod.rs`, `crates/podssh-cli/src/man/notes.rs`, `docs/cli.md`.
+- Result:
+
+Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.

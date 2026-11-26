@@ -332,8 +332,8 @@ fn each_refusal_before_the_network_says_why() {
     };
     for (args, code, says) in [
         (vec!["net", "join", "--roles", "node"], 64, "--roles is for podssh net add, invite"),
-        (vec!["net", "invite"], 64, "podssh net invite NAME: 0 words given"),
-        (vec!["net", "join", "lab"], 64, "podssh net join: 1 words given"),
+        (vec!["net", "invite"], 64, "podssh net invite NAME: needs NAME"),
+        (vec!["net", "join", "lab"], 64, "podssh net join: 1 word too many"),
         (vec!["net", "invite", "lab", "--key", "k"], 64, "--key is for podssh net join"),
         (vec!["net", "invite", "lab.example"], 64, "is not a name"),
         (vec!["net", "invite", "lab"], 78, "holds no net"),

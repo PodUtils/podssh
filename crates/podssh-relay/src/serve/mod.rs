@@ -225,6 +225,37 @@ impl Config {
             self.event(&of.line(words));
         }
     }
+
+    /// The answer of a refusal of `of`'s request, and its line, `refused
+    /// STATUS WHY client=... target=...|pair=...`: one place for each
+    /// refusal of a session, so that none goes unsaid (T-1050). `logged`,
+    /// where the role keeps a cause that the client does not get, is said
+    /// in place of `WHY`.
+    fn refused(&self, of: &said::Of, status: u16, why: &str, logged: Option<String>) -> Vec<u8> {
+        self.refused_with(of, status, why, logged, &[])
+    }
+
+    /// [`Config::refused`], with the answer's own headers.
+    fn refused_with(
+        &self,
+        of: &said::Of,
+        status: u16,
+        why: &str,
+        logged: Option<String>,
+        headers: &[(&str, &str)],
+    ) -> Vec<u8> {
+        self.say_refused(of, status, why, logged);
+        request::refusal(status, why, headers)
+    }
+
+    /// The line of [`Config::refused`] alone, for a road that answers in its
+    /// own form (the HTTP road).
+    fn say_refused(&self, of: &said::Of, status: u16, why: &str, logged: Option<String>) {
+        match logged {
+            Some(line) => self.event_of(of, &line),
+            None => self.event_of(of, &format!("refused {status} {why}")),
+        }
+    }
 }
 
 /// Whether `path`, with no query, is one of the role's, as

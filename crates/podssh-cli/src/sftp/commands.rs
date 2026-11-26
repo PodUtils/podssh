@@ -59,14 +59,45 @@ pub enum Command {
         human: bool,
         inodes: bool,
     },
+    /// `symlink` and `ln -s`: a link at `link` that names `target`, which is
+    /// kept as it was typed, as OpenSSH's sftp keeps it (T-1051).
+    Symlink {
+        target: String,
+        link: String,
+    },
+    /// `chown` and `chgrp`: the owner, or with `group` the group, by number.
+    Chown {
+        id: u32,
+        path: String,
+        group: bool,
+    },
+    /// `lls`: the names of a directory here, one a line.
+    Lls(Option<String>),
+    /// `lmkdir`: a directory here.
+    Lmkdir(String),
     Help,
     Version,
     Bye,
 }
 
-/// The commands of OpenSSH's sftp that podssh has not built yet.
-const NOT_YET: &[&str] =
-    &["lls", "lmkdir", "ln", "symlink", "chgrp", "chown", "progress", "lumask", "copy", "cp", "lchdir"];
+/// The commands of OpenSSH's sftp that podssh has not built yet: each is
+/// refused with 70, as EXIT STATUS gives a command that is not implemented
+/// (T-1051). `ln` with no `-s` is a hard link, which needs
+/// `hardlink@openssh.com`.
+const NOT_YET: &[&str] = &["progress", "lumask", "copy", "cp", "lchdir"];
+
+/// The end of the line that refuses a command of [`NOT_YET`].
+const NOT_BUILT: &str = "not implemented yet in podssh sftp";
+
+/// The exit code of a line that `parse_line` refused: 70 for a command that
+/// podssh does not have, 64 for each other fault of the line (T-1051).
+pub fn refusal_code(why: &str) -> i32 {
+    if why.ends_with(NOT_BUILT) {
+        crate::exit_codes::EXIT_NOT_IMPLEMENTED
+    } else {
+        crate::exit_codes::EXIT_USAGE
+    }
+}
 
 /// The commands that `help` lists, with their forms.
 pub const HELP: &[(&str, &str)] = &[
@@ -81,9 +112,13 @@ pub const HELP: &[(&str, &str)] = &[
     ("cd [path], lcd [path]", "change the directory there, or here"),
     ("pwd, lpwd", "print the directory there, or here"),
     ("chmod mode path", "set the permission bits, in octal"),
+    ("chown uid path, chgrp gid path", "set the owner, or the group, by number"),
+    ("symlink old new, ln -s old new", "make a link at new that names old"),
+    ("lls [path], lmkdir path", "list a directory here, or make one"),
     ("df [-hi] [path]", "the space of a file system (statvfs@openssh.com)"),
     ("help, version", "this list; the SFTP version"),
     ("bye, exit, quit", "end"),
+    ("ln, lumask, progress, copy, lchdir", "not implemented: refused with exit 70"),
 ];
 
 /// Read a line; `None` for an empty line or a comment.
@@ -224,6 +259,32 @@ fn command(name: &str, args: &[String]) -> Result<Command, String> {
                 .ok_or_else(|| format!("chmod: {:?} is not a mode in octal", rest[0]))?;
             Command::Chmod { mode, path: rest[1].clone() }
         }
+        "symlink" | "ln" => {
+            let (seen, rest) = switches(name, args, "s")?;
+            if name == "ln" && !seen.contains('s') {
+                return Err(format!("ln: ln -s makes a symbolic link; a hard link is {NOT_BUILT}"));
+            }
+            arity(2..=2, rest, &format!("{name}{} oldpath newpath", if name == "ln" { " -s" } else { "" }))?;
+            Command::Symlink { target: rest[0].clone(), link: rest[1].clone() }
+        }
+        "chown" | "chgrp" => {
+            let (_, rest) = switches(name, args, "h")?;
+            let what = if name == "chown" { "uid" } else { "gid" };
+            arity(2..=2, rest, &format!("{name} {what} path"))?;
+            let id = rest[0]
+                .parse::<u32>()
+                .map_err(|_| format!("{name}: {:?} is not a number; podssh sftp sets the {what} by number", rest[0]))?;
+            Command::Chown { id, path: rest[1].clone(), group: name == "chgrp" }
+        }
+        "lls" | "ldir" => {
+            let (_, rest) = switches(name, args, "")?;
+            arity(0..=1, rest, "lls [path]")?;
+            Command::Lls(opt(rest, 0))
+        }
+        "lmkdir" => {
+            arity(1..=1, args, "lmkdir path")?;
+            Command::Lmkdir(args[0].clone())
+        }
         "df" => {
             let (seen, rest) = switches(name, args, "hi")?;
             arity(0..=1, rest, "df [-hi] [path]")?;
@@ -233,7 +294,7 @@ fn command(name: &str, args: &[String]) -> Result<Command, String> {
         "version" => Command::Version,
         "bye" | "exit" | "quit" => Command::Bye,
         name if name.starts_with('!') => return Err("! runs a local command, which podssh sftp does not".into()),
-        name if NOT_YET.contains(&name) => return Err(format!("{name}: not implemented yet in podssh sftp")),
+        name if NOT_YET.contains(&name) => return Err(format!("{name}: {NOT_BUILT}")),
         name => return Err(format!("{name}: not a command of sftp; help lists them")),
     })
 }
@@ -328,13 +389,34 @@ mod tests {
             ("rename a", "the form is"),
             ("chmod 999 f", "octal"),
             ("ls -z", "not an option"),
-            ("lmkdir d", "not implemented yet"),
+            ("lumask 022", "not implemented yet"),
+            ("ln a b", "a hard link is not implemented yet"),
+            ("chown root f", "not a number"),
+            ("symlink a", "the form is"),
             ("!ls", "local command"),
             ("frobnicate", "not a command"),
         ] {
             let why = parse_line(bad).expect_err(bad);
             assert!(why.contains(says), "{bad}: {why}");
         }
+    }
+
+    /// The commands of T-1051, and the code of each refusal: 70 for a
+    /// command that podssh does not have, 64 for a line at fault.
+    #[test]
+    fn the_links_the_owners_and_the_local_commands_parse_and_the_rest_is_70() {
+        let link = Command::Symlink { target: "a".into(), link: "b".into() };
+        assert_eq!(line("symlink a b").command, link);
+        assert_eq!(line("ln -s a b").command, link);
+        assert_eq!(line("chown 1000 f").command, Command::Chown { id: 1000, path: "f".into(), group: false });
+        assert_eq!(line("chgrp 50 f").command, Command::Chown { id: 50, path: "f".into(), group: true });
+        assert_eq!(line("lls").command, Command::Lls(None));
+        assert_eq!(line("lmkdir d").command, Command::Lmkdir("d".into()));
+        for (bad, code) in [("lumask 022", 70), ("progress", 70), ("ln a b", 70), ("chown x f", 64), ("frob", 64)] {
+            let why = parse_line(bad).expect_err(bad);
+            assert_eq!(refusal_code(&why), code, "{bad}: {why}");
+        }
+        assert!(HELP.iter().any(|(form, _)| form.contains("symlink")), "help lists each");
     }
 
     #[test]

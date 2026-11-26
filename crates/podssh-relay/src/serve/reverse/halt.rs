@@ -223,14 +223,14 @@ where
 
 /// An operator's upgrade of `pair` while it is halted: `503` with its
 /// owner's words, and no `Retry-After`, as no second ends a halt; `false`
-/// when it is not halted, and nothing was said. No line of the role's for
-/// it: each try of an operator would be one.
-pub(super) async fn refused<S>(stream: &mut S, pair: &Pair) -> bool
+/// when it is not halted, and nothing was said. Its line names the pair,
+/// as each refusal of the role's (T-1050): the owner sees who still tries.
+pub(super) async fn refused<S>(stream: &mut S, pair: &Pair, cfg: &Config, of: &Of) -> bool
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let Some(halt) = pair.halted() else { return false };
-    answer(stream, request::refusal(503, &halt.refusal(), &[])).await;
+    answer(stream, cfg.refused(of, 503, &halt.refusal(), None)).await;
     true
 }
 

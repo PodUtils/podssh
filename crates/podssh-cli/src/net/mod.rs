@@ -177,7 +177,7 @@ fn checked(args: &NetArgs) -> Result<&str, Refusal> {
         other => return Err(Refusal::usage(format!("{other:?} is not a subcommand: {SUBCOMMANDS}"))),
     };
     if args.args.len() != words {
-        return Err(Refusal::usage(format!("podssh net {shape}: {} words given", args.args.len())));
+        return Err(Refusal::usage(crate::refuse::word_count("net", shape, words, args.args.len())));
     }
     // Each flag goes with the subcommands that read it; `policy` and
     // `gateway` by their verb.
