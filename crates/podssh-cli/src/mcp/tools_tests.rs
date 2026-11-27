@@ -223,3 +223,28 @@ fn allow_command_gates_ssh_exec() {
     assert!(exec("reboot").unwrap_err().contains("no pattern"));
     assert!(names(&s).contains(&"job_start".to_string()), "no --read-only: the job tools stay");
 }
+
+/// What `--allow-command` leaves open (T-1062), said at the start: each tool
+/// offered that runs a command, types into a shell or writes a file; none
+/// with no pattern, none with `--read-only`, none with no host allowed.
+#[test]
+fn the_tools_that_allow_command_does_not_limit_are_named() {
+    let dir = std::env::temp_dir().display().to_string();
+    let dirs = super::super::dirs::Dirs::new(&[dir], &[]).unwrap();
+    let commands = Commands::new(&["ls *".to_string()]).unwrap();
+    let host = Settings { commands: commands.clone(), ..settings(&["web*"]) };
+    let all = Settings { dirs, allow_session: true, ..host.clone() };
+    for (name, s, want) in [
+        ("a host", host.clone(), &["job_start"][..]),
+        ("each gate", all.clone(), &["job_start", "cp_put", "session_start", "session_send"][..]),
+        ("--read-only", Settings { read_only: true, ..all.clone() }, &[][..]),
+        ("no pattern", Settings { commands: Commands::default(), ..all.clone() }, &[][..]),
+        ("no host", Settings { commands, ..settings(&[]) }, &[][..]),
+    ] {
+        let mut got = unconfined(&s);
+        got.sort();
+        let mut want: Vec<String> = want.iter().map(|w| w.to_string()).collect();
+        want.sort();
+        assert_eq!(got, want, "{name}");
+    }
+}

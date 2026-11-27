@@ -1285,7 +1285,7 @@ session starts with the size of its start
 (`crates/podssh-ssh/src/io.rs:130-203`). The flag at
 `crates/podssh-cli/src/flags.rs:231-232`, its check and its file in
 `crates/podssh-cli/src/ssh/recording.rs:1-42`; the verb in
-`crates/podssh-cli/src/play.rs:1-98`, its flags in
+`crates/podssh-cli/src/play.rs:1-124`, its flags in
 `crates/podssh-cli/src/flags/play.rs:1-14`.
 - `cargo test -p podssh-ssh -- asciicast`: 4 passed: the header and both
   events, the escapes of quotes and control bytes, a character split across
@@ -7141,7 +7141,7 @@ where `cp` gives 66 for a missing source.
    `-E` and `--record`, first in `run_ssh` and in `run_run`: 73, "nothing ran".
 2. A file of `-E` or `--record` that still cannot be made (a mode, a file that exists) is 73 too.
 3. `run --from` that is not there: 66, "--from DIR: no such file or directory"
-   (`crates/podssh-cli/src/run_cmd/mod.rs:230`); one that is a file stays 64.
+   (`crates/podssh-cli/src/run_cmd/mod.rs:233`); one that is a file stays 64.
 4. EXIT STATUS's rows of 66 and 73, `--record`'s note, and `docs/cli.md` ("Exit codes").
 
 ## Decision

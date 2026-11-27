@@ -192,6 +192,12 @@ pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
     }
     if !settings.commands.is_empty() {
         let _ = writeln!(err, "podssh mcp: ssh_exec may run {}", settings.commands.shown());
+        // The pattern is not the whole gate: say what it leaves open (T-1062).
+        let open = tools::unconfined(&settings);
+        if !open.is_empty() {
+            let line = format!("--allow-command limits ssh_exec alone, not {}", open.join(", "));
+            let _ = writeln!(err, "podssh mcp: {line}; --read-only removes them");
+        }
     } else if settings.read_only {
         let _ = writeln!(err, "podssh mcp: --read-only and no --allow-command: no ssh_exec");
     }

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**987 entries: 3 open, 33 partial, 16 blocked, 935 done.**
+**995 entries: 3 open, 33 partial, 16 blocked, 943 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 106 | 115 |
-| P2 | 0 | 20 | 4 | 349 | 373 |
-| P3 | 3 | 7 | 9 | 479 | 498 |
-| **All** | 3 | 33 | 16 | 935 | 987 |
+| P2 | 0 | 20 | 4 | 351 | 375 |
+| P3 | 3 | 7 | 9 | 485 | 504 |
+| **All** | 3 | 33 | 16 | 943 | 995 |
 
 ## Entries
 
@@ -1063,3 +1063,11 @@ repository and CI).
 | [T-1054](ws.md) | P3 | S | backlog | defect | done | A name that does not resolve is said with the TLS library's words of each DNS over HTTPS resolver |
 | [T-1055](cli.md) | P3 | S | backlog | defect | done | `status` with `PODSSH_RELAY` set and empty exits 0, where each other verb refuses it with 78 |
 | [T-1056](resume.md) | P1 | S | backlog | defect | done | Nine lines of a flood neither in the scrollback nor said skipped, on macOS |
+| [T-1057](cli.md) | P2 | S | backlog | defect | done | `podssh play --speed 1e-320` panics, where a wait cannot be a Duration |
+| [T-1058](cli.md) | P2 | S | backlog | defect | done | `podssh play` of an event at 1e300 seconds panics, where 1e400 is a bad line |
+| [T-1059](multi.md) | P3 | S | backlog | defect | done | `run --dry-run` into `head -c0` exits 74 "Broken pipe", where a reader that went away is no failure |
+| [T-1060](config.md) | P3 | S | backlog | defect | done | `config import ansible` of a YAML or JSON inventory prints blocks of nonsense, where the manual refuses it |
+| [T-1061](multi.md) | P3 | S | backlog | defect | done | `each --output-dir ''` writes the hosts' files into the working directory |
+| [T-1062](cli.md) | P3 | S | backlog | docs | done | `mcp --allow-command` limits `ssh_exec` alone, and the manual's risk does not say that `job_start` runs any command |
+| [T-1063](cli.md) | P3 | S | backlog | docs | done | The manual of `podssh status` does not name its `settings` field |
+| [T-1064](config.md) | P3 | S | backlog | defect | done | `config import remmina DIR` refuses the whole directory when a non-profile file is present |

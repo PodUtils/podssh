@@ -91,19 +91,20 @@ fn import(format: &str, file: &str, out: &mut dyn Write, err: &mut dyn Write) ->
             &format!("import {format}: not yet; it waits for a real export of that program to be tested against"),
         );
     }
-    let (reader, program): (Reader, &str) = match format.as_str() {
+    // The extension of a program's files in a directory, where it has one.
+    let (reader, program, only): (Reader, &str, Option<&str>) = match format.as_str() {
         "ansible" => return inventory(file, out, err),
-        "putty" => (putty::read, "PuTTY"),
-        "mobaxterm" => (mobaxterm::read, "MobaXterm"),
-        "remmina" => (remmina::read, "Remmina"),
-        "mremoteng" => (mremoteng::read, "mRemoteNG"),
+        "putty" => (putty::read, "PuTTY", None),
+        "mobaxterm" => (mobaxterm::read, "MobaXterm", None),
+        "remmina" => (remmina::read, "Remmina", Some(remmina::EXTENSION)),
+        "mremoteng" => (mremoteng::read, "mRemoteNG", None),
         _ => {
             let why = format!("import {format}: not a format; give {}", format_names());
             return usage(err, &why);
         }
     };
-    let inputs = match inputs(file) {
-        Ok(inputs) => inputs,
+    let (inputs, passed) = match inputs(file, only) {
+        Ok(found) => found,
         Err(why) => {
             let _ = writeln!(err, "podssh config import: {file}: {why}");
             return EX_NOINPUT;
@@ -118,6 +119,13 @@ fn import(format: &str, file: &str, out: &mut dyn Write, err: &mut dyn Write) ->
     };
     let blocks = sessions::write(&read, program, file);
     let _ = out.write_all(blocks.text.as_bytes());
+    // A file of the directory that is no file of the program (a backup, a
+    // swap file) is named, not read, and stops nothing (T-1064).
+    if let Some(ext) = only {
+        for name in &passed {
+            let _ = writeln!(err, "podssh config import: {name}: passed over: not a .{ext} file");
+        }
+    }
     let _ = writeln!(err, "{}", blocks.summary(file));
     0
 }
@@ -137,6 +145,13 @@ fn inventory(file: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             return EX_DATAERR;
         }
     };
+    // Ansible's YAML or JSON is refused by name, as the word ansible-yaml
+    // is, not read as INI into blocks of nonsense (T-1060).
+    if let Some((form, line)) = ansible::other_form(&text) {
+        let why = format!("an inventory in {form}, which import does not read yet; give its INI form");
+        let _ = writeln!(err, "podssh config import: {file}:{line}: {why}");
+        return EXIT_USAGE;
+    }
     let hosts = match ansible::read(&text) {
         Ok(hosts) => hosts,
         Err(why) => {
@@ -161,13 +176,21 @@ fn read(file: &str) -> Result<Result<String, String>, String> {
 
 /// The bytes of a file, `-` for stdin.
 fn bytes(file: &str) -> Result<Vec<u8>, String> {
+    if file == "-" {
+        read_limited(std::io::stdin())
+    } else {
+        bytes_path(std::path::Path::new(file))
+    }
+}
+
+/// The bytes of a file by its path (so non-UTF-8 directory entries still open).
+fn bytes_path(path: &std::path::Path) -> Result<Vec<u8>, String> {
+    read_limited(std::fs::File::open(path).map_err(|e| podssh_ws::text::said(&e))?)
+}
+
+fn read_limited(reader: impl std::io::Read) -> Result<Vec<u8>, String> {
     use std::io::Read;
     let mut bytes = Vec::new();
-    let reader: Box<dyn Read> = if file == "-" {
-        Box::new(std::io::stdin())
-    } else {
-        Box::new(std::fs::File::open(file).map_err(|e| podssh_ws::text::said(&e))?)
-    };
     reader.take(MAX_FILE + 1).read_to_end(&mut bytes).map_err(|e| podssh_ws::text::said(&e))?;
     if bytes.len() as u64 > MAX_FILE {
         return Err(format!("larger than {} MiB, which no host list is", MAX_FILE >> 20));
@@ -177,10 +200,12 @@ fn bytes(file: &str) -> Result<Vec<u8>, String> {
 
 /// The files of FILE: itself, or each file of a directory in the order of
 /// their names, as PuTTY on Unix and Remmina keep one file for each session.
-fn inputs(file: &str) -> Result<Vec<Input>, String> {
+/// With `only`, a directory's files of another extension are not read: the
+/// second list names them (T-1064). A FILE named is read whatever its name.
+fn inputs(file: &str, only: Option<&str>) -> Result<(Vec<Input>, Vec<String>), String> {
     let path = std::path::Path::new(file);
     if file == "-" || !path.is_dir() {
-        return Ok(vec![Input { name: file.to_string(), bytes: bytes(file)? }]);
+        return Ok((vec![Input { name: file.to_string(), bytes: bytes(file)? }], Vec::new()));
     }
     let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(path)
         .map_err(|e| podssh_ws::text::said(&e))?
@@ -189,16 +214,22 @@ fn inputs(file: &str) -> Result<Vec<Input>, String> {
         .filter(|p| p.is_file())
         .collect();
     files.sort();
+    let (files, passed): (Vec<_>, Vec<_>) = files
+        .into_iter()
+        .partition(|p| only.is_none_or(|ext| p.extension().is_some_and(|e| e.eq_ignore_ascii_case(ext))));
     if files.is_empty() {
-        return Err("a directory with no file".into());
+        let why =
+            only.map_or_else(|| "a directory with no file".into(), |ext| format!("a directory with no .{ext} file"));
+        return Err(why);
     }
-    files
+    let read = files
         .iter()
         .map(|p| {
             let name = p.display().to_string();
-            bytes(&name).map(|bytes| Input { name, bytes }).map_err(|why| format!("{}: {why}", p.display()))
+            bytes_path(p).map(|bytes| Input { name, bytes }).map_err(|why| format!("{}: {why}", p.display()))
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((read, passed.iter().map(|p| p.display().to_string()).collect()))
 }
 
 /// The variables of a host that hold a secret: never imported, never
@@ -355,4 +386,68 @@ pub fn write(hosts: &[ansible::Host], file: &str) -> Blocks {
         }
     }
     b
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Scratch(std::path::PathBuf);
+
+    impl Scratch {
+        fn new(tag: &str) -> Scratch {
+            let dir = std::env::temp_dir().join(format!("podssh-config-import-mod-{tag}-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            Scratch(dir)
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// Directory filtering (T-1064): only matching extensions (case-insensitive)
+    /// are read; stray files are passed over without being opened; subdirectories
+    /// are ignored; an empty or non-matching directory fails cleanly; a single
+    /// named file is read regardless of its extension.
+    #[test]
+    fn directory_inputs_filter_by_extension_and_pass_over_others() {
+        let dir = Scratch::new("filter");
+        for name in ["a.remmina", "B.REMMINA", "README", ".a.remmina.swp", "a.remmina~", ".remmina"] {
+            std::fs::write(dir.0.join(name), name).unwrap();
+        }
+        std::fs::create_dir_all(dir.0.join("sub")).unwrap();
+        let (read, passed) = inputs(&dir.0.display().to_string(), Some(remmina::EXTENSION)).unwrap();
+        let base = |list: Vec<String>| -> Vec<String> {
+            let mut out: Vec<String> = list
+                .iter()
+                .map(|p| std::path::Path::new(p).file_name().unwrap().to_string_lossy().into_owned())
+                .collect();
+            out.sort();
+            out
+        };
+        assert_eq!(base(read.into_iter().map(|i| i.name).collect()), vec!["B.REMMINA", "a.remmina"]);
+        assert_eq!(base(passed), vec![".a.remmina.swp", ".remmina", "README", "a.remmina~"]);
+
+        let single = dir.0.join("README").display().to_string();
+        let (read, passed) = inputs(&single, Some(remmina::EXTENSION)).unwrap();
+        assert_eq!((read.len(), passed.len()), (1, 0));
+
+        let stray = Scratch::new("stray");
+        std::fs::write(stray.0.join("README"), "notes").unwrap();
+        assert_eq!(
+            inputs(&stray.0.display().to_string(), Some(remmina::EXTENSION)).err().as_deref(),
+            Some("a directory with no .remmina file")
+        );
+
+        let empty = Scratch::new("empty");
+        assert_eq!(inputs(&empty.0.display().to_string(), None).err().as_deref(), Some("a directory with no file"));
+        assert_eq!(
+            inputs(&empty.0.display().to_string(), Some(remmina::EXTENSION)).err().as_deref(),
+            Some("a directory with no .remmina file")
+        );
+    }
 }

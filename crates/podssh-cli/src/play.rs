@@ -31,7 +31,16 @@ pub fn run(args: &PlayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         None => Ok(None),
         Some(text) => positive(text).map(Some).ok_or(format!("{flag} {text}: a number above 0")),
     };
-    let (speed, idle) = match (number("--speed", &args.speed), number("--idle-limit", &args.idle_limit)) {
+    // A speed so small that one second of the recording is a wait that no
+    // clock keeps is refused here, not met as a panic at a wait (T-1057).
+    let slow = |speed: Option<f64>| match (speed, args.speed.as_deref()) {
+        (Some(v), Some(text)) if Duration::try_from_secs_f64(1.0 / v).is_err() => {
+            Err(format!("--speed {text}: so small that one second would be a wait past any clock"))
+        }
+        _ => Ok(speed),
+    };
+    let speed = number("--speed", &args.speed).and_then(slow);
+    let (speed, idle) = match (speed, number("--idle-limit", &args.idle_limit)) {
         (Ok(speed), Ok(idle)) => (speed.unwrap_or(1.0), idle),
         (Err(why), _) | (_, Err(why)) => {
             let _ = writeln!(err, "podssh play: {why}");
@@ -78,19 +87,36 @@ fn play(path: &str, speed: f64, idle: Option<f64>, out: &mut dyn Write) -> Resul
         if at < 0.0 || !at.is_finite() {
             return Err(format!(":{}: a time below 0 ({at})", n + 2));
         }
+        // A time that no Duration holds is a bad line too, said for what it
+        // is before any wait is summed from it (T-1058).
+        if Duration::try_from_secs_f64(at).is_err() {
+            return Err(format!(":{}: a time too large to wait for ({at:e} s)", n + 2));
+        }
         let gap = (at - last).max(0.0);
         last = last.max(at);
         clock += idle.map_or(gap, |limit| gap.min(limit)) / speed;
+        // The sum of the waits at this speed can pass what a Duration or this
+        // host's clock holds, each time being good: said, not a panic.
+        let Some(due) = deadline(start, clock) else {
+            let hint = "a larger --speed or an --idle-limit plays it";
+            return Err(format!(":{}: a wait too long for any clock ({clock:e} s); {hint}", n + 2));
+        };
         if kind != "o" {
             continue;
         }
-        std::thread::sleep((start + Duration::from_secs_f64(clock)).saturating_duration_since(Instant::now()));
+        std::thread::sleep(due.saturating_duration_since(Instant::now()));
         // Whoever read the output went: nothing more to play.
         if out.write_all(data.as_bytes()).and_then(|()| out.flush()).is_err() {
             return Ok(());
         }
     }
     Ok(())
+}
+
+/// The instant `clock` seconds after `start`, or `None` where no Duration or
+/// no `Instant` of this host holds it: `Instant + Duration` panics on overflow.
+fn deadline(start: Instant, clock: f64) -> Option<Instant> {
+    Duration::try_from_secs_f64(clock).ok().and_then(|wait| start.checked_add(wait))
 }
 
 fn positive(text: &str) -> Option<f64> {
@@ -143,6 +169,9 @@ mod tests {
             ("order", &["[0.0,\"o\",\"a\"]", "[0.2,\"o\",\"b\"]", "[0.1,\"o\",\"c\"]"][..], Ok("abc")),
             ("negative", &["[0.0,\"o\",\"a\"]", "[-1,\"o\",\"b\"]"][..], Err(":3: a time below 0")),
             ("first", &["[-0.5,\"o\",\"a\"]"][..], Err(":2: a time below 0")),
+            // A time that no Duration holds (T-1058), of output or not.
+            ("huge", &["[1e300,\"o\",\"x\"]"][..], Err(":2: a time too large to wait for (1e300 s)")),
+            ("past", &["[0.0,\"o\",\"a\"]", "[1.9e19,\"i\",\"b\"]"][..], Err(":3: a time too large to wait for")),
         ] {
             let path = recording(name, events);
             let mut out = Vec::new();
@@ -157,5 +186,42 @@ mod tests {
             // 0.2 s at most: the event out of order adds no wait.
             assert!(started.elapsed() < Duration::from_secs(2), "{name}");
         }
+    }
+
+    /// Each speed against the waits it makes (T-1057): one so small that a
+    /// second overflows is a usage error, and a sum of waits past any clock
+    /// is a bad line, exit 1. None of them panics, and none waits.
+    #[test]
+    fn a_wait_past_any_clock_is_refused_not_a_panic() {
+        let path = recording("clock", &["[0.0,\"o\",\"a\"]", "[2.0,\"o\",\"b\"]"]);
+        let file = Some(path.to_str().unwrap().to_string());
+        for (speed, idle, want, line) in [
+            ("1e-320", None, EXIT_USAGE, "--speed 1e-320: so small"),
+            ("5e-324", None, EXIT_USAGE, "--speed 5e-324: so small"),
+            ("1e-310", Some("1"), EXIT_USAGE, "--speed 1e-310: so small"),
+            ("1e-25", None, EXIT_USAGE, "--speed 1e-25: so small"),
+            // 1e19 s a second holds; 2 s of the recording, 2e19 s, does not.
+            ("1e-19", None, EXIT_FAILED, ":3: a wait too long for any clock"),
+            ("1000", None, 0, ""),
+        ] {
+            let args = PlayArgs {
+                file: file.clone(),
+                speed: Some(speed.into()),
+                idle_limit: idle.map(str::to_string),
+                refused: Vec::new(),
+            };
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            let started = Instant::now();
+            let code = run(&args, &mut out, &mut err);
+            let err = String::from_utf8_lossy(&err);
+            assert_eq!(code, want, "{speed}: {err}");
+            assert!(err.contains(line), "{speed}: {err}");
+            assert!(err.lines().count() <= 1, "{speed}: one line: {err}");
+            assert!(started.elapsed() < Duration::from_secs(2), "{speed}");
+        }
+        let _ = std::fs::remove_file(&path);
+        assert!(deadline(Instant::now(), f64::INFINITY).is_none());
+        assert!(deadline(Instant::now(), 1e20).is_none());
+        assert!(deadline(Instant::now(), 1.5).is_some());
     }
 }

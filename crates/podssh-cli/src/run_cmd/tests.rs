@@ -124,13 +124,15 @@ fn a_dry_run_says_the_parents_the_actions_then_the_command() {
 /// A plan that cannot be written is 74, as each output that cannot be
 /// written (T-983, T-965): a full disk, or Windows' stdout with no handle.
 /// On Unix, Rust's runtime puts /dev/null on a closed stdout before `main`,
-/// so `>&-` cannot be told from an output thrown away on purpose.
+/// so `>&-` cannot be told from an output thrown away on purpose. A reader
+/// that went away (`| head -c0`) is no failure: 0 and no line (T-1059).
+/// Each case goes through `output::deliver`, as `run_run` puts it.
 #[test]
 fn a_plan_that_cannot_be_written_is_74() {
-    struct Full;
-    impl std::io::Write for Full {
+    struct Failing(std::io::ErrorKind);
+    impl std::io::Write for Failing {
         fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::from(std::io::ErrorKind::StorageFull))
+            Err(std::io::Error::from(self.0))
         }
         fn flush(&mut self) -> std::io::Result<()> {
             Ok(())
@@ -140,9 +142,21 @@ fn a_plan_that_cannot_be_written_is_74() {
     let got = plan(&args("build1", &dir, &["make"])).unwrap();
     let synced = crate::cp::sync::Synced { counts: Default::default(), failed: None, plan: vec![] };
     let log = podssh_ssh::Log::new(podssh_ssh::LogLevel::Quiet);
-    assert_eq!(dry::answer(&got, &[], &synced, &log, &mut Full), 74);
-    let mut text = Vec::new();
-    assert_eq!(dry::answer(&got, &[], &synced, &log, &mut text), 0);
+    for (kind, want, line) in [
+        (std::io::ErrorKind::StorageFull, 74, "podssh run: the output could not be written: "),
+        (std::io::ErrorKind::BrokenPipe, 0, ""),
+    ] {
+        let mut err = Vec::new();
+        let code = crate::output::deliver("run", &mut Failing(kind), &mut err, |out, _| {
+            dry::answer(&got, &[], &synced, &log, out)
+        });
+        let err = String::from_utf8(err).unwrap();
+        assert_eq!(code, want, "{kind:?}: {err}");
+        assert!(err.starts_with(line) && err.lines().count() == usize::from(!line.is_empty()), "{kind:?}: {err}");
+    }
+    let (mut text, mut err) = (Vec::new(), Vec::new());
+    let code = crate::output::deliver("run", &mut text, &mut err, |out, _| dry::answer(&got, &[], &synced, &log, out));
+    assert_eq!((code, err.len()), (0, 0));
     assert_eq!(String::from_utf8(text).unwrap(), "run cd '.podssh/run/full' && make\n");
     let _ = std::fs::remove_dir_all(dir.parent().unwrap());
 }

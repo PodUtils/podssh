@@ -9,6 +9,9 @@
 use super::sessions::{decode, placeholder, Read, Session};
 use super::Input;
 
+/// The extension of Remmina's profile files in a directory (T-1064).
+pub const EXTENSION: &str = "remmina";
+
 /// The keys that hold a secret.
 const SECRETS: [&str; 4] = ["password", "ssh_passphrase", "ssh_tunnel_password", "ssh_tunnel_passphrase"];
 

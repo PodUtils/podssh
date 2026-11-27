@@ -373,8 +373,9 @@ const DOCTOR: &[&str] = &[
 const STATUS: &[&str] = &[
     "podssh status writes one line of JSON on stdout and exits 0: schema, podssh, relays (each host and port) and \
      relays_from (--relay-host, PODSSH_RELAY, or the default and its pool); deployments (each deployment of the \
-     list, its hosts, and its signed list or none; see podssh relay), pool (cached, when it was fetched, how many \
-     hosts), token (source: PODSSH_RELAY_TOKEN, cache or none; the relay that it is for; when it expires; whether it \
+     list, its hosts, and its signed list or none; see podssh relay), settings (the path of the settings file that \
+     was found, or null with none; see FILES), pool (cached, when it was fetched, how many hosts), token (source: \
+     PODSSH_RELAY_TOKEN, cache or none; the relay that it is for; when it expires; whether it \
      can be used), cache (from: PODSSH_CACHE_DIR, none or default; dirs: the directories in the order podssh tries \
      them; passed: each usual place that is in another user's tree, its dir and why, see FILES); proxy (the \
      variable, HOST:PORT and the kind, http or socks5), offline, attachment, stdin_tty and stdout_tty; host for a \

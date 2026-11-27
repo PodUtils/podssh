@@ -3032,7 +3032,7 @@ failure's words, no signal and no time. The other surfaces give one object (`ssh
 
 - Read: the rows of `each` have no `--json` and no `--result-file`
   (`crates/podssh-cli/src/flags/each.rs`); its summary is lines for people on stderr, above the
-  level quiet only (`crates/podssh-cli/src/each/mod.rs:196-200`,
+  level quiet only (`crates/podssh-cli/src/each/mod.rs:201-205`,
   `crates/podssh-cli/src/each/fan.rs:75-93`).
 - Read: a host ends with its status, the first line of its failure, or not started
   (`crates/podssh-cli/src/each/fan.rs:10-20`); its signal, its end, the class of its failure, its
@@ -3123,7 +3123,7 @@ the two failures at once fails.
 
 - The Decision's `stdout_base64` and `stderr_base64` are not `ssh_exec`'s form: `ssh_exec` gives
   `stdout` with `stdout_encoding` (`utf-8` or `base64`), and `stderr` with `stderr_encoding`
-  (`crates/podssh-cli/src/mcp/tools.rs:352`). The record takes that form, which a client of
+  (`crates/podssh-cli/src/mcp/tools.rs:364`). The record takes that form, which a client of
   `podssh mcp` reads already.
 - The Prove's `exit 3` on one host and `exit 0` on another: the test's server runs one command
   on each host, and its hosts differ by their users alone, so `cat` gives 0, and 127 for a user
@@ -3350,7 +3350,7 @@ host runs nothing anywhere.
 - Read: `podssh ssh` takes a word that is no pattern as one host
   (`crates/podssh-cli/src/hosts.rs:29-33`), so `a b` goes to the name check of the road (T-503).
 - Read: the hosts are expanded, then each is resolved, before anything connects
-  (`crates/podssh-cli/src/each/mod.rs:153-163`); the resolve of the direct road takes `a`, and the
+  (`crates/podssh-cli/src/each/mod.rs:158-168`); the resolve of the direct road takes `a`, and the
   relay road takes it too, so the blank is the only fault, and it is lost.
 
 ## Approach
@@ -3622,7 +3622,7 @@ with no result file, no `--json`, no `--parallel` and no job record.
 - Read: each of the three resolves its host as `podssh ssh` does, so a net name already becomes
   `Transport::Node` (`crates/podssh-cli/src/net/lookup.rs:2`, `crates/podssh-cli/src/ssh/transport_kind.rs:23`),
   and then refuses it (`crates/podssh-cli/src/each/host.rs:66`, `crates/podssh-cli/src/job/mod.rs:59`,
-  `crates/podssh-cli/src/run_cmd/mod.rs:250`).
+  `crates/podssh-cli/src/run_cmd/mod.rs:253`).
 - Read: `transport::reach` cannot reach a node, an `iroh:` or a `derp:` destination
   (`crates/podssh-cli/src/ssh/transport.rs:268-278`). `ssh/node.rs:160` runs the whole session of a node
   and gives no stream, so the sink of `each` (`each/host.rs:140`) has nothing to take.
@@ -4358,3 +4358,110 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test containers a_bad_command_line
 Drafted 2026-11-26 by a drafting agent;
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ws -p podssh-relay -p podssh-ssh -p podssh-cli --no-fail-fast` 393 binaries passed, after two repairs of the merge (a lock guard of `serve_share` held across an await, `edit_args` brought to `choose`'s new argument with a row of `--no-terminal`); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1059: `run --dry-run` into `head -c0` exits 74 "Broken pipe", where a reader that went away is no failure
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 3.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh run ... --dry-run HOST -- x | head -c0` ended 74, "the plan could not be written to stdout: Broken pipe",
+three runs of three. EXIT STATUS's row of 74 says that a reader that went away, as `head` does, is no failure, and
+each other command of the pass ended 0 there.
+
+## Premise
+
+- Read, at `40a83e5`: `answer` of `crates/podssh-cli/src/run_cmd/dry.rs` (lines 30 to 33) said each failed write of
+  the plan and returned 74, a broken pipe too; `run_run` of `crates/podssh-cli/src/run_cmd/mod.rs` did not go through
+  `output::deliver` (`crates/podssh-cli/src/output.rs:62`), the helper of each other command, which passes a broken
+  pipe over.
+
+## Approach
+
+1. `run_run` runs the run inside `output::deliver("run", ...)`, before the record of `--result-file` is made, so
+   that the record holds the exit; `answer` leaves a failed write to it (one line, 74; a broken pipe 0).
+2. T-983's check of a closed descriptor stays, for Windows.
+3. `a_plan_that_cannot_be_written_is_74` becomes a table through `deliver`: a full disk 74 with one line, a broken
+   pipe 0 with none, and a good write the plan.
+4. `docs/cli.md` says so; the manual's row of 74 says it already.
+
+## Decision
+
+- `deliver` around the whole run, not a test of `BrokenPipe` in `answer`: one rule of output for each command
+  (T-965). The plan is the one write to `out`, as the command's own output goes to the process's streams (T-472),
+  so nothing else of the run changes. Lost: the words "the plan could not be written to stdout"; `deliver`'s line
+  "the output could not be written" says the same.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib run_cmd::
+cargo test -p podssh-cli --test run
+```
+
+Then by hand, against a host of the tests: `podssh run --dry-run HOST -- true | head -c0`, and `PIPESTATUS[0]` is 0
+with nothing on stderr.
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
+
+- Changed: `crates/podssh-cli/src/run_cmd/mod.rs`, `crates/podssh-cli/src/run_cmd/dry.rs`,
+  `crates/podssh-cli/src/run_cmd/tests.rs`, `docs/cli.md`.
+- Result: `run_cmd::`, `tests/run.rs` 5 passed, clippy and rustfmt clean.
+
+
+# T-1061: `each --output-dir ''` writes the hosts' files into the working directory
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 5.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh each --output-dir '' HOST -- 'echo hello'` exited 0 and left `HOST.out`, `HOST.err` and `HOST.status` in
+the working directory, which nobody named. An empty DIR is no directory.
+
+## Premise
+
+- Read, at `40a83e5`: `prepare` of `crates/podssh-cli/src/each/out.rs` took any `Some(dir)`, and
+  `Path::new("").join("HOST.out")` is `HOST.out`, relative to the working directory; `create_dir_all("")` succeeds.
+
+## Approach
+
+1. `run_each` (`crates/podssh-cli/src/each/mod.rs`) refuses an empty `--output-dir` with the other usage errors,
+   before a host is expanded, a snippet asked or a file made: one line, 64, "give . for this one".
+2. A row of `a_bad_command_line_is_64_before_anything_connects` (`tests/each.rs`), and no `a.out` in its working
+   directory after the table.
+3. The note of `each` and `docs/cli.md` say so.
+
+## Decision
+
+- 64, not 73: the value is wrong, not a directory that cannot be made, and nothing was tried; `.` names the working
+  directory for whoever wants it. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test each a_bad_command_line_is_64_before_anything_connects
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
+
+- Changed: `crates/podssh-cli/src/each/mod.rs`, `crates/podssh-cli/tests/each.rs`,
+  `crates/podssh-cli/src/man/notes_each.rs`, `docs/cli.md`.
+- Result: `tests/each.rs` 25 passed, `man_page` 11, `man_json` 4, clippy and rustfmt clean.

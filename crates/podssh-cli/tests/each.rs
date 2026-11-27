@@ -162,6 +162,8 @@ fn a_bad_command_line_is_64_before_anything_connects() {
         (&["x,a b", "--", "true"][..], "give x,a,b"),
         (&["-o", "SessionType=none", "a", "--", "true"][..], "SessionType"),
         (&["--output-dir", dir.as_str(), "Web1,web1", "--", "true"][..], "would share their files"),
+        // An empty DIR, which put the files in the working directory (T-1061).
+        (&["--output-dir", "", "a", "--", "true"][..], "--output-dir: an empty name is no directory"),
         (&["--no-such-flag", "a", "--", "true"][..], "--no-such-flag"),
     ] {
         let (code, out, err) = each(&home, args, true);
@@ -172,6 +174,7 @@ fn a_bad_command_line_is_64_before_anything_connects() {
         assert!(!err.contains("podssh: a: ") && !err.contains(" hosts: "), "{args:?}: {err}");
     }
     assert!(!home.join("out").exists(), "a refusal made the files of --output-dir");
+    assert!(!home.join("a.out").exists(), "an empty --output-dir made its files in the working directory");
 }
 
 #[test]

@@ -2673,7 +2673,7 @@ podssh each
   at the host's end; each byte of HOST but a letter, a digit, a dot, an
   underscore, a hyphen and @ is written %XX. The files are made before anything
   connects (73 when they cannot be), and a host with no status file did not
-  run.
+  run. An empty DIR is a usage error (64).
 
   --snippet NAME runs the command NAME of the settings file on each host, as
   podssh ssh --snippet runs it (see podssh ssh): the words after HOSTS fill
@@ -9352,26 +9352,28 @@ podssh status
   podssh status writes one line of JSON on stdout and exits 0: schema, podssh,
   relays (each host and port) and relays_from (--relay-host, PODSSH_RELAY, or
   the default and its pool); deployments (each deployment of the list, its
-  hosts, and its signed list or none; see podssh relay), pool (cached, when it
-  was fetched, how many hosts), token (source: PODSSH_RELAY_TOKEN, cache or
-  none; the relay that it is for; when it expires; whether it can be used),
-  cache (from: PODSSH_CACHE_DIR, none or default; dirs: the directories in the
-  order podssh tries them; passed: each usual place that is in another user's
-  tree, its dir and why, see FILES); proxy (the variable, HOST:PORT and the
-  kind, http or socks5), offline, attachment, stdin_tty and stdout_tty; host
-  for a destination (its name in known_hosts, whether a key is recorded, the
-  key types); session_log, relay_failures and relay_opened (the relay hosts
-  tried last and first: road, host, ago_s, and the reason or the opens),
-  relay_rank (the rank kept: age_s, this_egress, holds, named, source, relay
-  rank or background, partial, first and hosts; null with none), relay_order
-  (rank, samples, pool or off); relay_rank_auto (whether a setting asks for a
-  rank in a session's background and which one, and when the last was made:
-  asked, by, last_ms, last_age_s, partial), open_files (soft, hard, at_start,
-  raised, refused: the limit of open files, which podssh raises at start; null
-  on Windows), and pairs: each stored pair's label, when it expires, whether it
-  expired, and next_now. next_now says whether podssh relay pair LABEL makes
-  its next pair now. renews says whether its relay renews it, as its node last
-  learned: true or false, and null when no node learned it of this pair.
+  hosts, and its signed list or none; see podssh relay), settings (the path of
+  the settings file that was found, or null with none; see FILES), pool
+  (cached, when it was fetched, how many hosts), token (source:
+  PODSSH_RELAY_TOKEN, cache or none; the relay that it is for; when it expires;
+  whether it can be used), cache (from: PODSSH_CACHE_DIR, none or default;
+  dirs: the directories in the order podssh tries them; passed: each usual
+  place that is in another user's tree, its dir and why, see FILES); proxy (the
+  variable, HOST:PORT and the kind, http or socks5), offline, attachment,
+  stdin_tty and stdout_tty; host for a destination (its name in known_hosts,
+  whether a key is recorded, the key types); session_log, relay_failures and
+  relay_opened (the relay hosts tried last and first: road, host, ago_s, and
+  the reason or the opens), relay_rank (the rank kept: age_s, this_egress,
+  holds, named, source, relay rank or background, partial, first and hosts;
+  null with none), relay_order (rank, samples, pool or off); relay_rank_auto
+  (whether a setting asks for a rank in a session's background and which one,
+  and when the last was made: asked, by, last_ms, last_age_s, partial),
+  open_files (soft, hard, at_start, raised, refused: the limit of open files,
+  which podssh raises at start; null on Windows), and pairs: each stored pair's
+  label, when it expires, whether it expired, and next_now. next_now says
+  whether podssh relay pair LABEL makes its next pair now. renews says whether
+  its relay renews it, as its node last learned: true or false, and null when
+  no node learned it of this pair.
 
   The line's net is the net that this host holds, read with no connection:
   name, serial, owner (its fingerprint), expires_ms, ended, file and count, the
@@ -10793,8 +10795,10 @@ podssh play
   plays it faster or slower, and --idle-limit cuts each wait to its seconds, as
   the file's idle_time_limit does when it has one. A file of another version is
   refused (exit 1), and so is a directory. An event of another kind than output
-  is passed over. A time below 0 is refused as a bad line (exit 1); an event
-  earlier than the one before it plays at once.
+  is passed over. A time below 0, or one too large to wait for, is refused as a
+  bad line (exit 1). An event earlier than the one before it plays at once. A
+  --speed so small that one second would wait past any clock is a usage error
+  (64). A wait that no clock can keep is refused as a bad line (exit 1).
 
   A recording holds what the session showed, its secrets too (a key that was
   printed, a password that a program echoed). It never holds what was typed.
@@ -10854,24 +10858,27 @@ podssh config
   with its folder in a comment; the gateways give ProxyJump; a command after
   the login, a proxy and a key path in MobaXterm's own form are comments; each
   entry of [Passwords] and [Sesspass] is counted. podssh config import remmina
-  FILE reads one profile of Remmina, or each of a directory
-  (~/.local/share/remmina): protocol=SSH makes a block, server gives HostName
-  and Port, name the label and group the folder; each secret, in the keyring or
-  encrypted, is counted; a placeholder of a template such as %Host% is no host.
-  podssh config import mremoteng FILE reads mRemoteNG's connections,
-  confCons.xml or an export of it: Protocol SSH2 makes a block, each with its
-  folders in a comment; a field that a connection inherits comes from the
-  nearest folder above it that has its own; SSHTunnelConnectionName gives
-  ProxyJump through that connection; a PuTTY session other than Default
-  Settings and SSHOptions are comments with no value; each password is counted,
-  never decrypted; SSH1 is a comment; a file encrypted whole
-  (FullFileEncryption) is refused by name (exit 65).
+  FILE reads one profile of Remmina, or each .remmina file of a directory
+  (~/.local/share/remmina). In a directory, other files are passed over and
+  named on stderr; a directory with none exits 66. protocol=SSH makes a block,
+  server gives HostName and Port, name the label and group the folder. Each
+  secret, in the keyring or encrypted, is counted; a placeholder of a template
+  such as %Host% is no host. podssh config import mremoteng FILE reads
+  mRemoteNG's connections, confCons.xml or an export of it: Protocol SSH2 makes
+  a block, each with its folders in a comment; a field that a connection
+  inherits comes from the nearest folder above it that has its own;
+  SSHTunnelConnectionName gives ProxyJump through that connection; a PuTTY
+  session other than Default Settings and SSHOptions are comments with no
+  value; each password is counted, never decrypted; SSH1 is a comment; a file
+  encrypted whole (FullFileEncryption) is refused by name (exit 65).
 
   A session's label becomes the name of its block, each run of characters that
   a Host line cannot hold made one -. The label itself is in a comment above
   it; a session of another protocol gets a comment and no block. The formats of
   FinalShell and Termius, and Ansible's YAML, are refused by name (exit 64).
-  They wait until a real export of each is at hand to test against.
+  Ansible's YAML is the format word ansible-yaml, or an inventory in YAML or
+  JSON given to ansible. They wait until a real export of each is at hand to
+  test against.
 
   Usage: podssh config import FORMAT FILE
 
@@ -10923,6 +10930,11 @@ podssh mcp
   Name each host, or the fewest patterns that hold them; !PATTERN excludes, and
   a pattern with USER@ needs a destination that names that user. The host is
   matched as the call names it, before the HostName of your configuration.
+  --allow-command limits ssh_exec alone: job_start and session_start run any
+  command, session_send types any text into a shell, and cp_put writes any
+  file. For an agent that may run only the patterns, add --read-only too: it
+  removes job_start, job_stop, cp_put and each session_ tool. A line on stderr
+  names the tools that a pattern leaves open, at the start.
 
   For an agent that watches and must not change: --read-only offers no tool
   that changes a host, no job_start, job_stop, cp_put or session_ tool, and
@@ -13836,9 +13848,9 @@ EXIT STATUS
       document disagrees. podssh relay conform: a check of the relay failed.
       podssh keygen: a key could not be made or read. podssh health
       --preflight: after the login, a check failed or the facts did not come.
-      podssh play: the recording cannot be read, or its version is not one that
-      it plays. podssh ping --nodes: some nodes answered and some did not (69
-      when none did).
+      podssh play: the recording cannot be read, its version is not one that it
+      plays, or a line of it cannot be played. podssh ping --nodes: some nodes
+      answered and some did not (69 when none did).
   64
       A usage error: an unknown command or flag, a bad value, a missing
       argument. podssh did nothing.

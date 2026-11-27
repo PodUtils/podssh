@@ -1947,7 +1947,7 @@ host, and a list of hosts changes both.
   and two hosts whose files would differ only in case are refused (64).
   The files are made before anything connects (73 when they cannot be),
   with no status file left from an earlier run: a host with none did not
-  run.
+  run. An empty DIR is a usage error (64), as it names no directory (T-1061).
 - **The exit status** is the largest status of the hosts: 0 only when each
   host gave 0, and 255 for a host that could not connect or log in, or
   whose session ended with no status. `--fail-fast` starts no new host after
@@ -6307,9 +6307,9 @@ asciicast v2 file. `--speed FACTOR` plays it faster or slower, and
 `idle_time_limit` does when it has one. An event of another kind than
 output (`r`, `i`, `m`) is passed over. A file of another version, and a
 line that is no event, are refused (exit 1, the line named), and so is an
-event whose time is below 0 (T-984). An event whose time is before the
+event whose time is below 0 (T-984), or too large to wait for (T-1058). An event whose time is before the
 latest one's plays at once, as asciinema's player plays it, and the clock
-goes on from the latest; a missing
+goes on from the latest. A `--speed` so small that one second would wait past any clock is a usage error (64), and a wait that no clock can keep is a bad line (exit 1, T-1057); a missing
 FILE and a bad value are usage errors (64). The name is not `replay`, which
 is one edit from `relay` and would confuse the suggestion of a mistyped
 command. A recording sends its control sequences to the terminal again:
@@ -6374,7 +6374,7 @@ mRemoteNG's own test files under the GPL-2.0 by the ruling of Q46,
   A command after the login, a proxy and a key path in MobaXterm's own form
   are comments; each entry of `[Passwords]` and `[Sesspass]` is counted.
   The text is UTF-8, else Windows-1252.
-- **Remmina**: one `.remmina` profile, or each of a directory.
+- **Remmina**: one `.remmina` profile (a named file is read whatever its name), or each `.remmina` file of a directory; other files in the directory are passed over and named on stderr, and a directory with none exits 66 (T-1064).
   `protocol=SSH` makes a block; `server` (`host`, `host:port`, `[v6]:port`)
   gives `HostName` and `Port`; `name` is the label and `group` the folder.
   Each secret, `.` for the keyring or an encrypted blob, is counted; a value
@@ -6399,7 +6399,7 @@ that a `Host` line cannot hold made one `-`, with the label itself in a
 comment above it, and a second label of the same name gets `-2`. FinalShell
 and Termius, and Ansible's YAML, are refused by name (64) until a real export
 of each, under such a license, is at hand to test against (T-328):
-FinalShell and Termius have no export.
+FinalShell and Termius have no export. Ansible's YAML is the word `ansible-yaml`, or an inventory whose first line that is no comment is `---`, a key at the top (`all:`) or `{` (JSON), given to `ansible`: `FILE:LINE: an inventory in YAML`, 64, with no block (T-1060).
 
 ## `podssh mcp`
 
@@ -6465,7 +6465,7 @@ The tools:
   `--allow-command`. A pattern is words, the program as typed and `*` for one word; a command matches
   when its words are as many and each the pattern's, and one with a character that the remote shell
   reads as more (`;`, `|`, `&`, `$`, a backtick, quotes, redirections, globs, `\`, a newline) is
-  refused, as the shell would run more than the pattern says (`crates/podssh-cli/src/mcp/commands.rs`).
+  refused, as the shell would run more than the pattern says (`crates/podssh-cli/src/mcp/commands.rs`). A pattern limits `ssh_exec` alone: `job_start` and `session_start` run any command, `session_send` types any text, `cp_put` writes any file; so an agent held to the patterns needs `--read-only` too, and a line on stderr names each tool that a pattern leaves open (T-1062).
 
 **The local side has a gate of its own.** `--allow-host` lets an agent reach
 a host, not read the files of this one: no tool read or wrote one before
@@ -7797,7 +7797,7 @@ nothing did), and why.
   and 255 when the copy failed, which runs nothing. 73 is a `--result-file`
   whose directory is not there, before anything connects (T-977); 66 a
   `--from` that is not there, in the words of `cp` (T-1048); a
-  `--dry-run` whose plan cannot be written is 74 (T-983).
+  `--dry-run` whose plan cannot be written is 74 (T-983), and one whose reader went away (`| head`) is 0, as for each output (T-1059).
 - An output that could not be written is 74 (`EX_IOERR`, T-965), for each
   command whose answer is its stdout: `keygen`, `doctor`, `man`, `status`,
   `config`, `agent`, `update` and `node` or `serve` with `--print-unit`;

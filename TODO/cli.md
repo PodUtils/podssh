@@ -6342,3 +6342,219 @@ Drafted 2026-11-26 by a drafting agent;
 - Result:
 
 Merged 2026-11-26 from the worker's draft and built: the relay's tests with the role's features and `cargo test --locked -p podssh-ws -p podssh-ssh -p podssh-cli --no-fail-fast`, 398 binaries passed after the merge's repairs (`each_refusal_is_a_line_with_its_client` took the wrong token's line for port 25's, and now finds each case's line by its target too; `ssh_record` held 255 for a recording that exists, which T-1048 makes 73; one table line of EXIT STATUS joined with the file commands' merge); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. Live: `PODSSH_RELAY= podssh status` is refused, 78. The planted run waits for T-251.
+
+
+# T-1057: `podssh play --speed 1e-320` panics, where a wait cannot be a Duration
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 1.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh play --speed 1e-320 rec.cast` (also `5e-324`, and `--speed 1e-310 --idle-limit 1`) ended 101 with a panic
+of the standard library, "cannot convert float seconds to Duration", and its backtrace. The check of `--speed` took
+the value, as it is above 0 and finite.
+
+## Premise
+
+- Read, at `40a83e5`: `run` of `crates/podssh-cli/src/play.rs` refuses only a speed that is not finite or not above 0
+  (`positive`, line 97), and each wait is `start + Duration::from_secs_f64(clock)` (line 87), which panics for a
+  value that no Duration holds (`1.0 / 1e-320` is infinite), and `Instant + Duration` panics past the host's clock.
+
+## Approach
+
+1. `run` refuses a `--speed` under which one second of the recording is no Duration: one line, 64.
+2. `play` makes each wait by `deadline`, `Duration::try_from_secs_f64` and `Instant::checked_add`: a sum of waits that
+   neither holds is a bad line, named, exit 1, with what plays it (a larger `--speed`, an `--idle-limit`).
+3. The note of `play`, EXIT STATUS's row of 1 and `docs/cli.md` say so; a table-driven test of the speeds.
+
+## Decision
+
+- Refuse, not saturate. A wait saturated at `Duration::MAX` is a process that waits 584 billion years with no word,
+  which no user asked for; a refusal says what happened and what plays the file. Lost: a play that would never end.
+- 64 for the speed itself, as for each other bad value of the flag; 1 for a sum of good waits that grew past any
+  clock, as it depends on the file, as a bad line does.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib play::
+cargo test -p podssh-cli --test man_page --test man_json --test man_flag_parity
+```
+
+Then by hand: `podssh play --speed 1e-320 FILE` exits 64 with one line and no backtrace.
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
+
+- Changed: `crates/podssh-cli/src/play.rs` (the test `a_wait_past_any_clock_is_refused_not_a_panic`),
+  `crates/podssh-cli/src/man/notes_play.rs`, `crates/podssh-cli/src/man/data.rs`, `docs/cli.md`.
+- Result: `cargo test --locked -p podssh-cli --lib -- play::` (150 passed with QA10 batch A lib filters),
+  `man_page` 11, `man_json` 4, `io_error_lines` 6, clippy and rustfmt clean; by hand `podssh play --speed 1e-320`
+  exited 64 with one line and no backtrace.
+
+
+# T-1058: `podssh play` of an event at 1e300 seconds panics, where 1e400 is a bad line
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 2.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A recording with the event `[1e300,"o","x\n"]` ended 101 with a panic, "cannot convert float seconds to Duration";
+the time 1e400 (no finite number) was refused as "not an event", exit 1. The manual gives exit 1, one line, for a
+file that cannot be played.
+
+## Premise
+
+- Read, at `40a83e5`: `play` of `crates/podssh-cli/src/play.rs` refused a time below 0 or not finite (line 78), and
+  made each wait with `Duration::from_secs_f64` (line 87), which panics for a finite time past `Duration::MAX`.
+
+## Approach
+
+1. A time that `Duration::try_from_secs_f64` does not take is a bad line: `FILE:LINE: a time too large to wait for
+   (T s)`, exit 1, of an output event or another; T-1057's `deadline` keeps any sum of waits from a panic.
+2. The note of `play` and `docs/cli.md` say so; two cases join the table test of the times (T-984).
+
+## Decision
+
+- A bad line, exit 1, as a time below 0 is (T-984), not a wait saturated at `Duration::MAX`: no recording holds an
+  event 584 billion years in, so the file is bad, and the line says which. A time past what this host's clock holds,
+  but within a Duration, is T-1057's "a wait too long for any clock", also exit 1. Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib play::
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+Then by hand: the finding's `huge.cast` exits 1 with `huge.cast:2: a time too large to wait for (1e300 s)`.
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
+
+- Changed: `crates/podssh-cli/src/play.rs` (two cases of `a_time_below_0_is_refused_and_one_out_of_order_plays_at_once`),
+  `crates/podssh-cli/src/man/notes_play.rs`, `docs/cli.md`.
+- Result: `play::`, `man_page` 11, `man_json` 4, clippy and rustfmt clean; by hand `huge.cast` exited 1 with
+  `huge.cast:2: a time too large to wait for (1e300 s)`.
+
+
+# T-1062: `mcp --allow-command` limits `ssh_exec` alone, and the manual's risk does not say that `job_start` runs any command
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 10.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh mcp --allow-host tbox --allow-command 'ls *'` refused `ssh_exec` of `ls; echo x`, and ran `job_start` of
+`echo x`. The help of `--allow-command` says that it names what `ssh_exec` may run, which is exact; but THE RISK of
+the manual did not say that the other tools that run a command are open, so an operator who wants "an agent that
+may only run `ls`" leaves `job_start` open unless he also reads that `--read-only` removes it.
+
+## Premise
+
+- Read, at `40a83e5`: `settings.commands.check` is called by `ssh_plan` alone (`crates/podssh-cli/src/mcp/tools.rs`);
+  `job_start` (`crates/podssh-cli/src/mcp/verbs.rs`) and `session_start` (`crates/podssh-cli/src/mcp/sessions.rs`)
+  take any `command`, `session_send` any text, and `cp_put` writes any path of the host.
+- Read: `changes` withholds `job_start`, `job_stop`, `cp_put` and each `session_` tool under `--read-only`.
+
+## Approach
+
+1. THE RISK (`crates/podssh-cli/src/man/notes_mcp.rs`) says that a pattern limits `ssh_exec` alone, which tools it
+   leaves open, and that `--read-only` removes them; `docs/cli.md` the same.
+2. At the start, with patterns given, a line on stderr names each tool offered that they leave open
+   (`tools::unconfined`), as each gate of T-488 says what it opened.
+3. A table test of `unconfined`: a host, each gate, `--read-only`, no pattern, no host.
+
+## Decision
+
+- Say it, and do not make `--allow-command` gate `job_start` and `session_start`: the patterns are words of one
+  command for `ssh_exec`, and a session's `session_send` types text that no pattern can judge; holding half the
+  tools would read as holding all. `--read-only` is the one switch that removes them, and both the manual and the
+  line at the start now name it. Lost: nothing; the line is one more on stderr when patterns are given.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib mcp::
+cargo test -p podssh-cli --test mcp --test man_page --test man_json
+```
+
+Then by hand: `podssh mcp --allow-host h --allow-command 'ls *' < /dev/null` names `job_start` on stderr; with
+`--read-only` it does not.
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
+
+- Changed: `crates/podssh-cli/src/mcp/tools.rs`, `crates/podssh-cli/src/mcp/tools_tests.rs`,
+  `crates/podssh-cli/src/mcp/mod.rs`, `crates/podssh-cli/src/man/notes_mcp.rs`, `docs/cli.md`.
+- Result: `mcp::`, `tests/mcp.rs` 7, `man_page` 11, `man_json` 4, clippy and rustfmt clean; by hand `--allow-command`
+  alone named `job_start` and `--read-only` omitted it.
+
+
+# T-1063: The manual of `podssh status` does not name its `settings` field
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 11.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The line of `podssh status` has a key `settings`, the path of podssh's settings file, which the manual's list of
+fields (`podssh man status`) left out; `docs/cli.md` names it.
+
+## Premise
+
+- Read, at `40a83e5`: `run_status` writes `"settings": settings.path` (`crates/podssh-cli/src/status.rs:94`), the
+  file that `settings::locate` found, which exists, or null with none; the first note of `status`
+  (`crates/podssh-cli/src/man/notes.rs`) names each other key.
+
+## Approach
+
+1. The note names `settings` after `deployments`, in the order of the line: the path of the settings file that was
+   found, or null with none.
+2. A test of the binary pins the class: each key of the line is a word of `podssh man status`
+   (`each_key_of_the_line_is_named_in_the_manual`).
+
+## Decision
+
+- A test of each key against the page, not a row for `settings` alone: the next key that the code adds fails it.
+  Lost: nothing.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test status
+cargo test -p podssh-cli --test man_page --test man_json
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
+
+- Changed: `crates/podssh-cli/src/man/notes.rs`, `crates/podssh-cli/tests/status.rs`.
+- Result: `tests/status.rs` 12 passed (including `each_key_of_the_line_is_named_in_the_manual`), `man_page` 11,
+  `man_json` 4, clippy and rustfmt clean.

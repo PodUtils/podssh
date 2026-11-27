@@ -16,8 +16,10 @@ use crate::exitmap::sysexits::EX_IOERR;
 /// that the run would make, the actions of the copy as `cp -r --dry-run`
 /// says them, then `run cd DIR && COMMAND`. The paths that the excludes left
 /// out are counted on stderr, as the summary of a run counts them. The
-/// exit: 0, 255 when the far side could not be read, with no plan, or 74
-/// when the plan could not be written, as for each output (T-965).
+/// exit: 0, or 255 when the far side could not be read, with no plan. A
+/// write of the plan that fails is said by `output::deliver`, which
+/// `run_run` puts around the run: 74, or 0 for a reader that went away, as
+/// for each output (T-965, T-1059).
 pub(super) fn answer(plan: &Plan, parents: &[String], synced: &Synced, log: &Log, out: &mut dyn Write) -> i32 {
     if synced.failed.is_some() {
         // Each failure was said as it came; half a plan would read as all of it.
@@ -25,12 +27,12 @@ pub(super) fn answer(plan: &Plan, parents: &[String], synced: &Synced, log: &Log
         return EXIT_FAILURE;
     }
     let text = lines(plan, parents, &synced.plan);
+    if out.write_all(text.as_bytes()).and_then(|()| out.flush()).is_err() {
+        // Said once, by the output's check, with its code.
+        return 0;
+    }
     // The standard library takes a write to a closed stdout for done: the
     // descriptor is asked as well (T-983).
-    if let Err(e) = out.write_all(text.as_bytes()).and_then(|()| out.flush()) {
-        log.error(&format!("the plan could not be written to stdout: {}", podssh_ws::text::said(&e)));
-        return EX_IOERR;
-    }
     if stdout_closed() {
         log.error("the plan could not be written: stdout is closed");
         return EX_IOERR;
