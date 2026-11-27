@@ -304,7 +304,8 @@ async fn destination(resolved: &resolve::Resolved, plan: feel::Plan, size: u64, 
             return far;
         }
     };
-    let handles = match podssh_ssh::run::connect_hops(reached.stream, opts, log).await {
+    let opts = feel::options(resolved, &reached);
+    let handles = match podssh_ssh::run::connect_hops(reached.stream, &opts, log).await {
         Ok(handles) => handles,
         Err(e) => {
             far.failed = Some(podssh_ws::text::said(&e));

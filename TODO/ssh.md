@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:265` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:845`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:846`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -5148,17 +5148,38 @@ a slow link pays that much of the download.
    each). A key after the drain on that link still waits about three idle echoes, for the rate's
    burst: T-673.
 6. **The patch is 0004**: a draft of T-664 has a 0003 of its own, and the names never meet.
+7. **`podssh ping` takes its road's window cap, as `ssh`, `cp`, `pipe` and `each` do** (`feel::options`,
+   `crates/podssh-cli/src/ping/feel.rs`, called by `ping/mod.rs` and `ping/cold.rs`). `ping` passed
+   `&resolved.options` straight to `connect_hops`, where `window_cap` defaults to `WINDOW` (512 KiB): on `far`
+   (120 ms, 50 Mbit/s, 750 KB BDP), `target::of` asked for ~1,074 KiB and was clamped to 512 KiB; with `low = 3/4`
+   that caps sustained throughput at `384 KiB / 0.120 s = 3.125 MiB/s` (matching the measured 3.1 MiB/s and idle
+   120.5 ms echo). With `Road::Direct.cap()` (16 MiB), the window grows to ~1,074 KiB and fills >90% of `far`
+   (~5.7 MiB/s, matching OpenSSH's 5.7). Lost: changing `pace::target` or `SAWTOOTH` (the pacing math already
+   reaches 5.73 MiB/s once the road's cap is passed).
+8. **Outer frame coalescing on `role` and `node` (`slow` link): `serve/forward.rs` capped to 16 KiB here, and
+   `pod-e2e` / `pod-session` / `pod-relay` asked of `PodUtils/podcrates` (Rule Q3).** `sshd` obeys `pace::PACKET`
+   (8 KiB, 65.5 ms at 1 Mbit/s), but on `node` the local loopback feeds `pod-e2e` (`carry.rs:106`, `MAX_DATA = 65,518`
+   bytes per atomic Noise AEAD frame, 524 ms at 1 Mbit/s), `pod-session` (`pump.rs:59`, `CHUNK = 32 KiB` per atomic
+   `DATA` record, 262 ms), and `pod-relay` (`legs.rs:46`, `CHUNK_BYTES = 65,504` per WebSocket frame, 524 ms), while
+   on `role` `crates/podssh-relay/src/serve/forward.rs:320` read 64 KiB per WebSocket frame. Coalescing multiple
+   8 KiB SSH messages into one 32–64 KiB atomic outer frame both blocks a key's echo behind up to 524 ms of
+   undeliverable ciphertext and inflates `pace`'s `min_rtt` (`sample.behind` sees only the first 8 KiB message of a
+   batch arriving at one instant), inflating `target` from 27.6 KB (`direct`) to 70.5 KB (`node`). `forward.rs:320`
+   now reads 16 KiB (one TLS 1.3 record); the three crates in `PodUtils/podcrates` (`v0.86.0`) stay there per Rule Q3
+   and need a COORD ask to cap outbound read chunks to 8 KiB while keeping 64 KiB decode limits for wire compatibility.
 
 ## Prove
 
 ```sh
 cargo test -p podssh-ssh --lib pace::sim_tests
 cargo test -p podssh-ssh --lib pace
+cargo test -p podssh-cli --lib ping::feel
 cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib client::window_target
 ```
 
 On the slow path, the download at 90% of today's at least, the echo's p50 at most twice the idle
-echo; T-660's matrix on the slow link, before and after.
+echo; on `far` (`Road::Direct.cap()`), the download while typing at 90% of the link at least (~5.7 MiB/s);
+T-660's matrix on `far` and `slow`, before and after.
 
 ## Correction
 
@@ -5206,6 +5227,23 @@ far 120.5 ms by `--direct` (idle 120.9), OpenSSH 339.6; cellular 84.3 (idle 61.1
 102.2), OpenSSH 2,226.0. The download while typing: far 3.1 MiB/s by `--direct`, OpenSSH 5.7; cellular 1.1 each; slow
 0.1 each. The gap that stays is the far link's download while typing; the node's road on the slow link was not in
 this run.
+
+Partial, 2026-11-27 (merged from `t670-pace` onto `main`, verified on Antigravity Linux x86_64, Rust 1.99.0):
+
+- **Far link typing download (3.1 -> ~5.7 MiB/s):** wired `feel::options` (`crate::ssh::window::on` from
+  `crate::ssh::window::road`) into `crates/podssh-cli/src/ping/mod.rs` and `ping/cold.rs` (Decision 7), with
+  table-driven unit tests in `crates/podssh-cli/src/ping/feel.rs` (`options_give_each_road_its_window_cap`) and
+  `crates/podssh-ssh/src/pace/sim_tests.rs` (`on_every_lab_shape_a_download_beside_typing_keeps_its_rate_and_its_echo`).
+- **Role / node slow-link echo latency:** capped `crates/podssh-relay/src/serve/forward.rs:320` downlink reads to
+  16 KiB (one TLS record); the `node` road's 64 KiB / 32 KiB atomic outer framing lives in `PodUtils/podcrates`
+  (`pod-e2e` `carry.rs:106`, `pod-session` `pump.rs:59`, `pod-relay` `legs.rs:46` / `route.rs:210`, Decision 8) and
+  awaits a COORD issue `(to podcrates)` and re-measurement on `feel-netem.yml` and `feel-matrix.py --roads
+  openssh,direct,role,node --shapes far,cellular,wifi,slow`.
+- Checks: `cargo test --locked -p podssh-ssh --lib pace` (55 passed), `cargo test --locked -p podssh-cli --lib
+  ping::feel` (4 passed), `cargo test --locked -p podssh-relay --features serve,plain-ws --test relay_serve_backpressure
+  --test relay_serve_h2 --test relay_serve_reverse` (3, 9 and 6 passed), `cargo test --locked -p podssh-cli --test ping`
+  (17 passed); `cargo clippy --locked -p podssh-ssh -p podssh-relay -p podssh-cli --all-targets -- -D warnings -A
+  clippy::collapsible_if` and `cargo fmt` clean.
 
 # T-672: TLS tickets kept across runs, once a release of rustls lets a client write one
 

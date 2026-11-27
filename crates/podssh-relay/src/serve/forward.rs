@@ -317,7 +317,7 @@ pub(super) async fn pump<S, R, W>(
                     return End::Close(1009, "session byte cap".into());
                 }
             }
-            let mut buf = vec![0u8; 64 * 1024];
+            let mut buf = vec![0u8; 16 * 1024]; // one TLS record (T-670): 64 KiB waits 524 ms at 1 Mbit/s
             loop {
                 let n = match from_target.read(&mut buf).await {
                     Ok(0) => return End::Close(1000, "target closed".into()),

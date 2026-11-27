@@ -55,10 +55,22 @@ pub async fn reach(resolved: &Resolved, log: &Arc<Log>) -> Result<Reached, NotRe
     crate::ssh::node_roads::reach_any(resolved, log).await
 }
 
+/// The SSH options for the road that `reached` opened: its window cap from
+/// `crate::ssh::window`, as `podssh ssh`, `cp`, `pipe` and `each` set it, so
+/// `ping` measures each road with that road's own cap instead of the 512 KiB
+/// default (T-670).
+pub fn options(resolved: &Resolved, reached: &Reached) -> podssh_ssh::Options {
+    crate::ssh::window::on(&resolved.options, crate::ssh::window::road(&resolved.transport, reached))
+}
+
 #[cfg(test)]
 mod tests {
+    use podssh_ssh::pace::Road;
+    use podssh_ssh::RelayStatus;
+
     use super::*;
     use crate::ssh::args::SshArgs;
+    use crate::ssh::resolve::{self, Env};
 
     fn args(destination: Option<&str>, flags: &[(&str, &str)]) -> PingArgs {
         let ssh = SshArgs { destination: destination.map(String::from), ..SshArgs::default() };
@@ -103,5 +115,32 @@ mod tests {
         }
         let plan = Plan::read(&args(Some("host"), &[("--under-load", ""), ("--connect-runs", "2")])).unwrap();
         assert_eq!(plan, Plan { under_load: true, connect_runs: Some(2) });
+    }
+
+    #[test]
+    fn options_give_each_road_its_window_cap() {
+        let env = Env { user: Some("user".into()), ..Default::default() };
+        let cases = [
+            ("direct", "example.org", true, false, false, Road::Direct),
+            ("role", "example.org", false, false, true, Road::Role),
+            ("relay", "example.org", false, true, false, Road::Relay),
+            ("relay-direct-fallback", "example.org", false, false, false, Road::Direct),
+            ("node", "node://lab", false, false, true, Road::Pair),
+            ("cloudflare", "cf://box.example", false, false, true, Road::Other),
+        ];
+        for (name, dest, direct, has_relay, has_layer, want) in cases {
+            let ssh = SshArgs { destination: Some(dest.into()), direct, ..SshArgs::default() };
+            let resolved = resolve::resolve(&ssh, &env).unwrap_or_else(|e| panic!("{name}: {e}"));
+            assert_eq!(resolved.options.window_cap, Road::Other.cap(), "{name}: unresolved default is 512 KiB");
+            let (stream, _peer) = tokio::io::duplex(64);
+            let (_tx, rx) = tokio::sync::oneshot::channel();
+            let reached = Reached {
+                stream: Box::new(stream),
+                relay: has_relay.then(RelayStatus::default),
+                direct_proxy: None,
+                layer: has_layer.then_some(rx),
+            };
+            assert_eq!(options(&resolved, &reached).window_cap, want.cap(), "{name}: {want:?}");
+        }
     }
 }

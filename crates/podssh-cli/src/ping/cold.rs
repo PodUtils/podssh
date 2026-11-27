@@ -54,7 +54,8 @@ pub async fn runs(resolved: &Resolved, runs: usize, log: &Arc<Log>) -> Result<Co
 async fn one(resolved: &Resolved, log: &Arc<Log>) -> Result<Duration, (i32, String)> {
     let started = Instant::now();
     let reached = super::feel::reach(resolved, log).await.map_err(|not| super::unreached(&not))?;
-    let handles = match podssh_ssh::run::connect_hops(reached.stream, &resolved.options, log).await {
+    let opts = super::feel::options(resolved, &reached);
+    let handles = match podssh_ssh::run::connect_hops(reached.stream, &opts, log).await {
         Ok(handles) => handles,
         Err(e) => return Err((EXIT_FAILURE, podssh_ws::text::said(&e))),
     };

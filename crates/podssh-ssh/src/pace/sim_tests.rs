@@ -103,6 +103,8 @@ struct Run {
     loss: Option<Loss>,
     /// The step that the last message down arrives at: none passes it.
     last: u64,
+    typing_bytes: u64,
+    typing_ms: u64,
 }
 
 impl Run {
@@ -124,6 +126,8 @@ impl Run {
             packet: if paced { u64::from(super::PACKET) } else { TODAY_PACKET },
             loss: None,
             last: 0,
+            typing_bytes: 0,
+            typing_ms: 0,
         }
     }
 
@@ -159,15 +163,20 @@ impl Run {
     fn under_load(&mut self) {
         let before = self.t0.checked_sub(Duration::from_millis(200)).expect("an instant 200 ms before");
         self.keys.key(before);
-        let mut typed = 0;
+        let (mut typed, mut start_bytes) = (0, 0);
         for now in 0..20_000 {
             if now >= 3_000 && (now - 3_000_u64).is_multiple_of(150) && typed < 40 {
+                if typed == 0 {
+                    start_bytes = self.delivered;
+                }
                 self.keys.key(self.at(now));
                 self.up.push_back((now + self.shape.up, Up::Key(now)));
                 typed += 1;
             }
             self.step(now);
             if self.echoes.len() == 40 {
+                self.typing_bytes = self.delivered - start_bytes;
+                self.typing_ms = now - 3_000;
                 return;
             }
         }
@@ -435,4 +444,49 @@ fn where_nobody_types_a_window_grows_to_its_roads_cap() {
     let at = direct.t0 + Duration::from_millis(20_000);
     let pace = direct.pace.as_mut().expect("paced");
     assert!(pace.target(BULK, at) <= super::Road::Direct.cap());
+}
+
+/// T-670: osewa's four lab shapes under `ping --under-load`, on the direct
+/// road (`Road::Direct.cap()`, 16 MiB). On `far` (50 Mbit/s, 120 ms), the
+/// BDP is 750 KB, so the road's cap lets the window grow to ~1 MiB and hold
+/// over 90% of the link while typing (~5.7 MiB/s), where the 512 KiB default
+/// cap held it to ~52% (~3.1 MiB/s); `cellular`, `wifi` and `slow` keep
+/// their echo bounds and their rates.
+#[test]
+fn on_every_lab_shape_a_download_beside_typing_keeps_its_rate_and_its_echo() {
+    struct Case {
+        name: &'static str,
+        shape: Shape,
+        loss: f64,
+        min_pct: u64,
+        p50_x: u64,
+        after_x: u64,
+    }
+    static KEYS: [Keys; 4] = [Keys::new(), Keys::new(), Keys::new(), Keys::new()];
+    static CAPPED: Keys = Keys::new();
+    let direct = super::Road::Direct.cap();
+    let s = |rate, way| Shape { rate, down: way, up: way };
+    let cases = [
+        Case { name: "far", shape: s(6_250, 60), loss: 0.0, min_pct: 90, p50_x: 2, after_x: 2 },
+        Case { name: "cellular", shape: s(1_250, 30), loss: 0.0, min_pct: 90, p50_x: 2, after_x: 2 },
+        Case { name: "wifi", shape: s(2_500, 10), loss: 0.01, min_pct: 70, p50_x: 3, after_x: 3 },
+        Case { name: "slow", shape: s(125, 50), loss: 0.01, min_pct: 90, p50_x: 8, after_x: 2 },
+    ];
+    for (keys, c) in KEYS.iter().zip(cases) {
+        let mut run = Run::capped(c.shape, direct, keys);
+        if c.loss > 0.0 {
+            run = run.lossy(c.loss, 670);
+        }
+        run.under_load();
+        assert_eq!(run.echoes.len(), 40, "{}: each key came back", c.name);
+        let (idle, after, link) = (c.shape.idle_echo(), p50(&run.echoes[20..]), c.shape.rate * run.typing_ms);
+        assert!(run.typing_bytes * 100 >= link * c.min_pct, "{}: {} of {link} bytes", c.name, run.typing_bytes);
+        assert!(run.echo_p50() <= c.p50_x * idle, "{}: p50 {} ms, idle {idle} ms", c.name, run.echo_p50());
+        assert!(after <= c.after_x * idle, "{}: last 20 p50 {after} ms, idle {idle} ms", c.name);
+    }
+    let far = Shape { rate: 6_250, down: 60, up: 60 };
+    let mut capped = Run::capped(far, super::Road::Other.cap(), &CAPPED);
+    capped.under_load();
+    let link = far.rate * capped.typing_ms;
+    assert!(capped.typing_bytes * 100 < link * 60, "512 KiB cap: {} of {link}", capped.typing_bytes);
 }
