@@ -145,7 +145,7 @@ async fn an_owner_with_frames_answers_the_program_and_a_seat_of_bytes_reads_on()
     // pty, as its terminal would; the seat of bytes, russh's client here,
     // answers nothing. Without the answer `dd` would wait for ever.
     let ask = "stty raw -echo min 0 time 50; printf '\\033[6n'; dd bs=64 count=1 2>/dev/null | od -An -tx1 | \
-               head -n 1 | sed 's/^/ANSWER/'; stty sane\r";
+               head -n 1 | tr -s ' ' | sed 's/^ */ANSWER /'; stty sane\r";
     owner.send(ask.as_bytes()).await;
     let screen = drawn.until(&owner, "ANSWER 1b 5b").await;
     assert!(screen.contains("ANSWER 1b 5b"), "the answer starts with CSI: {screen:?}");
