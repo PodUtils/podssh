@@ -234,7 +234,12 @@ async fn a_planted_signature_is_refused_before_the_binary_comes() {
     planted[0] = if planted[0] == b'0' { b'1' } else { b'0' };
     stand.server.body(&format!("/{REPO}/releases/download/{TAG}/SHA256SUMS"), planted);
     let why = refused(run(&stand.options("1.0.0-beta.2"), false, Some(TAG)).await.0);
-    assert!(why.contains("the bundle signs another file") && why.contains("download the release by hand"), "{why}");
+    assert!(
+        why.contains("the bundle signs another file")
+            && why.contains("nothing was replaced")
+            && !why.contains("Sigstore changed its roots"),
+        "{why}"
+    );
     assert!(!stand.binary_asked(), "the binary came before its check");
     stand.assert_untouched();
 }
@@ -269,7 +274,12 @@ async fn a_leaf_of_another_tag_issuer_time_or_use_is_refused() {
     let bundle = stand.sigstore.other_fulcio().bundle(&sums, &Leaf::of_tag(TAG));
     stand.server.body(&format!("/{REPO}/releases/download/{TAG}/SHA256SUMS.sigstore.json"), bundle);
     let why = refused(run(&stand.options("1.0.0-beta.2"), false, Some(TAG)).await.0);
-    assert!(why.contains("'s signature by") && why.contains("test-sigstore-intermediate"), "{why}");
+    assert!(
+        why.contains("'s signature by")
+            && why.contains("test-sigstore-intermediate")
+            && why.contains("download the release by hand"),
+        "{why}"
+    );
     stand.assert_untouched();
     // Another Sigstore's bundle, by the roots of this one.
     let other = Sigstore::new();

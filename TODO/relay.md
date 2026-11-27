@@ -6610,7 +6610,7 @@ Read at `60d5426` (the drafting agent, 2026-11-17), and at the cited lines, whic
   lost": `pod-relay` classifies a Close by its exact reason
   (`PodUtils/podcrates:crates/pod-relay/src/reverse/closes.rs:157`), and a reason of no row is `Unknown`, which
   neither reconnects nor resumes; podssh's own operator already reads the row as "the node's link to the relay
-  ended" (`crates/podssh-cli/src/pairs.rs:263`). The cause goes to the role's line instead.
+  ended" (`crates/podssh-cli/src/pairs.rs:225`). The cause goes to the role's line instead.
 - A silent node is let go after 30 s to 40 s, not 60 s to 80 s: under `pod-relay`'s `Settings::lost_hold` of 60 s,
   so that the node finds its name free before it gives the route up. A live node pings the role each 10 s
   (`pod_ws::LIVENESS_EVERY`) and answers each Ping, so it is heard well within that. Lost: the client's watch

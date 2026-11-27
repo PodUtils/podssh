@@ -4105,7 +4105,7 @@ peer certificate: ...": rustls's words, which tell a user nothing of what to do,
 
 ## Approach
 
-1. `podssh_ws::text::unresolved` (`crates/podssh-ws/src/text.rs:106`): a line with "DNS over HTTPS: " becomes "could
+1. `podssh_ws::text::unresolved` (`crates/podssh-ws/src/text.rs:89`): a line with "DNS over HTTPS: " becomes "could
    not resolve NAME: the system's resolver said: WHY; DNS over HTTPS could not be reached" (or "found no address"
    for an answer with none), with no "(os error N)"; the words of DNS over HTTPS are the detail.
 2. `ssh` says the plain line, and the detail at `-v` (`said` of `crates/podssh-cli/src/ssh/tries.rs:117`); `pipe`

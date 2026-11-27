@@ -117,7 +117,7 @@ env -u SSH_AUTH_SOCK -u https_proxy -u HTTPS_PROXY -u all_proxy -u ALL_PROXY -u 
     -o StrictHostKeyChecking=accept-new -o IdentityAgent=none -o IdentitiesOnly=yes $K -o BatchMode=yes \
     "$T" true >"$FK/out" 2>"$FK/err" </dev/null
 rc=$?
-[ "$rc" != 0 ] && grep -q UnknownIssuer "$FK/err" && grep -q -- '--ca-file FILE or SSL_CERT_FILE' "$FK/err" \
+[ "$rc" != 0 ] && grep -q 'a certificate that no trusted CA signed' "$FK/err" && grep -q -- '--ca-file FILE or SSL_CERT_FILE' "$FK/err" \
     && ok faults.issuer "a relay whose issuer podssh does not trust ends with the hint that names --ca-file" \
     || bad faults.issuer "an untrusted issuer: exit $rc, without the hint" "$FK/err"
 
@@ -126,9 +126,9 @@ rc=$?
 if [ -s "$FK/relay-expired.pem" ]; then
     r "relay-expired.test:$(port expired)" "$T" true >"$FK/out" 2>"$FK/err" </dev/null
     rc=$?
-    # rustls's two words for it: "Expired" of a leaf that ends before it
-    # begins, and "certificate expired: ..." with the times of one that ended.
-    [ "$rc" != 0 ] && grep -qE "invalid peer certificate: (Expired|certificate expired)" "$FK/err" \
+    # pod-tls's two forms for it: "an expired certificate" for Expired, and
+    # "certificate expired: ..." with the times of one that ended.
+    [ "$rc" != 0 ] && grep -qE "invalid peer certificate: (an expired certificate|certificate expired)" "$FK/err" \
         && grep -q "this host's clock, which reads" "$FK/err" \
         && ok faults.clock "a relay whose certificate has expired ends with this host's clock and its reading" \
         || bad faults.clock "an expired certificate: exit $rc, without the clock" "$FK/err"

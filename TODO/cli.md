@@ -4544,7 +4544,7 @@ line says the release was signed under the repository's old name, with its page 
 
 ## Blocker
 
-The owner: whether this build accepts the release workflow under the repository's former name for the tags through `v1.1.0-beta.3` (the question of `TODO/PROGRESS.md`, against T-683's ruling of one signer); and podcrates: pod-release's list of former signers (COORD-153, #363).
+The owner: whether this build accepts the release workflow under the repository's former name for the tags through `v1.1.0-beta.3` (the question of `TODO/PROGRESS.md`, against T-683's ruling of one signer). podcrates delivered `Source::former` and chain-only Sigstore roots hints in `v0.86.0` (PodUtils/podcrates@T-1411, COORD-153 #363), so only the owner's ruling remains.
 
 ## Correction
 
@@ -4555,6 +4555,8 @@ Drafted 2026-11-25 by a drafting agent.
 - Waits: the operator's answer to the question of the Approach, and pod-release's list of former signers.
 
 Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. The true line for a release signed under the former name is in; accepting that signer waits for the owner's ruling (`TODO/PROGRESS.md`, "Questions for the operator") and pod-release's list of former signers (COORD-153, #363).
+
+2026-11-27: podcrates `v0.86.0` (PodUtils/podcrates@T-1411) delivered `Source::former` and limited the Sigstore roots hint to `Unverified::Chain`. `moved` (`crates/podssh-cli/src/update/mod.rs:273`) still finds `"; nothing was replaced"`, `Source::former` stays empty until the owner rules, and `crates/podssh-cli/tests/update.rs` (18 passed) verifies both `Unverified::Bundle` (no roots hint) and `Unverified::Chain` (`"download the release by hand"`).
 
 
 # T-968: `update` takes a stray word
@@ -4902,7 +4904,7 @@ Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p pod
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -4910,7 +4912,7 @@ Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p pod
 
 ## Premise
 
-- Read: `crates/podssh-cli/src/pager.rs:13` hands the text to `pod_manual::pager::show_with` (PodUtils/podcrates:crates/pod-manual/src/pager.rs
+- Read: `crates/podssh-cli/src/pager.rs:14` hands the text to `pod_manual::pager::show_with` (PodUtils/podcrates:crates/pod-manual/src/pager.rs
   at `v0.85.0`): its `run_program` returns `Ok` once the program started, whatever
   its exit, and `show_with` falls back to its own pager only when the program did not start.
 
@@ -4939,15 +4941,20 @@ cargo test -p podssh-cli --lib man::
 Once the crate has it: with `PAGER=false` and a terminal (`scripts/interop-pty.py`), the manual is written and the
 line names the pager; with a pager that reads it all and ends 0, nothing is said.
 
-## Blocker
-
-podcrates: pod-manual's `run_program` returns the pager's status and `show_with` prints the text with no pager after a line when the pager fails (COORD-153, #363).
-
 ## Correction
 
 Drafted 2026-11-25 by a drafting agent; no code: the change is pod-manual's (the ask above), asked as COORD-153 (#363).
 
-Blocked on pod-manual's answer to COORD-153 (#363); podssh's part is the take of that tag and a test of `PAGER=false`.
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): podcrates `v0.86.0` (PodUtils/podcrates@T-1412, COORD-153 #363)
+updated `pod_manual::pager::run_program` and `show_with` so a pager program that fails before reading all text
+(`PAGER=false`) writes its error line to stderr (`The pager ... failed (exit N). The text follows with no pager.`) and
+prints the text unpaged. `crates/podssh-cli/src/pager.rs` delegates `show` to `pod_manual::pager::show_with` and
+re-exports `Paged` and `status_words`; `crates/podssh-cli/src/man/mod.rs` adds
+`a_pager_that_fails_says_so_and_writes_the_manual_without_it` covering `PAGER=false` and a pager that reads all input
+and exits 0 (`cargo test --locked -p podssh-cli --lib man::`: 120 passed across the `v0.86.0` CLI lib suite; clippy and
+rustfmt clean).
 
 # T-979: `ssh -f`: a command's first output reaches the caller's stdout, not the log
 
@@ -5794,7 +5801,7 @@ same words refuses the pair (78).
   own service that is installed (`own` was `Target::User && !print`), and checked no TARGET: `service_args`
   (`crates/podssh-cli/src/node_install/text.rs:33`) copies the words as they are.
 - The node's own run refuses a missing TARGET with 64 (`crates/podssh-cli/src/node.rs:258`), and a pair not stored
-  with 78 (`crates/podssh-cli/src/pairs.rs:46`).
+  with 78 (`crates/podssh-cli/src/pairs.rs:40`).
 
 ## Approach
 
@@ -5961,7 +5968,7 @@ through `pod-relay`), and "not attempted: PODSSH_OFFLINE is set" (`node`, `opera
 ## Premise
 
 - Read, at `9574133`: the second came from `podssh_relay::open::words` (`crates/podssh-relay/src/open.rs:66`), the
-  third from `pairs::online` (`crates/podssh-cli/src/pairs.rs:168`) and from each check of `doctor`, and the first was
+  third from `pairs::online` (`crates/podssh-cli/src/pairs.rs:130`) and from each check of `doctor`, and the first was
   written again at each of some thirty places of `podssh-cli`.
 
 ## Approach
@@ -6263,7 +6270,7 @@ missing; `share` said its count the same way.
 
 ## Approach
 
-1. `pair_file_said` (`crates/podssh-cli/src/pairs.rs:70`) names the file once: the reader's leading path is taken
+1. `pair_file_said` (`crates/podssh-cli/src/pairs.rs:64`) names the file once: the reader's leading path is taken
    off, and "(os error N)" too.
 2. `crate::refuse::word_count` (`crates/podssh-cli/src/refuse.rs:273`), one wording for `net` and `share`: "needs
    NAME and KEY" by the names of the form that are missing, or "1 word too many".

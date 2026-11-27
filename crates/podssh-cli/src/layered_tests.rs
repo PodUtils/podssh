@@ -75,6 +75,19 @@ fn a_dialect_that_the_relay_does_not_read_is_final_for_a_new_leg() {
     assert!(is_final(&ConnectError::Refused { status: 426, body: why.into() }));
 }
 
+/// T-905: a carrier's stream that ended for good is final for a new leg,
+/// exits 69, and says its own words with no relay and no HTTP.
+#[test]
+fn a_carrier_stream_that_ended_is_final_with_no_relay_words() {
+    let words = "the carrier dns:client.conf ended, and a stream that this end did not start has one life";
+    let ended = ConnectError::Ended(words.into());
+    assert!(is_final(&ended));
+    let refusal = crate::carrier::refusal_of(&ended);
+    assert_eq!(refusal.code, 69);
+    assert_eq!(refusal.message, words);
+    assert!(!refusal.message.contains("the relay") && !refusal.message.contains("HTTP 410"));
+}
+
 /// A route that the key may not use is the node's refusal of the key: 77,
 /// as its allowlist's (T-825), never a fault of the channel (70).
 #[test]

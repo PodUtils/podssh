@@ -259,7 +259,7 @@ impl Renewer {
             Ok(Renewed::Until(until)) if until > expires_ms => Tried::Took(until),
             Ok(Renewed::Until(_)) => Tried::Again("the relay kept the same end".into()),
             Ok(Renewed::NotServed) => Tried::NotServed,
-            Err(PairError::Forbidden) => Tried::Refused,
+            Err(PairError::Forbidden { .. }) => Tried::Refused,
             Err(e) => Tried::Again(podssh_ws::text::said(&e)),
         };
         (pair.name.clone(), tried)

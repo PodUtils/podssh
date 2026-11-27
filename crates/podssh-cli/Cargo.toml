@@ -85,18 +85,18 @@ zerotier-test = ["zerotier", "podssh-zerotier/stand-in"]
 podssh-probe = { path = "../podssh-probe" }
 podssh-ts = { path = "../podssh-ts", optional = true }
 podssh-warp = { path = "../podssh-warp", optional = true }
-pod-tor = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", optional = true }
+pod-tor = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", optional = true }
 podssh-zerotier = { path = "../podssh-zerotier", optional = true }
 podssh-gsr = { path = "../podssh-gsr", optional = true }
 # The iroh road (T-162): an endpoint as podssh sets up its other roads,
 # with podssh's TLS context, resolver, proxy and way out, which this crate
 # gives it (`src/iroh_way.rs`). It reads no variable: podssh reads its
 # PODSSH_IROH_* and gives the values.
-pod-iroh = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", optional = true }
+pod-iroh = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", optional = true }
 # The way out of each request of the iroh road (`/ping`, pkarr, the question
 # of the version): the type of `podssh_ws::client::way`, the pod-ws that
 # podssh-ws builds.
-pod-ws = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", optional = true }
+pod-ws = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", optional = true }
 # The types of the iroh road (a relay's URL, an endpoint, a key); the
 # version that pod-iroh builds, and its range (T-359). No TLS feature:
 # pod-iroh takes `tls-ring`, and the endpoint takes podssh's provider.
@@ -108,34 +108,34 @@ podssh-ws = { path = "../podssh-ws", features = ["quic"] }
 # The services of other parties: the facts of doctor's checks, STUN, the
 # DERP map, the zone of OpenTunnel, the ACME directory, the relay of
 # `podssh ts`.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The TXT query with an EDNS0 size and the reader of its answer, for doctor's
 # lines of the DNS road (`doctor --dns-zone`, T-875): `pod_dns::txt`, the
 # crate that podssh-ws builds already; no feature of its own.
-pod-dns = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-dns = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The DNS road (`--carrier dns:FILE`, T-877): pod-link's DNS carrier (its
 # feature `dns`: base32 names up, TXT answers down, the ARQ and TLS 1.3 with
 # pinned keys), the crate that podssh-relay's `bucket` builds already; and
 # pod-tls for the set of client keys that a node of the road takes
 # (`peer::Keys`), the crate that podssh-ws builds already. No C.
-pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["dns"] }
-pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["dns"] }
+pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The ACME client of `relay serve --acme` (src/acme/): pod-acme of
 # PodUtils/podcrates (T-034 there); pod-core for the type of its lines.
-pod-acme = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-acme = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The services of `--install` and `--print-unit` (src/node_install/, T-820):
 # pod-unit's quoting of each syntax, the watchdog of the crontab, the UTF-16
 # of a task and the values of the hardening; std alone.
-pod-unit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-unit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The model of the help and the manual that each command line of PodUtils
 # shares, and its checks of drift (T-790): podssh's manual fills it
 # (src/man/pod_model.rs). Pure Rust; libc for its pager alone.
-pod-manual = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-manual = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # `podssh update` (T-850, T-880 of podcrates): the release's signature, its
 # files, the replace of the running binary and the way back; `fetch` for the
 # steps over pod-proxy's client with podssh's way out.
-pod-release = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["fetch"] }
+pod-release = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["fetch"] }
 # The leaf of a certificate that `podssh status` reads: no C, as its feature
 # `verify` (ring) is off.
 x509-parser = { version = "0.18", default-features = false }
@@ -176,7 +176,7 @@ rustls = { workspace = true }
 podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http", "localtunnel", "hostc", "bore", "smee", "filehost", "bucket"] }
 # The static cover site of `relay serve --cover` (#225, T-764): the tree,
 # its name routing and its channels, the same crate that the role serves.
-pod-cover = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-cover = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The native SSH client. It needs a C compiler (russh with aws-lc-rs); the
 # operator accepted that for the binary on 2026-10-08.
 podssh-ssh = { path = "../podssh-ssh" }
@@ -210,7 +210,7 @@ zeroize = { workspace = true }
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 # `podssh session` (T-186): where a kept stream of output may start, and its
 # ring (the grammar of T-221), and when the output has stopped.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # `podssh session capture`: the screen that a terminal shows after the
 # session's output. The model of the terminal oracle (T-200), pure Rust over
 # vte, with no build script that compiles C; the lock has it already.
@@ -264,7 +264,7 @@ windows-sys = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
-pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["screen"] }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["screen"] }
 # `test-util` gives the tests a paused clock: the limit of a stuck write is
 # 60 s (tests/direct_write_limit.rs).
 tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
@@ -284,12 +284,12 @@ p256 = { workspace = true, features = ["getrandom"] }
 tokio-rustls = { workspace = true }
 # The stand-in DERP server of `tests/derp_road.rs` (T-379): pod-derp's own
 # (its feature `standin`), which opens the client's info with NaCl's box.
-pod-derp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["standin"] }
+pod-derp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["standin"] }
 # The stand-in of the S3 API of `tests/carrier_s3.rs` (T-725): pod-link's
 # own (its feature `s3-standin`), which checks each request's SigV4; the
 # crate that podssh-relay's `bucket` builds already. And its DNS responder
 # (feature `dns`), which `tests/doctor_dns.rs` asks (T-875).
-pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["s3-standin", "dns"] }
+pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["s3-standin", "dns"] }
 
 # The pseudo console of `tests/console.rs` (T-132): the version above, with
 # the console's functions, which podssh-ssh builds too; and the job objects of

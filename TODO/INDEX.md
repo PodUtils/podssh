@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**1003 entries: 3 open, 33 partial, 16 blocked, 951 done.**
+**1003 entries: 3 open, 33 partial, 14 blocked, 953 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 106 | 115 |
 | P2 | 0 | 20 | 4 | 351 | 375 |
-| P3 | 3 | 7 | 9 | 493 | 512 |
-| **All** | 3 | 33 | 16 | 951 | 1003 |
+| P3 | 3 | 7 | 7 | 495 | 512 |
+| **All** | 3 | 33 | 14 | 953 | 1003 |
 
 ## Entries
 
@@ -913,7 +913,7 @@ repository and CI).
 | [T-902](serve.md) | P3 | M | backlog | feature | done | The gateway's routes in the net's signed policy |
 | [T-903](serve.md) | P3 | S | backlog | chore | done | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |
-| [T-905](robustness.md) | P3 | S | backlog | defect | blocked | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |
+| [T-905](robustness.md) | P3 | S | backlog | defect | done | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |
 | [T-906](mesh.md) | P2 | S | backlog | defect | done | A private key pasted as `key-file` of `--carrier dns:FILE` becomes the name of a new key file |
 | [T-907](mesh.md) | P2 | S | backlog | defect | done | A `--carrier dns:FILE` that others can change is read, though it lists the node's allowlist |
 | [T-908](mesh.md) | P2 | S | backlog | defect | done | A node of the DNS road says that it serves before its listener is bound, and its failed bind is undocumented |
@@ -982,7 +982,7 @@ repository and CI).
 | [T-972](cli.md) | P3 | S | backlog | defect | done | `doctor`'s flags: `--tier` passes others over, `--h2-shape` names the variable, a bad `--hop` runs |
 | [T-973](cli.md) | P3 | S | backlog | defect | done | `config import`'s formats: the help names one, and MobaXterm's reader takes any file |
 | [T-974](cli.md) | P3 | S | backlog | defect | done | A library's words in a line of `keygen`, `agent` and `status` |
-| [T-975](cli.md) | P3 | S | backlog | defect | blocked | A pager that fails leaves `podssh man` with no output and exit 0 |
+| [T-975](cli.md) | P3 | S | backlog | defect | done | A pager that fails leaves `podssh man` with no output and exit 0 |
 | [T-976](multi.md) | P2 | S | backlog | defect | done | `podssh each -p PORT` takes the place of a port that the host names |
 | [T-977](multi.md) | P2 | S | backlog | defect | done | `each` and `run` do their work, then cannot write `--result-file`, and exit 0 |
 | [T-978](multi.md) | P2 | S | backlog | defect | done | `job stop` says "it did not run" of a job that ran to its end |

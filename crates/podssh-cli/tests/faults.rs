@@ -374,7 +374,9 @@ fn a_relay_whose_issuer_podssh_does_not_trust_ends_with_what_to_do() {
     let Some(cell) = cell(&session, "normal") else { return };
     let cell = untrusted(cell);
     let ran = ssh(&session, &cell, &[], "true", None);
-    let says = |err: &str| err.contains("UnknownIssuer") && err.contains("--ca-file FILE or SSL_CERT_FILE");
+    let says = |err: &str| {
+        err.contains("a certificate that no trusted CA signed") && err.contains("--ca-file FILE or SSL_CERT_FILE")
+    };
     assert!(ran.code != 0 && says(&ran.err), "ssh: {}: {}", ran.code, ran.err);
     // podssh proxy, through the same relay arguments.
     let relay: Vec<String> = cell.args.windows(2).filter(|w| w[0].starts_with("--relay-")).flatten().cloned().collect();

@@ -204,9 +204,11 @@ async fn a_stream_that_the_client_was_given_has_one_life() {
         }
         tokio::time::sleep(Duration::from_millis(50)).await;
     };
-    // Final, as a new leg would meet it again.
-    assert!(matches!(&refused, ConnectError::Refused { status: 410, .. }), "{refused:?}");
-    assert!(refused.to_string().contains("a pipe of the test"), "{refused}");
+    // Final, as a new leg would meet it again, with no relay and no HTTP (T-905).
+    assert!(matches!(&refused, ConnectError::Ended(_)), "{refused:?}");
+    let said = refused.to_string();
+    assert!(said.contains("a pipe of the test"), "{said}");
+    assert!(!said.contains("the relay") && !said.contains("HTTP 410"), "{said}");
 }
 
 /// The role says whether its node is joined, so that a client of a stream
@@ -250,7 +252,7 @@ async fn a_node_that_goes_with_a_session_open_ends_the_stream() {
     .await;
     assert!(gone.is_ok(), "the role sees the stream end: {:?}", said.lock().unwrap());
     let refused = operate(door, Vec::new(), Duration::from_secs(5)).await.0;
-    assert!(matches!(&refused, Err(ConnectError::Refused { status: 410, .. })), "{refused:?}");
+    assert!(matches!(&refused, Err(ConnectError::Ended(_))), "{refused:?}");
     leg.abort();
 }
 

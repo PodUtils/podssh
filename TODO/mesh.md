@@ -13154,7 +13154,7 @@ Read at `2042200`:
   (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:47`), read again for each session
   (`PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:102-106`); the doors are made in
   `crates/podssh-cli/src/net/admit.rs:119`, `crates/podssh-cli/src/net/admit.rs:230` and
-  `crates/podssh-cli/src/channel.rs:369`.
+  `crates/podssh-cli/src/channel.rs:370`.
 - The verdict: a grant decides first (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:162` says "A grant decides
   alone"), and else the door (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:174`).
 - The issue reads the grant's arm as a way past the door that widens a credential. It is not: the grant's
@@ -13905,7 +13905,7 @@ reached each and measures nothing.
 ## Premise
 
 - Read: `ping NAME` races the roads of a member and gives each its time and the winner
-  (T-435; `crates/podssh-cli/src/ping/node.rs:86-198`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:51`).
+  (T-435; `crates/podssh-cli/src/ping/node.rs:86-184`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:51`).
 - Read: `ping` takes one destination (`crates/podssh-cli/src/flags/ping.rs`, the positional).
 - Read: `status --net` measures no road (`crates/podssh-cli/src/status.rs:30`).
 - Read: each probe drops its link before `OPEN` (`TODO/mesh.md`, T-435 Decision), so no session starts.

@@ -229,6 +229,29 @@ mod tests {
         assert!(err.is_empty(), "{err}");
     }
 
+    /// T-975: a pager that fails before reading the text (`PAGER=false`) gets
+    /// one line on stderr and the manual follows unpaged; a pager that reads
+    /// it all and exits 0 says nothing on stderr.
+    #[cfg(unix)]
+    #[test]
+    fn a_pager_that_fails_says_so_and_writes_the_manual_without_it() {
+        let text = body(&Request { section: Some("man"), ..Default::default() }).expect("man section");
+        let env = crate::pager::PagerEnv { pager: Some("false".into()), ..Default::default() };
+        let mut keys = Cursor::new(Vec::new());
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        crate::pager::show(&text, &env, &mut keys, &mut out, &mut err);
+        let out = String::from_utf8(out).unwrap();
+        let err = String::from_utf8(err).unwrap();
+        assert_eq!(out, text, "the manual follows with no pager");
+        assert!(err.contains("false") && err.contains("exit 1") && err.contains("no pager"), "{err}");
+
+        let ok_env = crate::pager::PagerEnv { pager: Some("sh -c cat>/dev/null".into()), ..Default::default() };
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        crate::pager::show(&text, &ok_env, &mut keys, &mut out, &mut err);
+        assert!(out.is_empty(), "the pager took the text");
+        assert!(err.is_empty(), "a pager that read all and exited 0 says nothing: {}", String::from_utf8_lossy(&err));
+    }
+
     #[test]
     fn no_pager_and_roff_write_at_once_even_on_a_terminal() {
         let tty = Tty { stdin: true, stdout: true };

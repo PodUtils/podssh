@@ -4619,6 +4619,8 @@ execs (std's descriptors are close-on-exec, so only for that moment). A second p
 product answers rightly, with no side file; the race is the test's. Step 2: the test loads again each 20 ms until the lock
 is taken, within 10 s, then judges the side file as before. Run here (Linux): `cargo test -p podssh-cli --lib cp::resume` 15 runs in 15 passed. The proof is the macOS job.
 
+2026-11-27: podcrates `v0.86.0` (PodUtils/podcrates@T-1401, COORD-150 #360) taken; `FileLock` now unlocks before closing its descriptor on drop so a forked child's inherited descriptor cannot keep the `flock(2)` held after drop. Waits for the macOS gate.
+
 # T-851: `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test
 
 **Source:** the gate of Dependabot's pull request #331 at `1a24efd` (run 44649725163, 2026-11-20, job `gate (ssh)`):
@@ -5012,7 +5014,7 @@ stream that this end did not start has one life"
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -5038,15 +5040,20 @@ t.example:53 took more than 20s") is the cause; the second line repeats the end 
 CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
 ```
 
-## Blocker
-
-PodUtils/podcrates: a `ConnectError` of `pod-ws` that is final, keeps the exit code 69 and displays its own words
-alone (COORD-149, PodUtils/podssh#359).
-
 ## Correction
 
 2026-11-25: the variant asked of podcrates by COORD-149 (PodUtils/podssh#359); podssh's part (the carrier's
 `start_again` and the test's check of the line) follows the tag that carries it.
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): podcrates `v0.86.0` (PodUtils/podcrates@T-1396, COORD-149 #359)
+added `pod_ws::client::ConnectError::Ended(String)`. `crates/podssh-relay/src/serve/reverse/carrier.rs` (`start_again`)
+returns `ConnectError::Ended(words)`, `crates/podssh-cli/src/layered.rs` (`is_final`) treats `ConnectError::Ended(_)`
+as final, and `crates/podssh-cli/src/layered_tests.rs`, `crates/podssh-relay/tests/reverse_carrier.rs`, and
+`crates/podssh-cli/tests/carrier_dns.rs` assert exit 69 and no `"the relay"` or `"HTTP 410"`. Verified:
+`podssh-relay --features pair,serve,grant --test reverse_carrier` 7 passed, `podssh-cli --lib layered` and
+`--test carrier_dns` passed; clippy and rustfmt clean.
 
 # T-923: Six waits of a session's write with no read of its channel beside it, the shape of T-780's hang
 

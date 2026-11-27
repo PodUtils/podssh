@@ -151,10 +151,14 @@ fn the_door_tells_a_bearer_from_a_certificate() {
     let operator = identity(4).public();
     let blob = bearer::mint(&node, operator, &Binding::from_bytes([7; 32]), now(), [12; 32]);
     assert!(is_bearer(&blob));
-    let refused = redeem(&operator, &Ask::Target, &blob).unwrap_err();
-    assert!(refused.contains("(unbound)"), "{refused}");
-    let refused = redeem(&operator, &Ask::Target, &b"ssh-ed25519-cert-v01@openssh.com junk"[..]).unwrap_err();
-    assert!(refused.contains("not a grant"), "{refused}");
+    let refused = redeem(&operator, &Ask::Target, &blob);
+    assert_eq!(refused.credential, podssh_relay::e2e::ends::Credential::Bearer);
+    let why = refused.result.unwrap_err();
+    assert!(why.contains("(unbound)"), "{why}");
+    let refused = redeem(&operator, &Ask::Target, &b"ssh-ed25519-cert-v01@openssh.com junk"[..]);
+    assert_eq!(refused.credential, podssh_relay::e2e::ends::Credential::Grant);
+    let why = refused.result.unwrap_err();
+    assert!(why.contains("not a grant"), "{why}");
 }
 
 /// A key file's bearer is made for the channel's binding, and a grant
@@ -174,14 +178,16 @@ async fn the_proof_is_the_grant_or_a_bearer_of_the_channel() {
     assert_eq!(grant.as_deref(), Some(&b"a grant"[..]));
 }
 
-/// The node's refusal of the proof, in pod-e2e's words of a grant, names the
-/// bearer when this run sent one, and stays a grant's words when it did not
-/// (T-942).
+/// The node's refusal of the proof names a bearer via `BEARER_REFUSED`
+/// directly or when an older node sends `GRANT_REFUSED` for a bearer, and
+/// keeps `GRANT_REFUSED` for a grant (T-942).
 #[test]
 fn a_refused_bearer_is_named_a_bearer_at_the_operator() {
-    let why = podssh_relay::e2e::ends::GRANT_REFUSED;
-    let bearer = refused_line_of(true, why);
-    assert!(bearer.starts_with("the node refused this run's bearer (--bearer)"), "{bearer}");
-    assert!(!bearer.contains("grant"), "{bearer}");
-    assert_eq!(refused_line_of(false, why), format!("the node refused: {why}"));
+    let grant = podssh_relay::e2e::ends::GRANT_REFUSED;
+    let bearer = podssh_relay::e2e::ends::BEARER_REFUSED;
+    let from_old = refused_line_of(true, grant);
+    assert_eq!(from_old, format!("the node refused: {bearer}"));
+    assert!(!from_old.contains("grant"), "{from_old}");
+    assert_eq!(refused_line_of(false, bearer), format!("the node refused: {bearer}"));
+    assert_eq!(refused_line_of(false, grant), format!("the node refused: {grant}"));
 }

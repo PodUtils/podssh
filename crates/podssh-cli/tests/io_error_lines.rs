@@ -61,8 +61,6 @@ const NOT_IO: &[(&str, &str)] = &[
     ("node_upgrade/pass.rs", r#"let state = LayerState::decode(&layer).map_err(|e| e.to_string())?;"#),
     ("node_upgrade/pass_windows.rs", r#"let Decoded { from, sessions, parts } = state::decode(&bytes).map_err(|e| e.to_string())?;"#),
     ("node_upgrade/pass_windows.rs", r#"let state = LayerState::decode(&layer).map_err(|e| e.to_string())?;"#),
-    ("pairs.rs", r#"pair::file_name(label).map(|_| ()).map_err(|e| Refusal::usage(label_words(&e.to_string())))"#),
-    ("pairs.rs", r#"PairError::BadLabel(_) => label_words(&e.to_string()),"#),
     ("pins.rs", r#"Some(text) => podssh_ws::resolve::parse_pins(text).map_err(|e| Refusal::usage(format!("--relay-addr: {e}")))?,"#),
     ("pins.rs", r#"pins.extend(podssh_ws::resolve::parse_pins(&text).map_err(|e| Refusal::config(format!("{PINS_ENV}: {e}")))?);"#),
     ("pins.rs", r#"pins.extend(more.map_err(|e| Refusal::config(format!("{}: RelayAddr {}: {e}", value.at, value.text)))?);"#),

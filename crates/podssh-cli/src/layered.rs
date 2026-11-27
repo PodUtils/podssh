@@ -448,12 +448,13 @@ pub(crate) fn stops(outcome: &LegOutcome) -> Option<String> {
     (!resumes(&close)).then(|| crate::pairs::session_end(code, reason))
 }
 
-/// A refusal of the relay that a new leg would only get again: the pair or
-/// its token is no longer good, the relay reads another dialect (426, T-643),
-/// or its owner halted it until a resume, whose words the end says (T-647).
+/// A refusal or end that a new leg would only get again: the pair or its
+/// token is no longer good, the relay reads another dialect (426, T-643),
+/// its owner halted it until a resume (T-647), or a carrier's stream ended
+/// for good (T-905).
 pub(crate) fn is_final(e: &ConnectError) -> bool {
     match e {
-        ConnectError::Refused { status: 401 | 403 | 404 | 410 | 426, .. } => true,
+        ConnectError::Refused { status: 401 | 403 | 404 | 410 | 426, .. } | ConnectError::Ended(_) => true,
         ConnectError::Refused { status: 503, body } => podssh_relay::pair::halt::is_halt(body),
         _ => false,
     }

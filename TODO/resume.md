@@ -2434,8 +2434,8 @@ that gives `Line` to a terminal in raw mode; in the model, the control
 ## Correction
 
 The first item of the Premise cites the layer's lines at lines of `next_leg`, which opens a new
-leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:465`) and a resume
-(`crates/podssh-cli/src/layered.rs:476`). What the item says of them holds.
+leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:466`) and a resume
+(`crates/podssh-cli/src/layered.rs:477`). What the item says of them holds.
 
 ## Done
 

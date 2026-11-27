@@ -6101,6 +6101,25 @@ display of a failure of `pod-gsr`, `pod-ws`, `pod-unit`, `pod-quic`, `pod-warp`,
 failed UDP socket now loses its cause there; and `pod-warp`'s `each_door_failed` keeps the first door's stage, so a
 refusal at a proxy of the second door alone is no longer seen by `podssh_warp::at_proxy`.
 
+2026-11-27, the take of podcrates `v0.86.0` (`22d1a75`, `PodUtils/podcrates#272`): each `Cargo.toml` pin, all 39
+`PodUtils/podcrates` entries in `Cargo.lock` (resolved with Rust 1.99.0), and `.github/workflows/issue-sync.yml`
+(`@22d1a7557c982b8eb5bef5b8c0e030f5ac54f6ef`) at `v0.86.0`. Breaking-change updates: `e2e::Error::Target(_)` and
+`ends::BEARER_REFUSED` in `channel::judged` (PodUtils/podcrates@T-1403, PodUtils/podcrates@T-1408); `Redemption::bearer`/`Redemption::grant` in `grants::door`
+and `tests/reverse_exit_caller.rs`, with `bearer::refused_line_of` reading `BEARER_REFUSED` (PodUtils/podcrates@T-1408);
+`PairError::Forbidden { detail, once }` and `PairError::NotMade { detail }` across `pairs.rs`, `relay_cmd.rs`,
+`relay_halt.rs`, `relay_renew.rs`, `node_expiry.rs`, `node_rotate.rs`, `relay_conform_reverse.rs` and
+`tests/node_months.rs` (PodUtils/podcrates@T-1407); `tests/update.rs` updated for PodUtils/podcrates@T-1411 (`Unverified::Bundle` no longer prints the
+Sigstore roots hint). Wired fixes and glue removed: `ConnectError::Ended` (T-905, PodUtils/podcrates@T-1396), `pod-manual` failed-pager
+fallback (T-975, PodUtils/podcrates@T-1412), `pod-identity` allowlist and `KEY_FORMS` (PodUtils/podcrates@T-1406, `allow_said.rs` test updated for
+singular/plural `bad_lines_said`), `pod-tls` `CERTIFICATE_WORDS`/`plain_certificate` (PodUtils/podcrates@T-1409; `man/facts/trust.rs`,
+`tests/faults.rs`, `scripts/interop-faults.sh` and `scripts/ts-headscale.sh` updated for plain certificate words;
+`llms.txt`/`llms-full.txt` regenerated), `pod-session` `client::Unheard` in `ping/node.rs` (PodUtils/podcrates@T-1410), and `pod-core`
+`text::{plain, io_words}` in `podssh-ws/src/text.rs` (PodUtils/podcrates@T-1421). Verified (Antigravity Linux x86_64, Rust 1.99.0):
+`podssh-ws --lib` 16, `podssh-relay` `identity::allow` 3 / `identity` 12 / `reverse_carrier` 7 / `reverse_exit_caller`
+4, `podssh-cli --lib` 120, `io_error_lines` 6, `serve_bearer` 3, `node_months` 1, `node_routes` 2, `update` 18,
+`carrier_dns`, `faults` (including both ignored cert tests); `podssh-todo`, `podssh-warp`, `podssh-gsr` check clean;
+clippy (`-D warnings -A clippy::collapsible_if`) and rustfmt clean across all four core crates.
+
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
 **Source:** the operator, 2026-11-05: "we use whatever is necessary, including c, zig, modern rust,
@@ -7444,7 +7463,7 @@ The same tests pass, and no copy of the replace is left (a search for the tempor
 
 ## Correction
 
-- The spent-grant record is not podssh's: `crates/podssh-cli/src/grants.rs:184` `spent_of` only names its place,
+- The spent-grant record is not podssh's: `crates/podssh-cli/src/grants.rs:186` `spent_of` only names its place,
   and `Spent::at` is `pod-relay`'s (`PodUtils/podcrates:crates/pod-relay/src/grant/spent.rs:110`, its `sync_dir`),
   which makes a new file for each grant (`create_new`) and fails when its directory's sync fails: not a replace, and
   not podssh's to change (Rule Q3). `cargo test -p podssh-cli --lib grants` stays in the Prove, untouched.
@@ -7879,6 +7898,16 @@ the new line (`TODO/relay.md`). No code that a user sees changes. Merged by the 
 new tests too), `--test man_page` 11 and `--test man_json` 4 passed; rustfmt and clippy of podssh-cli, all targets,
 `-D warnings`: clean; `cargo todo check` agrees. Still waiting: as the paragraph above says, and the asks (a) and (b) of
 the Decision, filed as COORD-142 (#352).
+
+2026-11-27: with podcrates `v0.86.0`, six duplicate glue layers in podssh are replaced by their crate counterparts:
+`crates/podssh-relay/src/identity/allow.rs` (`openssh`, `FORMS`, `normalised`, `reaches_target`, `bad_lines_said` ->
+`pod-identity`, PodUtils/podcrates@T-1406); `crates/podssh-ws/src/tls_words.rs` (`WORDS`, `plain` ->
+`pod_tls::{CERTIFICATE_WORDS, plain_certificate}`, PodUtils/podcrates@T-1409); `crates/podssh-ws/src/text.rs` (`plain` ->
+`pod_core::text::{plain, io_words}`, PodUtils/podcrates@T-1421); `crates/podssh-cli/src/pairs.rs` (`label_words`, `TOKEN_ENDED`,
+`made_refusal` -> `pod-relay` `PairError`, PodUtils/podcrates@T-1407); `crates/podssh-cli/src/bearer.rs` (bearer refusal text ->
+`pod_e2e::ends::BEARER_REFUSED`, PodUtils/podcrates@T-1408); and `crates/podssh-cli/src/ping/node.rs` (`true_why` ->
+`pod_session::client::Unheard`, PodUtils/podcrates@T-1410). Verified with `podssh-ws`, `podssh-relay`, `podssh-cli` tests, clippy and
+rustfmt clean.
 
 
 # T-1034: 40 of the 326 planted defects no longer apply to the tree

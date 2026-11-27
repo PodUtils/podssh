@@ -219,21 +219,21 @@ pub async fn make(signer: &Signer, holder: PublicKey, binding: &Binding, iat: u6
     }
 }
 
-/// The operator's line of the node's refusal of its proof, `why` in
-/// pod-e2e's words of a grant: with a bearer sent, the bearer is named, as
-/// the node's own line names it (T-942); else the words as they came.
+/// The operator's line of the node's refusal of its proof: a node on
+/// podcrates v0.86.0+ sends [`ends::BEARER_REFUSED`] for a bearer and
+/// [`ends::GRANT_REFUSED`] for a grant; an older node sends `GRANT_REFUSED`
+/// for both, so a run that sent a bearer names it in `BEARER_REFUSED`'s
+/// words (T-942).
 pub fn refused_line(why: &str) -> String {
     refused_line_of(SENT.load(Ordering::Relaxed), why)
 }
 
 /// [`refused_line`] with whether a bearer was sent named (for tests).
 pub fn refused_line_of(sent: bool, why: &str) -> String {
-    if !sent {
+    if why == ends::BEARER_REFUSED || !sent {
         return format!("the node refused: {why}");
     }
-    "the node refused this run's bearer (--bearer): it was taken already, its 30 s passed, its signer may not let \
-     this key reach what it asked, or it is not for this key or this channel; the node's log says which"
-        .to_string()
+    format!("the node refused: {}", ends::BEARER_REFUSED)
 }
 
 /// Whether `blob` is a bearer, never a certificate: the door tells them

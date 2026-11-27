@@ -30,13 +30,13 @@ rand = { workspace = true }
 # The atomic replace of a file that keeps its mode, for the rewrite of
 # known_hosts (`pod_core::files::replace`, T-820): the tag of every
 # podcrates crate.
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # The certificate of a login of serve's gateway (T-903): pod-relay's `Mint`
 # with the extensions of OpenSSH (feature `grant`), signed by the route's
 # Ed25519 CA as a pod-identity `Identity`. Both are in the tree already,
 # through podssh-relay; the feature adds no crate.
-pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["grant"] }
-pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0" }
+pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["grant"] }
+pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0" }
 # SFTP version 3 (T-133): pure Rust, Apache-2.0, a limit on each request, and
 # requests in flight together. Its one optional feature (async-trait) is off.
 russh-sftp = { version = "3.0.1", default-features = false }
@@ -94,14 +94,14 @@ vt100 = { workspace = true }
 # target: a kept shell's ring (T-159) is built on Windows too, and the crate
 # is bytes only. `transfer`: the 7-bit envelope's codec, whose near end the
 # session's watch runs and whose far end `podssh tx` runs (T-831).
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["transfer"] }
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["transfer"] }
 # Keys sealed to the machine (T-839, PodUtils/podssh#351): PodUtils/podcrates'
 # pod-tpm, the codec, the key file, the sequences, and the transports of the
 # device of a Unix kernel and of swtpm's socket (`device`); pure Rust, no C.
 # Not its `tbs`: its TBS of Windows imports tbs.dll at the start of the
 # process and bounds no command, where podssh's (src/tpm/windows.rs) loads
 # it at run time and cancels a command after 30 s (T-839's Decision).
-pod-tpm = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["device"] }
+pod-tpm = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["device"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }
@@ -127,9 +127,9 @@ windows-sys = { version = "0.61", features = [
 pageant = { version = "0.2.4", default-features = false, features = ["wmmessage"] }
 
 [dev-dependencies]
-pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["screen"] }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["screen"] }
 # The TPM in software of pod-tpm, for the tests of the glue of src/tpm.
-pod-tpm = { git = "https://github.com/PodUtils/podcrates", tag = "v0.85.0", features = ["device", "soft"] }
+pod-tpm = { git = "https://github.com/PodUtils/podcrates", tag = "v0.86.0", features = ["device", "soft"] }
 # `test-util` gives the tests a paused clock: a hop's 10 s of silence (T-462)
 # and the relay's idle cut at 180 s (T-463) pass at once.
 tokio = { workspace = true, features = ["macros", "rt", "signal", "process", "test-util"] }

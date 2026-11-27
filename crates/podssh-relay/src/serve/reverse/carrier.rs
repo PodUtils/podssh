@@ -168,8 +168,8 @@ impl Role {
     }
 
     /// A new stream in place of one that ended. A stream that this end was
-    /// given has one life: the end is final (410), as a new leg would meet it
-    /// again.
+    /// given has one life: the end is final, as a new leg would meet it
+    /// again (T-905).
     fn start_again(&self) -> Result<(), ConnectError> {
         let mut held = lock(&self.link);
         // Another leg started it meanwhile.
@@ -177,9 +177,9 @@ impl Role {
             return Ok(());
         }
         let Some(again) = &self.again else {
-            let body =
+            let words =
                 format!("the carrier {} ended, and a stream that this end did not start has one life", self.shown);
-            return Err(ConnectError::Refused { status: 410, body });
+            return Err(ConnectError::Ended(words));
         };
         let target = format!("the carrier {}", self.shown);
         let link = again()

@@ -3328,13 +3328,12 @@ podssh job
 
   podssh job list HOST prints a line for each job, in the order of their
   starts: the ID, the state (queued; running; done; or lost, when no status is
-  there and nothing runs it, neither its tmux session nor its --no-tmux runner,
-  as after a restart of the host). Then the exit status (a dash while there is
-  none) and the command. podssh job log HOST ID writes the job's output to
-  stdout, also after its end. podssh job stop HOST ID ends the tmux session of
-  that exact name, never another, and removes the job's directory with its
-  output. Its line says what the job was: stopped, ended with its status,
-  queued and never run, or lost.
+  there and nothing runs it, neither its tmux session nor its --no-tmux
+  runner). Then the exit status (a dash while there is none) and the command.
+  podssh job log HOST ID writes the job's output to stdout, also after its end.
+  podssh job stop HOST ID ends the tmux session of that exact name, never
+  another, and removes the job's directory with its output. Its line says what
+  the job was: stopped, ended with its status, queued and never run, or lost.
 
   podssh job log --follow HOST ID writes the job's output as it comes, on one
   connection, and exits with the job's status once it ended: 255 for a job that
@@ -12264,8 +12263,8 @@ THE RELAY
       the user and of the administrator, where security add-trusted-cert and an
       MDM profile put a root; elsewhere the roots are the bundle's. podssh
       doctor names each store with its count. A certificate that no root here
-      signs ends with UnknownIssuer and what to do: a proxy that re-signs TLS
-      needs its CA. Give it in --ca-file or SSL_CERT_FILE, which replace
+      signs says no trusted CA signed it and what to do: a proxy that re-signs
+      TLS needs its CA. Give it in --ca-file or SSL_CERT_FILE, which replace
       podssh's roots, or in podssh-ca.pem next to the binary, which adds to
       them. A certificate that has expired or is not valid yet ends with this
       host's clock and its reading: certificates are checked against it, and a

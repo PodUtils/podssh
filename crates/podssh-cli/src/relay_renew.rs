@@ -47,8 +47,8 @@ pub(crate) fn run(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut 
     match block_on(renew::renew(&ctx, &stored))? {
         Ok(Renewed::Until(until)) => kept(label, &stored, until, out, err),
         Ok(Renewed::NotServed) => Err(not_served(label, &stored)),
-        Err(PairError::Forbidden) => Err(Refusal {
-            message: "the relay refused the stop token (403): the pair was stopped, or it ended".into(),
+        Err(PairError::Forbidden { detail, .. }) => Err(Refusal {
+            message: format!("the relay refused the stop token (403{detail}): the pair was stopped, or it ended"),
             code: Fault::Auth.code(),
         }),
         Err(e) => Err(pairs::refusal(&e)),

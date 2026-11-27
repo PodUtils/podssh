@@ -353,7 +353,7 @@ FPORT=$(cat "$W/fp.port" 2>/dev/null)
 # TLS. FOREIGN says so, with that issuer. A certificate of the relay's own
 # issuer that the fork refused is no such case: the run fails.
 foreign_issuer() {
-    grep -q 'invalid peer certificate: UnknownIssuer' "$1" || return 1
+    grep -qE 'invalid peer certificate: (UnknownIssuer|a certificate that no trusted CA signed)' "$1" || return 1
     _issuer=$(echo | timeout 20 openssl s_client -connect tcp.ts.relay.ajam.dev:443 \
         -servername tcp.ts.relay.ajam.dev 2>/dev/null | sed -n 's/^issuer=//p' | head -1)
     case "$_issuer" in

@@ -129,21 +129,7 @@ fn road_line(shown: &str, measured: &Measured) -> String {
     };
     match &timed.answered {
         Ok(()) => format!("{shown}: {road}: answered in {}{into}", shown_ms(timed.took)),
-        Err(why) => {
-            format!("{shown}: {road}: failed after {}{into}: {}", shown_ms(timed.took), true_why(why, timed.took))
-        }
-    }
-}
-
-/// A road's why, true of its time (T-948): pod-session says a link that
-/// closed before its first byte as one that "said nothing within 30 s", its
-/// wait; a road that failed before that wait was closed, not silent.
-fn true_why(why: &str, took: Duration) -> String {
-    let wait = podssh_relay::session::client::FIRST_BYTE_WAIT;
-    let silent = format!("the far end said nothing within {} s", wait.as_secs());
-    match why.contains(&silent) && took < wait {
-        true => why.replace(&silent, "the far end closed the link before it said anything"),
-        false => why.to_string(),
+        Err(why) => format!("{shown}: {road}: failed after {}{into}: {why}", shown_ms(timed.took)),
     }
 }
 
@@ -239,19 +225,33 @@ mod tests {
         assert_eq!(lines, [failed, "node://gone: not reached: no road answered"]);
     }
 
-    /// A link that closed before its first byte is said as closed, not as a
-    /// wait of 30 s that did not pass (T-948); a wait that passed keeps its
-    /// words, and another why is kept.
-    #[test]
-    fn a_road_closed_before_its_first_byte_is_not_said_silent() {
-        let silent = "the far end said nothing within 30 s";
-        let closed = true_why(silent, Duration::from_micros(24_700));
+    /// A link that closed before its first byte is said as closed by
+    /// `pod-session`'s [`Unheard::Closed`], not as a wait of 30 s that did
+    /// not pass (T-948, podcrates T-1410).
+    #[tokio::test]
+    async fn a_road_closed_before_its_first_byte_is_not_said_silent() {
+        use podssh_relay::session::client::{greeted, Unheard};
+        use podssh_relay::session::race::{each_timed, Start};
+        let (client, server) = tokio::io::duplex(64);
+        drop(server);
+        let saw = greeted(client).await.expect("a clean close before the first byte");
+        assert_eq!(saw.unheard(), Some(Unheard::Closed));
+        let closed = Unheard::Closed.to_string();
         assert_eq!(closed, "the far end closed the link before it said anything");
-        assert_eq!(true_why(silent, Duration::from_secs(30)), silent);
-        assert_eq!(true_why("the node is offline", Duration::from_millis(5)), "the node is offline");
-        let failed = Measured { road: "the pair's road", timed: timed(0, 24_700, Err(silent.into())) };
+        let results = each_timed(
+            vec![(Start::After(Duration::ZERO), async {
+                let (client, server) = tokio::io::duplex(64);
+                drop(server);
+                Ok::<_, String>(client)
+            })],
+            Duration::from_secs(5),
+        )
+        .await;
+        let timed = results.into_iter().next().flatten().expect("the road ran");
+        assert_eq!(timed.answered, Err(closed.clone()));
+        let failed = Measured { road: "the pair's road", timed: Some(timed) };
         let lines = super::lines(&Measures { shown: "node://gone".into(), roads: vec![failed], won: None });
-        assert_eq!(lines[0], format!("node://gone: the pair's road: failed after 24.7 ms: {closed}"));
+        assert!(lines[0].ends_with(&format!(": {closed}")), "{}", lines[0]);
     }
 
     /// The JSON has each road with its times in milliseconds, the road that

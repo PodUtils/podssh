@@ -5849,7 +5849,7 @@ refusal names the bearer ("a bearer refused (signer)").
 ## Approach
 
 1. `bearer.rs` keeps whether this run's channel carried a bearer (`SENT`, set where a bearer is made);
-   `refused_line` (`crates/podssh-cli/src/bearer.rs:225`) says the node's refusal of a bearer in a bearer's words
+   `refused_line` (`crates/podssh-cli/src/bearer.rs:227`) says the node's refusal of a bearer in a bearer's words
    (taken already, its 30 s passed, its signer may not let this key reach what it asked, not for this key or channel;
    the node's log says which), and a grant's refusal as before.
 2. `judged` takes `refused_line` for `GRANT_REFUSED`; the exit stays 77.

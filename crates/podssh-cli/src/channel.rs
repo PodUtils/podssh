@@ -261,9 +261,8 @@ pub fn judged(e: &e2e::Error, me: Option<&Identity>) -> Option<(Fault, String)> 
         e2e::Error::Refused(NodeRefusal::NoTarget(why)) => {
             (Fault::SessionFault, format!("the node could not reach its target: {why}"))
         }
-        // A grant that the node refused is a refused key (T-226); a bearer
-        // comes back in a grant's words, and is named (T-942).
-        e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::GRANT_REFUSED => {
+        // A grant or bearer that the node refused is a refused key (T-226, T-942).
+        e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::GRANT_REFUSED || why == ends::BEARER_REFUSED => {
             (Fault::Auth, crate::bearer::refused_line(why))
         }
         // podssh's hint of the flag that makes a node an exit (pod-e2e's words name none).
@@ -279,9 +278,11 @@ pub fn judged(e: &e2e::Error, me: Option<&Identity>) -> Option<(Fault, String)> 
         e2e::Error::Timeout(_) => (Fault::RelayUnreachable, e.to_string()),
         // podssh's hint of the switch at both ends (pod-e2e's words name none).
         e2e::Error::NotChannel(_) => (Fault::SessionFault, format!("{e}; --no-e2e turns it off at this end")),
-        e2e::Error::Handshake(_) | e2e::Error::Tampered | e2e::Error::Malformed(_) | e2e::Error::NoSuite(_) => {
-            (Fault::SessionFault, podssh_ws::text::said(&e))
-        }
+        e2e::Error::Handshake(_)
+        | e2e::Error::Tampered
+        | e2e::Error::Malformed(_)
+        | e2e::Error::NoSuite(_)
+        | e2e::Error::Target(_) => (Fault::SessionFault, podssh_ws::text::said(&e)),
         e2e::Error::Cut | e2e::Error::Io(_) => return None,
     })
 }

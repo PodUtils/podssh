@@ -112,9 +112,8 @@ pub async fn connect_over<S>(
 where
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
 {
-    // A refused certificate in words, as on each other road (T-944).
     let tls = context().connect_over(stream, server_name, trust, limit).await;
-    tls.map_err(|e| crate::tls_words::plain(&crate::text::plain(e.text())))
+    tls.map_err(|e| crate::text::plain(e.text()))
 }
 
 /// What to do when a TLS handshake failed with `error`: for an issuer that no
@@ -126,9 +125,9 @@ pub fn handshake_hint(error: &std::io::Error) -> Option<String> {
 }
 
 /// The text of a failed handshake, with its hint when it has one, and a
-/// refused certificate in words (T-944).
+/// refused certificate in words (`pod-tls`, T-944).
 pub fn handshake_failure(error: &std::io::Error) -> String {
-    crate::tls_words::plain(&pod_tls::handshake_failure(error, context().words()))
+    pod_tls::handshake_failure(error, context().words())
 }
 
 /// The failure of a TLS road of `pod-tls` as podssh's roads say it: the

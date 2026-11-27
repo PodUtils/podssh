@@ -75,7 +75,7 @@ mod tests {
             let line = seen(&path, lines);
             assert_eq!(line.is_some(), *said, "read {at}: {lines:?}");
             if let Some(line) = line {
-                assert!(line.starts_with(&format!("{}: lines ", path.display())), "{line}");
+                assert_eq!(line, format!("{}: {}", path.display(), allow::bad_lines_said(lines)));
             }
         }
         // A file that the start found right says nothing on a re-read alike.

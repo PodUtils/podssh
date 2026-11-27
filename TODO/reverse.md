@@ -1769,8 +1769,8 @@ The command line: the targets at `crates/podssh-cli/src/node.rs:251-288`,
 `NAME/ROUTE` at `crates/podssh-cli/src/node.rs:290-305`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/node.rs:305-313`; the channel's glue at
-`crates/podssh-cli/src/channel.rs:387-396` and
-`crates/podssh-cli/src/channel.rs:434-458`; `node://NAME/ROUTE` at
+`crates/podssh-cli/src/channel.rs:388-397` and
+`crates/podssh-cli/src/channel.rs:435-459`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
 `crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
@@ -3078,7 +3078,7 @@ to go on. A feature.
   (`crates/podssh-cli/src/relay_cmd.rs` lines 235-239 at `2608b91`), as it did at `35a0d19`; the
   issue's claim holds where no pair is stored under NAME, as on an operator's host.
 - Read: it reads the pair from the store alone (`crates/podssh-cli/src/relay_cmd.rs` line 229 at
-  `2608b91`, `crates/podssh-cli/src/pairs.rs:42-50`); `relay` takes no `--pair-file`, and `--operator-file`
+  `2608b91`, `crates/podssh-cli/src/pairs.rs:36-44`); `relay` takes no `--pair-file`, and `--operator-file`
   goes with `pair` alone (`crates/podssh-cli/src/relay_cmd.rs:160-163`).
 - Read: the relay answers `/v1/status/<name>` to the connect token
   (`PodUtils/podssh:crates/podssh-relay/src/pair.rs:202-206`), which the operator's part holds.
@@ -4761,7 +4761,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
-  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:422` says "let (ours, mut theirs)
+  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:423` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
   each run (`crates/podssh-cli/src/node_quick_relay.rs:103` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.
@@ -5562,7 +5562,7 @@ seed as a public key, and mints a grant for a key that nobody holds.
 - Read: the allowlist of `pod-identity` reads a key in one word (`KeyName::parse`, PodUtils/podcrates:crates/pod-identity/src/allow.rs,
   `parse_with`); `ssh-ed25519` is no key, so the whole line is a bad one. The relay role's list is the same reader
   (`crates/podssh-relay/src/serve/keys/list.rs:55`), and so is the iroh road's (`pod_iroh::Allowlist`).
-- Read: `--grant-to` reads OpenSSH's line with `grant::parse_public` (`crates/podssh-cli/src/grants.rs:268`), and
+- Read: `--grant-to` reads OpenSSH's line with `grant::parse_public` (`crates/podssh-cli/src/grants.rs:270`), and
   `keygen -y` prints it for podssh's own key file (`crates/podssh-cli/src/keygen_convert.rs:148`).
 - Read: `--temporary` and `--node-key` read one word with `KeyName::parse`, and name their forms in their own words.
 - Read: `grantee` reads the first line of a file with `grant::parse_public`, which takes 64 hex digits as a key; the
@@ -5575,11 +5575,11 @@ seed as a public key, and mints a grant for a key that nobody holds.
    and its other words, one line out for each line in, before the crate reads it; `read`, `parse`, `admits` and
    `grants` read through it; `key_name` reads an argument (OpenSSH's line with a comment, or one word); `FORMS` names
    the forms for each refusal; `bad_lines_said` says the bad lines with the forms.
-2. Each place reads through it: the node's `--allow` (`crates/podssh-cli/src/channel.rs:391`, and the grants' door),
+2. Each place reads through it: the node's `--allow` (`crates/podssh-cli/src/channel.rs:392`, and the grants' door),
    the iroh road's door (`crates/podssh-cli/src/node_iroh_door.rs`), the relay role's list of a file or a URL, the
    code's allowlist (`crates/podssh-cli/src/relay_code.rs`), `--temporary`, `--node-key` and `net add`.
 3. `--grant-to FILE`: a file of 64 hex digits alone is refused (78) as podssh's private key file, with the
-   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:296`).
+   `podssh keygen -y FILE` to run (`crates/podssh-cli/src/grants.rs:298`).
 4. The manual (the file of `--allow`, the node's paragraph of `--allow`, the grant's paragraph) and `docs/cli.md`
    say the forms.
 
@@ -5663,9 +5663,9 @@ upgrade, `podssh operator` and `podssh relay status` say "stopped, or has expire
 - Read: `pod-relay` maps each `403` of a pairing call to `PairError::Forbidden`, which holds no body and says "the
   pair is stopped or has expired" (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `refused` and the `Display` of
   `PairError`); `create_by` maps the `403` of `/v1/pair` the same (PodUtils/podcrates:crates/pod-relay/src/pair/once.rs).
-- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:95`), for `relay pair`
+- Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:86`), for `relay pair`
   (`crates/podssh-cli/src/relay_cmd.rs:301`) and `relay status`; an operator's `403` at the upgrade had its own words,
-  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:277`).
+  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:239`).
 - Read: the store keeps no mark of `--once`, so the operator cannot tell a spent token from a stopped pair.
 
 ## Approach
@@ -5801,7 +5801,7 @@ node says "no client may connect over the iroh road", though the net's members m
 - Read: `admit` (`crates/podssh-cli/src/net/admit.rs`) refuses a key that is no member when the node is one and has
   no `--allow` (`Verdict::Refused` with `allow` none is `Err`); a net of `--net-url` whose copy is too old refuses each
   key (`door_closed`, `crates/podssh-cli/src/net/remote.rs:334`).
-- Read: `node` (`crates/podssh-cli/src/channel.rs:321`) said `who_may` before the net's line in each case; the iroh
+- Read: `node` (`crates/podssh-cli/src/channel.rs:322`) said `who_may` before the net's line in each case; the iroh
   node did the same (`crates/podssh-cli/src/node_iroh.rs:337`).
 
 ## Approach
@@ -5949,7 +5949,7 @@ Other(OtherError(CaUsedAsEndEntity))": the `Debug` text of Rust's types, not wor
   rustls-webpki as `Other(OtherError(NAME))`; `pod-tls`'s `handshake_failure` keeps that text and adds a hint for an
   unknown issuer and a clock (PodUtils/podcrates:crates/pod-tls/src/hint.rs, `handshake_hint`, `cause`).
 - Read: podssh-ws took the text as it came, in `handshake_failure` (`crates/podssh-ws/src/tls.rs:131`) and in the
-  `why` of `ConnectError::Tls` (`crates/podssh-ws/src/tls.rs:150`), which each road and `relay status` say.
+  `why` of `ConnectError::Tls` (`crates/podssh-ws/src/tls.rs:149`), which each road and `relay status` say.
 
 ## Approach
 
@@ -6020,14 +6020,14 @@ with `routes=`.
 ## Premise
 
 - Read: the node's admission let each key of the file in for the TARGET with no route (`allow::admits`, any line of
-  the key), and checked a route against the line's routes (`crates/podssh-cli/src/channel.rs:373`); a grant's issuer
-  likewise (`crates/podssh-cli/src/grants.rs:174`).
+  the key), and checked a route against the line's routes (`crates/podssh-cli/src/channel.rs:374`); a grant's issuer
+  likewise (`crates/podssh-cli/src/grants.rs:176`).
 - Read: `pod-identity` merges each line of one key into one entry (routes and `routes=*`), which keeps no mark of a
   line with no `routes=` (PodUtils/podcrates:crates/pod-identity/src/allow.rs, `parse_with`).
 
 ## Approach
 
-1. `allow::reaches_target` (`crates/podssh-relay/src/identity/allow.rs:133`): the key reaches the TARGET with no route
+1. `allow::reaches_target` (`crates/podssh-relay/src/identity/allow.rs:6`): the key reaches the TARGET with no route
    when a line of it has no `routes=` word or has `routes=*`; the crate's read lets the key in first.
 2. The node's admission of the TARGET with no route and a grant's issuer for it take it; a route keeps its check.
 3. The operator's line of a refused key says that a line of `routes=` alone reaches those routes, as `NAME/ROUTE`.
@@ -6447,7 +6447,7 @@ says the second in the system's words once, with no "(os error N)".
 - Read, at `9574133`: `grants::ask` (`crates/podssh-cli/src/grants.rs:58`) put the words of `pod-relay`'s
   `grant::read_file` in its line as they were; that function writes `{e}` of the `io::Error` of `metadata` and
   `read_to_string` (PodUtils/podcrates:crates/pod-relay/src/grant/mod.rs, at `v0.85.0`).
-- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:298`) said any other `ConnectError`
+- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:261`) said any other `ConnectError`
   by its `to_string()`, whose dial failure carries the suffix; `proxy` passes each line of a failed open through
   `podssh_ws::text::plain` (`crates/podssh-cli/src/proxy.rs`, its failed open).
 
@@ -6509,7 +6509,7 @@ a ProxyCommand) reads bytes that are not its protocol, and the run says nothing 
   when the operator's channel is off; each end of the channel writes `MAGIC` (`podssh-e2e/1` and a newline) first
   (PodUtils/podcrates:crates/pod-e2e/src/handshake.rs, at `v0.85.0`).
 - The other way round is refused already: an operator with the channel, to a node with none, gets the crate's
-  `NotChannel` (`crates/podssh-cli/src/channel.rs:281`), said with "--no-e2e turns it off at this end" and 70.
+  `NotChannel` (`crates/podssh-cli/src/channel.rs:280`), said with "--no-e2e turns it off at this end" and 70.
 
 ## Approach
 
@@ -6571,7 +6571,7 @@ silence, and the operator whose key that line meant to let in was refused with n
 
 ## Premise
 
-- Read, at `9574133`: `channel::who_may` said `bad_lines_said` once, at the start (`crates/podssh-cli/src/channel.rs:392`);
+- Read, at `9574133`: `channel::who_may` said `bad_lines_said` once, at the start (`crates/podssh-cli/src/channel.rs:393`);
   `grant_of` read FILE again for each session by `allow::grants` (`crates/podssh-relay/src/identity/allow.rs:119`),
   which keeps the bad lines out with no line. The iroh road's `admits` (`crates/podssh-cli/src/node_iroh_door.rs`)
   read it so too.
@@ -6581,7 +6581,7 @@ silence, and the operator whose key that line meant to let in was refused with n
 1. `allow_said` (`crates/podssh-cli/src/allow_said.rs`): the set of lines that are not keys, last said for each file.
    `marked` keeps the start's set as said; `seen` gives a line, "FILE: lines [N] are not keys (...)", in
    `bad_lines_said`'s words, when a re-read finds another set that is not empty, once for that set.
-2. `grant_of` moves there (`channel` re-exports it, `crates/podssh-cli/src/channel.rs:389`) and says that line on
+2. `grant_of` moves there (`channel` re-exports it, `crates/podssh-cli/src/channel.rs:390`) and says that line on
    stderr, prefixed `podssh node:`, before the grant; the iroh road's `admits` says it on its log.
 3. The start's `who_may` of each road marks its set, so the first session does not say it again.
 4. The note of the pair names both.
@@ -6694,7 +6694,7 @@ cause: no pair is stored under the label. The manual's EXIT STATUS said neither 
 
 - Read, at `9574133`: `ssh`'s road to a node says each refusal of `pairs::operator_part` with 255
   (`crates/podssh-cli/src/ssh/node.rs:241`), as each failure of the connection; `operator` and `proxy node://NAME`
-  report the refusal's own code, 78 (`crates/podssh-cli/src/pairs.rs:46`).
+  report the refusal's own code, 78 (`crates/podssh-cli/src/pairs.rs:40`).
 - The 255 row of EXIT STATUS (`crates/podssh-cli/src/man/data.rs:158`) named the connection, the host key and the
   login, not a node of no pair.
 

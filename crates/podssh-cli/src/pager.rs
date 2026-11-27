@@ -5,7 +5,8 @@
 //! while a pager or the editor of `podssh edit` runs) is the crate's.
 
 pub use pod_manual::pager::{
-    choose, find_program, page, read_key, run_program, Choice, Interrupts, Key, PagerEnv, Tty, PAGE_LINES,
+    choose, find_program, page, read_key, run_program, status_words, Choice, Interrupts, Key, Paged, PagerEnv, Tty,
+    PAGE_LINES,
 };
 use std::io::{BufRead, Write};
 

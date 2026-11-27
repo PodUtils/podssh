@@ -298,7 +298,7 @@ pub(crate) fn make(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
     pairs::online()?;
     let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
     let ctx = pairs::context(&control, &trust, &context);
-    let (made, once) = block_on(pair::once::create_with(&ctx, args.once))?.map_err(|e| pairs::made_refusal(&e))?;
+    let (made, once) = block_on(pair::once::create_with(&ctx, args.once))?.map_err(|e| pairs::refusal(&e))?;
     // A relay that does not offer --once made a pair whose token takes each
     // upgrade (T-226): a guarantee asked for and not given, so the pair is
     // stopped before the refusal, as it is not the one asked for.
@@ -382,8 +382,11 @@ fn revoke(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut dyn Writ
         Ok(_) => {
             let _ = writeln!(out, "{label}: stopped");
         }
-        Err(PairError::Forbidden) => {
-            let _ = writeln!(err, "podssh relay: the relay refused the stop token (403): the pair had ended already");
+        Err(PairError::Forbidden { detail, .. }) => {
+            let _ = writeln!(
+                err,
+                "podssh relay: the relay refused the stop token (403{detail}): the pair had ended already"
+            );
             let _ = writeln!(out, "{label}: stopped");
         }
         Err(e @ PairError::Connect(_)) => {

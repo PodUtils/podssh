@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use podssh_relay::cache;
-use podssh_relay::e2e::ends::Redeem;
+use podssh_relay::e2e::ends::{Redeem, Redemption};
 use podssh_relay::e2e::Ask;
 use podssh_relay::grant::{self, Cert, Door, Mint, Spent};
 use podssh_relay::identity::{allow, file, Identity, PublicKey};
@@ -122,9 +122,11 @@ pub fn door(label: &str, me: PublicKey, allow: Option<PathBuf>) -> Option<Arc<Re
         // A bearer (T-834): signed by an issuer of this same door, for this
         // channel alone, and taken once.
         if crate::bearer::is_bearer(blob) {
-            return crate::bearer::redeem(&door, exit.as_ref(), peer, ask, blob, now());
+            return Redemption::bearer(crate::bearer::redeem(&door, exit.as_ref(), peer, ask, blob, now()));
         }
-        exit_caller::redeem(&door, exit.as_ref(), peer, ask, blob, now()).map(|redeemed| redeemed.to_string())
+        Redemption::grant(
+            exit_caller::redeem(&door, exit.as_ref(), peer, ask, blob, now()).map(|redeemed| redeemed.to_string()),
+        )
     }))
 }
 

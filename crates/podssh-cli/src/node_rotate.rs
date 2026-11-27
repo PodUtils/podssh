@@ -261,7 +261,7 @@ async fn once(label: &str, held: &Held, by: &ByStop) -> Turned {
     match by.rotate(&before, &next).await {
         Ok(Rotated::Asked) => {}
         Ok(Rotated::NotServed) => return Turned::NotServed,
-        Err(PairError::Forbidden) => return Turned::Refused,
+        Err(PairError::Forbidden { .. }) => return Turned::Refused,
         Err(e) => return Turned::Again(podssh_ws::text::said(&e)),
     }
     // Kept before its first use: from here the relay takes it as the one to
@@ -276,7 +276,7 @@ async fn once(label: &str, held: &Held, by: &ByStop) -> Turned {
         Ok(_) => Turned::Done,
         // Another token to come took its place: the one before stays, as the
         // relay may take it still.
-        Err(PairError::Forbidden) => {
+        Err(PairError::Forbidden { .. }) => {
             let back = keep(label, &before.name, before.stop_token());
             let _ = held.restop(&before.name, before.stop_token());
             let kept = back.err().map(|why| format!(", which the store took no write of ({why})")).unwrap_or_default();

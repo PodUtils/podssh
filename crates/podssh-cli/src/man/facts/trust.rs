@@ -17,7 +17,7 @@ pub(super) fn block() -> Block {
              usage leaves out servers. On macOS, the stores are the trust settings of the user and of the \
              administrator, where security add-trusted-cert and an MDM profile put a root; elsewhere the roots are \
              the bundle's. podssh doctor names each store with its count. A certificate that no root here signs \
-             ends with UnknownIssuer and what to do: a proxy that re-signs TLS needs its CA. Give it in --ca-file \
+             says no trusted CA signed it and what to do: a proxy that re-signs TLS needs its CA. Give it in --ca-file \
              or SSL_CERT_FILE, which replace podssh's roots, or in {} next to the binary, which adds to them. A \
              certificate that has expired or is not valid yet ends with this host's clock and its reading: \
              certificates are checked against it, and a wrong clock refuses each host. A system bundle adds roots \

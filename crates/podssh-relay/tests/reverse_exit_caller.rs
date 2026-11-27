@@ -106,7 +106,7 @@ fn exit_node(tag: &str) -> Node {
     let door = Door { node: identity(NODE).public(), issuers: none, spent: Spent::at(spent_dir(tag)), revoked: None };
     let exit = door.clone();
     node.redeem = Some(Arc::new(move |peer: &PublicKey, ask: &Ask, blob: &[u8]| {
-        exit_caller::redeem(&door, Some(&exit), peer, ask, blob, now()).map(|r| r.to_string())
+        ends::Redemption::grant(exit_caller::redeem(&door, Some(&exit), peer, ask, blob, now()).map(|r| r.to_string()))
     }));
     node
 }

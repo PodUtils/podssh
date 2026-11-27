@@ -97,8 +97,8 @@ fn stored(args: &RelayArgs, label: &str, verb: &str) -> Result<Pair, Refusal> {
 /// A refused stop token is a pair that was stopped or ended (77).
 fn refused(e: PairError) -> Refusal {
     match e {
-        PairError::Forbidden => Refusal {
-            message: "the relay refused the stop token (403): the pair was stopped, or it ended".into(),
+        PairError::Forbidden { detail, .. } => Refusal {
+            message: format!("the relay refused the stop token (403{detail}): the pair was stopped, or it ended"),
             code: Fault::Auth.code(),
         },
         e => pairs::refusal(&e),

@@ -78,7 +78,7 @@ impl InProcess {
     fn by_stop(&self, pair: &Pair) -> Result<Arc<Pairs>, PairError> {
         let pairs = self.pairs();
         let found = pairs.find(&pair.name, Role::Stop, Some(pair.stop_token()), now());
-        found.map(|_| pairs).ok_or(PairError::Forbidden)
+        found.map(|_| pairs).ok_or_else(|| PairError::Forbidden { detail: String::new(), once: false })
     }
 }
 
@@ -90,7 +90,7 @@ impl Here for InProcess {
         }
         match self.by_stop(pair)?.renew(&pair.name, now()) {
             Ok(Some(until)) => Ok(Renewed::Until(i64::try_from(until).unwrap())),
-            Ok(None) => Err(PairError::Forbidden),
+            Ok(None) => Err(PairError::Forbidden { detail: String::new(), once: false }),
             Err(detail) => Err(PairError::NotIssued { detail }),
         }
     }
@@ -103,7 +103,7 @@ impl Here for InProcess {
         digest.copy_from_slice(&Sha256::digest(next.as_bytes()));
         match self.by_stop(pair)?.rotate(&pair.name, digest, now()) {
             Ok(Some(())) => Ok(Rotated::Asked),
-            Ok(None) => Err(PairError::Forbidden),
+            Ok(None) => Err(PairError::Forbidden { detail: String::new(), once: false }),
             Err(detail) => Err(PairError::NotIssued { detail }),
         }
     }

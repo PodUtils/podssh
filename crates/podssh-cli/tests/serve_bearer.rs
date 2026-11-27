@@ -150,9 +150,12 @@ async fn the_same_bearer_on_a_second_session_is_refused() {
     let copy = sent.lock().unwrap().clone().expect("the bearer that the first session sent");
     let (second, lines) = node(me);
     let (read, opened) = session(second, move |_: PublicKey, _: Binding| std::future::ready(Some(copy))).await;
-    assert!(matches!(read, Err(Error::Refused(_))), "a copy came in: {read:?}");
+    assert!(
+        matches!(&read, Err(Error::Refused(podssh_relay::e2e::Refusal::Other(why))) if why == ends::BEARER_REFUSED),
+        "a copy came in: {read:?}"
+    );
     assert_eq!(opened, 0, "the target was not opened");
-    assert!(holds(&lines, "(binding)"), "the node names the check: {lines:?}");
+    assert!(holds(&lines, "refused a bearer") && holds(&lines, "(binding)"), "the node names the check: {lines:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -160,7 +163,10 @@ async fn a_signer_that_the_node_does_not_take_is_refused() {
     let (node, lines) = node(identity(3));
     let stranger = Signer::File(identity(9));
     let (read, opened) = session(node, kept(stranger, Arc::default())).await;
-    assert!(matches!(read, Err(Error::Refused(_))), "a stranger's bearer came in: {read:?}");
+    assert!(
+        matches!(&read, Err(Error::Refused(podssh_relay::e2e::Refusal::Other(why))) if why == ends::BEARER_REFUSED),
+        "a stranger's bearer came in: {read:?}"
+    );
     assert_eq!(opened, 0, "the target was not opened");
-    assert!(holds(&lines, "(signer)"), "the node names the check: {lines:?}");
+    assert!(holds(&lines, "refused a bearer") && holds(&lines, "(signer)"), "the node names the check: {lines:?}");
 }

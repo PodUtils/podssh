@@ -37,7 +37,7 @@ pub(crate) async fn run(plan: &Plan, offers: &Offers, report: &mut Report) {
     let made = match pair::create(&ctx).await {
         Ok(made) => made,
         // A relay that pairs for keys alone, or for no one, pairs no stranger.
-        Err(e @ (PairError::NotIssued { .. } | PairError::Failed { status: 401, .. })) => {
+        Err(e @ (PairError::NotIssued { .. } | PairError::NotMade { .. } | PairError::Failed { status: 401, .. })) => {
             report.push(Check::skip(
                 "pair",
                 clause::REVERSE,
@@ -69,7 +69,9 @@ pub(crate) async fn run(plan: &Plan, offers: &Offers, report: &mut Report) {
     });
     let started = Instant::now();
     report.push(match pair::status(&ctx, &OperatorPart::of(&made)).await {
-        Err(PairError::Forbidden) => Check::pass("stopped", clause::REVERSE, "403 for the connect token", started),
+        Err(PairError::Forbidden { .. }) => {
+            Check::pass("stopped", clause::REVERSE, "403 for the connect token", started)
+        }
         Ok(_) => Check::fail("stopped", clause::REVERSE, "the connect token still works after the stop", started),
         Err(e) => Check::fail("stopped", clause::REVERSE, format!("not 403: {}", podssh_ws::text::said(&e)), started),
     });

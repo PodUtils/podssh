@@ -27,8 +27,8 @@ pub const JOB: &[&str] = &[
      tmux; a job whose runner is gone is lost. With --no-tmux, submit starts a runner of the queue in the same way, \
      whose lock is the directory runner.lock.",
     "podssh job list HOST prints a line for each job, in the order of their starts: the ID, the state (queued; \
-     running; done; or lost, when no status is there and nothing runs it, neither its tmux session nor its --no-tmux runner, as after a restart of the \
-     host). Then the exit status (a dash while there is none) and the command. podssh job log HOST ID writes the \
+     running; done; or lost, when no status is there and nothing runs it, neither its tmux session nor its --no-tmux \
+     runner). Then the exit status (a dash while there is none) and the command. podssh job log HOST ID writes the \
      job's output to stdout, also after its end. podssh job stop HOST ID ends the tmux session of that exact name, \
      never another, and removes the job's directory with its output. Its line says what the job was: stopped, \
      ended with its status, queued and never run, or lost.",

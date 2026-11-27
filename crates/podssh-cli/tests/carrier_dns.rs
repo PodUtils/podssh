@@ -315,6 +315,12 @@ fn a_cut_answer_and_a_wrong_key_each_end_in_one_line_and_69() {
         assert!(ran.out.is_empty(), "{tag}: {:?}", ran.out);
         let own = ran.err.lines().any(|l| l.starts_with("podssh: the DNS carrier: ") && l.contains("client.conf"));
         assert!(own, "{tag}: the client's own line: {}", ran.err);
+        // T-905: a carrier's stream has no relay and no HTTP 410 in its end.
+        assert!(
+            !ran.err.contains("the relay") && !ran.err.contains("HTTP 410"),
+            "{tag}: no relay and no HTTP in a carrier's end: {}",
+            ran.err
+        );
     }
 }
 

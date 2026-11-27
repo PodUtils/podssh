@@ -57,28 +57,11 @@ fn is_bidi_control(c: char) -> bool {
 }
 
 /// `text` without each ` (os error N)` that Rust's `io::Error` adds to the
-/// system's words: a line says what happened once, in the system's words
-/// (one helper for each crate of podssh).
-pub fn plain(text: &str) -> String {
-    const MARK: &str = " (os error ";
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(at) = rest.find(MARK) {
-        let tail = &rest[at + MARK.len()..];
-        let digits = tail.bytes().take_while(|b| b.is_ascii_digit() || *b == b'-').count();
-        if digits > 0 && tail[digits..].starts_with(')') {
-            out.push_str(&rest[..at]);
-            rest = &tail[digits + 1..];
-        } else {
-            out.push_str(&rest[..at + 1]);
-            rest = &rest[at + 1..];
-        }
-    }
-    out.push_str(rest);
-    out
-}
+/// system's words (`pod_core::text::plain`), and [`io_words`] for an
+/// `io::Error` directly.
+pub use pod_core::text::{io_words, plain};
 
-/// [`plain`] of an error: what a user line shows of an `io::Error`.
+/// [`plain`] of an error: what a user line shows of any `Display` error.
 pub fn said(e: &dyn std::fmt::Display) -> String {
     plain(&e.to_string())
 }
