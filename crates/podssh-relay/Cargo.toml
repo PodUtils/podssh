@@ -86,7 +86,7 @@ ironwood = { git = "https://github.com/Revertron/Yggdrasil-ng", rev = "c3a3aa6",
 blake2 = { version = "0.10", optional = true }
 # HyperDHT where UDP passes (T-736): peeroxide, a port of Hyperswarm in pure
 # Rust (MIT OR Apache-2.0), pinned to its release with peeroxide-dht and libudx.
-peeroxide = { version = "=1.7.4", optional = true }
+peeroxide = { version = "=1.8.1", optional = true }
 # The Piping Server road (T-437): pod-piping of PodUtils/podcrates
 # (PodUtils/podcrates@T-032, T-684), through podssh's way out. smee's and
 # filehost's HTTP/1.1 take its dial and its reader; smee's TLS is the async
