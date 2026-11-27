@@ -75,7 +75,7 @@ GitHub #2, not verified here: the relay's `/trace` dials `[V6]:8079`.
    (`crates/podssh-ssh/src/known_hosts.rs:89-96`).
 6. Same commit: `docs/cli.md` (lines 62-75 at `3cbf215`), the help at
    `crates/podssh-cli/src/positionals.rs:20` and
-   `crates/podssh-cli/src/positionals.rs:228`, an example in
+   `crates/podssh-cli/src/positionals.rs:232`, an example in
    `crates/podssh-cli/src/man/examples.rs:8-328`, `docs/relay.md`,
    `docs/STATUS.md`. Use `2001:db8::/32` in offline tests only: the relay
    refuses that range.
@@ -606,7 +606,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:68-81`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
-   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7564-7566`;
+   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7593-7595`;
    `docs/STATUS.md`.
 5. Do this after T-008, so that a verb that does nothing still exits 70 first.
 
@@ -1879,7 +1879,7 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:256`, `crates/podssh-ssh/src/auth.rs:375`,
 `crates/podssh-ssh/src/keys.rs:372` and `crates/podssh-cli/src/keygen.rs:413`.
-Its refusals name the real remedies (`docs/cli.md:7521-7523`). Commands use
+Its refusals name the real remedies (`docs/cli.md:7550-7552`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
 `parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:385-412`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
@@ -2474,7 +2474,7 @@ nothing.
   the control socket of `-M` (`:216-224`), `-L` and `-D` on a port or a path
   (`crates/podssh-cli/src/ssh/local_bind.rs:79-89`, `:113-130`), `podssh agent`
   (`crates/podssh-cli/src/agent/serve.rs:41-44`) and `podssh session`
-  (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
+  (`crates/podssh-cli/src/session/daemon.rs:174`); on Windows, `bind` and `listen` together
   (`crates/podssh-cli/src/pipe/listen_win.rs:147`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`
   (`crates/podssh-cli/src/pipe/listen.rs:68-75`), and 255 in `-L` and `-D`, with the system's
@@ -2685,7 +2685,7 @@ later, in a file, and `ssh -f`, OpenSSH's way, is refused.
   (`crates/podssh-cli/src/ssh/keywords.rs:138`).
 - Read: `podssh session start` (T-186) starts this binary again, its child in a session of its
   own (`setsid` in `pre_exec`), and returns at the child's line of ready
-  (`crates/podssh-cli/src/session/start.rs:47-64`); its child cannot prompt, as it left the
+  (`crates/podssh-cli/src/session/start.rs:49-66`); its child cannot prompt, as it left the
   terminal at its start.
 - Read: Rust's standard library hands each inherited descriptor without close-on-exec to a
   child, as no `close_range` is in its spawn (`docs/detach.md`, section 1); measured there, a
@@ -3242,7 +3242,7 @@ or stop it, but by `kill` of a pid that may have been reused.
 - Read: T-380's files are in `detached/` of the state directory; there is no lock
   (`crates/podssh-cli/src/detach/mod.rs:83`).
 - Read: `session start` probes its socket before it binds, and two starts can pass the probe
-  (`crates/podssh-cli/src/session/daemon.rs:171`).
+  (`crates/podssh-cli/src/session/daemon.rs:174`).
 - Read in d-mon's code: a `flock` on the pid file, which `status` and `stop` test by taking it
   themselves, never trusting the pid in the file (src/ctl.rs of d-mon, read in the study).
 
@@ -3610,7 +3610,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:272`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:133-150`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:135-152`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -4578,7 +4578,7 @@ Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p pod
 
 ## Approach
 
-`update` takes no positional (`crates/podssh-cli/src/positionals.rs:270`), as `doctor`: clap refuses a stray word,
+`update` takes no positional (`crates/podssh-cli/src/positionals.rs:274`), as `doctor`: clap refuses a stray word,
 which dispatch makes a usage error (64), and the help lists no `[ARGS]`.
 
 ## Decision
@@ -4805,7 +4805,7 @@ exited 0 with 0 hosts, where the readers of Remmina and mRemoteNG exit 65.
 ## Approach
 
 1. One table, `config_import::FORMATS` (`crates/podssh-cli/src/config_import/mod.rs:48`), each format with what it
-   reads: the help (`formats_help`, `crates/podssh-cli/src/positionals.rs:253`) and the refusal of another word
+   reads: the help (`formats_help`, `crates/podssh-cli/src/positionals.rs:257`) and the refusal of another word
    (`format_names`) take it.
 2. MobaXterm's reader refuses a file with no `[Bookmarks]` section (65,
    `crates/podssh-cli/src/config_import/mobaxterm.rs:71`); PuTTY's a session file with no `key=value` line.

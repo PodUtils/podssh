@@ -1872,7 +1872,13 @@ is signalled only while its run's lock is held, and it is the pid that the
 holder wrote. The same lock now guards the socket of `podssh session`: two
 starts of one name could both find its path free, and the second, whose
 bind failed, removed the first's socket; its daemon holds `NAME.sock.lock`
-for its life, and a second one is refused (69).
+for its life, and a second one is refused (69). The file stays after its
+session ended or failed to start (T-1068), as `detached/NAME.lock` does:
+the kernel's lock, not the file, holds the name, the next start of the
+name takes the file again, and `list` reads only `NAME.sock`. A removal
+would not be safe: a start that opened the file before it was removed
+would hold the lock of a file with no name once the holder ended, beside a
+later start that made a new file, two daemons of one name.
 On Windows the supervisor's end leaves the run; it has no signal to pass.
 
 ## `podssh each`
@@ -2400,8 +2406,8 @@ them (T-197; `crates/podssh-cli/src/job/`).
   the command put in a group of its own, nor, with no `setsid`, one that
   it started in the background.
 - `list HOST` prints a line for each job, in the order of their starts:
-  the ID, the state (`queued`; `running`; `done`; or `lost`, when neither
-  the job's tmux session nor its status is there, as after a restart),
+  the ID, the state (`queued`; `running`; `done`; or `lost`, when no status
+  is there and nothing runs it, neither tmux session nor runner, T-1070),
   the exit status (`-` while there is none) and the command. `log HOST ID`
   writes the job's output to stdout as it comes, also after the job's end.
   `stop HOST ID` ends the tmux session of that exact name,
@@ -2462,7 +2468,11 @@ them (T-197; `crates/podssh-cli/src/job/`).
   regular file of that pattern of sh, in the home directory of the host, to
   `DIR/files` by its path. DIR is `./podssh-job-ID` by default. A pattern
   with an absolute path or a `..` is refused (64), and so is each path that
-  has no place under `DIR/files`. A job that is queued or running is not
+  has no place under `DIR/files`. DIR is made before anything connects
+  (T-1065): one that cannot be made here, or that is no directory, is 73
+  with a line that names it, as `cp` says a destination, never the 255 of
+  a host out of reach; a file under it that cannot be written is 73 too,
+  and the levels of DIR that the fetch made go again while they are empty. A job that is queued or running is not
   fetched, as its output is not whole until it ends (75). A lost job is
   fetched as it is, then a line names it lost, and the exit is 255, as
   `wait` and `log --follow` end for it (T-986). `list --json` gives one
@@ -2471,9 +2481,11 @@ them (T-197; `crates/podssh-cli/src/job/`).
 - **The exit status** is that of `podssh ssh`: 0; 64 for a usage error and
   78 for a setting, before anything connects; 255 when the host cannot be
   reached or logged in to, has no tmux, has no job of that ID, gives no
-  answer, or a job of `--no-tmux` runs on after its stop. `wait` and `log
+  answer, or a job of `--no-tmux` runs on after its stop; for `fetch` also
+  a file of the host that cannot be read. `wait` and `log
   --follow` give the job's status; 75 when their `--timeout` passed, and
-  when `fetch` finds the job queued or running. `--no-tmux` with another
+  when `fetch` finds the job queued or running. `fetch` gives 73 when DIR,
+  or a file in it, cannot be made here; a fault of the host wins over it. `--no-tmux` with another
   subcommand than `start` and `submit` is 64, and so are `--from-end`,
   `--jsonl` and `--timeout` with `log` without `--follow`.
 
@@ -7451,7 +7463,11 @@ output stops, and reads its screen, each with a call of its own.
   writes the last 64 KiB of the output as it came, from a place where a
   terminal can start to read it: the ring of T-221, never inside a
   sequence or a character.
-- `stop NAME` ends the session and its podssh. `list` writes a line for
+- `stop NAME` ends the session and its podssh. `send`, `wait`, `capture`
+  and `stop` exit 75 when the session's podssh gives no answer within 30 s,
+  after a wait's own `--timeout` (T-1067); the line says the two apart ("no
+  answer within 30 s after the wait's --timeout of 3 s"), as a podssh that
+  was stopped (SIGSTOP) or is stuck gives none. `list` writes a line for
   each session of the cache: its name, `running` or `ended` and the
   status, and its host, with a tab between them (T-506). A session whose
   podssh takes the connection and gives no answer within 2 s is a line
@@ -7462,7 +7478,10 @@ output stops, and reads its screen, each with a call of its own.
   stdout stays empty and one line on stderr says so and names the
   directories read, so that "none" is not a list that could not be made; a
   directory that is there and cannot be read is a line on stderr with its
-  error; `-q` leaves these lines out. `--json` writes one object instead:
+  error; `-q` leaves these lines out, as it leaves out podssh's own lines on
+  stderr for every subcommand, errors included, while keeping the exit code
+  (T-1069); a refusal of the command line or a setting before anything runs
+  is still said, as for `podssh job`. `--json` writes one object instead:
   `sessions` (`name`, `state`, `host` and `socket`; `[]` for none), `read`
   and `unreadable` (`dir` and `error`). The exit is 0.
 - The session's podssh ends at `stop`, 60 s after its session ended (so
@@ -7481,7 +7500,15 @@ pipe` (T-177): the socket is made mode 0600, and a client of another user
 is closed before a byte of it is read; on Windows it is an AF_UNIX socket
 whose clients must run as this user. `--socket PATH` names another place:
 also `\\.\pipe\NAME` on Windows, and `@NAME` in Linux's abstract namespace,
-which has no file and where the check of the user is the guard. No TCP: a
+which has no file and where the check of the user is the guard. A
+`--socket PATH` that cannot take a socket is refused before the session's
+podssh starts, so before any login, with 73 and one line that names it
+(T-1066): its directory is not there or is no directory, it is too long
+for the address of a socket, or a file that is no socket is there, which
+podssh never removes. A bind that still fails says the path, never the
+`unix-listen:` of `podssh pipe`, and is 73 too, but where this host refuses
+the listener (77, with the way with none) or a program serves the path
+(69). No TCP: a
 request types into a shell, and a TCP peer's user cannot be read. The bind
 is the probe: a host that refuses it gets the reason, and `start` exits 77;
 `PODSSH_LISTEN=no` refuses `start` and `serve` before any bind (78), and
@@ -7504,8 +7531,10 @@ that the client gives, and `error`. A line of another schema, or another
 session's name, is refused (64).
 
 Exit codes: 0; 64 a usage error; 69 no session of that name answers, or it
-ended; 70 an answer that this podssh cannot read; 75 the `--timeout` passed
-first; 77 the bind refused; 78 `PODSSH_LISTEN=no`, or no directory for the
+ended; 70 an answer that this podssh cannot read; 73 the path of
+`--socket` cannot take a socket; 75 the `--timeout` passed first, or no
+answer of the session's podssh within 30 s after it; 77 the
+bind refused; 78 `PODSSH_LISTEN=no`, or no directory of the cache for the
 socket; 255 the connection or the login of `start` failed.
 
 ## `podssh update`

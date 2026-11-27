@@ -24,7 +24,10 @@ pub const SESSION: &[&str] = &[
     "capture NAME writes the screen as a terminal of the pty's size shows it: its rows, with no blank at their ends \
      and no empty row at the end. --raw writes the last 64 KiB of the output as it came, from a place where a \
      terminal can start to read it. It never starts inside a sequence or a character. stop NAME ends the session and \
-     its podssh.",
+     its podssh. send, wait, capture and stop exit 75 when the session's podssh gives no answer within 30 s, past a \
+     wait's own --timeout. The line says each time apart; the podssh may be stopped or stuck. With -q, podssh writes \
+     none of its own messages on stderr, errors included, and keeps the exit code; a refusal of the command line or a \
+     setting before anything runs is still said.",
     "list writes a line for each session of the directories of the cache: its name, running or ended and the status, \
      and its host, with a tab between them. A session whose podssh takes the connection and gives no answer within 2 \
      s is listed with the state no-answer and no host. stderr says why: it is there, busy or stuck. A socket that \
@@ -43,8 +46,9 @@ pub const SESSION: &[&str] = &[
      clients must run as this user. A path too long for the address of a socket (107 bytes on Linux) goes to the \
      next directory of the cache (see FILES). That one may be under the temporary directory. With none \
      that fits, start names each one and asks for --socket. --socket PATH names another, also \\\\.\\pipe\\NAME on Windows, and @NAME \
-     on Linux, which has no file. A client of another user is closed before it is read. No TCP: a request \
-     types into a shell. The bind is the probe: where this host refuses it, start exits 77 with the reason; \
+     on Linux, which has no file. start refuses a --socket PATH with 73, before the login, when it cannot \
+     take a socket. Its directory is missing, it is too long, or a file that is no socket is there. A client of \
+     another user is closed before it is read. No TCP: a request types into a shell. The bind is the probe: where this host refuses it, start exits 77 with the reason; \
      PODSSH_LISTEN set to no refuses start and serve before any bind (78), and so does PODSSH_CACHE_DIR set to \
      none with no --socket.",
     "THE RISK: each program that runs as you can type into the session and read its screen, as it can with \

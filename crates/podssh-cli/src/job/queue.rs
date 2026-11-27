@@ -143,10 +143,7 @@ async fn watch(
         match (state.as_str(), status) {
             ("done", Some(code)) => return Some(code.clamp(0, 255)),
             ("lost", _) => {
-                log.error(&format!(
-                    "job {id} on {host} is lost: neither its tmux session nor its status is there, as after a \
-                     restart of the host"
-                ));
+                log.error(&lost_line(id, host));
                 return Some(EXIT_FAILURE);
             }
             _ => {}
@@ -157,6 +154,12 @@ async fn watch(
         }
         tokio::time::sleep(POLL).await;
     }
+}
+
+/// The line of `wait` and `log --follow` for a lost job (T-1070): one wording
+/// for both tmux and `--no-tmux` jobs, as `state` reports `lost` for either.
+pub(crate) fn lost_line(id: &str, host: &str) -> String {
+    format!("job {id} on {host} is lost: no status, and nothing runs it, as after a restart of the host")
 }
 
 #[cfg(test)]

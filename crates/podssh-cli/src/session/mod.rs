@@ -133,6 +133,18 @@ pub fn run(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
     }
 }
 
+/// Where podssh's own lines go once the command line and the settings were
+/// taken (T-1069): stderr, or nowhere with `-q`, errors included, as for
+/// `podssh job`; the exit code stays. A refusal of the command line or of a
+/// setting, before anything runs, is said with `-q` too, as `job` says it.
+fn said<'a>(args: &SessionArgs, err: &'a mut dyn Write, sink: &'a mut std::io::Sink) -> &'a mut dyn Write {
+    if args.ssh.quiet > 0 {
+        sink
+    } else {
+        err
+    }
+}
+
 /// A runtime for one run, or the line that says why there is none.
 fn runtime(err: &mut dyn Write) -> Option<tokio::runtime::Runtime> {
     match tokio::runtime::Builder::new_current_thread().enable_all().build() {

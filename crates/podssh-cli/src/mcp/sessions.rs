@@ -72,7 +72,7 @@ impl Started {
 #[rustfmt::skip]
 pub fn list(allow: &Allow) -> Vec<Value> {
     let hosts = allow.shown();
-    let name = json!({ "type": "string", "description": "the session's name: letters, digits, _ and -, 32 at most" });
+    let name = json!({ "type": "string", "description": "the session's name: letters, digits, _ and -, not first a -, 32 at most" });
     let changes = json!({ "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": true });
     let reads = json!({ "readOnlyHint": true, "openWorldHint": true });
     let tool = |tool: &str, title: &str, description: String, properties: Value, required: &[&str], notes: &Value| {

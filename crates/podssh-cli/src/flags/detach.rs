@@ -21,7 +21,7 @@ pub const SSH_RESTART: FlagRow = row(None, "restart", None, FlagKind::Supported,
 
 /// `ssh`, `pipe` and `node`: the name of a detached run.
 pub const DETACH_NAME: FlagRow = row(None, "detach-name", Some("NAME"), FlagKind::Supported,
-    "with --detach: the run's name, letters, digits, _ and -, 64 at most; a second start of a name that runs refuses (75), and podssh detached shows and stops it (default: the verb and the pid)", None);
+    "with --detach: the run's name, letters, digits, _ and -, not first a -, 64 at most; a second start of a name that runs refuses (75), and podssh detached shows and stops it (default: the verb and the pid)", None);
 
 /// **`detached`.** `list`, `status NAME` and `stop NAME`: the subcommand
 /// and the name are its arguments; the list's form and its word on stderr

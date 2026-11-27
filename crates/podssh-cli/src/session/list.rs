@@ -51,7 +51,8 @@ enum Asked {
 
 /// Run `podssh session list`; the exit code.
 pub fn list(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
-    let quiet = args.ssh.quiet > 0;
+    let mut sink = std::io::sink();
+    let err = super::said(args, err, &mut sink);
     let found = place::all();
     let mut listed = Vec::new();
     if !found.sessions.is_empty() {
@@ -62,9 +63,7 @@ pub fn list(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
                 Asked::Unserved => continue,
                 Asked::Answer(fields) => (state_of(&fields), text(&fields, "host").to_string()),
                 Asked::Failed(why) => {
-                    if !quiet {
-                        let _ = writeln!(err, "podssh session: {name}: {why}");
-                    }
+                    let _ = writeln!(err, "podssh session: {name}: {why}");
                     (NO_ANSWER.to_string(), String::new())
                 }
             };
@@ -72,10 +71,8 @@ pub fn list(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
         }
         runtime.shutdown_background();
     }
-    if !quiet {
-        for (dir, why) in &found.unreadable {
-            let _ = writeln!(err, "podssh session: {dir}: {why}; its sessions are not listed");
-        }
+    for (dir, why) in &found.unreadable {
+        let _ = writeln!(err, "podssh session: {dir}: {why}; its sessions are not listed");
     }
     if args.json {
         let _ = writeln!(out, "{}", json_of(&listed, &found));
@@ -84,7 +81,7 @@ pub fn list(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
     for l in &listed {
         let _ = writeln!(out, "{}\t{}\t{}", l.name, l.state, l.host);
     }
-    if listed.is_empty() && !quiet {
+    if listed.is_empty() {
         let _ = writeln!(err, "{}", none_line(&found));
     }
     0
@@ -99,7 +96,7 @@ async fn ask(socket: &str, line: &str) -> Asked {
         Err(e) if client::unserved(&e) => return Asked::Unserved,
         Err(e) => return Asked::Failed(format!("{socket}: {}", podssh_ws::text::said(&e))),
     };
-    match client::exchange(socket, end, line, LIST_WAIT).await {
+    match client::exchange(socket, end, line, LIST_WAIT, None).await {
         Ok(fields) => Asked::Answer(fields),
         Err((_, why)) => Asked::Failed(why),
     }

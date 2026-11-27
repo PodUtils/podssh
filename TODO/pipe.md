@@ -38,7 +38,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 ## Approach
 
 1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:399-471`, two
-   required positionals (`crates/podssh-cli/src/positionals.rs:7-292`), a
+   required positionals (`crates/podssh-cli/src/positionals.rs:7-296`), a
    `Parsed::Pipe` variant (`crates/podssh-cli/src/parsed.rs:10-269`), a
    dispatch arm, and `pipe` in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-147`). No `--timeout` row: the
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:860-864`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7521-7523`). After the attach, send the window size again.
+   (`docs/cli.md:7550-7552`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-196`), `docs/design.md:860-864`,
    `docs/STATUS.md`, and tmux in the interop image
@@ -2409,7 +2409,7 @@ learn them.
 
 - Read: `usage_tail` gives `[OPTIONS]` to each verb that it does not name, and named no `pipe`
   (`crates/podssh-cli/src/help.rs:83` is the new row).
-- Read: the help of A was a sentence of three kinds (`crates/podssh-cli/src/positionals.rs:208`, at
+- Read: the help of A was a sentence of three kinds (`crates/podssh-cli/src/positionals.rs:212`, at
   `b981f5f`).
 - Read: the refusal of an unknown kind lists `KINDS` (`crates/podssh-cli/src/pipe/address.rs:76`), the table of
   each kind.

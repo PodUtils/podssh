@@ -237,7 +237,7 @@ pub const SERVE: &[&str] = &[
      random bits in hex, after rw- (it types) or ro- (it watches). ssh NAME@HOST, by the same road, attaches to the \
      shell with any key. A name that serve does not hold reads as a wrong key. A watcher's input never reaches the \
      pty: it may send only its window size. Writers, the owner among them, take turns: one writer's bytes reach the \
-     pty until 200 ms of its silence. The pty's size is the least of each attached window. A seat first gets the \
+     pty until 400 ms of its silence. The pty's size is the least of each attached window. A seat first gets the \
      screen so far: the program's modes and its last lines, from a ring of 64 KiB. Then it sees the output from \
      its attach on, and one that falls behind skips ahead. A seat of podssh ssh --frames gets frames of one model \
      of the shell's screen instead, at its own pace. A name opens no forward and runs no command. The \
@@ -344,6 +344,15 @@ mod tests {
         let note = super::SERVE.iter().find(|n| n.starts_with("A client's -R")).expect("the note");
         let cap = podssh_ssh::server::remote_forward::MAX_REMOTE_FORWARDS;
         assert!(note.contains(&format!("At most {cap} are open on a connection")), "{note}");
+    }
+
+    /// The note of `--share` names the server's writer lease (T-1072), so that
+    /// the manual and `LEASE_IDLE` cannot part again.
+    #[test]
+    fn the_note_of_share_names_the_writer_lease() {
+        let note = super::SERVE.iter().find(|n| n.starts_with("With --share")).expect("the note");
+        let ms = podssh_ssh::server::share::LEASE_IDLE.as_millis();
+        assert!(note.contains(&format!("until {ms} ms of its silence")), "{note}");
     }
 
     /// The note of the algorithms names each name of the server's set

@@ -168,3 +168,22 @@ fn a_stop_says_what_the_job_was() {
         }
     }
 }
+
+/// T-1070: `wait`, `log --follow`, `fetch`, `stop` and the manual agree on
+/// the wording for a lost job, naming neither a tmux session nor a runner
+/// alone when `state` reports `lost` for either.
+#[test]
+fn lost_job_wording_matches_across_subcommands_and_manual() {
+    let wait_and_follow = queue::lost_line("0123abcd", "web1");
+    assert_eq!(
+        wait_and_follow,
+        "job 0123abcd on web1 is lost: no status, and nothing runs it, as after a restart of the host"
+    );
+    assert!(!wait_and_follow.contains("tmux") && !wait_and_follow.contains("runner"), "{wait_and_follow}");
+    let fetched = fetch::lost_line("0123abcd", "web1", std::path::Path::new("out"));
+    assert!(fetched.contains("no status, and nothing runs it"), "{fetched}");
+    let stopped = stop_said("0123abcd", "web1", "gone 0123abcd").expect("gone");
+    assert!(stopped.contains("no status, and nothing ran it"), "{stopped}");
+    let notes = crate::man::notes::for_verb("job").join("\n");
+    assert!(notes.contains("when no status is there and nothing runs it"), "{notes}");
+}

@@ -12,6 +12,7 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 use super::wire::{self, Failure, Op};
 use super::{place, SessionArgs, SEND_MAX};
+use crate::cp::words;
 use crate::exitmap::sysexits::{EX_NOPERM, EX_TEMPFAIL, EX_UNAVAILABLE};
 use crate::pipe::pump::End;
 use crate::relay_settings::Refusal;
@@ -22,17 +23,21 @@ const ANSWER_WAIT: Duration = Duration::from_secs(30);
 /// Run a request of `args`'s session, and give its answer: the screen of a
 /// capture on stdout, as is; what ended a wait. The exit code.
 pub fn request(args: &SessionArgs, op: Op, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    let mut sink = std::io::sink();
+    let err = super::said(args, err, &mut sink);
     let name = args.name();
     let Some(path) = place::find(name, args.socket.as_deref()) else {
         let _ = writeln!(err, "podssh session: no session {name}: podssh session list names each one");
         return EX_UNAVAILABLE;
     };
     let Some(runtime) = super::runtime(err) else { return super::NO_RUNTIME };
-    let limit = match &op {
-        Op::Wait(wait) => wait.timeout + ANSWER_WAIT,
-        _ => ANSWER_WAIT,
+    // A wait's own time, then the time of every answer.
+    let waited = match &op {
+        Op::Wait(wait) => Some(wait.timeout),
+        _ => None,
     };
-    let answer = runtime.block_on(ask(&path, &wire::request(name, &op), limit));
+    let limit = waited.unwrap_or_default() + ANSWER_WAIT;
+    let answer = runtime.block_on(ask(&path, &wire::request(name, &op), limit, waited));
     runtime.shutdown_background();
     let fields = match answer {
         Ok(fields) => fields,
@@ -60,17 +65,30 @@ pub(super) fn text<'a>(fields: &'a Map<String, Value>, key: &str) -> &'a str {
     fields.get(key).and_then(Value::as_str).unwrap_or_default()
 }
 
-/// One request on the socket at `path`, and its answer, within `limit`.
-pub(super) async fn ask(path: &str, line: &str, limit: Duration) -> Result<Map<String, Value>, Failure> {
+/// One request on the socket at `path`, and its answer, within `limit`;
+/// `waited`, the part of it that a wait asks of the session.
+pub(super) async fn ask(
+    path: &str,
+    line: &str,
+    limit: Duration,
+    waited: Option<Duration>,
+) -> Result<Map<String, Value>, Failure> {
     let end = crate::pipe::unix::connect(path)
         .await
         .map_err(|e| (code_of(&e), format!("{path}: {}", podssh_ws::text::said(&e))))?;
-    exchange(path, end, line, limit).await
+    exchange(path, end, line, limit, waited).await
 }
 
 /// The request `line` on `end`, the connection to the socket at `path`,
-/// and its answer, within `limit` (75 when it passes).
-pub(super) async fn exchange(path: &str, end: End, line: &str, limit: Duration) -> Result<Map<String, Value>, Failure> {
+/// and its answer, within `limit` (75 when it passes); `waited` as for
+/// [`ask`].
+pub(super) async fn exchange(
+    path: &str,
+    end: End,
+    line: &str,
+    limit: Duration,
+    waited: Option<Duration>,
+) -> Result<Map<String, Value>, Failure> {
     let mut writer = end.write;
     let mut reader = BufReader::new(end.read);
     let exchange = async {
@@ -82,7 +100,7 @@ pub(super) async fn exchange(path: &str, end: End, line: &str, limit: Duration) 
         Ok::<_, std::io::Error>(answer)
     };
     let answer = match tokio::time::timeout(limit, exchange).await {
-        Err(_) => return Err((EX_TEMPFAIL, format!("no answer within {} s", limit.as_secs()))),
+        Err(_) => return Err((EX_TEMPFAIL, no_answer(limit, waited))),
         Ok(Err(e)) => return Err((EX_UNAVAILABLE, format!("{path}: {}", podssh_ws::text::said(&e)))),
         Ok(Ok(answer)) => answer,
     };
@@ -91,6 +109,20 @@ pub(super) async fn exchange(path: &str, end: End, line: &str, limit: Duration) 
         return Err((EX_UNAVAILABLE, why.to_string()));
     }
     wire::parse_answer(&answer)
+}
+
+/// The line of an answer that did not come within `limit` (T-1067): the
+/// time of a wait is said apart from the time of its answer, so that a
+/// wait of `--timeout 3s` never reads as one of 33 s.
+pub(super) fn no_answer(limit: Duration, waited: Option<Duration>) -> String {
+    match waited {
+        Some(wait) => format!(
+            "no answer within {} after the wait's --timeout of {}: the session's podssh may be stopped or stuck",
+            words::limit(limit.saturating_sub(wait)),
+            words::limit(wait)
+        ),
+        None => format!("no answer within {}", words::limit(limit)),
+    }
 }
 
 /// A socket that is not there, or that nobody serves, is no session (69);

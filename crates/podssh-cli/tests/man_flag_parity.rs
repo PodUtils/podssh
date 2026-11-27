@@ -159,3 +159,29 @@ fn the_options_are_the_rows_in_order_then_help() {
         }
     }
 }
+
+/// T-1071: where a name validator refuses a leading `-`, its `--help` and
+/// manual text say `not first a -` too, with the same length limit.
+#[test]
+fn help_and_manual_state_leading_hyphen_rule_for_session_and_detach_names() {
+    let page = man::page();
+    let regions = man_regions(&page);
+    let session_rule = format!("letters, digits, _ and -, not first a -, {} at most", podssh_cli::session::NAME_MAX);
+    let detach_rule =
+        format!("letters, digits, _ and -, not first a -, {} at most", podssh_cli::detach::lock::NAME_MAX);
+    let session_err = podssh_cli::session::check_name("-x").unwrap_err();
+    let detach_err = podssh_cli::detach::lock::check_name("-x").unwrap_err();
+    for (verb, expected, err) in [
+        ("session", session_rule.as_str(), session_err.as_str()),
+        ("ssh", detach_rule.as_str(), detach_err.as_str()),
+        ("pipe", detach_rule.as_str(), detach_err.as_str()),
+        ("node", detach_rule.as_str(), detach_err.as_str()),
+    ] {
+        let v = VERBS.iter().find(|v| v.name == verb).unwrap_or_else(|| panic!("no verb {verb}"));
+        let help = squeeze(&help::verb_help(v));
+        let region = squeeze(regions.get(verb).unwrap_or_else(|| panic!("no region {verb}")));
+        assert!(err.contains(expected), "{verb}: error {err:?} does not hold {expected:?}");
+        assert!(help.contains(expected), "{verb}: --help does not hold {expected:?}");
+        assert!(region.contains(expected), "{verb}: manual does not hold {expected:?}");
+    }
+}

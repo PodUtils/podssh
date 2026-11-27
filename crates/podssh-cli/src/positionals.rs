@@ -132,7 +132,11 @@ pub fn add(cmd: Command, name: &str) -> Command {
                     .value_name("SUBCOMMAND")
                     .help("start, send, wait, capture, stop or list; serve is what start runs in the background"),
             )
-            .arg(Arg::new("name").value_name("NAME").help("the session's name: letters, digits, _ and -, 32 at most"))
+            .arg(
+                Arg::new("name")
+                    .value_name("NAME")
+                    .help("the session's name: letters, digits, _ and -, not first a -, 32 at most"),
+            )
             .arg(
                 Arg::new("destination")
                     .value_name("HOST")

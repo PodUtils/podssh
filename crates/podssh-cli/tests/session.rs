@@ -237,6 +237,39 @@ fn a_bad_command_line_or_no_listener_refuses_before_anything_listens() {
     let out = ran(cmd);
     assert_eq!(out.status.code(), Some(78));
     assert!(String::from_utf8_lossy(&out.stderr).contains("--socket"));
+    // T-1066: a --socket whose directory is not there is 73 before any
+    // login (127.0.0.1:9 is never reached), in one line of the path.
+    let missing = home.join("nodir").join("x.sock").display().to_string();
+    for sub in ["start", "serve"] {
+        let (code, out, err) = session(&home, &[sub, "w", "--socket", &missing, "--direct", "127.0.0.1", "-p", "9"]);
+        assert_eq!(code, 73, "{sub}: {err}");
+        assert!(out.is_empty(), "{sub}: {out}");
+        assert_eq!(err.lines().count(), 1, "{sub}: {err}");
+        assert!(err.contains(&format!("--socket {missing}: no such directory")), "{sub}: {err}");
+        assert!(!err.contains("unix-listen:") && !err.contains("-tt"), "{sub}: {err}");
+    }
+}
+
+/// T-1069: `-q` leaves out podssh's own lines, errors included, as for
+/// `podssh job`, and the exit code stays; a refusal of the command line is
+/// still said.
+#[test]
+fn quiet_leaves_out_the_error_lines_and_keeps_the_code() {
+    let home = scratch("quiet");
+    for args in
+        [&["stop", "nosuch"][..], &["send", "nosuch", "hi"][..], &["capture", "nosuch"][..], &["wait", "nosuch"][..]]
+    {
+        let (code, _, err) = session(&home, args);
+        assert_eq!(code, 69, "{args:?}: {err}");
+        assert!(err.contains("no session nosuch"), "{args:?}: {err}");
+        let mut quiet = args.to_vec();
+        quiet.insert(1, "-q");
+        let (code, out, err) = session(&home, &quiet);
+        assert_eq!((code, out.as_str(), err.as_str()), (69, "", ""), "{quiet:?}");
+    }
+    let (code, _, err) = session(&home, &["stop", "-q"]);
+    assert_eq!(code, 64, "{err}");
+    assert!(err.contains("give the session's name"), "{err}");
 }
 
 #[test]

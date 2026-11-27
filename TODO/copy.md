@@ -4390,7 +4390,7 @@ Finding 15: `podssh tx --help` showed `[FILE | DIR]...` (repeatable), but a seco
 - The near end asks, and replaces only after `y`: `crates/podssh-ssh/src/zmodem/session/envelope.rs:283` says "exists. Replace it?
   [y/N]" in the question; the far end never replaces: `crates/podssh-ssh/src/zmodem/far.rs:238` says "exists, and was not
   replaced" and the end is `Failure::Stopped`, exit 75.
-- The positional of `tx` takes any number of words, `crates/podssh-cli/src/positionals.rs:243`, and `ask` in `crates/podssh-cli/src/tx.rs`
+- The positional of `tx` takes any number of words, `crates/podssh-cli/src/positionals.rs:247`, and `ask` in `crates/podssh-cli/src/tx.rs`
   refused a second one, so the help's "..." promised what the run refused.
 
 ## Approach

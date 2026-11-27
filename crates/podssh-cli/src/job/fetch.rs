@@ -16,7 +16,8 @@ use crate::cp::link;
 use crate::cp::operand::{Operand, Remote};
 use crate::cp::pipe::Shape;
 use crate::cp::session;
-use crate::exitmap::sysexits;
+use crate::cp::words::said;
+use crate::exitmap::{sysexits, Fault};
 use crate::ssh::resolve::Resolved;
 
 /// What the far script said of a job to fetch: the name of its directory,
@@ -58,10 +59,69 @@ pub fn local_place(dir: &Path, far: &str) -> Option<PathBuf> {
     (place != root).then_some(place)
 }
 
-/// Fetch the job `id` into `dir`: 0, or 255 when a copy failed; 75 when the
-/// job has not ended, so that its output is not whole yet. A lost job (no
-/// status, and nothing runs it) gives what it wrote, then 255 with a line,
-/// as `wait` and `log --follow` end for it (T-986).
+/// The directories that a fetch made here for DIR, the deepest last, so
+/// that a fetch that brought nothing takes them away again (T-1065).
+#[derive(Debug, Default)]
+pub struct Made(Vec<PathBuf>);
+
+impl Made {
+    /// Remove each directory that this fetch made and that is still empty,
+    /// the deepest first: one that holds a file, put there by this fetch or
+    /// by another process, stays, and so does each above it.
+    pub fn undo(self) {
+        for dir in self.0.iter().rev() {
+            if std::fs::remove_dir(dir).is_err() {
+                break;
+            }
+        }
+    }
+}
+
+/// Make DIR here before anything connects (T-1065): a DIR that cannot be
+/// made, or that is no directory, is a fault here (73), as the destination
+/// of `podssh cp` is, and never reads as a host out of reach (255).
+pub fn prepare(dir: &Path) -> Result<Made, String> {
+    // The levels of DIR that are not there, from DIR up.
+    let mut missing = Vec::new();
+    let mut at = Some(dir).filter(|p| !p.as_os_str().is_empty());
+    while let Some(path) = at {
+        match std::fs::symlink_metadata(path) {
+            Ok(_) => break,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                missing.push(path.to_path_buf());
+                at = path.parent().filter(|p| !p.as_os_str().is_empty());
+            }
+            Err(e) => return Err(format!("{}: {}", path.display(), said(&e))),
+        }
+    }
+    let mut made = Made::default();
+    for path in missing.into_iter().rev() {
+        match std::fs::create_dir(&path) {
+            Ok(()) => made.0.push(path),
+            // Another process made it in the meantime: it is not ours.
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && path.is_dir() => {}
+            Err(e) => {
+                made.undo();
+                return Err(format!("{}: cannot be made here: {}", path.display(), said(&e)));
+            }
+        }
+    }
+    match std::fs::metadata(dir) {
+        Ok(meta) if meta.is_dir() => Ok(made),
+        Ok(_) => Err(format!("{}: not a directory, so the job's output has no place there", dir.display())),
+        Err(e) => {
+            made.undo();
+            Err(format!("{}: {}", dir.display(), said(&e)))
+        }
+    }
+}
+
+/// Fetch the job `id` into `dir`: 0; 73 when DIR, or a file under it,
+/// cannot be made here (T-1065); 255 when the host, or a copy of a file of
+/// the host, failed; 75 when the job has not ended, so that its output is
+/// not whole yet. A lost job (no status, and nothing runs it) gives what it
+/// wrote, then 255 with a line, as `wait` and `log --follow` end for it
+/// (T-986). The directories that it made and left empty go again.
 pub(crate) async fn fetch(
     resolved: &Resolved,
     host: &str,
@@ -70,6 +130,22 @@ pub(crate) async fn fetch(
     files: Option<&str>,
     log: &Arc<Log>,
 ) -> i32 {
+    let made = match prepare(dir) {
+        Ok(made) => made,
+        Err(why) => {
+            log.error(&why);
+            return sysexits::EX_CANTCREAT;
+        }
+    };
+    let code = fetch_into(resolved, host, id, dir, files, log).await;
+    if code != 0 {
+        made.undo();
+    }
+    code
+}
+
+/// [`fetch`] into a DIR that is there.
+async fn fetch_into(resolved: &Resolved, host: &str, id: &str, dir: &Path, files: Option<&str>, log: &Arc<Log>) -> i32 {
     let first = match link::connect(resolved, log).await {
         Ok(first) => first,
         Err(failed) => {
@@ -100,12 +176,13 @@ pub(crate) async fn fetch(
         return sysexits::EX_TEMPFAIL;
     }
     let mut copies = vec![(format!(".podssh/jobs/{}/out", found.dir), dir.join("out"))];
-    let mut failed = false;
+    // A fault here (73) and a fault of the host or of the link (255), apart.
+    let (mut here, mut far_failed) = (false, false);
     for far in &found.files {
         match local_place(dir, far) {
             Some(place) => copies.push((far.clone(), place)),
             None => {
-                failed = true;
+                here = true;
                 log.error(&format!("{far}: not copied: its path has no place under {}", dir.join("files").display()));
             }
         }
@@ -114,8 +191,8 @@ pub(crate) async fn fetch(
     for (far, place) in copies {
         if let Some(parent) = place.parent() {
             if let Err(e) = std::fs::create_dir_all(parent) {
-                failed = true;
-                log.error(&format!("{}: {}", parent.display(), podssh_ws::text::said(&e)));
+                here = true;
+                log.error(&format!("{}: cannot be made here: {}", parent.display(), said(&e)));
                 continue;
             }
         }
@@ -125,7 +202,11 @@ pub(crate) async fn fetch(
         match session::attempts(&mut link, resolved, &source, &dest, false, log, Shape::default()).await {
             Ok((done, _)) => log.verbose(&format!("{far}: {} bytes to {}", done.bytes, done.destination)),
             Err(f) => {
-                failed = true;
+                // The destination is here: cp's fault of a destination is ours.
+                match f.fault {
+                    Fault::CantCreate => here = true,
+                    _ => far_failed = true,
+                }
                 log.error(&f.message);
                 // No connection is left for the next file.
                 if link.is_none() {
@@ -141,10 +222,17 @@ pub(crate) async fn fetch(
         log.error(&lost_line(id, host, dir));
         return EXIT_FAILURE;
     }
-    if failed {
-        EXIT_FAILURE
-    } else {
-        0
+    exit_of(here, far_failed)
+}
+
+/// The exit of a fetch of a job that ended: a fault of the host or of the
+/// link first (255), as it can leave the files here unwritten too; then a
+/// fault here alone (73); else 0.
+pub fn exit_of(here: bool, far_failed: bool) -> i32 {
+    match (here, far_failed) {
+        (_, true) => EXIT_FAILURE,
+        (true, false) => sysexits::EX_CANTCREAT,
+        (false, false) => 0,
     }
 }
 
@@ -179,6 +267,45 @@ mod tests {
         let line = lost_line("abcd1234", "web1", Path::new("podssh-job-abcd1234"));
         assert!(line.starts_with("job abcd1234 on web1 is lost"), "{line}");
         assert!(line.contains(&Path::new("podssh-job-abcd1234").join("out").display().to_string()), "{line}");
+    }
+
+    /// T-1065: DIR is made before anything connects; a DIR that is a file,
+    /// or that is under one, is a line that names it here, and nothing is
+    /// made; what a fetch made goes again while it is empty, never a
+    /// directory that was there or one that holds a file.
+    #[test]
+    fn a_dir_here_is_made_first_and_its_fault_is_said_here() {
+        let root = std::env::temp_dir().join(format!("podssh-fetch-dir-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let file = root.join("a-file");
+        std::fs::write(&file, b"x").unwrap();
+        for (dir, says) in [(file.clone(), "not a directory"), (file.join("sub"), "a-file")] {
+            let why = prepare(&dir).expect_err("no place for DIR");
+            assert!(why.contains(says), "{}: {why}", dir.display());
+            assert!(!why.contains("(os error"), "{why}");
+            assert!(std::fs::read(&file).is_ok_and(|b| b == b"x"), "the file stays as it was");
+        }
+        let deep = root.join("new").join("deeper");
+        let made = prepare(&deep).unwrap();
+        assert!(deep.is_dir());
+        made.undo();
+        assert!(!root.join("new").exists(), "the two levels that the fetch made go again");
+        let made = prepare(&deep).unwrap();
+        std::fs::write(deep.join("out"), b"x").unwrap();
+        made.undo();
+        assert!(deep.join("out").is_file(), "a directory that holds a file stays");
+        prepare(&root).unwrap().undo();
+        assert!(root.is_dir(), "a directory that was there is never removed");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// The exit of a fetch: a fault of the host first, then one here.
+    #[test]
+    fn a_fault_here_is_73_and_one_of_the_host_is_255() {
+        for (here, far, code) in [(false, false, 0), (true, false, 73), (false, true, 255), (true, true, 255)] {
+            assert_eq!(exit_of(here, far), code, "here {here}, far {far}");
+        }
     }
 
     #[test]

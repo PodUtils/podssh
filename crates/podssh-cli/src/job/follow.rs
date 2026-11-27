@@ -235,10 +235,7 @@ async fn watch(
             }
             ("lost", _) => {
                 sink.end(Some("lost"), None);
-                log.error(&format!(
-                    "job {id} on {host} is lost: neither its runner nor its status is there, as after a restart \
-                     of the host"
-                ));
+                log.error(&queue::lost_line(id, host));
                 return Some(EXIT_FAILURE);
             }
             _ => {}

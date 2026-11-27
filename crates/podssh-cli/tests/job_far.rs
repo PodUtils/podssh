@@ -319,7 +319,7 @@ fn log_follow_ends_a_lost_job_with_255_and_jsonl_gives_each_line() {
     }
     let (code, lines, err) = far.job_lines("log", &[id.as_str(), "--follow", "--jsonl"], Duration::from_secs(60));
     assert_eq!(code, 255, "{err}");
-    assert!(err.contains("is lost"), "{err}");
+    assert!(err.contains("is lost: no status, and nothing runs it"), "{err}");
     let last: serde_json::Value = serde_json::from_str(&lines.last().expect("the end").1).unwrap();
     assert_eq!(last, serde_json::json!({ "event": "end", "state": "lost", "status": null }));
 }

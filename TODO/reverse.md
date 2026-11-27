@@ -6695,7 +6695,7 @@ cause: no pair is stored under the label. The manual's EXIT STATUS said neither 
 - Read, at `9574133`: `ssh`'s road to a node says each refusal of `pairs::operator_part` with 255
   (`crates/podssh-cli/src/ssh/node.rs:241`), as each failure of the connection; `operator` and `proxy node://NAME`
   report the refusal's own code, 78 (`crates/podssh-cli/src/pairs.rs:46`).
-- The 255 row of EXIT STATUS (`crates/podssh-cli/src/man/data.rs:156`) named the connection, the host key and the
+- The 255 row of EXIT STATUS (`crates/podssh-cli/src/man/data.rs:158`) named the connection, the host key and the
   login, not a node of no pair.
 
 ## Approach

@@ -17335,7 +17335,7 @@ parser also takes `policy test FILE` and `policy diff POLICY`, which they do not
 ## Premise
 
 - Read: `shape` takes `check`, `test`, `diff`, `set`, `show` and `clear` (`crates/podssh-cli/src/net/policy_cmd.rs:24`).
-- Read: the help of SUBCOMMAND and of the arguments of `net` (`crates/podssh-cli/src/positionals.rs:157`), which the
+- Read: the help of SUBCOMMAND and of the arguments of `net` (`crates/podssh-cli/src/positionals.rs:161`), which the
   manual's Arguments show too, named four of them.
 
 ## Approach

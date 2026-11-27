@@ -65,7 +65,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    starts no new host after a failure, and the running ones finish. A
    summary on stderr gives each host and its status.
 7. In the same commit: `crates/podssh-cli/src/flags.rs:399-471`,
-   `crates/podssh-cli/src/positionals.rs:7-292`, a `Parsed` variant,
+   `crates/podssh-cli/src/positionals.rs:7-296`, a `Parsed` variant,
    `crates/podssh-cli/tests/flag_table.rs:110-147`, the notes, an example,
    `docs/cli.md`, `docs/STATUS.md`. T-013 can then group the commands.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:7606-7721`); they cannot define a group.
+  (`docs/cli.md:7635-7750`); they cannot define a group.
 
 ## Approach
 
@@ -2017,7 +2017,7 @@ queue, no wait for a result, and no way to get the output back.
    gives one object.
 4. `job wait HOST ID [--timeout D]` reads `state` every 5 s until it is
    `done`, and exits with the job's status. When the limit passes first, it
-   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-181`.
+   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-183`.
 5. `job fetch HOST ID [DIR]` copies `out`, and the files that `--files GLOB`
    names, with the engine of T-134; DIR is `./podssh-job-ID` by default.
 6. With a list of hosts (T-184), `submit` picks the host with the fewest
@@ -2086,7 +2086,7 @@ one running and two queued must fail.
 ## Correction
 
 2026-10-09 (T-134): 75 (`EX_TEMPFAIL`) is in the table of exit codes
-already (`crates/podssh-cli/src/man/data.rs:17-181`), for a `--timeout` of
+already (`crates/podssh-cli/src/man/data.rs:17-183`), for a `--timeout` of
 `cp` that passed; this entry adds its sentence for `job wait`.
 
 2026-10-13 (the draft of T-197): T-193 runs a job under tmux only; the
@@ -3431,10 +3431,10 @@ read.
 ## Premise
 
 - Read, at `582b1bf` (before this entry's change, as at `01e371e`): `session list` returns 0 at
-  once with no session (`crates/podssh-cli/src/session/client.rs:104-106`), and skips a session
-  whose server does not answer within its wait (`crates/podssh-cli/src/session/client.rs:110`);
+  once with no session (`crates/podssh-cli/src/session/client.rs:136-138`), and skips a session
+  whose server does not answer within its wait (`crates/podssh-cli/src/session/client.rs:142`);
   the sockets are found in the directories that it can read, and one that it cannot is skipped
-  (`crates/podssh-cli/src/session/place.rs:70-84`, `:73`).
+  (`crates/podssh-cli/src/session/place.rs:114-128`, `:117`).
 - Read, at `582b1bf`: `detached list` writes a line for each run of its directory, and none for
   none (`crates/podssh-cli/src/detach/control.rs:164-171`); a directory that cannot be read gives
   none (`crates/podssh-cli/src/detach/control.rs:149-160`).
@@ -4465,3 +4465,375 @@ Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0).
 - Changed: `crates/podssh-cli/src/each/mod.rs`, `crates/podssh-cli/tests/each.rs`,
   `crates/podssh-cli/src/man/notes_each.rs`, `docs/cli.md`.
 - Result: `tests/each.rs` 25 passed, `man_page` 11, `man_json` 4, clippy and rustfmt clean.
+
+
+# T-1065: `job fetch` into a DIR that cannot be made here exits 255, as a host out of reach
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 6.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh job fetch HOST ID /proc/nope` said "podssh: /proc/nope: No such file or directory" and exited 255, and `...
+ID /dev/null` said "/dev/null: File exists" with 255: the code of a host that cannot be reached, for a fault here.
+`podssh cp` gives 73 for a destination that cannot be written, and the manual says that fetch copies "as podssh cp
+copies a file". A remote file of `--files` that cannot be read was 255 too, which the manual did not say.
+
+## Premise
+
+- Read, at `40a83e5`: `fetch` in `crates/podssh-cli/src/job/fetch.rs` makes the directory of each copy with
+  `create_dir_all` after the connection and the far script's answer (line 116), says the system's words, and sets
+  one flag `failed` for every fault (lines 108, 117 and 128), which ends as `EXIT_FAILURE` (line 145): a fault here
+  and a fault of the host are one 255.
+- The failure of a copy carries its fault (`crates/podssh-cli/src/cp/transfer.rs:76`): `CantCreate` for a
+  destination that cannot be written, which is here for a fetch.
+
+## Approach
+
+1. `prepare` (`crates/podssh-cli/src/job/fetch.rs:83`) makes DIR before anything connects, level by level, and
+   remembers the levels that it made; a DIR that is a file, or one that cannot be made, is one line that names the
+   place here, and 73. `fetch` (`crates/podssh-cli/src/job/fetch.rs:125`) takes the levels away again, while they
+   are empty, when the fetch does not end with 0, so that a fetch of a running job or of a host out of reach leaves
+   no empty `podssh-job-ID`.
+2. In the copies, a fault here (a directory under DIR, a path with no place, a copy whose fault is `CantCreate`)
+   and a fault of the host or the link are kept apart; `exit_of` (`crates/podssh-cli/src/job/fetch.rs:238`) gives
+   255 for a fault of the host first, else 73, else 0. A lost job stays 255 (T-986).
+3. The manual (`podssh man job`, and the row of 73 in EXIT STATUS) and `docs/cli.md` say both codes, and that a
+   file of the host that cannot be read is 255.
+
+## Decision
+
+- 73, as `cp`'s destination and `--result-file`'s (T-1048): a file that cannot be made here, which a script must
+  tell from a host out of reach. Lost: nothing; 255 told the two apart from nothing.
+- DIR is made before the connection, not checked: only a try of the system tells a `/proc` that takes no
+  directory. The levels made go again when empty, so a failed fetch leaves nothing; a directory that holds a file
+  stays, also one that another process filled.
+- A file of the host that cannot be read stays 255 and is documented: it is the host's fault, as the other 255s of
+  `job` are, and not cp's 66 of a source named on the command line. When both come, 255 wins: the host failed.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib job::fetch
+cargo test -p podssh-cli --test job
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `job::fetch` 5 passed, `tests/job.rs` 4 passed, `io_error_lines` 6 passed, clippy and rustfmt clean.
+
+
+# T-1066: `session start --socket` in a directory that is not there says `unix-listen:` and the hint of `-tt`, with 69
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 7.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh session start s9 --socket DIR/nodir/x.sock HOST` said "podssh session: unix-listen:DIR/nodir/x.sock: No such
+file or directory", then "with no listener, podssh ssh -tt HOST COMMAND runs a command with a pty in one call", and
+exited 69. `unix-listen:` is a word of `podssh pipe`'s addresses that the user never typed, the second line is a
+hint for a host that refuses a listener, and one class of fault had three codes: 69 for a missing directory and a
+path too long, 64 for a `--socket` that names a directory.
+
+## Premise
+
+- Read, at `40a83e5`: `place::new` takes the path of `--socket` as it is (line 37 of
+  `crates/podssh-cli/src/session/place.rs`); the session's podssh binds it (line 171 of
+  `crates/podssh-cli/src/session/daemon.rs`) through `podssh pipe`'s listener, whose line begins with
+  `unix-listen:PATH` (line 192 of `crates/podssh-cli/src/pipe/listen.rs`), a file that is no socket is 64 there
+  (line 265), and each other failure keeps the code of the error (69, or 77 for a refusal); then the daemon writes
+  the hint of `-tt` after each failure (line 181).
+- Read, at `40a83e5`: the bind comes before the connection (line 208, `connect_and_run`), so no login comes before
+  the failure; the check still belongs before the child starts, where `start` makes `serve`'s other refusals.
+- EXIT STATUS gives 73 for a file of a run that cannot be made (T-1048), 77 for a bind that the host refuses, and
+  78 for no directory of the cache for the socket.
+
+## Approach
+
+1. `unfit` (`crates/podssh-cli/src/session/place.rs:79`) checks the path of `--socket` in `plan`, so before the
+   child starts in `start` and before the bind in `serve`: too long for the address of a socket, a directory that
+   is not there or is no directory (`no_place_for` of T-1048), or a file there that is no socket. Each is one line
+   that begins with `--socket PATH`, and 73. `@NAME` and a named pipe go on to the bind.
+2. A bind that still fails (`/proc`, a file system that refuses it) is said by `unbound_line`
+   (`crates/podssh-cli/src/session/daemon.rs:425`): the path, with `--socket` when it was given, never
+   `unix-listen:`, and the way with no listener in a session's words only at 77. `unbound_code`
+   (`crates/podssh-cli/src/session/daemon.rs:411`) makes it 73, but 77 for a refusal of the host and 69 for a path
+   that a program serves.
+3. The manual (THE SOCKET, and the row of 73 in EXIT STATUS) and `docs/cli.md` say it.
+
+## Decision
+
+- 73, against 64 and 78. A path of the command line that cannot take the file that the run makes is 73 in each
+  other verb (`--result-file`, `-E`, `--record`, `cp`'s destination, `job fetch`'s DIR); 64 would say a flag was
+  malformed, and 78 is a setting of the environment (the cache's directories, `PODSSH_LISTEN`), which `--socket`
+  is not. Lost: nothing; 69 told a missing directory from no session of that name with nothing.
+- 77 keeps its line and the way with no listener: the manual's "where this host refuses it, start exits 77 with the
+  reason". 69 stays for a path that a program serves: the place is good, and it is taken.
+- The check of a file that is no socket is the bind's own (it never removes one), made earlier; on Windows, whose
+  socket file reads as a reparse point, only a directory is refused before the bind.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib session::tests
+cargo test -p podssh-cli --test session a_bad_command_line_or_no_listener_refuses_before_anything_listens
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `session::tests` 12 passed, `tests/session.rs` 8 passed, `io_error_lines` 6 passed, clippy and rustfmt clean.
+
+
+# T-1067: `session send`, `capture` and `stop` exit 75 at no answer, which EXIT STATUS gives only to `start` and `wait`
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 8.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With the session's podssh stopped (SIGSTOP), `podssh session send sz hi` and `stop sz` said "podssh session: sz:
+no answer within 30 s" and exited 75; the row of 75 in EXIT STATUS names `session start and wait` alone. And `wait
+--timeout 3s` of such a session said "no answer within 33 s": the wait's 3 s and the 30 s of its answer as one
+number, which reads as a wait longer than the one asked.
+
+## Premise
+
+- Read, at `40a83e5`: each request of `crates/podssh-cli/src/session/client.rs` waits 30 s for its answer
+  (`ANSWER_WAIT`, line 20), a wait its `--timeout` first (line 32), and a time that passes is 75 with "no answer
+  within N s" of the sum (line 85), for send, wait, capture and stop alike.
+- Read, at `40a83e5`: the row of 75 (line 114 of `crates/podssh-cli/src/man/data.rs`) and the exit codes of
+  `docs/cli.md`'s section of `podssh session` name only the `--timeout` of start and wait.
+
+## Approach
+
+1. `no_answer` (`crates/podssh-cli/src/session/client.rs:115`) writes the line: "no answer within 30 s after the
+   wait's --timeout of 3 s: the session's podssh may be stopped or stuck" for a wait, and "no answer within N s"
+   for the others, as before (`list`'s 2 s stays). Each time in `cp`'s words of a bound (`3 s`, `500 ms`).
+2. The row of 75, the notes of `podssh man session`, and `docs/cli.md` name send, wait, capture and stop at no
+   answer. `list` stays 0: it lists such a session as `no-answer`, as the manual says.
+
+## Decision
+
+Document the 75 and keep it: no answer within a limit is the code of a limit that passed, as for `cp --timeout`, and
+a later try can work (a session that was stopped goes on). Lost: 69, which says that there is no session, where one
+is there and silent. The line keeps one sentence and names both times, not the sum: the sum is true, and the user
+asked for neither of its parts alone.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib session::tests
+cargo test -p podssh-cli --test session
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `session::tests` 12 passed, `tests/session.rs` 8 passed, `tests/man_page.rs` 11 passed, clippy and rustfmt clean.
+
+
+# T-1068: The manual says that a session's podssh holds `NAME.sock.lock` for its life, and not that the file stays
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 9.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+After `session stop`, and after a `session start` that failed to log in, `NAME.sock` is gone and `NAME.sock.lock`
+stays; ten such files after one pass, also one beside a `--socket` outside the cache. FILES says only that the
+session's podssh holds the file for its life, which reads as if it went with that life.
+
+## Premise
+
+- Read, at `40a83e5`: `socket_lock` (line 416 of `crates/podssh-cli/src/session/daemon.rs`) takes
+  `PATH.lock` with `try_hold` of `crates/podssh-cli/src/node_install/lock.rs`, and nothing removes the file; the
+  kernel lets the lock go when the process ends (T-392).
+- Read, at `40a83e5`: `list` takes a session from a name that ends in `.sock` alone (line 103 of
+  `crates/podssh-cli/src/session/place.rs`), so a stale lock's file is never listed.
+- Read, at `40a83e5`: FILES (line 335 of `crates/podssh-cli/src/man/data_files.rs`) and the paragraph of T-392 in
+  `docs/cli.md` say "holds for its life".
+
+## Approach
+
+Keep the file, and say so: FILES, `docs/cli.md` and the comment of `socket_lock` say that the file stays after its
+session ended or failed to start, that the kernel's lock and not the file holds the name, and that the next start of
+the name takes the file again. The unit test of the lock asks that the file stays after its holder, that a second
+holder takes the file that the first left, and that `list` takes no session from it.
+
+## Decision
+
+Keep and document, against a removal when the daemon ends. A removal is not safe with a lock that is a file's: a
+start that opened `NAME.sock.lock` before it was removed takes the lock of a file with no name once its holder ends,
+while a later start makes a new file and takes its lock, and two daemons of one name are the fault that T-392 closed
+(the second's failed bind removes the first's socket). A safe removal needs a check, after each lock, that the path
+still names the file locked, in `pod-core`'s `FileLock` (PodUtils/podcrates); the lock of the detached runs keeps
+its files too. Lost: a file of a few bytes for each name, which the next start of the name uses.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib session::tests::a_second_daemon_of_a_socket_is_refused_while_the_first_holds_it
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `session::tests::a_second_daemon_of_a_socket_is_refused_while_the_first_holds_it` passed, `tests/man_page.rs` 11 passed, clippy and rustfmt clean.
+
+
+# T-1069: `-q` is not honoured by `session stop`, `send`, `capture` and `wait` errors
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 12.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh session stop -q nosuch` writes `podssh session: no session nosuch: podssh session list names each one` on
+stderr (exit 69), and `send`, `capture` and `wait` do the same, where `session start -q` on a refused connection,
+`job list -q`, `each -q`, `run -q` and `health -q` write nothing. The `-q` flag row of `session` also omitted
+"errors included", which every other verb's `-q` row states.
+
+## Premise
+
+- Read, at `40a83e5`: `crates/podssh-cli/src/session/list.rs` read `args.ssh.quiet > 0` before writing stderr lines,
+  and `crates/podssh-cli/src/session/daemon.rs` passed `-q` through `LogLevel::Quiet` for SSH logging;
+  `crates/podssh-cli/src/session/client.rs`, `start.rs` and `daemon.rs`'s direct `writeln!(err, ...)` calls never
+  checked `args.ssh.quiet`.
+- Read, at `40a83e5`: `crates/podssh-cli/src/flags/session.rs` said `"quiet: no messages from podssh itself"`,
+  whereas `flags/job.rs` and the other verbs say `"quiet: no messages from podssh itself, errors included"`.
+
+## Approach
+
+Add `session::said` in `crates/podssh-cli/src/session/mod.rs` to route `err` to `std::io::sink()` when
+`args.ssh.quiet > 0` once command-line and setting checks pass, and use it in `client::request`, `start::run`,
+`daemon::run` and `list::list`. Keep command-line and setting refusals before anything runs on stderr even with `-q`,
+matching `podssh job`. Align `flags/session.rs`, `man/notes_session.rs` and `docs/cli.md`, and add a table-driven
+regression test in `crates/podssh-cli/tests/session.rs` covering `stop`, `send`, `capture` and `wait` with and
+without `-q`, plus a usage refusal with `-q`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test session
+cargo test -p podssh-cli --test man_flag_parity
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `tests/session.rs` 8 passed (including `quiet_leaves_out_the_error_lines_and_keeps_the_code`), `tests/man_flag_parity.rs` 7 passed, `tests/man_page.rs` 11 passed, clippy and rustfmt clean.
+
+
+# T-1070: `job log --follow` of a lost tmux job says "neither its runner nor its status is there"
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 13.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+When a tmux job's session is killed, `podssh job log --follow HOST ID` says
+`neither its runner nor its status is there` (naming a runner that a tmux job never had), whereas `job wait` says
+`neither its tmux session nor its status is there` (wrong for a `--no-tmux` job), and the manual says
+`neither the job's session nor its status is there`. Meanwhile `job fetch` and `job stop` already say
+`no status, and nothing runs it` / `ran it`.
+
+## Premise
+
+- Read, at `40a83e5`: `crates/podssh-cli/src/job/follow.rs` formatted `neither its runner nor its status is there`,
+  `crates/podssh-cli/src/job/queue.rs` formatted `neither its tmux session nor its status is there`,
+  `crates/podssh-cli/src/man/notes_job.rs` said `neither the job's session nor its status is there`, and
+  `docs/cli.md` said `neither the job's tmux session nor its status is there`.
+- Read, at `40a83e5`: the far script's `state` action (`crates/podssh-cli/src/job/far.sh`) reports `lost` for both
+  tmux and `--no-tmux` jobs, so `wait` and `log --follow` do not know which kind the lost job was.
+
+## Approach
+
+Put one helper `queue::lost_line` in `crates/podssh-cli/src/job/queue.rs` returning
+`job ID on HOST is lost: no status, and nothing runs it, as after a restart of the host`, matching `fetch::lost_line`
+and `stop_said`, and call it from both `queue::wait_once` and `follow`. Align `crates/podssh-cli/src/man/notes_job.rs`
+and `docs/cli.md`, add a unit test in `crates/podssh-cli/src/job/tests.rs` pinning the shared wording across `wait`,
+`log --follow`, `fetch`, `stop` and the manual, and tighten the lost-job assertion in
+`crates/podssh-cli/tests/job_far.rs`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib job::tests::lost_job_wording_matches_across_subcommands_and_manual
+cargo test -p podssh-cli --test job_far
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `job::tests::lost_job_wording_matches_across_subcommands_and_manual` passed, `tests/job_far.rs` 11 passed (on real `/usr/bin/rm`), `tests/man_page.rs` 11 passed, clippy and rustfmt clean.
+
+
+# T-1071: `session --help` and `--detach-name` help omit "not first a -" that the validators enforce
+
+**Source:** the black-box pass of 2026-11-26 (QA pass 10), finding 15.
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh session start 'bad name' ...` says `a session's name has letters, digits, _ and -, not first a -, 32 at most`,
+and `podssh detached status 'bad name'` says `a run's name has letters, digits, _ and -, not first a -, 64 at most`,
+yet `podssh session --help` (`NAME`), `--detach-name` in `ssh`/`pipe`/`node` help and manual, and the MCP `session_*`
+tool schema omitted `not first a -`.
+
+## Premise
+
+- Read, at `40a83e5`: `crates/podssh-cli/src/session/mod.rs` (`check_name`) and `crates/podssh-cli/src/detach/lock.rs`
+  (`check_name`) both reject names starting with `-` and include `not first a -` in their error text.
+- Read, at `40a83e5`: `crates/podssh-cli/src/positionals.rs` (`session` `NAME`), `crates/podssh-cli/src/flags/detach.rs`
+  (`DETACH_NAME`, rendered into `--help` and `podssh man` for `ssh`, `pipe` and `node`), and
+  `crates/podssh-cli/src/mcp/sessions.rs` (`name` schema property) all said `letters, digits, _ and -, 32/64 at most`
+  without `not first a -`.
+
+## Approach
+
+Add `not first a -` to `positionals.rs` (`session` `NAME`), `flags/detach.rs` (`DETACH_NAME`) and `mcp/sessions.rs`
+(the `session_*` `name` property). Add a table-driven test in `crates/podssh-cli/tests/man_flag_parity.rs` pinning
+`session::check_name("-x")` / `session::NAME_MAX` and `detach::lock::check_name("-x")` / `detach::lock::NAME_MAX`
+against both `--help` and `podssh man` for `session`, `ssh`, `pipe` and `node`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test man_flag_parity
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `tests/man_flag_parity.rs` 7 passed (including `help_and_manual_state_leading_hyphen_rule_for_session_and_detach_names`), `tests/man_page.rs` 11 passed, clippy and rustfmt clean.

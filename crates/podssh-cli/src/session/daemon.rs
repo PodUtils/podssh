@@ -23,7 +23,7 @@ use tokio::sync::{mpsc, watch, Notify};
 use super::model::Model;
 use super::wire::{self, Op, Wait};
 use super::SessionArgs;
-use crate::exitmap::sysexits::{EX_TEMPFAIL, EX_UNAVAILABLE, EX_USAGE};
+use crate::exitmap::sysexits::{EX_CANTCREAT, EX_NOPERM, EX_TEMPFAIL, EX_UNAVAILABLE, EX_USAGE};
 use crate::pipe::address::Address;
 use crate::pipe::listen::Listener;
 use crate::pipe::pump::{End, Writer};
@@ -44,6 +44,8 @@ pub fn run(args: &SessionArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         Ok(plan) => plan,
         Err(refusal) => return refusal.report("session", err),
     };
+    let mut sink = std::io::sink();
+    let err = super::said(args, err, &mut sink);
     super::start::no_stdin();
     let Some(runtime) = super::runtime(err) else { return super::NO_RUNTIME };
     // On the heap: the future of a road is large.
@@ -63,7 +65,8 @@ pub(super) struct Plan {
 
 /// The refusals that come before any bind: `PODSSH_LISTEN` (78), the
 /// command line as `podssh ssh` resolves it (64, 78), and the place of the
-/// socket (78). `start` makes them too, before its child starts.
+/// socket (78; 73 for a path of `--socket` that cannot take one, T-1066).
+/// `start` makes them too, before its child starts.
 pub(super) fn plan(args: &SessionArgs) -> Result<Plan, Refusal> {
     crate::pipe::listen::allowed()?;
     crate::pins::apply(args.ssh.relay_addr.as_deref())?;
@@ -171,15 +174,12 @@ async fn serve(args: &SessionArgs, plan: Plan, out: &mut dyn Write, err: &mut dy
     let mut listener = match Listener::bind(&Address::UnixListen(path.clone()), &mut say).await {
         Ok(listener) => listener,
         Err((code, line)) => {
-            let _ = writeln!(err, "podssh session: {line}");
+            let code = unbound_code(&path, code).await;
+            let _ = writeln!(err, "podssh session: {}", unbound_line(&line, code, args.socket.is_some()));
             // An AF_UNIX socket needs Windows 10 1803; a named pipe, none.
             if cfg!(windows) && args.socket.is_none() {
                 let _ = writeln!(err, "podssh session: --socket \\\\.\\pipe\\NAME listens on a named pipe instead");
             }
-            let _ = writeln!(
-                err,
-                "podssh session: with no listener, podssh ssh -tt HOST COMMAND runs a command with a pty in one call"
-            );
             return code;
         }
     };
@@ -406,13 +406,46 @@ async fn wait_for(shared: &Shared, wait: Wait) -> String {
     }
 }
 
+/// The code of a bind of `path` that failed with `code` (T-1066): a file
+/// that the socket cannot take is 73, as `--socket`'s checks before the
+/// login give it, unless the host refused the listener (77), or a program
+/// serves the path already (69). `@NAME` and a named pipe keep the bind's.
+async fn unbound_code(path: &str, code: i32) -> i32 {
+    if code == EX_NOPERM || path.starts_with('@') || path.starts_with(r"\\.\pipe\") {
+        return code;
+    }
+    match crate::pipe::unix::connect(path).await {
+        Ok(_) => EX_UNAVAILABLE,
+        Err(_) => EX_CANTCREAT,
+    }
+}
+
+/// The line of a bind that failed (T-1066): the path as the user gave it,
+/// without the `unix-listen:` of `podssh pipe`'s addresses, and the way
+/// with no listener only where this host refuses one (77), in the words of
+/// a session, not those of `podssh pipe`.
+pub(super) fn unbound_line(line: &str, code: i32, socket_given: bool) -> String {
+    let line = line.strip_prefix("unix-listen:").unwrap_or(line);
+    let reason = line.split("; this host refuses the listener").next().unwrap_or(line);
+    let named = if socket_given { format!("--socket {reason}") } else { reason.to_string() };
+    match code {
+        EX_NOPERM => format!(
+            "{named}; this host refuses the listener, and podssh ssh -tt HOST COMMAND runs a command with a pty in \
+             one call, with none"
+        ),
+        _ => named,
+    }
+}
+
 /// The lock of a socket's file, `PATH.lock`, which the daemon holds for its
 /// life (T-392): two starts of one name could both find the path free, and
 /// the second, whose bind failed, would remove the first's socket, so that
 /// its session answered nobody. Another daemon's lock is a refusal (69); a
 /// lock that cannot be had lets the daemon go on as before. An abstract
 /// name of Linux and a named pipe of Windows have no file: their bind
-/// alone decides.
+/// alone decides. The file stays after the daemon (T-1068), and the next
+/// start of the name takes it again: a removal would let a start that had
+/// opened it lock a file with no name, beside one that made a new file.
 pub(super) fn socket_lock(path: &str) -> Result<Option<pod_core::lock::FileLock>, String> {
     if path.starts_with('@') || path.starts_with(r"\\.\pipe\") {
         return Ok(None);

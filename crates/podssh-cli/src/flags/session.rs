@@ -41,7 +41,7 @@ pub const SESSION_FLAGS: &[FlagRow] = &[
     row(Some('v'), "verbose", None, FlagKind::Supported,
         "raise log level; repeatable", None),
     row(Some('q'), "quiet", None, FlagKind::Supported,
-        "quiet: no messages from podssh itself", None),
+        "quiet: no messages from podssh itself, errors included", None),
     row(None, "relay-host", Some("HOSTS"), FlagKind::Supported,
         "relay hosts to try in order, HOST[:PORT][,...] (default: env PODSSH_RELAY, else the built-in relay and its pool)", None),
     row(None, "relay-failover", Some("MODE"), FlagKind::Supported,

@@ -2294,9 +2294,9 @@ podssh ssh
         again whenever it ends, but after 64, 77 or 78 or a stop of that
         process; it never gives up.
     --detach-name NAME
-        with --detach: the run's name, letters, digits, _ and -, 64 at most; a
-        second start of a name that runs refuses (75), and podssh detached
-        shows and stops it (default: the verb and the pid).
+        with --detach: the run's name, letters, digits, _ and -, not first a -,
+        64 at most; a second start of a name that runs refuses (75), and podssh
+        detached shows and stops it (default: the verb and the pid).
     -G, --print-config
         print the settings in effect, as ssh -G does, and connect to nothing.
     --list-hosts
@@ -3327,13 +3327,14 @@ podssh job
   runner.lock.
 
   podssh job list HOST prints a line for each job, in the order of their
-  starts: the ID, the state (queued; running; done; or lost, when neither the
-  job's session nor its status is there, as after a restart of the host). Then
-  the exit status (a dash while there is none) and the command. podssh job log
-  HOST ID writes the job's output to stdout, also after its end. podssh job
-  stop HOST ID ends the tmux session of that exact name, never another, and
-  removes the job's directory with its output. Its line says what the job was:
-  stopped, ended with its status, queued and never run, or lost.
+  starts: the ID, the state (queued; running; done; or lost, when no status is
+  there and nothing runs it, neither its tmux session nor its --no-tmux runner,
+  as after a restart of the host). Then the exit status (a dash while there is
+  none) and the command. podssh job log HOST ID writes the job's output to
+  stdout, also after its end. podssh job stop HOST ID ends the tmux session of
+  that exact name, never another, and removes the job's directory with its
+  output. Its line says what the job was: stopped, ended with its status,
+  queued and never run, or lost.
 
   podssh job log --follow HOST ID writes the job's output as it comes, on one
   connection, and exits with the job's status once it ended: 255 for a job that
@@ -3365,16 +3366,20 @@ podssh job
   HOST ID [DIR] copies the job's output to DIR/out, as podssh cp copies a file.
   With --files GLOB it also copies each file of that pattern of sh in the
   host's home directory to DIR/files, by its path; DIR is ./podssh-job-ID by
-  default. A job that is queued or running is not fetched, as its output is not
-  whole yet (75). A lost job's output is fetched as it is; then a line names it
-  lost, and the exit is 255. podssh job list HOST --json gives one JSON object:
-  the host, and each job with its id, state, status, started_ms and command.
+  default. fetch makes DIR before it connects, and takes it away again when it
+  stays empty. A job that is queued or running is not fetched, as its output is
+  not whole yet (75). A lost job's output is fetched as it is; then a line
+  names it lost, and the exit is 255. podssh job list HOST --json gives one
+  JSON object: the host, and each job with its id, state, status, started_ms
+  and command.
 
   The exit status is that of podssh ssh: 0; 64 for a usage error and 78 for a
   setting, before anything connects; 255 when the host cannot be reached or
   logged in to, has no tmux, has no such job, or gives no answer. 255 also when
   a job of --no-tmux runs on after its stop. wait and log --follow give the
-  job's status, or 75 at their --timeout.
+  job's status, or 75 at their --timeout. fetch gives 73, as podssh cp does,
+  when DIR or a file in it cannot be made here. It gives 255 when a file of the
+  host cannot be read.
 
   ID is the 8 hex digits that start or submit printed, as list shows it.
 
@@ -4231,9 +4236,9 @@ podssh pipe
         ws: and wss: to HOST carry the credentials of Cloudflare Access in
         their headers; repeatable.
     --detach-name NAME
-        with --detach: the run's name, letters, digits, _ and -, 64 at most; a
-        second start of a name that runs refuses (75), and podssh detached
-        shows and stops it (default: the verb and the pid).
+        with --detach: the run's name, letters, digits, _ and -, not first a -,
+        64 at most; a second start of a name that runs refuses (75), and podssh
+        detached shows and stops it (default: the verb and the pid).
     --via https://[USER@]HOST[:PORT]
         reach the first hop through a forward proxy over TLS that you run
         (Caddy's forwardproxy, squid's https_port), in place of the relay: TLS
@@ -5799,9 +5804,9 @@ podssh node
         whenever it ends, but after 64, 77 or 78 or a stop of that process; it
         never gives up.
     --detach-name NAME
-        with --detach: the run's name, letters, digits, _ and -, 64 at most; a
-        second start of a name that runs refuses (75), and podssh detached
-        shows and stops it (default: the verb and the pid).
+        with --detach: the run's name, letters, digits, _ and -, not first a -,
+        64 at most; a second start of a name that runs refuses (75), and podssh
+        detached shows and stops it (default: the verb and the pid).
     --install
         make this node a service of this user, which starts it again whenever
         it ends, as a probe finds one: a user unit of systemd, else a
@@ -11076,7 +11081,12 @@ podssh session
   rows, with no blank at their ends and no empty row at the end. --raw writes
   the last 64 KiB of the output as it came, from a place where a terminal can
   start to read it. It never starts inside a sequence or a character. stop NAME
-  ends the session and its podssh.
+  ends the session and its podssh. send, wait, capture and stop exit 75 when
+  the session's podssh gives no answer within 30 s, past a wait's own
+  --timeout. The line says each time apart; the podssh may be stopped or stuck.
+  With -q, podssh writes none of its own messages on stderr, errors included,
+  and keeps the exit code; a refusal of the command line or a setting before
+  anything runs is still said.
 
   list writes a line for each session of the directories of the cache: its
   name, running or ended and the status, and its host, with a tab between them.
@@ -11104,11 +11114,13 @@ podssh session
   goes to the next directory of the cache (see FILES). That one may be under
   the temporary directory. With none that fits, start names each one and asks
   for --socket. --socket PATH names another, also \\.\pipe\NAME on Windows, and
-  @NAME on Linux, which has no file. A client of another user is closed before
-  it is read. No TCP: a request types into a shell. The bind is the probe:
-  where this host refuses it, start exits 77 with the reason; PODSSH_LISTEN set
-  to no refuses start and serve before any bind (78), and so does
-  PODSSH_CACHE_DIR set to none with no --socket.
+  @NAME on Linux, which has no file. start refuses a --socket PATH with 73,
+  before the login, when it cannot take a socket. Its directory is missing, it
+  is too long, or a file that is no socket is there. A client of another user
+  is closed before it is read. No TCP: a request types into a shell. The bind
+  is the probe: where this host refuses it, start exits 77 with the reason;
+  PODSSH_LISTEN set to no refuses start and serve before any bind (78), and so
+  does PODSSH_CACHE_DIR set to none with no --socket.
 
   THE RISK: each program that runs as you can type into the session and read
   its screen, as it can with your keys. The socket carries no key, password or
@@ -11126,7 +11138,8 @@ podssh session
         start, send, wait, capture, stop or list; serve is what start runs in
         the background.
     [NAME]
-        the session's name: letters, digits, _ and -, 32 at most.
+        the session's name: letters, digits, _ and -, not first a -, 32 at
+        most.
     [HOST]
         start and serve: the host, as podssh ssh takes it; send: the text to
         type, with \r, \n, \t, \e, \xNN and \\; with none, send reads it from
@@ -11177,7 +11190,7 @@ podssh session
     -v, --verbose
         raise log level; repeatable.
     -q, --quiet
-        quiet: no messages from podssh itself.
+        quiet: no messages from podssh itself, errors included.
     --relay-host HOSTS
         relay hosts to try in order, HOST[:PORT][,...] (default: env
         PODSSH_RELAY, else the built-in relay and its pool).
@@ -11647,7 +11660,7 @@ podssh serve
   with any key. A name that serve does not hold reads as a wrong key. A
   watcher's input never reaches the pty: it may send only its window size.
   Writers, the owner among them, take turns: one writer's bytes reach the pty
-  until 200 ms of its silence. The pty's size is the least of each attached
+  until 400 ms of its silence. The pty's size is the least of each attached
   window. A seat first gets the screen so far: the program's modes and its last
   lines, from a ring of 64 KiB. Then it sees the output from its attach on, and
   one that falls behind skips ahead. A seat of podssh ssh --frames gets frames
@@ -13718,7 +13731,10 @@ FILES
       nobody serves is replaced by the next start of its name. Beside a
       socket's file, NAME.sock.lock, which its podssh holds for its life. So a
       second one of the name is refused (69), and it never removes the first
-      one's socket.
+      one's socket. The lock's file stays after its session ends or fails to
+      start: the system's lock, not the file, holds the name. The next start of
+      NAME takes it again. podssh never removes it, as a removal could let two
+      starts hold one name.
   /etc/ssl/certs/ca-certificates.crt, /etc/pki/tls/certs/ca-bundle.crt,
   /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem, /etc/ssl/ca-bundle.pem,
   /etc/ssl/cert.pem, /usr/local/share/certs/ca-root-nss.crt
@@ -13918,7 +13934,9 @@ EXIT STATUS
       --output-dir cannot be made; no host has run. podssh keygen: the
       directory of -f is not there, or is no directory. podssh ssh: the
       directory of --result-file, -E or --record is not there, so nothing ran;
-      or the file of -E or --record cannot be made.
+      or the file of -E or --record cannot be made. podssh job fetch: its DIR,
+      or a file in it, cannot be made here. podssh session start and serve: the
+      path of --socket cannot take a socket, so nothing connected.
   74
       The output of a command could not be written, as to a full disk or a
       device that refuses it. Each command whose answer is its stdout gives it:
@@ -13933,14 +13951,15 @@ EXIT STATUS
       podssh cp and mv: the --timeout passed before the copy ended; a later try
       can work. podssh chat: the --timeout passed, or the peer talks with
       another peer; a later try can work. podssh session start and wait: the
-      --timeout passed first. podssh job wait: the --timeout passed before the
-      job ended, which runs on; podssh job fetch: the job is queued or running,
-      so its output is not whole yet. podssh node --quick-tunnel:
-      api.trycloudflare.com refused for now (429 or a 5xx) and asked for a wait
-      past 5 minutes, which the line names, or refused for 5 minutes; a later
-      run can work. --detach and -f: a run of the same --detach-name runs, and
-      its pid is said. podssh detached stop: the run still holds its lock after
-      it was killed.
+      --timeout passed first. podssh session send, wait, capture and stop: the
+      session's podssh gave no answer within 30 s, past a wait's own time.
+      podssh job wait: the --timeout passed before the job ended, which runs
+      on; podssh job fetch: the job is queued or running, so its output is not
+      whole yet. podssh node --quick-tunnel: api.trycloudflare.com refused for
+      now (429 or a 5xx) and asked for a wait past 5 minutes, which the line
+      names, or refused for 5 minutes; a later run can work. --detach and -f: a
+      run of the same --detach-name runs, and its pid is said. podssh detached
+      stop: the run still holds its lock after it was killed.
   77
       podssh proxy: the relay or the proxy refused (a token, or each as a relay
       that issues none answers 503; a blocked address; a proxy's 403 or 407).

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**995 entries: 3 open, 33 partial, 16 blocked, 943 done.**
+**1003 entries: 3 open, 33 partial, 16 blocked, 951 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 106 | 115 |
 | P2 | 0 | 20 | 4 | 351 | 375 |
-| P3 | 3 | 7 | 9 | 485 | 504 |
-| **All** | 3 | 33 | 16 | 943 | 995 |
+| P3 | 3 | 7 | 9 | 493 | 512 |
+| **All** | 3 | 33 | 16 | 951 | 1003 |
 
 ## Entries
 
@@ -1071,3 +1071,11 @@ repository and CI).
 | [T-1062](cli.md) | P3 | S | backlog | docs | done | `mcp --allow-command` limits `ssh_exec` alone, and the manual's risk does not say that `job_start` runs any command |
 | [T-1063](cli.md) | P3 | S | backlog | docs | done | The manual of `podssh status` does not name its `settings` field |
 | [T-1064](config.md) | P3 | S | backlog | defect | done | `config import remmina DIR` refuses the whole directory when a non-profile file is present |
+| [T-1065](multi.md) | P3 | S | backlog | defect | done | `job fetch` into a DIR that cannot be made here exits 255, as a host out of reach |
+| [T-1066](multi.md) | P3 | S | backlog | defect | done | `session start --socket` in a directory that is not there says `unix-listen:` and the hint of `-tt`, with 69 |
+| [T-1067](multi.md) | P3 | S | backlog | docs | done | `session send`, `capture` and `stop` exit 75 at no answer, which EXIT STATUS gives only to `start` and `wait` |
+| [T-1068](multi.md) | P3 | S | backlog | docs | done | The manual says that a session's podssh holds `NAME.sock.lock` for its life, and not that the file stays |
+| [T-1069](multi.md) | P3 | S | backlog | defect | done | `-q` is not honoured by `session stop`, `send`, `capture` and `wait` errors |
+| [T-1070](multi.md) | P3 | S | backlog | defect | done | `job log --follow` of a lost tmux job says "neither its runner nor its status is there" |
+| [T-1071](multi.md) | P3 | S | backlog | docs | done | `session --help` and `--detach-name` help omit "not first a -" that the validators enforce |
+| [T-1072](serve.md) | P3 | S | backlog | docs | done | `podssh man serve` says 200 ms for the `--share` writer lease against `LEASE_IDLE`'s 400 ms |

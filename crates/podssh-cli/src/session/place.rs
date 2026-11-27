@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::exitmap::sysexits::EX_CANTCREAT;
 use crate::relay_settings::Refusal;
 
 /// The directory of the sessions, in each directory of the cache.
@@ -35,7 +36,10 @@ pub fn find(name: &str, socket: Option<&str>) -> Option<String> {
 /// address of a socket.
 pub fn new(name: &str, socket: Option<&str>) -> Result<String, Refusal> {
     if let Some(path) = socket {
-        return Ok(path.to_string());
+        return match unfit(path) {
+            Some(message) => Err(Refusal { message, code: EX_CANTCREAT }),
+            None => Ok(path.to_string()),
+        };
     }
     let dirs = dirs();
     if dirs.is_empty() {
@@ -63,6 +67,46 @@ pub(super) fn new_in(dirs: &[PathBuf], name: &str) -> Result<String, String> {
         }
     }
     Err(format!("{}; give --socket PATH", why.join("; ")))
+}
+
+/// Why the path of `--socket` cannot take a socket (T-1066): too long for
+/// the address of one, in a directory that is not there or is no
+/// directory, or a file there that is no socket, which podssh never
+/// removes. Each is said before the session's podssh starts, so before any
+/// login, with 73, as each file of a run that cannot be made (T-1048).
+/// `None` for `@NAME` and a named pipe, which have no file, and for a path
+/// that the bind may try.
+pub(super) fn unfit(path: &str) -> Option<String> {
+    if path.starts_with('@') || path.starts_with(r"\\.\pipe\") {
+        return None;
+    }
+    // The address holds the path and its NUL.
+    if path.len() >= crate::pipe::unix::SUN_PATH {
+        let most = crate::pipe::unix::SUN_PATH - 1;
+        return Some(format!("--socket {path}: too long for the address of a socket ({most} bytes at most)"));
+    }
+    if let Some(why) = crate::ssh::result::no_place_for("--socket", path) {
+        return Some(why);
+    }
+    match std::fs::symlink_metadata(path) {
+        Ok(meta) if !is_socket(&meta) => Some(format!(
+            "--socket {path}: it is there and is not a socket; podssh removes only a socket that nobody serves"
+        )),
+        _ => None,
+    }
+}
+
+#[cfg(unix)]
+fn is_socket(meta: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::FileTypeExt;
+    meta.file_type().is_socket()
+}
+
+/// Windows shows the file of an AF_UNIX socket as a reparse point: only a
+/// directory is surely no socket there, and the bind decides the rest.
+#[cfg(not(unix))]
+fn is_socket(meta: &std::fs::Metadata) -> bool {
+    !meta.is_dir()
 }
 
 /// What a look in the cache's directories found (T-506).

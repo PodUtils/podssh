@@ -51,7 +51,7 @@ core: the handshake, a host key that does not change, and key authentication.
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:395-471` and
-   `crates/podssh-cli/src/positionals.rs:8-292`, an arm beside
+   `crates/podssh-cli/src/positionals.rs:8-296`, an arm beside
    `crates/podssh-cli/src/dispatch.rs:383-385`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
@@ -6200,3 +6200,46 @@ Drafted 2026-11-26 by a drafting agent:
   `crates/podssh-cli/src/man/notes_serve.rs`, `crates/podssh-cli/tests/serve_node.rs`.
 
 Merged 2026-11-26 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 317 binaries passed after the merge's repairs (one clone for clippy; a FIFO on the server, which OpenSSH's sftp-server does not write into as it seeks before each write, is refused in its own words, 73, and stays a FIFO, where the test had asked a success); clippy clean, also for `x86_64-pc-windows-gnu`; `llms-full.txt` made again. The planted run waits for T-251.
+
+
+# T-1072: `podssh man serve` says 200 ms for the `--share` writer lease against `LEASE_IDLE`'s 400 ms
+
+**Source:** `docs/HANDOFF.md` / drift check after T-862 (QA pass 10 batch B).
+**Category:** docs
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+T-862 measured the `--share` writer lease with two typists, raised `LEASE_IDLE` in
+`crates/podssh-ssh/src/server/share.rs` from 200 ms to 400 ms, and updated `docs/cli.md`, but left
+`crates/podssh-cli/src/man/notes_serve.rs` saying `until 200 ms of its silence`.
+
+## Premise
+
+- Read, at `40a83e5`: `crates/podssh-ssh/src/server/share.rs` defines
+  `pub const LEASE_IDLE: Duration = Duration::from_millis(400);` (and `pub mod share;` is exported unconditionally
+  from `podssh_ssh::server`).
+- Read, at `40a83e5`: `crates/podssh-cli/src/man/notes_serve.rs` said `until 200 ms of its silence` and had no test
+  pinning that span against `LEASE_IDLE`, unlike `the_note_of_r_names_the_cap` right below it.
+
+## Approach
+
+Change `200 ms` to `400 ms` in `crates/podssh-cli/src/man/notes_serve.rs`, and add
+`the_note_of_share_names_the_writer_lease` in `notes_serve.rs`'s `tests` module asserting that the `--share` note
+contains `until {ms} ms of its silence` for `podssh_ssh::server::share::LEASE_IDLE.as_millis()`, so the manual and
+the constant cannot drift again.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::notes_serve::tests
+cargo test -p podssh-cli --test man_page
+```
+
+## Done
+
+Merged and verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `man::notes_serve::tests` 3 passed (including `the_note_of_share_names_the_writer_lease`), `tests/man_page.rs` 11 passed, `man::llms` 3 passed, clippy and rustfmt clean.
