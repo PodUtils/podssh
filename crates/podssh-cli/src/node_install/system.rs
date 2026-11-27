@@ -22,7 +22,7 @@ const PASSWD: &str = "/etc/passwd";
 const PASSWD_MOST: u64 = 16 << 20;
 
 /// There when systemd is this host's service manager (`sd_booted`).
-pub(crate) const SYSTEMD_RUNS: &str = "/run/systemd/system";
+pub(crate) const SYSTEMD_RUNS: &str = pod_unit::install::SYSTEMD_BOOTED;
 
 /// The user that a system unit runs as, from its passwd entry.
 #[derive(Clone, Debug, PartialEq, Eq)]

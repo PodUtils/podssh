@@ -50,20 +50,22 @@ fn each_syntax_quotes_what_it_must() {
 
 #[test]
 fn a_unit_runs_the_binary_by_its_path_with_the_node_s_words() {
-    let unit = unit(&spec(&["node", "lab", "127.0.0.1:22", "--env-file", "/c/node-lab.env"]));
+    let unit = unit(&spec(&["node", "lab", "127.0.0.1:22", "--env-file", "/c/node-lab.env"])).unwrap();
     assert!(unit.starts_with(UNIT_MARK), "{unit}");
-    assert!(unit.starts_with("# Written by podssh node lab --install; podssh node lab --uninstall removes it.\n"));
+    assert!(unit.starts_with("# Written by podssh node.\n"), "{unit}");
+    assert!(unit.contains("Type=exec\n"), "{unit}");
     let exec = "ExecStart=\"/opt/pod ssh/podssh\" node lab 127.0.0.1:22 --env-file /c/node-lab.env\n";
     assert!(unit.contains(exec), "{unit}");
     assert!(unit.contains("WantedBy=default.target"), "{unit}");
     assert!(!unit.contains("WorkingDirectory"), "a node's files are absolute: {unit}");
+    assert!(pod_unit::systemd::audit(&unit, false).is_empty(), "{unit}");
 }
 
 /// T-393: a unit that always restarts, with no limit of starts, in the
 /// section where systemd reads it; 77 restarts, 64 and 78 do not.
 #[test]
 fn a_unit_restarts_after_each_end_with_no_limit_of_starts() {
-    let unit = unit(&spec(&["node", "lab"]));
+    let unit = unit(&spec(&["node", "lab"])).unwrap();
     let section = |name: &str| {
         let start = unit.find(&format!("[{name}]\n")).unwrap_or_else(|| panic!("[{name}]: {unit}"));
         let rest = &unit[start + name.len() + 3..];
@@ -74,7 +76,8 @@ fn a_unit_restarts_after_each_end_with_no_limit_of_starts() {
     for line in ["Restart=always", "RestartSec=5", "RestartPreventExitStatus=64 78", "StartLimitInterval=0"] {
         assert!(service.lines().any(|l| l == line), "{line}: {unit}");
     }
-    assert!(!unit.contains("on-failure") && !unit.contains("77"), "{unit}");
+    assert!(!unit.contains("on-failure"), "{unit}");
+    assert!(!service.lines().any(|l| l.starts_with("RestartPreventExitStatus=") && l.contains("77")), "{unit}");
     // Each line that is not blank is a comment, a section or a key.
     for line in unit.lines().filter(|l| !l.is_empty()) {
         assert!(line.starts_with('#') || line.starts_with('[') || line.contains('='), "{line:?}");
@@ -83,24 +86,26 @@ fn a_unit_restarts_after_each_end_with_no_limit_of_starts() {
 
 #[test]
 fn a_tunnel_s_unit_runs_in_its_directory_and_names_its_own_removal() {
-    let unit = unit(&tunnel("/home/me/100% here"));
-    assert!(unit.starts_with("# Written by podssh ssh --install bastion; podssh ssh --uninstall bastion removes it."));
+    let unit = unit(&tunnel("/home/me/100% here")).unwrap();
+    assert!(unit.starts_with("# Written by podssh ssh.\n"), "{unit}");
     assert!(unit.contains("Description=podssh ssh bastion\n"), "{unit}");
     assert!(unit.contains("\nWorkingDirectory=-/home/me/100%% here\n"), "{unit}");
 }
 
 #[test]
 fn the_crontab_gets_the_lines_of_the_name_and_loses_them_again() {
-    let [boot, watchdog] = cron_lines(&spec(&["node", "lab", "--env-file", "/c/100%/node-lab.env"]));
+    let lines = cron_lines(&spec(&["node", "lab", "--env-file", "/c/100%/node-lab.env"])).unwrap();
+    assert_eq!(lines.len(), 2, "{lines:?}");
+    let (boot, watchdog) = (&lines[0], &lines[1]);
     // cron gives sh `%` for `\%`, before sh reads the quotes.
     let command = "'/opt/pod ssh/podssh' node lab --env-file '/c/100\\%/node-lab.env'";
-    assert_eq!(boot, format!("@reboot {command}"));
-    assert_eq!(watchdog, format!("*/5 * * * * {command}"));
-    let lines = [boot.clone(), watchdog.clone()];
+    assert_eq!(boot, &format!("@reboot {command}"));
+    assert_eq!(watchdog, &format!("*/5 * * * * {command}"));
+    let mark = "# Written by podssh node: the lines below run the service podssh-node-lab";
     let before = "MAILTO=x\n0 * * * * backup\n";
     let (with, found) = cron_table(before, Kind::Node, "lab", Some(lines.as_slice()));
     assert!(!found);
-    assert_eq!(with, format!("{before}{}\n{boot}\n{watchdog}\n", cron_mark(Kind::Node, "lab")));
+    assert_eq!(with, format!("{before}{mark}\n{boot}\n{watchdog}\n"));
     // Again: the lines are replaced, never doubled.
     let new = ["@reboot new".to_string(), format!("{WATCHDOG} new")];
     let (again, found) = cron_table(&with, Kind::Node, "lab", Some(new.as_slice()));
@@ -114,35 +119,46 @@ fn the_crontab_gets_the_lines_of_the_name_and_loses_them_again() {
     assert!(!rest.contains("new"), "{rest}");
     let (rest, _) = cron_table(&rest, Kind::Ssh, "lab", None);
     assert_eq!(cron_table(&rest, Kind::Node, "other", None).0, before);
-    // A line below the mark that is not an @reboot line is the user's.
-    let edited = format!("{}\n0 1 * * * mine\n", cron_mark(Kind::Node, "lab"));
-    assert_eq!(cron_table(&edited, Kind::Node, "lab", None), ("0 1 * * * mine\n".to_string(), true));
+    // A line below the mark (new or pre-pod-unit) that is not @reboot is the user's.
+    for heading in [mark.to_string(), cron_mark(Kind::Node, "lab")] {
+        let edited = format!("{heading}\n0 1 * * * mine\n");
+        assert_eq!(cron_table(&edited, Kind::Node, "lab", None), ("0 1 * * * mine\n".to_string(), true));
+    }
 }
 
-/// The table that T-121 wrote, its mark above one `@reboot` line, is found
-/// and replaced; a line of the user's after it, even each 5 minutes, stays.
+/// The tables that T-121 and T-393 wrote, before `pod-unit`, are found and
+/// replaced via `older_marks`; a user line after them, even each 5 minutes,
+/// stays.
 #[test]
 fn the_line_of_an_earlier_install_is_replaced_and_the_user_s_next_line_stays() {
-    let old = "# podssh node lab --install wrote the line below; podssh node lab --uninstall removes it\n\
-               @reboot /usr/bin/podssh node lab --env-file /c/node-lab.env\n\
-               */5 * * * * /usr/bin/mine\n";
-    let lines = cron_lines(&spec(&["node", "lab"]));
-    let (table, found) = cron_table(old, Kind::Node, "lab", Some(lines.as_slice()));
-    assert!(found, "{table}");
-    assert!(table.starts_with("*/5 * * * * /usr/bin/mine\n"), "{table}");
-    assert_eq!(table.matches("@reboot").count(), 1, "{table}");
+    let lines = cron_lines(&spec(&["node", "lab"])).unwrap();
+    for old in [
+        "# podssh node lab --install wrote the line below; podssh node lab --uninstall removes it\n\
+         @reboot /usr/bin/podssh node lab --env-file /c/node-lab.env\n\
+         */5 * * * * /usr/bin/mine\n",
+        "# podssh node lab --install wrote the lines below; podssh node lab --uninstall removes them\n\
+         @reboot /usr/bin/podssh node lab --env-file /c/node-lab.env\n\
+         */5 * * * * /usr/bin/podssh node lab --env-file /c/node-lab.env\n\
+         */5 * * * * /usr/bin/mine\n",
+    ] {
+        let (table, found) = cron_table(old, Kind::Node, "lab", Some(lines.as_slice()));
+        assert!(found, "{table}");
+        assert!(table.starts_with("*/5 * * * * /usr/bin/mine\n"), "{table}");
+        assert_eq!(table.matches("@reboot").count(), 1, "{table}");
+    }
 }
 
 #[test]
 fn a_tunnel_s_lines_change_to_its_directory_first() {
-    let [boot, watchdog] = cron_lines(&tunnel("/home/me/it's"));
-    assert_eq!(boot, "@reboot cd '/home/me/it'\\''s' 2>/dev/null; '/opt/pod ssh/podssh' ssh -N");
-    assert!(watchdog.starts_with("*/5 * * * * cd '/home/me/it'\\''s' 2>/dev/null; "), "{watchdog}");
+    let lines = cron_lines(&tunnel("/home/me/it's")).unwrap();
+    assert_eq!(lines[0], "@reboot cd '/home/me/it'\\''s' 2>/dev/null; '/opt/pod ssh/podssh' ssh -N");
+    assert!(lines[1].starts_with("*/5 * * * * cd '/home/me/it'\\''s' 2>/dev/null; "), "{}", lines[1]);
 }
 
 #[test]
 fn the_task_runs_as_this_user_at_its_logon_with_no_privilege() {
-    let task = task_xml(&spec(&["node", "lab", "--env-file", "C:\\Users\\a b\\node-lab.env"]), "HOST\\a&b");
+    let task = task_xml(&spec(&["node", "lab", "--env-file", "C:\\Users\\a b\\node-lab.env"]), "HOST\\a&b").unwrap();
+    assert!(task.contains("Written by podssh node."), "{task}");
     assert_eq!(task.matches("<UserId>HOST\\a&amp;b</UserId>").count(), 2, "{task}");
     assert!(task.contains("<LogonType>InteractiveToken</LogonType>"), "{task}");
     assert!(task.contains("<RunLevel>LeastPrivilege</RunLevel>"), "{task}");
@@ -153,7 +169,7 @@ fn the_task_runs_as_this_user_at_its_logon_with_no_privilege() {
     assert!(task.contains("<TimeTrigger><Repetition><Interval>PT5M</Interval>"), "{task}");
     assert!(task.contains("<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>"), "{task}");
     assert!(!task.contains("WorkingDirectory"), "{task}");
-    let task = task_xml(&tunnel("C:\\Users\\me"), "HOST\\me");
+    let task = task_xml(&tunnel("C:\\Users\\me"), "HOST\\me").unwrap();
     assert!(task.contains("</Arguments><WorkingDirectory>C:\\Users\\me</WorkingDirectory></Exec>"), "{task}");
 }
 
@@ -162,7 +178,7 @@ fn the_task_runs_as_this_user_at_its_logon_with_no_privilege() {
 #[test]
 fn the_launch_agent_reads_back_as_its_program_and_keeps_it_alive() {
     let agent = spec(&["node", "lab", "a&b <c>", "--env-file", "/c/node-lab.env"]);
-    let text = plist(&agent, "dev.podssh.node.lab", Path::new("/c/node-lab.log"));
+    let text = plist(&agent, "dev.podssh.node.lab", Path::new("/c/node-lab.log")).unwrap();
     let options = roxmltree::ParsingOptions { allow_dtd: true, ..Default::default() };
     let doc = roxmltree::Document::parse_with_options(&text, options).unwrap_or_else(|e| panic!("{e}: {text}"));
     let root = doc.root_element();
@@ -181,10 +197,31 @@ fn the_launch_agent_reads_back_as_its_program_and_keeps_it_alive() {
     assert_eq!(value("KeepAlive").tag_name().name(), "true");
     assert_eq!(value("RunAtLoad").tag_name().name(), "true");
     assert_eq!(value("ThrottleInterval").text(), Some("5"));
+    assert_eq!(value("ExitTimeOut").text(), Some("90"));
+    assert_eq!(value("Umask").text(), Some("63"));
     assert_eq!(value("StandardErrorPath").text(), Some("/c/node-lab.log"));
     assert!(!items.iter().any(|n| n.text() == Some("WorkingDirectory")), "{text}");
-    let text = plist(&tunnel("/Users/me"), "dev.podssh.ssh.bastion", Path::new("/c/ssh-bastion.log"));
+    let text = plist(&tunnel("/Users/me"), "dev.podssh.ssh.bastion", Path::new("/c/ssh-bastion.log")).unwrap();
     assert!(text.contains("  <key>WorkingDirectory</key>\n  <string>/Users/me</string>\n"), "{text}");
+}
+
+/// T-820: a 128-character node name (podssh's maximum) and a name holding `--`
+/// pass `pod-unit` on every user form; a user unit with `--exit` gains
+/// `AF_NETLINK` and a `serve` user unit relaxes its session seccomp lines.
+#[test]
+fn pod_unit_renders_long_names_double_dash_names_and_user_hardening() {
+    for name in ["a".repeat(128), "my--node".to_string()] {
+        let s = Spec { name: name.clone(), ..spec(&["node", &name, "--exit"]) };
+        let u = unit(&s).unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert!(u.contains("RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK\n"), "{u}");
+        assert!(cron_lines(&s).is_ok(), "{name}");
+        assert!(task_xml(&s, "HOST\\me").is_ok(), "{name}");
+        assert!(plist(&s, &format!("dev.podssh.node.{name}"), Path::new("/c/n.log")).is_ok(), "{name}");
+    }
+    let serve_spec = Spec { kind: Kind::Serve, ..spec(&["serve", "lab"]) };
+    let u = unit(&serve_spec).unwrap();
+    assert!(!u.lines().any(|l| l == "NoNewPrivileges=yes" || l == "SystemCallFilter=@system-service"), "{u}");
+    assert!(pod_unit::systemd::audit(&u, false).is_empty(), "{u}");
 }
 
 /// A tunnel's service runs the words as typed, after the options that a

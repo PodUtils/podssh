@@ -3266,10 +3266,10 @@ logon after a reboot; and a reverse tunnel of `podssh ssh -N -R --persist` canno
 ## Premise
 
 - Read: `Restart=on-failure`, `RestartSec=10`, no `StartLimitIntervalSec`
-  (`crates/podssh-cli/src/node_install/text.rs:153`).
-- Read: the cron line is `@reboot` alone (`crates/podssh-cli/src/node_install/unix.rs:137`).
+  (node_install/text.rs:153, moved to `pod-unit` in T-820).
+- Read: the cron line is `@reboot` alone (node_install/unix.rs:137, moved to `pod-unit` in T-820).
 - Read: the Windows task restarts each minute, 999 times, at a logon
-  (`crates/podssh-cli/src/node_install/text.rs:256`).
+  (node_install/text.rs:256, moved to `pod-unit` in T-820).
 
 ## Approach
 
@@ -3362,9 +3362,9 @@ refuses, became two.
 - A LaunchAgent, `~/Library/LaunchAgents/dev.podssh.VERB.NAME.plist`, with `RunAtLoad`,
   `KeepAlive`, `ThrottleInterval` 5 and its stderr in `VERB-NAME.log`, loaded by `launchctl
   bootstrap gui/UID` after a `bootout` and an `enable`, removed by `bootout`
-  (`crates/podssh-cli/src/node_install/launchd.rs`).
+  (node_install/launchd.rs, moved to `pod-unit` in T-820).
 - Windows: a time trigger each 5 minutes beside the logon; the line names the task at boot that
-  only an administrator can make (`crates/podssh-cli/src/node_install/windows.rs`).
+  only an administrator can make (node_install/windows.rs, moved to `pod-unit` in T-820).
 - The lock of a service's run, and `podssh ssh --install NAME`, `--uninstall NAME` and
   `--env-file FILE` (`crates/podssh-cli/src/flags/node.rs`, `crates/podssh-cli/src/ssh/args.rs`);
   the manual's notes of `node` and `ssh` and its FILES; `docs/cli.md`; `docs/STATUS.md`.
@@ -3649,11 +3649,11 @@ without a user manager gets a cron line. The unit has no hardening.
 ## Premise
 
 - Read: the ways are a user unit, a LaunchAgent, cron and a Windows task
-  (`crates/podssh-cli/src/node_install/mod.rs:159-168`); the probe is `systemctl --user show-environment`
-  (`crates/podssh-cli/src/node_install/unix.rs:19-27`); the units go to `~/.config/systemd/user`
-  (`unix.rs:29-36`).
+  (`crates/podssh-cli/src/node_install/ways.rs:18-23`); the probe is `systemctl --user show-environment`
+  (node_install/unix.rs:19-27, moved to `pod-unit` in T-820); the units go to `~/.config/systemd/user`
+  (`crates/podssh-cli/src/node_install/ways.rs:101-108`).
 - Read: the unit has `Restart=always` and no `User=`, `NoNewPrivileges` or `ProtectSystem`
-  (`crates/podssh-cli/src/node_install/text.rs:134-162`).
+  (node_install/text.rs:134-162, moved to `pod-unit` in T-820).
 - Read: no token is in a unit now. The variables go to a private file beside the pair, and a secret is
   never carried (`crates/podssh-cli/src/node_install/env.rs:38`, `:7-9`). Keep that.
 - Read: T-593 made the cache follow `HOME` into another user's home; a system unit of a named user must name

@@ -1,30 +1,31 @@
-//! The text of each kind of service (T-121, T-393), built on each system so
-//! that each is tested on each: the node's words with each file by its
-//! absolute path, a user unit of systemd, the lines of the crontab, a
-//! LaunchAgent of launchd and a task of the Task Scheduler, each with its
-//! own quoting. None holds a token: the words are the run's flags, and its
-//! variables are in the file of `--env-file`. Each starts the run again
-//! whenever it ends, with no limit of starts: a tunnel that stays down locks
-//! its server out.
+//! The text of each kind of service (T-121, T-393, T-820), built on each
+//! system so that each is tested on each: the node's words with each file by
+//! its absolute path, and the [`pod_unit::Unit`] from which `pod-unit`
+//! renders a user unit of systemd, the lines of the crontab, a LaunchAgent
+//! of launchd and a task of the Task Scheduler, each with its own quoting.
+//! None holds a token: the words are the run's flags, and its variables are
+//! in the file of `--env-file`. Each starts the run again whenever it ends,
+//! with no limit of starts: a tunnel that stays down locks its server out.
 
 use std::path::Path;
+
+#[cfg(test)]
+pub(super) use pod_unit::cron::WATCHDOG;
+pub(super) use pod_unit::quote::{sh_word, windows_word};
+#[cfg(test)]
+pub(super) use pod_unit::quote::{systemd_word, xml};
 
 use super::{Kind, Spec};
 use crate::node::NodeArgs;
 use crate::relay_settings::Refusal;
 
-/// The start of the first line of a unit that podssh wrote, which
-/// `--uninstall` checks.
-#[cfg_attr(windows, allow(dead_code))]
+/// The start of the first line of a systemd unit that older podssh wrote,
+/// passed to `pod-unit` as an older mark so `--install` and `--uninstall`
+/// still recognize units written before the move to `pod-unit`.
 pub(super) const UNIT_MARK: &str = "# Written by podssh ";
 
-/// The time of the crontab's watchdog: each 5 minutes (pod-unit's).
-pub(super) use pod_unit::cron::WATCHDOG;
-
-/// The start of the comment of a LaunchAgent that podssh wrote, which
-/// `--uninstall` checks. A comment of XML may hold no `--`, so it names no
-/// flag.
-#[cfg_attr(windows, allow(dead_code))]
+/// The start of the comment of a LaunchAgent that older podssh wrote,
+/// passed to `pod-unit` as an older mark. A comment of XML may hold no `--`.
 pub(super) const PLIST_MARK: &str = "<!-- Written by podssh";
 
 /// The node's words for its service: NAME, each TARGET and the flags of this
@@ -117,182 +118,104 @@ pub(super) fn one_line(words: &[String]) -> Result<(), Refusal> {
     }
 }
 
-/// The quoting of each syntax here: pod-unit's (T-820), whose base was
-/// this file's.
-pub(super) use pod_unit::quote::{sh_word, systemd_word, windows_word, xml};
-
-/// The binary, then the words.
-fn command(spec: &Spec) -> impl Iterator<Item = String> + '_ {
-    std::iter::once(spec.exe.display().to_string()).chain(spec.args.iter().cloned())
+/// `podssh-node-NAME`, `podssh-ssh-NAME`, `podssh-serve-NAME`, `podssh-pipe-NAME`.
+pub(super) fn service_name(kind: Kind, name: &str) -> String {
+    format!("podssh-{}", kind.stem(name))
 }
 
-/// The run's directory as a path of text, when it has one.
-fn dir_text(spec: &Spec) -> Option<String> {
-    spec.dir.as_ref().map(|dir| dir.display().to_string())
+/// `dev.podssh.node.NAME`, `dev.podssh.ssh.NAME`.
+pub(super) fn launchd_label(kind: Kind, name: &str) -> String {
+    format!("dev.podssh.{}.{name}", kind.verb())
 }
 
-/// The user unit. It starts the run again 5 s after each end, with no
-/// limit of starts, but not after a refused command line or setting (64,
-/// 78), which no start changes. 77, an expired pair or a refusal of the
-/// relay, is started again, so that a new pair is taken with no new
-/// install.
-#[cfg_attr(windows, allow(dead_code))]
-pub(super) fn unit(spec: &Spec) -> String {
-    let (kind, name) = (spec.kind, &spec.name);
-    let words: Vec<String> = command(spec).map(|w| systemd_word(&w)).collect();
-    // `-`: a directory that went away is no reason to stay down.
-    let dir = dir_text(spec).map_or_else(String::new, |d| format!("WorkingDirectory=-{}\n", d.replace('%', "%%")));
-    format!(
-        "{UNIT_MARK}{}; {}.\n\
-         [Unit]\n\
-         Description=podssh {} {name}\n\
-         # No limit of starts: a tunnel that stays down locks its server out.\n\
-         StartLimitIntervalSec=0\n\
-         \n\
-         [Service]\n\
-         ExecStart={}\n\
-         {dir}\
-         Restart=always\n\
-         RestartSec=5\n\
-         RestartPreventExitStatus=64 78\n\
-         # The same limit, where a systemd older than 230 reads it.\n\
-         StartLimitInterval=0\n\
-         \n\
-         [Install]\n\
-         WantedBy=default.target\n",
-        kind.install_words(name),
-        kind.removal(name, false),
-        kind.verb(),
-        words.join(" ")
-    )
+/// The `pod-unit` mark (`podssh node`, `podssh ssh`, `podssh serve`,
+/// `podssh pipe`): holds no `--` even when a pair's name contains `--`.
+pub(super) fn mark(kind: Kind) -> String {
+    format!("podssh {}", kind.verb())
 }
 
-/// The comment above the lines of `kind`'s `name` in the crontab.
-#[cfg_attr(windows, allow(dead_code))]
+/// The pre-`pod-unit` crontab comment (T-393) above the two lines of `kind`'s
+/// `name`, kept as an older mark so `--install` and `--uninstall` find it.
 pub(super) fn cron_mark(kind: Kind, name: &str) -> String {
     let (made, removes) = (kind.install_words(name), kind.uninstall_words(name));
     format!("# podssh {made} wrote the lines below; podssh {removes} removes them")
 }
 
-/// The comment of T-121 above its one `@reboot` line, which `--uninstall`
-/// and a new `--install` still find.
-#[cfg_attr(windows, allow(dead_code))]
+/// The T-121 crontab comment above its one `@reboot` line, kept as an older
+/// mark so `--install` and `--uninstall` still find it.
 pub(super) fn old_cron_mark(kind: Kind, name: &str) -> String {
     let (made, removes) = (kind.install_words(name), kind.uninstall_words(name));
     format!("# podssh {made} wrote the line below; podssh {removes} removes it")
 }
 
-/// The lines of the crontab: one at boot, and the watchdog each 5 minutes,
-/// which starts the run again when it ended; while it serves, the lock of
-/// its `--env-file` ends the watchdog's start at once. cron runs each line
-/// with sh, and reads `%` as a line break: `\%` is a `%`.
-#[cfg_attr(windows, allow(dead_code))]
-pub(super) fn cron_lines(spec: &Spec) -> [String; 2] {
-    let words: Vec<String> = command(spec).map(|w| sh_word(&w)).collect();
-    let mut run = words.join(" ");
-    if let Some(dir) = dir_text(spec) {
-        run = format!("cd {} 2>/dev/null; {run}", sh_word(&dir));
-    }
-    let run = run.replace('%', "\\%");
-    [format!("@reboot {run}"), format!("{WATCHDOG} {run}")]
+/// The pre-`pod-unit` Windows task description, kept as an older mark so
+/// `--install` and `--uninstall` recognize tasks written by older podssh.
+pub(super) fn old_task_mark(kind: Kind, name: &str) -> String {
+    format!("podssh {} {name}; podssh {} removes it", kind.verb(), kind.uninstall_words(name))
 }
 
-/// `table` without the lines of `kind`'s `name`, then with `lines` and their
-/// mark when they are given; and whether lines of `name` were there. Below a
-/// mark, only an `@reboot` line, and after it the watchdog's line of the
-/// same command, are removed: any other line is the user's.
-#[cfg_attr(windows, allow(dead_code))]
+/// The identity and older marks of a service of `kind` and `name`, used as
+/// the base of [`pod_unit`] and for removals (which have no command).
+pub(super) fn base_unit(kind: Kind, name: &str, program: &Path) -> pod_unit::Unit {
+    let mut unit = pod_unit::Unit::new(&service_name(kind, name), program, &mark(kind))
+        .older_mark(UNIT_MARK)
+        .older_mark(PLIST_MARK)
+        .older_mark(&cron_mark(kind, name))
+        .older_mark(&old_cron_mark(kind, name))
+        .older_mark(&old_task_mark(kind, name));
+    unit.label = Some(launchd_label(kind, name));
+    unit.description = format!("podssh {} {name}", kind.verb());
+    unit
+}
+
+/// The `pod_unit::Unit` of a user service from `spec`, with podssh's
+/// hardening choices (`AF_NETLINK` for `--exit`, `--routes`, `--iroh`;
+/// session relaxations for `serve`).
+pub(super) fn pod_unit(spec: &Spec) -> Result<pod_unit::Unit, Refusal> {
+    let mut unit = base_unit(spec.kind, &spec.name, &spec.exe).args(&spec.args);
+    unit.dir = spec.dir.clone();
+    super::system_text::apply_hardening(spec, &mut unit.hardening)?;
+    Ok(unit)
+}
+
+/// The user unit of systemd, rendered by `pod-unit`.
+pub(super) fn unit(spec: &Spec) -> Result<String, Refusal> {
+    pod_unit::systemd::render(&pod_unit(spec)?).map_err(super::refusal_of)
+}
+
+/// The lines of the crontab, rendered by `pod-unit`: one at boot and the
+/// watchdog each 5 minutes.
+#[cfg(test)]
+pub(super) fn cron_lines(spec: &Spec) -> Result<Vec<String>, Refusal> {
+    pod_unit::cron::lines(&pod_unit(spec)?).map_err(super::refusal_of)
+}
+
+/// `table` without the lines of `kind`'s `name`, then with `lines` when
+/// given, through `pod_unit::cron::table`.
+#[cfg(test)]
 pub(super) fn cron_table(table: &str, kind: Kind, name: &str, lines: Option<&[String]>) -> (String, bool) {
-    let marks = [cron_mark(kind, name), old_cron_mark(kind, name)];
-    let mut kept: Vec<&str> = Vec::new();
-    let mut found = false;
-    let mut rest = table.lines().peekable();
-    while let Some(next) = rest.next() {
-        if !marks.iter().any(|mark| mark == next) {
-            kept.push(next);
-            continue;
-        }
-        found = true;
-        let Some(command) = rest.peek().copied().and_then(|line| line.strip_prefix("@reboot ")) else { continue };
-        let watchdog = format!("{WATCHDOG} {command}");
-        rest.next();
-        if rest.peek().copied() == Some(watchdog.as_str()) {
-            rest.next();
-        }
-    }
-    let mut text: String = kept.iter().map(|l| format!("{l}\n")).collect();
-    if let Some(lines) = lines {
-        text.push_str(&format!("{}\n", cron_mark(kind, name)));
-        for line in lines {
-            text.push_str(&format!("{line}\n"));
-        }
-    }
-    (text, found)
+    let unit = base_unit(kind, name, Path::new("/usr/bin/podssh"));
+    pod_unit::cron::table(table, &unit, lines)
 }
 
-/// The task: at the logon of `user`, this user, who needs no privilege to
-/// make a task that runs as itself with its own token; and each 5 minutes
-/// while `user` is logged on, which starts it again when it ended, as a
-/// second instance is never started beside a running one. It starts again
-/// a minute after a failure, and has no time limit.
-#[cfg_attr(not(windows), allow(dead_code))]
-pub(super) fn task_xml(spec: &Spec, user: &str) -> String {
-    let (kind, name) = (spec.kind, &spec.name);
-    let arguments: Vec<String> = spec.args.iter().map(|w| windows_word(w)).collect();
-    let description = format!("podssh {} {name}; podssh {} removes it", kind.verb(), kind.uninstall_words(name));
-    let dir = dir_text(spec).map_or_else(String::new, |d| format!("<WorkingDirectory>{}</WorkingDirectory>", xml(&d)));
-    format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\n\
-         <Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\n  \
-           <RegistrationInfo><Description>{}</Description></RegistrationInfo>\n  \
-           <Triggers><LogonTrigger><Enabled>true</Enabled><UserId>{user}</UserId></LogonTrigger>\
-         <TimeTrigger><Repetition><Interval>PT5M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition>\
-         <StartBoundary>2026-01-01T00:00:00</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>\n  \
-           <Principals><Principal id=\"Author\"><UserId>{user}</UserId><LogonType>InteractiveToken</LogonType>\
-         <RunLevel>LeastPrivilege</RunLevel></Principal></Principals>\n  \
-           <Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\
-         <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>\
-         <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><ExecutionTimeLimit>PT0S</ExecutionTimeLimit>\
-         <RestartOnFailure><Interval>PT1M</Interval><Count>999</Count></RestartOnFailure></Settings>\n  \
-           <Actions Context=\"Author\"><Exec><Command>{}</Command><Arguments>{}</Arguments>{dir}</Exec></Actions>\n\
-         </Task>\n",
-        xml(&description),
-        xml(&spec.exe.display().to_string()),
-        xml(&arguments.join(" ")),
-        user = xml(user),
-    )
+/// The XML of the Windows task at logon, rendered by `pod-unit`.
+#[cfg(test)]
+pub(super) fn task_xml(spec: &Spec, user: &str) -> Result<String, Refusal> {
+    pod_unit::windows::task_xml(&pod_unit(spec)?, user).map_err(super::refusal_of)
 }
 
-/// The LaunchAgent `label`: the run at once and at each login (RunAtLoad),
-/// and again 5 s after each end, whatever its code (KeepAlive); its stderr
-/// in `log`, as launchd keeps no journal.
-#[cfg_attr(windows, allow(dead_code))]
-pub(super) fn plist(spec: &Spec, label: &str, log: &Path) -> String {
-    let string = |text: &str| format!("  <string>{}</string>", xml(text));
-    let mut lines = vec![
-        r#"<?xml version="1.0" encoding="UTF-8"?>"#.to_string(),
-        r#"<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">"#
-            .to_string(),
-        format!("{PLIST_MARK}; its uninstall of the service removes this file. -->"),
-        r#"<plist version="1.0">"#.to_string(),
-        "<dict>".to_string(),
-        "  <key>Label</key>".to_string(),
-        string(label),
-        "  <key>ProgramArguments</key>".to_string(),
-        "  <array>".to_string(),
-    ];
-    lines.extend(command(spec).map(|word| format!("  {}", string(&word))));
-    lines.push("  </array>".to_string());
-    if let Some(dir) = dir_text(spec) {
-        lines.extend(["  <key>WorkingDirectory</key>".to_string(), string(&dir)]);
-    }
-    let keys = [("RunAtLoad", "<true/>"), ("KeepAlive", "<true/>"), ("ThrottleInterval", "<integer>5</integer>")];
-    for (key, value) in keys {
-        lines.extend([format!("  <key>{key}</key>"), format!("  {value}")]);
-    }
-    lines.extend(["  <key>StandardErrorPath</key>".to_string(), string(&log.display().to_string())]);
-    lines.extend(["</dict>".to_string(), "</plist>".to_string()]);
-    lines.join("\n") + "\n"
+/// The LaunchAgent plist, rendered by `pod-unit`.
+#[cfg(test)]
+pub(super) fn plist(spec: &Spec, label: &str, log: &Path) -> Result<String, Refusal> {
+    let mut unit = pod_unit(spec)?;
+    unit.label = Some(label.to_string());
+    unit.log = Some(log.to_path_buf());
+    pod_unit::launchd::render(&unit).map_err(super::refusal_of)
+}
+
+/// The binary, then the words.
+fn command(spec: &Spec) -> impl Iterator<Item = String> + '_ {
+    std::iter::once(spec.exe.display().to_string()).chain(spec.args.iter().cloned())
 }
 
 /// The command to run at login, in this system's shell.
@@ -300,7 +223,7 @@ pub(super) fn login_line(spec: &Spec) -> String {
     let words: Vec<String> =
         command(spec).map(|w| if cfg!(windows) { windows_word(&w) } else { sh_word(&w) }).collect();
     let line = words.join(" ");
-    match dir_text(spec) {
+    match spec.dir.as_ref().map(|dir| dir.display().to_string()) {
         Some(dir) if cfg!(windows) => format!("cd /d {} && {line}", windows_word(&dir)),
         Some(dir) => format!("cd {} && {line}", sh_word(&dir)),
         None => line,

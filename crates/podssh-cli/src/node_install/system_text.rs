@@ -1,8 +1,8 @@
-//! The text of a system unit of systemd that runs as a named user:
-//! `/etc/systemd/system/podssh-node-NAME.service`, with `User=`, that
-//! user's places, a state directory for the file of variables, and the
-//! hardening that `systemd-analyze security` scores. Each user may read a
-//! unit, so no secret is in it: the variables are in a private file of the
+//! The system unit of systemd that runs as a named user (T-709, T-820):
+//! `/etc/systemd/system/podssh-node-NAME.service`, rendered by `pod-unit`
+//! with `User=`, that user's places, a state directory for the file of
+//! variables, and the hardening of `pod_unit::Hardening`. Each user may read
+//! a unit, so no secret is in it: the variables are in a private file of the
 //! user's. A run that needs a line relaxed says which line, and why, in a
 //! comment of the unit. It is built on each system, so that each tests it.
 
@@ -10,7 +10,6 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use super::system::{path_ok, Account};
-use super::text::{systemd_word, UNIT_MARK};
 use super::{env, Kind, Spec};
 use crate::relay_settings::Refusal;
 
@@ -20,16 +19,11 @@ pub(crate) const UNIT_DIR: &str = "/etc/systemd/system";
 /// Where `StateDirectory=` puts a unit's state.
 pub(crate) const STATE_ROOT: &str = "/var/lib";
 
-/// `podssh-node-NAME.service`.
-#[cfg_attr(not(unix), allow(dead_code))]
-pub(crate) fn unit_name(kind: Kind, name: &str) -> String {
-    format!("podssh-{}.service", kind.stem(name))
-}
-
-/// `/etc/systemd/system/podssh-node-NAME.service`.
-#[cfg_attr(not(unix), allow(dead_code))]
+/// `/etc/systemd/system/podssh-node-NAME.service`, as `pod-unit` names it.
+#[cfg(test)]
 pub(crate) fn unit_path(kind: Kind, name: &str) -> PathBuf {
-    Path::new(UNIT_DIR).join(unit_name(kind, name))
+    let unit = super::text::base_unit(kind, name, Path::new("/usr/bin/podssh"));
+    pod_unit::SystemPlaces::default().systemd.join(pod_unit::systemd::file_name(&unit))
 }
 
 /// The name of `StateDirectory=`: `podssh-node-NAME`.
@@ -49,67 +43,42 @@ pub(crate) fn env_path(kind: Kind, name: &str) -> PathBuf {
     state_dir(kind, name).join(env::file_name(kind, name))
 }
 
-/// One line of the hardening, and why the sessions of serve go without it.
-struct Hard {
-    /// A key of pod-unit's table, which gives its value.
-    key: &'static str,
-    /// None: serve keeps it too.
-    sessions: Option<&'static str>,
-}
-
-/// The hardening of each system unit, in the order of pod-unit's table
-/// (`pod_unit::hardening::LINES`), whose values these keys take (T-820).
-/// serve's sessions run the user's own programs, as sshd's do, so the lines
-/// that would change what they may do are left out of serve's unit, each
-/// with its reason.
-const HARDENING: &[Hard] = &[
-    Hard { key: "NoNewPrivileges", sessions: Some("sudo in a session needs it") },
-    Hard { key: "CapabilityBoundingSet", sessions: Some("sudo in a session needs it") },
-    Hard { key: "RestrictSUIDSGID", sessions: Some("a session may make such files, as with sshd") },
-    Hard { key: "ProtectSystem", sessions: Some("a session writes where its user may") },
-    Hard { key: "ProtectHome", sessions: Some("a session works in its home") },
-    Hard { key: "PrivateTmp", sessions: Some("a session shares /tmp with its user's other logins") },
-    Hard { key: "PrivateDevices", sessions: Some("a session may use the devices of its user") },
-    Hard { key: "ProtectKernelTunables", sessions: None },
-    Hard { key: "ProtectKernelModules", sessions: None },
-    Hard { key: "ProtectKernelLogs", sessions: None },
-    Hard { key: "ProtectControlGroups", sessions: None },
-    Hard { key: "ProtectClock", sessions: None },
-    Hard { key: "ProtectHostname", sessions: None },
-    Hard { key: "ProtectProc", sessions: Some("a session lists the processes of this host") },
-    Hard { key: "RestrictNamespaces", sessions: Some("a session may run containers") },
-    Hard { key: "RestrictRealtime", sessions: None },
-    Hard { key: "LockPersonality", sessions: Some("a session may run programs of another personality") },
-    Hard { key: "MemoryDenyWriteExecute", sessions: Some("a session may run a compiler at run time") },
-    Hard { key: "SystemCallArchitectures", sessions: Some("a session may run 32-bit programs") },
-    Hard { key: "SystemCallFilter", sessions: Some("a session's programs make any call") },
-    Hard { key: "SystemCallErrorNumber", sessions: Some("it goes with SystemCallFilter") },
-    Hard { key: "RestrictAddressFamilies", sessions: Some("a session's programs open any socket") },
-    Hard { key: "UMask", sessions: Some("a session keeps the umask of its user") },
+/// The hardening lines of `pod_unit::hardening::LINES` relaxed for `serve`,
+/// whose sessions run the user's own programs as sshd's do. `pod-unit`
+/// automatically relaxes `SystemCallErrorNumber` with `SystemCallFilter` and
+/// relaxes `RemoveIPC` for every named user account.
+pub(super) const SERVE_RELAXED: &[(&str, &str)] = &[
+    ("NoNewPrivileges", "sudo in a session needs it"),
+    ("CapabilityBoundingSet", "sudo in a session needs it"),
+    ("AmbientCapabilities", "sudo in a session needs it"),
+    ("RestrictSUIDSGID", "a session may make such files, as with sshd"),
+    ("ProtectSystem", "a session writes where its user may"),
+    ("ProtectHome", "a session works in its home"),
+    ("PrivateTmp", "a session shares /tmp with its user's other logins"),
+    ("PrivateDevices", "a session may use the devices of its user"),
+    ("ProtectProc", "a session lists the processes of this host"),
+    ("RestrictNamespaces", "a session may run containers"),
+    ("LockPersonality", "a session may run programs of another personality"),
+    ("MemoryDenyWriteExecute", "a session may run a compiler at run time"),
+    ("SystemCallArchitectures", "a session may run 32-bit programs"),
+    ("SystemCallFilter", "a session's programs make any call"),
+    ("RestrictAddressFamilies", "a session's programs open any socket"),
+    ("UMask", "a session keeps the umask of its user"),
 ];
 
-/// The lines of pod-unit's table that podssh's system unit leaves out, and
-/// why: a test checks that each line of the table is here or above.
-#[cfg_attr(not(test), allow(dead_code))]
-pub(super) const LEFT_OUT: &[(&str, &str)] = &[
-    // An account with no privilege has no ambient capability to drop; the
-    // unit's text stays podssh's until pod-unit renders it (T-820).
-    ("AmbientCapabilities", "an account with no privilege has none"),
-    // systemd removes each System V and POSIX IPC object of the account at
-    // each stop: the account is a person's, whose other programs keep theirs.
-    ("RemoveIPC", "the account is a person's, whose other programs keep their IPC objects"),
-];
-
-/// The value of the line `key` in pod-unit's table.
-pub(super) fn hardening_value(key: &str) -> Option<&'static str> {
-    pod_unit::hardening::LINES.iter().find(|line| line.key == key).map(|line| line.value)
-}
-
-/// The keys of podssh's hardening, in its order.
+/// The hardening lines that `serve` keeps active; a test checks that every
+/// line of `pod_unit::hardening::LINES` is here, in [`SERVE_RELAXED`], or
+/// handled automatically by `pod-unit` (`SystemCallErrorNumber`, `RemoveIPC`).
 #[cfg(test)]
-pub(super) fn hardening_keys() -> impl Iterator<Item = &'static str> {
-    HARDENING.iter().map(|hard| hard.key)
-}
+pub(super) const SERVE_KEPT: &[&str] = &[
+    "ProtectKernelTunables",
+    "ProtectKernelModules",
+    "ProtectKernelLogs",
+    "ProtectControlGroups",
+    "ProtectClock",
+    "ProtectHostname",
+    "RestrictRealtime",
+];
 
 /// The flags whose file the run may make: its directory must be writable.
 const MADE: &[&str] = &["--key", "--iroh-key", "--host-key"];
@@ -131,8 +100,6 @@ pub(super) struct Needs {
     /// by netlink: an exit, whose own addresses it dials only when a range
     /// names them alone, and the iroh road, which watches the interfaces.
     pub netlink: Option<&'static str>,
-    /// A roost (`--sshd`): it dials an sshd of this host.
-    pub roost: bool,
     /// serve, whose sessions run the user's programs.
     pub sessions: bool,
 }
@@ -142,118 +109,68 @@ impl Needs {
         let has = |flag: &str| spec.args.iter().any(|word| word == flag);
         Needs {
             netlink: ["--exit", "--routes", "--iroh"].into_iter().find(|flag| has(flag)),
-            roost: has("--sshd"),
             sessions: spec.kind == Kind::Serve,
         }
     }
 }
 
-/// How the first line names what wrote the unit.
-fn made_words(kind: Kind, name: &str, user: &str) -> String {
-    match kind {
-        Kind::Serve => format!("serve {name} --print-unit --system --run-as {user}"),
-        _ => format!("{} --system --run-as {user}", kind.install_words(name)),
-    }
-}
-
-/// The system unit of `spec`, which runs as `account`. A path that a unit's
-/// list cannot hold as it is, is refused (78).
-pub(crate) fn unit(spec: &Spec, account: &Account) -> Result<String, Refusal> {
-    let (kind, name, user) = (spec.kind, &spec.name, &account.user);
-    let words: Vec<String> = std::iter::once(spec.exe.display().to_string())
-        .chain(spec.args.iter().cloned())
-        .map(|word| systemd_word(&word))
-        .collect();
-    let home = account.home.display().to_string();
-    let mut lines = vec![
-        format!("{UNIT_MARK}{}; {}.", made_words(kind, name, user), kind.removal(name, true)),
-        "# No secret is in this file, which each user may read: the variables are in a private file of the user's."
-            .to_string(),
-        "[Unit]".to_string(),
-        format!("Description=podssh {} {name}, as {user}", kind.verb()),
-        "Wants=network-online.target".to_string(),
-        "After=network-online.target".to_string(),
-        "# No limit of starts: a tunnel that stays down locks its server out.".to_string(),
-        "StartLimitIntervalSec=0".to_string(),
-        String::new(),
-        "[Service]".to_string(),
-        format!("User={user}"),
-        "# The places of the user, where the user's own runs keep the pair, the keys and the settings.".to_string(),
-        format!("Environment=HOME={home}"),
-        format!("Environment=XDG_CACHE_HOME={home}/.cache"),
-        format!("Environment=XDG_CONFIG_HOME={home}/.config"),
-    ];
-    if kind == Kind::Serve {
-        if let Some(shell) = account.shell.as_deref().filter(|shell| path_ok(Path::new(shell))) {
-            // The login shell of the passwd entry, as sshd gives it.
-            lines.push(format!("Environment=SHELL={shell}"));
-        }
-    } else {
-        lines.extend([
-            "# The file of the variables and its lock: the user's alone.".to_string(),
-            format!("StateDirectory={}", state_name(kind, name)),
-            "StateDirectoryMode=0700".to_string(),
-        ]);
-    }
-    lines.push(format!("ExecStart={}", words.join(" ")));
-    lines.extend(
-        [
-            "Restart=always",
-            "RestartSec=5",
-            "RestartPreventExitStatus=64 78",
-            "# The same limit, where a systemd older than 230 reads it.",
-            "StartLimitInterval=0",
-        ]
-        .map(String::from),
-    );
-    hardening(spec, account, &mut lines)?;
-    lines.extend([String::new(), "[Install]".to_string(), "WantedBy=multi-user.target".to_string()]);
-    Ok(lines.join("\n") + "\n")
-}
-
-/// The lines of the hardening, each relaxed line said in a comment, then
-/// the paths that the run must reach through it.
-fn hardening(spec: &Spec, account: &Account, lines: &mut Vec<String>) -> Result<(), Refusal> {
+/// Apply podssh's hardening relaxations and extra address families to
+/// `hardening`, for both user units (seccomp lines) and system units.
+pub(super) fn apply_hardening(spec: &Spec, hardening: &mut pod_unit::Hardening) -> Result<(), Refusal> {
     let needs = Needs::of(spec);
-    lines.push("# The hardening, which systemd-analyze security scores.".to_string());
-    if needs.roost {
-        lines.push("# A roost (--sshd) dials an sshd of this host, which no line here limits: none is relaxed.".into());
-    }
-    for hard in HARDENING {
-        // A key that pod-unit's table lost would make a weaker unit: refused.
-        let Some(value) = hardening_value(hard.key) else {
-            return Err(Refusal::config(format!("the hardening line {} is not in pod-unit's table", hard.key)));
-        };
-        let line = format!("{}={value}", hard.key);
-        match (needs.sessions, hard.sessions, needs.netlink) {
-            (true, Some(why), _) => lines.push(format!("# Relaxed for serve, as {why}: {line}")),
-            (_, _, Some(flag)) if hard.key == "RestrictAddressFamilies" => lines.extend([
-                format!("# Relaxed for {flag}: AF_NETLINK, by which the kernel gives this host's own addresses."),
-                format!("{line} AF_NETLINK"),
-            ]),
-            _ => lines.push(line),
+    if needs.sessions {
+        for &(key, why) in SERVE_RELAXED {
+            hardening.relax(key, &format!("serve runs user sessions: {why}")).map_err(super::refusal_of)?;
         }
-    }
-    if !needs.sessions {
-        paths(spec, account, lines)?;
+    } else if let Some(flag) = needs.netlink {
+        hardening
+            .family("AF_NETLINK", &format!("{flag} reads this host's own addresses by netlink"))
+            .map_err(super::refusal_of)?;
     }
     Ok(())
 }
 
+/// The `pod_unit::Unit` of a system unit of `spec`, which runs as `account`.
+/// A path that a unit's list cannot hold as it is, is refused (78).
+pub(crate) fn pod_unit(spec: &Spec, account: &Account) -> Result<pod_unit::Unit, Refusal> {
+    let (kind, name, user) = (spec.kind, &spec.name, &account.user);
+    let home = account.home.display().to_string();
+    let mut unit = super::text::pod_unit(spec)?.system(Some(user));
+    unit.description = format!("podssh {} {name}, as {user}", kind.verb());
+    unit = unit
+        .env("HOME", &home)
+        .env("XDG_CACHE_HOME", &format!("{home}/.cache"))
+        .env("XDG_CONFIG_HOME", &format!("{home}/.config"));
+    if kind == Kind::Serve {
+        if let Some(shell) = account.shell.as_deref().filter(|shell| path_ok(Path::new(shell))) {
+            // The login shell of the passwd entry, as sshd gives it.
+            unit = unit.env("SHELL", shell);
+        }
+    } else {
+        unit.state_dir = Some(state_name(kind, name));
+        paths(spec, account, &mut unit.hardening)?;
+    }
+    Ok(unit)
+}
+
+/// The system unit of `spec`, rendered by `pod-unit`, which runs as `account`.
+pub(crate) fn unit(spec: &Spec, account: &Account) -> Result<String, Refusal> {
+    pod_unit::systemd::render(&pod_unit(spec, account)?).map_err(super::refusal_of)
+}
+
 /// What `ProtectHome=tmpfs` and `ProtectSystem=strict` must let through: the
-/// user's cache of podssh, read and written; its settings, read; and the
-/// directory of each file that a flag names, where it is hidden or must be
-/// written. A `-` lets a missing one be.
-fn paths(spec: &Spec, account: &Account, lines: &mut Vec<String>) -> Result<(), Refusal> {
+/// user's cache of podssh, read and written; its settings, read; the binary
+/// itself if hidden; and the directory of each file that a flag names, where
+/// it is hidden or must be written.
+fn paths(spec: &Spec, account: &Account, hardening: &mut pod_unit::Hardening) -> Result<(), Refusal> {
     let (cache, config) = (account.cache_dir(), account.config_dir());
     for dir in [&cache, &config] {
         if !path_ok(dir) {
             return Err(unit_path_refusal("the home of --run-as", dir));
         }
     }
-    lines.push("# The user's cache of podssh, which holds the pair and the keys; its settings, read.".to_string());
-    lines.push(format!("BindPaths={}", cache.display()));
-    lines.push(format!("BindReadOnlyPaths=-{}", config.display()));
+    hardening.bind.push(cache.clone());
+    hardening.bind_read.push(config);
     // The binary itself, where a line above hides it: under a home, or in
     // the temporary directory that PrivateTmp replaces (T-828).
     let exe = &spec.exe;
@@ -262,8 +179,7 @@ fn paths(spec: &Spec, account: &Account, lines: &mut Vec<String>) -> Result<(), 
         if !path_ok(exe) {
             return Err(unit_path_refusal("the binary", exe));
         }
-        lines.push("# This binary, which the lines above hide: a copy outside a home and /tmp needs none.".into());
-        lines.push(format!("BindReadOnlyPaths={}", exe.display()));
+        hardening.bind_read.push(exe.clone());
     }
     // Each directory once: written when any of its files is made there.
     let mut dirs: BTreeMap<PathBuf, bool> = BTreeMap::new();
@@ -288,20 +204,14 @@ fn paths(spec: &Spec, account: &Account, lines: &mut Vec<String>) -> Result<(), 
         }
         dirs.entry(dir.to_path_buf()).or_default();
     }
-    let mut more = Vec::new();
     for (dir, made) in dirs {
         let hidden = HOMES.iter().any(|home| dir.starts_with(home)) || dir.starts_with(&account.home);
-        let key = match (hidden, made) {
-            (true, true) => "BindPaths",
-            (true, false) => "BindReadOnlyPaths",
-            (false, true) => "ReadWritePaths",
-            (false, false) => continue,
-        };
-        more.push(format!("{key}=-{}", dir.display()));
-    }
-    if !more.is_empty() {
-        lines.push("# The directories of the files of the flags, which the lines above hide or keep read-only.".into());
-        lines.extend(more);
+        match (hidden, made) {
+            (true, true) => hardening.bind.push(dir),
+            (true, false) => hardening.bind_read.push(dir),
+            (false, true) => hardening.write.push(dir),
+            (false, false) => {}
+        }
     }
     Ok(())
 }

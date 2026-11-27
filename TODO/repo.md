@@ -7397,7 +7397,7 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
   `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:140`,
-  `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
+  `crates/podssh-cli/src/node_install/system_install.rs:108` (`write_unit` moved to `pod-unit` in T-820), update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
   with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:81`,
   `crates/podssh-cli/src/cp/clobber.rs:328`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,
   `crates/podssh-relay/src/cache/own.rs:68` (`create_private`, a hard link), `crates/podssh-cli/src/relay_code.rs:151`
@@ -7776,6 +7776,30 @@ its own decision. podcrates' entry 1107 changes nothing of podssh's today: podss
 podcrates, for the main session's COORD issue: a name of a unit up to the length that podssh takes, or a caller's
 limit (i). Then the move, with podssh's tests changed to the crate's texts, each changed line decided here.
 
+2026-11-27, `node_install/` moved onto `pod-unit` (`v0.85.0`; identical `src/` in `v0.86.0`), resolving items (i) to
+(iii) above:
+- (i) `pod_unit::Unit::NAME_MAX` is 200 now (`podssh-serve-` + 128 bytes = 141, `dev.podssh.serve.` + 128 bytes = 145),
+  covering podssh's 128-byte pair label across every user form and `serve` system unit. One minor edge remains in
+  `pod-unit`: `Unit::state_dir` still uses `NAME_SHORT = 64` (limiting system-unit `node` labels to 52 bytes until
+  podcrates widens `state_dir` to `NAME_MAX`); an overlong system-unit `node` name returns exit 64 cleanly.
+- (ii) User units now receive `pod-unit`'s `Need::Seccomp` hardening lines, with podssh applying `apply_hardening` on
+  both user and system units so `--exit`, `--routes`, and `--iroh` add `AF_NETLINK` and `serve` relaxes its session
+  seccomp lines on user units too.
+- (iii) Accepted `pod-unit`'s rendered texts and updated podssh's tests to match: `Type=exec`,
+  `Wants=`/`After=network-online.target`, `TimeoutStopSec=90`, quoted `Environment="K=V"`, `AmbientCapabilities=`
+  (relaxed for `serve`), `RemoveIPC=yes` auto-relaxed for named accounts, `-` before all bind/write paths, `Umask` 63
+  and `ExitTimeOut` 90 in plists, and `pod-unit`'s mark (`podssh VERB`, holding no `--` even when a pair name holds
+  `--`). All older podssh marks (`UNIT_MARK`, `PLIST_MARK`, `cron_mark`, `old_cron_mark`, `old_task_mark`) are passed
+  via `Unit::older_mark` so upgrading or uninstalling units written by older podssh works cleanly, while foreign files
+  are refused and left untouched.
+- Minimal podssh-specific glue kept: `ways.rs` (`Places` with `XDG_CONFIG_HOME`, private 0600 LaunchAgent log creation,
+  cleanup of earlier installs from other user forms, and podssh's linger/start-now/task notes), `system.rs` (`/etc/passwd`
+  `Account` for home/shell/uid/gid and cache ownership checks, now reusing `pod_unit::install::SYSTEMD_BOOTED`),
+  `system_text.rs` (`SERVE_RELAXED` / `Needs` / flag & Unix-socket bind-path collection feeding `pod_unit::Hardening`),
+  and `system_install.rs`'s `write_env` (root `lchown`/`fchown`ing `/var/lib/podssh-node-NAME` and `node-NAME.env` to the
+  service account) plus `state_dir` removal on `--uninstall --system`. Lost: keeping podssh's own duplicate unit/cron/
+  plist/task renderers and systemctl/launchctl/crontab/schtasks runners beside `pod-unit`.
+
 2026-11-24, `exitmap.rs` and `exit_codes.rs` against `pod_core::failure::Class::exit_code()` (`v0.82.1`). Each `Fault`
 of `crates/podssh-cli/src/exitmap.rs` names pod-core's class by its meaning (`Fault::origin`, `Fault::class`), never by
 its number, and takes `Class::exit_code()` where that is the code of the manual's EXIT STATUS: `Usage` (64),
@@ -7804,7 +7828,7 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ws --lib
 cargo test -p podssh-cli --lib
 cargo test -p podssh-ssh --lib known_hosts
-cargo test -p podssh-cli --test keygen_cert --test keygen_known_hosts --test serve_install
+cargo test -p podssh-cli --test keygen_cert --test keygen_known_hosts --test serve_install --test node_install
 ```
 
 ## Done
@@ -7908,6 +7932,24 @@ the Decision, filed as COORD-142 (#352).
 `pod_e2e::ends::BEARER_REFUSED`, PodUtils/podcrates@T-1408); and `crates/podssh-cli/src/ping/node.rs` (`true_why` ->
 `pod_session::client::Unheard`, PodUtils/podcrates@T-1410). Verified with `podssh-ws`, `podssh-relay`, `podssh-cli` tests, clippy and
 rustfmt clean.
+
+2026-11-27 (merged and verified, Antigravity Linux x86_64, Rust 1.99.0): moved `crates/podssh-cli/src/node_install/`
+onto `pod-unit` (`v0.86.0`). Removed `node_install/{unix,launchd,windows}.rs` (406 lines) and duplicate
+renderers/hardening/unit-writer/process-runner code from `mod.rs`, `text.rs`, `system_text.rs`, and
+`system_install.rs`. Added `node_install/ways.rs` delegating user-service probing, install, and removal to
+`pod_unit::install::{probe, install, remove}`; `text.rs` and `system_text.rs` now build `pod_unit::Unit` and render via
+`pod_unit::{systemd, launchd, cron, windows}` (passing all older podssh marks via `Unit::older_mark` and `podssh VERB`
+as mark so pair names with `--` pass); `system_install.rs` delegates unit writing, `systemctl` steps, rollback, and
+removal to `pod_unit::install::{install_system, remove_system}` (keeping only root `fchown` `write_env` and `state_dir`
+cleanup); `system.rs` reuses `pod_unit::install::SYSTEMD_BOOTED`. Updated `node_install/{tests,system_tests,
+pod_unit_tests,pipe_tests}.rs`, `tests/serve_install.rs`, and `tests/node_install.rs` (adding regression tests for
+128-char and `--` names, user-unit `AF_NETLINK` / `serve` seccomp relaxation, `pod_unit::systemd::audit`, and
+mock-`Host` upgrade/removal of pre-`pod-unit` units and foreign-file refusal; scoped `tests.rs:79` `77` check to
+`RestartPreventExitStatus=` so `UMask=0077` hardening passes). Verified: `node_install` lib 36 passed, `serve_install`
+9, `tests/node_install` 6, `io_error_lines` 6, `output_full` 1, clippy (`-D warnings -A clippy::collapsible_if`) and
+rustfmt clean. Still waiting for podcrates: entry 941 (the lock of `known_hosts` on Windows), entry 501 (`pod-turn`'s
+RFC 6062), entry 879 (`pod-detach`), the remaining rows of `pod-hostprobe` for `doctor/`, COORD-142 (#352) exit-code
+notes, and widening `pod_unit::Unit::state_dir` from `NAME_SHORT` (64) to `Unit::NAME_MAX` (200).
 
 
 # T-1034: 40 of the 326 planted defects no longer apply to the tree

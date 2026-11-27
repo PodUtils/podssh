@@ -65,9 +65,9 @@ fn the_unit_of_a_pipe_holds_its_words_and_no_credential() {
         dir: None,
         env_file: "/e/pipe-web.env".into(),
     };
-    let unit = super::super::text::unit(&spec);
+    let unit = super::super::text::unit(&spec).unwrap();
+    assert!(unit.starts_with("# Written by podssh pipe.\n"), "{unit}");
     assert!(unit.contains("Description=podssh pipe web"), "{unit}");
-    assert!(unit.contains("podssh pipe --uninstall web removes it"), "{unit}");
     assert!(unit.contains("--keep-listening") && unit.contains("BatchMode=yes"), "{unit}");
     // No word of the unit may be a credential: a URL with a user and a
     // password is refused before the unit is written.

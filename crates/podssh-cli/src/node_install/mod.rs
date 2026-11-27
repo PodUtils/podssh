@@ -17,18 +17,16 @@
 //! start of the same service ends at once. `--uninstall` removes what
 //! `--install` wrote, and nothing else.
 
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crate::exitmap::sysexits::EX_UNAVAILABLE;
+use crate::exit_codes::EXIT_USAGE;
+use crate::exitmap::sysexits::{EX_CANTCREAT, EX_CONFIG, EX_NOPERM, EX_UNAVAILABLE};
 use crate::node::NodeArgs;
 use crate::relay_settings::Refusal;
 
 mod env;
-#[cfg(unix)]
-mod launchd;
 pub(crate) mod lock;
 pub(crate) mod pipe;
 pub(crate) mod print;
@@ -38,10 +36,7 @@ pub(crate) mod system;
 mod system_install;
 mod system_text;
 mod text;
-#[cfg(unix)]
-mod unix;
-#[cfg(windows)]
-mod windows;
+mod ways;
 
 #[cfg(all(test, unix))]
 mod pod_unit_tests;
@@ -91,24 +86,8 @@ impl Kind {
         match self {
             Kind::Node => format!("node {name} --uninstall"),
             Kind::Ssh => format!("ssh --uninstall {name}"),
-            // serve's unit is printed, never installed: no word of podssh
-            // removes it, and [`Kind::removal`] names systemctl's.
             Kind::Serve => format!("serve {name} --print-unit"),
             Kind::Pipe => format!("pipe --uninstall {name}"),
-        }
-    }
-
-    /// How the unit's first line says to remove it: `podssh` for what
-    /// `--install` wrote, systemctl for serve's printed unit.
-    pub fn removal(self, name: &str, system: bool) -> String {
-        let unit = format!("podssh-{}.service", self.stem(name));
-        match (self, system) {
-            (Kind::Serve, true) => format!("systemctl disable --now {unit}, then the removal of this file, undo it"),
-            (Kind::Serve, false) => {
-                format!("systemctl --user disable --now {unit}, then the removal of this file, undo it")
-            }
-            (_, true) => format!("podssh {} --system removes it", self.uninstall_words(name)),
-            (_, false) => format!("podssh {} removes it", self.uninstall_words(name)),
         }
     }
 
@@ -128,8 +107,8 @@ pub(crate) struct Spec {
     /// the words that it keeps as typed (`podssh ssh`); none for a node,
     /// whose files are absolute already.
     pub dir: Option<PathBuf>,
-    /// The file of `--env-file`, beside which a LaunchAgent's log goes.
-    #[cfg_attr(not(unix), allow(dead_code))]
+    /// The file of `--env-file`, beside which a LaunchAgent's log or a
+    /// Windows task's temporary XML goes.
     pub env_file: PathBuf,
 }
 
@@ -140,33 +119,19 @@ pub(crate) enum Target {
     System(system::Account),
 }
 
-/// What one way of making a service came to.
-pub(crate) enum Made {
-    /// The service is made: what was made, in lines.
-    Done(Vec<String>),
-    /// This way is not there: why, for the line that names each way tried.
-    Absent(String),
-    /// This way is there, and failed.
-    Failed(Refusal),
+/// Map a `pod-unit` / `pod-core` failure to podssh's documented exit codes.
+pub(super) fn refusal_of(failure: pod_core::Failure) -> Refusal {
+    let code = match failure.class {
+        pod_core::Class::Usage => EXIT_USAGE,
+        pod_core::Class::Config | pod_core::Class::Unsupported => EX_CONFIG,
+        pod_core::Class::Refused => EX_NOPERM,
+        pod_core::Class::CantCreate => EX_CANTCREAT,
+        _ => EX_UNAVAILABLE,
+    };
+    Refusal { message: failure.chain(), code }
 }
 
-/// One way of making a service, and how to remove what it made.
-struct Way {
-    make: fn(&Spec) -> Made,
-    remove: fn(Kind, &str) -> Vec<String>,
-}
-
-/// The ways of this system, in the order of the probe.
-#[cfg(unix)]
-const WAYS: &[Way] = &[
-    Way { make: unix::systemd, remove: unix::remove_systemd },
-    Way { make: launchd::launchd, remove: launchd::remove },
-    Way { make: unix::cron, remove: unix::remove_cron },
-];
-#[cfg(windows)]
-const WAYS: &[Way] = &[Way { make: windows::schtasks, remove: windows::remove }];
-#[cfg(not(any(unix, windows)))]
-const WAYS: &[Way] = &[];
+pub(crate) use ways::{install, uninstall};
 
 /// `podssh node`: the variables of `--env-file` and the lock of its service
 /// first, then the node, or its install or uninstall.
@@ -348,105 +313,4 @@ fn check_targets(args: &NodeArgs) -> Result<(), Refusal> {
         return Ok(());
     }
     crate::node::targets_of(&crate::node::words_of(args), args.no_e2e).map(|_| ())
-}
-
-/// Make the service by the first way that is there, and remove what another
-/// way made for it before, which would start a second copy; with none, the
-/// command to run at login, and 69.
-pub(crate) fn install(spec: &Spec, notes: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
-    let (verb, name) = (spec.kind.verb(), &spec.name);
-    let mut absent = Vec::new();
-    for (at, way) in WAYS.iter().enumerate() {
-        match (way.make)(spec) {
-            Made::Done(lines) => {
-                let others = WAYS.iter().enumerate().filter(|(other, _)| *other != at);
-                let earlier: Vec<String> = others
-                    .flat_map(|(_, other)| (other.remove)(spec.kind, name))
-                    .map(|line| format!("an earlier --install of another way: {line}"))
-                    .collect();
-                for line in lines.iter().chain(&earlier).chain(notes) {
-                    let _ = writeln!(err, "podssh {verb}: {name}: {line}");
-                }
-                let _ = writeln!(err, "podssh {verb}: {name}: podssh {} removes it", spec.kind.uninstall_words(name));
-                return 0;
-            }
-            Made::Absent(why) => absent.push(why),
-            Made::Failed(refusal) => return refusal.report(verb, err),
-        }
-    }
-    let _ = writeln!(
-        err,
-        "podssh {verb}: {name}: no service of this user can be made here ({}); run this at login:",
-        absent.join("; ")
-    );
-    let _ = writeln!(out, "{}", text::login_line(spec));
-    for note in notes {
-        let _ = writeln!(err, "podssh {verb}: {name}: {note}");
-    }
-    let removes = spec.kind.uninstall_words(name);
-    let _ = writeln!(err, "podssh {verb}: {name}: podssh {removes} removes the file of its variables");
-    EX_UNAVAILABLE
-}
-
-/// Remove what `--install` wrote for `kind`'s NAME, wherever it is: each
-/// way, and the files of its variables and its lock. Nothing to remove is
-/// no failure.
-pub(crate) fn uninstall(kind: Kind, name: &str, err: &mut dyn Write) -> i32 {
-    let verb = kind.verb();
-    let mut removed: Vec<String> = WAYS.iter().flat_map(|way| (way.remove)(kind, name)).collect();
-    if let Some(path) = env::remove(kind, name) {
-        removed.push(format!("removed the file of its variables, {}", path.display()));
-    }
-    if removed.is_empty() {
-        let _ = writeln!(err, "podssh {verb}: {name}: nothing that --install writes is here");
-    }
-    for line in removed {
-        let _ = writeln!(err, "podssh {verb}: {name}: {line}");
-    }
-    0
-}
-
-/// Run `cmd`, with no stdin, within [`PROGRAM_LIMIT`]: its output, or why
-/// it did not run or end.
-pub(crate) fn run(cmd: &mut Command) -> Result<Output, String> {
-    let shown = format!("{:?}", cmd.get_program());
-    let mut child = cmd
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
-    // Read as the program writes, so that a long answer cannot hold it.
-    let reader = |pipe: Option<Box<dyn Read + Send>>| {
-        std::thread::spawn(move || {
-            let mut bytes = Vec::new();
-            if let Some(mut pipe) = pipe {
-                let _ = pipe.read_to_end(&mut bytes);
-            }
-            bytes
-        })
-    };
-    let stdout = reader(child.stdout.take().map(|p| Box::new(p) as Box<dyn Read + Send>));
-    let stderr = reader(child.stderr.take().map(|p| Box::new(p) as Box<dyn Read + Send>));
-    let deadline = Instant::now() + PROGRAM_LIMIT;
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
-            Ok(None) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(format!("{shown} did not end within {} s", PROGRAM_LIMIT.as_secs()));
-            }
-            Err(e) => return Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
-        }
-    };
-    Ok(Output { status, stdout: stdout.join().unwrap_or_default(), stderr: stderr.join().unwrap_or_default() })
-}
-
-/// The first line of a program's complaint, for a message.
-pub(crate) fn said(output: &Output) -> String {
-    let text = String::from_utf8_lossy(&output.stderr);
-    let line = text.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("no message");
-    format!("{} ({})", podssh_ws::text::one_line(line), output.status)
 }

@@ -51,7 +51,7 @@ fn target(system: bool, run_as: Option<&str>, name: &str) -> Result<Target, Refu
 
 fn unit_of(spec: &Spec, target: &Target) -> Result<String, Refusal> {
     match target {
-        Target::User => Ok(text::unit(spec)),
+        Target::User => text::unit(spec),
         Target::System(account) => system_text::unit(spec, account),
     }
 }

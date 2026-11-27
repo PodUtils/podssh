@@ -2312,7 +2312,7 @@ podssh knew in advance, and said nowhere.
 
 ## Premise
 
-- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:137`).
+- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (node_install/text.rs:137, moved to `pod-unit` in T-820).
 - Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:381`, `repair:
   None`).
 

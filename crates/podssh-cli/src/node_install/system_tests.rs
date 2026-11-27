@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use super::env::{without, HOME_BOUND, SECRET};
 use super::system::{account_in, check, flags, path_ok, user_name_ok, Account, Probes};
-use super::system_text::{env_path, hardening_keys, hardening_value, state_dir, unit, unit_path, Needs, LEFT_OUT};
+use super::system_text::{env_path, state_dir, unit, unit_path, Needs, SERVE_KEPT, SERVE_RELAXED, UNIT_DIR};
 use super::text::UNIT_MARK;
 use super::{Kind, Spec};
 use crate::exitmap::sysexits::{EX_CONFIG, EX_NOPERM, EX_UNAVAILABLE, EX_USAGE};
@@ -51,6 +51,7 @@ fn section(text: &str, name: &str) -> Vec<String> {
 const HARDENED: &[&str] = &[
     "NoNewPrivileges=yes",
     "CapabilityBoundingSet=",
+    "AmbientCapabilities=",
     "ProtectSystem=strict",
     "ProtectHome=tmpfs",
     "PrivateTmp=yes",
@@ -71,26 +72,22 @@ const HARDENED: &[&str] = &[
 fn a_system_unit_runs_as_its_user_in_its_places_with_each_line_of_the_hardening() {
     let text = unit(&node(&[]), &alice()).expect("a unit");
     assert!(text.starts_with(UNIT_MARK), "{text}");
-    assert!(
-        text.starts_with(
-            "# Written by podssh node lab --install --system --run-as alice; podssh node lab --uninstall --system \
-             removes it.\n"
-        ),
-        "{text}"
-    );
+    assert!(text.starts_with("# Written by podssh node.\n"), "{text}");
     let service = section(&text, "Service");
     for line in [
+        "Type=exec",
         "User=alice",
-        "Environment=HOME=/home/alice",
-        "Environment=XDG_CACHE_HOME=/home/alice/.cache",
-        "Environment=XDG_CONFIG_HOME=/home/alice/.config",
+        "Environment=\"HOME=/home/alice\"",
+        "Environment=\"XDG_CACHE_HOME=/home/alice/.cache\"",
+        "Environment=\"XDG_CONFIG_HOME=/home/alice/.config\"",
         "StateDirectory=podssh-node-lab",
         "StateDirectoryMode=0700",
         "ExecStart=/usr/local/bin/podssh node lab 127.0.0.1:22 --env-file /var/lib/podssh-node-lab/node-lab.env",
         "Restart=always",
         "RestartSec=5",
         "RestartPreventExitStatus=64 78",
-        "BindPaths=/home/alice/.cache/podssh",
+        "StartLimitInterval=0",
+        "BindPaths=-/home/alice/.cache/podssh",
         "BindReadOnlyPaths=-/home/alice/.config/podssh",
     ]
     .iter()
@@ -100,7 +97,10 @@ fn a_system_unit_runs_as_its_user_in_its_places_with_each_line_of_the_hardening(
     }
     assert!(section(&text, "Install").iter().any(|l| l == "WantedBy=multi-user.target"), "{text}");
     assert!(section(&text, "Unit").iter().any(|l| l == "StartLimitIntervalSec=0"), "{text}");
-    assert!(!text.contains("Relaxed"), "a plain node relaxes nothing: {text}");
+    // Named accounts relax RemoveIPC alone so a stop never removes a person's IPC.
+    assert!(text.lines().any(|l| l.starts_with("# Relaxed, as ") && l.ends_with(": RemoveIPC=yes")), "{text}");
+    assert_eq!(text.lines().filter(|l| l.starts_with("# Relaxed")).count(), 1, "only RemoveIPC relaxed: {text}");
+    assert!(pod_unit::systemd::audit(&text, true).is_empty(), "{text}");
     // Each line that is not blank is a comment, a section or a key.
     for line in text.lines().filter(|l| !l.is_empty()) {
         assert!(line.starts_with('#') || line.starts_with('[') || line.contains('='), "{line:?}");
@@ -112,7 +112,7 @@ fn a_system_unit_runs_as_its_user_in_its_places_with_each_line_of_the_hardening(
 #[test]
 fn no_secret_is_in_a_unit_of_either_kind() {
     for spec in [node(&["--exit"]), node(&[]), serve(&[])] {
-        for text in [unit(&spec, &alice()).expect("a unit"), super::text::unit(&spec)] {
+        for text in [unit(&spec, &alice()).expect("a unit"), super::text::unit(&spec).expect("a user unit")] {
             for secret in SECRET {
                 assert!(!text.contains(secret), "{secret}: {text}");
             }
@@ -130,13 +130,15 @@ fn an_exit_routes_and_iroh_add_netlink_with_a_comment_and_a_roost_relaxes_nothin
         let text = unit(&node(words), &alice()).expect("a unit");
         let line = "RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK";
         assert!(text.lines().any(|l| l == line), "{flag}: {text}");
-        assert!(text.lines().any(|l| l.starts_with(&format!("# Relaxed for {flag}: AF_NETLINK"))), "{flag}: {text}");
+        assert!(text.lines().any(|l| l.starts_with("# AF_NETLINK:") && l.contains(flag)), "{flag}: {text}");
+        assert!(pod_unit::systemd::audit(&text, true).is_empty(), "{flag}: {text}");
     }
     let roost = unit(&node(&["--sshd"]), &alice()).expect("a unit");
-    assert!(roost.contains("# A roost (--sshd)") && !roost.contains("Relaxed"), "{roost}");
+    assert_eq!(roost.lines().filter(|l| l.starts_with("# Relaxed")).count(), 1, "{roost}");
     for line in HARDENED {
         assert!(roost.lines().any(|l| l == *line), "{line}: {roost}");
     }
+    assert!(pod_unit::systemd::audit(&roost, true).is_empty(), "{roost}");
     assert_eq!(Needs::of(&node(&[])), Needs::default());
 }
 
@@ -145,19 +147,23 @@ fn an_exit_routes_and_iroh_add_netlink_with_a_comment_and_a_roost_relaxes_nothin
 #[test]
 fn serve_s_unit_leaves_out_each_line_that_a_session_needs_and_names_it() {
     let text = unit(&serve(&["--authorized-keys", "/home/alice/.ssh/keys"]), &alice()).expect("a unit");
-    for line in ["User=alice", "Environment=HOME=/home/alice", "Environment=SHELL=/bin/bash"] {
+    for line in ["User=alice", "Environment=\"HOME=/home/alice\"", "Environment=\"SHELL=/bin/bash\""] {
         assert!(text.lines().any(|l| l == line), "{line}: {text}");
     }
     for kept in ["ProtectKernelTunables=yes", "ProtectClock=yes", "ProtectControlGroups=yes"] {
         assert!(text.lines().any(|l| l == kept), "{kept}: {text}");
     }
-    for left in ["NoNewPrivileges=yes", "ProtectHome=tmpfs", "SystemCallFilter=@system-service"] {
+    for left in ["NoNewPrivileges=yes", "AmbientCapabilities=", "ProtectHome=tmpfs", "SystemCallFilter=@system-service"]
+    {
         assert!(!text.lines().any(|l| l == left), "{left}: {text}");
         let named = format!(": {left}");
-        assert!(text.lines().any(|l| l.starts_with("# Relaxed for serve, as ") && l.ends_with(&named)), "{text}");
+        let relaxed =
+            text.lines().any(|l| l.starts_with("# Relaxed, as serve runs user sessions: ") && l.ends_with(&named));
+        assert!(relaxed, "{text}");
     }
+    assert!(pod_unit::systemd::audit(&text, true).is_empty(), "{text}");
     assert!(!text.contains("StateDirectory") && !text.contains("BindPaths"), "{text}");
-    assert!(text.contains("systemctl disable --now podssh-serve-lab.service"), "{text}");
+    assert!(text.starts_with("# Written by podssh serve.\n"), "{text}");
 }
 
 // A system unit is systemd's: its paths are Unix paths.
@@ -209,6 +215,7 @@ fn the_socket_of_a_unix_route_under_a_home_is_let_through_read_only() {
 
 #[test]
 fn the_paths_of_a_system_unit_are_root_s_places() {
+    assert_eq!(Path::new(UNIT_DIR), pod_unit::SystemPlaces::default().systemd);
     assert_eq!(unit_path(Kind::Node, "lab"), Path::new("/etc/systemd/system/podssh-node-lab.service"));
     assert_eq!(state_dir(Kind::Node, "lab"), Path::new("/var/lib/podssh-node-lab"));
     assert_eq!(env_path(Kind::Node, "lab"), Path::new("/var/lib/podssh-node-lab/node-lab.env"));
@@ -372,32 +379,36 @@ fn a_binary_that_the_hardening_hides_is_let_through() {
         let mut spec = node(&[]);
         spec.exe = PathBuf::from(exe);
         let text = unit(&spec, &alice()).unwrap();
-        let line = format!("BindReadOnlyPaths={exe}");
+        let line = format!("BindReadOnlyPaths=-{exe}");
         assert_eq!(section(&text, "Service").contains(&line), bound, "{exe}: {text}");
     }
 }
 
-/// The hardening takes its values from pod-unit's table (T-820): each key
-/// of podssh's is a line of the table, in the table's order, and each line
-/// of the table is podssh's or left out with its reason, so that a line
-/// that the table gains is a choice here, never a silent one.
+/// Every line of `pod_unit::hardening::LINES` is a deliberate choice for
+/// `serve` (T-820): either relaxed with a reason in `SERVE_RELAXED`, kept in
+/// `SERVE_KEPT`, or handled automatically by `pod-unit`
+/// (`SystemCallErrorNumber` with `SystemCallFilter`; `RemoveIPC` for a named
+/// user account), so a line that `pod-unit` gains is never silent.
 #[test]
 fn each_line_of_pod_unit_s_hardening_is_taken_or_left_out_with_a_reason() {
+    let auto = ["SystemCallErrorNumber", "RemoveIPC"];
     let table: Vec<&str> = pod_unit::hardening::LINES.iter().map(|line| line.key).collect();
-    let ours: Vec<&str> = hardening_keys().collect();
-    for key in &ours {
-        assert!(hardening_value(key).is_some(), "{key} is not in pod-unit's table");
+    for &(key, why) in SERVE_RELAXED {
+        assert!(table.contains(&key), "{key} is not in pod-unit's table");
+        assert!(!why.is_empty(), "{key}");
     }
-    let kept: Vec<&str> = table.iter().copied().filter(|key| ours.contains(key)).collect();
-    assert_eq!(kept, ours, "the order of the table");
-    for key in &table {
-        let left = LEFT_OUT.iter().find(|(left, _)| left == key);
-        assert!(ours.contains(key) ^ left.is_some(), "{key}: taken, or left out with a reason, once");
-        assert!(left.is_none_or(|(_, why)| !why.is_empty()), "{key}");
+    for &key in SERVE_KEPT {
+        assert!(table.contains(&key), "{key} is not in pod-unit's table");
     }
-    // The values that podssh's units held before the table gave them.
+    for &key in &table {
+        let relaxed = SERVE_RELAXED.iter().filter(|(k, _)| *k == key).count();
+        let kept = SERVE_KEPT.iter().filter(|&&k| k == key).count();
+        let automatic = usize::from(auto.contains(&key));
+        assert_eq!(relaxed + kept + automatic, 1, "{key}: relaxed, kept, or automatic once");
+    }
     for line in HARDENED {
         let (key, value) = line.split_once('=').unwrap_or_default();
-        assert_eq!(hardening_value(key), Some(value), "{line}");
+        let found = pod_unit::hardening::LINES.iter().find(|l| l.key == key).map(|l| l.value);
+        assert_eq!(found, Some(value), "{line}");
     }
 }

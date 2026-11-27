@@ -3379,7 +3379,7 @@ each check of T-390 and T-392, and serves nothing.
 ## Premise
 
 - Read: neither T-380 nor a unit of T-121 has a watchdog; a unit restarts only a process that ended
-  (`crates/podssh-cli/src/node_install/text.rs:153`).
+  (node_install/text.rs:153, moved to `pod-unit` in T-820).
 
 ## Approach
 
@@ -3428,8 +3428,8 @@ T-390 is done: a supervisor exists.
 ## Correction
 
 Read on 2026-11-01: the line that the Premise cites in `crates/podssh-cli/src/node_install/text.rs`
-is the unit's `ExecStart`; its `Restart=always`, which restarts only a process that ended, is at
-`crates/podssh-cli/src/node_install/text.rs:155`, and the unit has no `WatchdogSec`. The Premise
+is the unit's `ExecStart`; its `Restart=always`, which restarts only a process that ended, was at
+node_install/text.rs:155 (moved to `pod-unit` in T-820), and the unit has no `WatchdogSec`. The Premise
 holds.
 
 ## Done
@@ -5799,16 +5799,16 @@ same words refuses the pair (78).
 
 - Read, at `9574133`: the `prepare` of `crates/podssh-cli/src/node_install/mod.rs` read the pair only for this user's
   own service that is installed (`own` was `Target::User && !print`), and checked no TARGET: `service_args`
-  (`crates/podssh-cli/src/node_install/text.rs:33`) copies the words as they are.
+  (`crates/podssh-cli/src/node_install/text.rs:34`) copies the words as they are.
 - The node's own run refuses a missing TARGET with 64 (`crates/podssh-cli/src/node.rs:258`), and a pair not stored
   with 78 (`crates/podssh-cli/src/pairs.rs:40`).
 
 ## Approach
 
 1. `prepare` checks the TARGETs of a node of the pair's road as its run does (`check_targets`,
-   `crates/podssh-cli/src/node_install/mod.rs:346`), by `node::targets_of`, before the pair: 64. An exit, the relay
+   `crates/podssh-cli/src/node_install/mod.rs:311`), by `node::targets_of`, before the pair: 64. An exit, the relay
    role, a quick tunnel and a `udp:` TARGET are left to their own checks, as each can serve with no TARGET.
-2. The pair is read for this user's unit, printed or installed (`crates/podssh-cli/src/node_install/mod.rs:319`):
+2. The pair is read for this user's unit, printed or installed (`crates/podssh-cli/src/node_install/mod.rs:284`):
    78. A system unit's pair is in USER's cache, which this run does not read, as before.
 3. The manual's note of the unit and the help of `--print-unit` say both codes.
 4. Tests: `crates/podssh-cli/tests/node_install.rs` stores the pair of its printed unit and gains a table of the refusals (a pair not

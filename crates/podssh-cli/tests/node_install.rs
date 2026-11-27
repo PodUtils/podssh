@@ -43,7 +43,7 @@ fn a_printed_unit_of_a_node_is_on_stdout_and_nothing_is_written() {
     let before = files(&home);
     let (rc, out, err) = podssh(&home, &["node", "lab", "127.0.0.1:22", "--print-unit"], &[]);
     assert_eq!(rc, 0, "{err}");
-    assert!(out.starts_with("# Written by podssh node lab --install;"), "{out}");
+    assert!(out.starts_with("# Written by podssh node.\n"), "{out}");
     let env = cache_dir(&home).join("node-lab.env");
     assert!(out.contains(&format!("node lab 127.0.0.1:22 --env-file {}", env.display())), "{out}");
     assert!(out.contains("WantedBy=default.target"), "{out}");
@@ -77,8 +77,8 @@ fn a_printed_unit_of_serve_names_its_flags_and_writes_nothing() {
     let args = ["serve", "lab", "--no-forwarding", "--authorized-keys", "keys", "--print-unit"];
     let (rc, out, err) = podssh(&home, &args, &[]);
     assert_eq!(rc, 0, "{err}");
+    assert!(out.starts_with("# Written by podssh serve.\n"), "{out}");
     assert!(out.contains(" serve lab --authorized-keys /") && out.contains(" --no-forwarding"), "{out}");
-    assert!(out.contains("systemctl --user disable --now podssh-serve-lab.service"), "{out}");
     assert_eq!(files(&home), before, "a printed unit writes nothing");
     let (rc, _, err) = podssh(&home, &["serve", "--stdio", "--print-unit"], &[]);
     assert_eq!(rc, 64, "{err}");

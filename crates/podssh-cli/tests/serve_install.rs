@@ -96,13 +96,17 @@ mod fakes {
     pub const LAUNCHCTL: &str = "exit 0";
 
     /// `crontab -l` prints the table, or says that there is none;
-    /// `crontab FILE` makes FILE the table.
+    /// `crontab -` reads stdin, and `crontab FILE` makes FILE the table.
     pub const CRONTAB: &str = r#"if [ "$1" = -l ]; then
   [ -f "$FAKE_TABLE" ] || { echo "no crontab for tester" >&2; exit 1; }
   while IFS= read -r line; do printf '%s\n' "$line"; done < "$FAKE_TABLE"
   exit 0
 fi
-while IFS= read -r line; do printf '%s\n' "$line"; done < "$1" > "$FAKE_TABLE""#;
+if [ "$1" = - ]; then
+  while IFS= read -r line; do printf '%s\n' "$line"; done > "$FAKE_TABLE"
+else
+  while IFS= read -r line; do printf '%s\n' "$line"; done < "$1" > "$FAKE_TABLE"
+fi"#;
 }
 
 /// A scratch HOME with the pair `lab`, its PATH directory, and a directory
@@ -148,7 +152,7 @@ fn a_user_unit_holds_the_path_and_the_name_and_no_token() {
     assert!(log.contains("systemctl --user restart podssh-node-lab.service\n"), "{log}");
     let (code, _, err) = run(&home, &["node", "lab", "--uninstall"], &vars);
     assert_eq!(code, 0, "{err}");
-    assert!(err.contains("removed the user unit") && err.contains("stopped and disabled"), "{err}");
+    assert!(err.contains("removed the user unit") && err.contains("(stopped)"), "{err}");
     assert!(std::fs::read_to_string(side.join("log"))
         .unwrap()
         .contains("--user disable --now podssh-node-lab.service"));
@@ -170,7 +174,13 @@ fn with_no_systemd_a_line_of_the_crontab_and_the_user_s_lines_kept() {
     let table = std::fs::read_to_string(side.join("table")).unwrap();
     let env_file = pair_harness::cache_dir(&home).join("node-lab.env");
     let command = format!("{} node lab 127.0.0.1:22 --plain --env-file {}", exe(), env_file.display());
-    assert!(table.starts_with("MAILTO=tester\n0 3 * * * backup\n# podssh node lab --install"), "{table}");
+    assert!(
+        table.starts_with(
+            "MAILTO=tester\n0 3 * * * backup\n# Written by podssh node: the lines below run the service \
+             podssh-node-lab\n"
+        ),
+        "{table}"
+    );
     // T-393: the watchdog beside the line at boot.
     assert!(table.ends_with(&format!("@reboot {command}\n*/5 * * * * {command}\n")), "{table}");
     clean(&table);
@@ -181,7 +191,7 @@ fn with_no_systemd_a_line_of_the_crontab_and_the_user_s_lines_kept() {
     assert!(table.matches("@reboot").count() == 1 && table.matches("*/5 * * * *").count() == 1, "{table}");
     let (code, _, err) = run(&home, &["node", "lab", "--uninstall"], &vars);
     assert_eq!(code, 0, "{err}");
-    assert!(err.contains("removed its lines of the crontab"), "{err}");
+    assert!(err.contains("removed the lines of podssh-node-lab from the crontab"), "{err}");
     assert_eq!(std::fs::read_to_string(side.join("table")).unwrap(), "MAILTO=tester\n0 3 * * * backup\n");
     assert_eq!(files(&home), before, "--uninstall left something: {err}");
 }
