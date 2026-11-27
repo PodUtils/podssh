@@ -1693,3 +1693,17 @@ case passed with the usual short `/tmp` path, and the key generation case
 passed with `umask 022`. `cargo test --locked --offline --doc --no-fail-fast`
 completed with no doctests. The OpenSSH TOTP interop case reported that it
 could not run because `oathtool` was absent.
+
+On 2026-11-27, Antigravity / Gemini Cloud (Ubuntu 24.04 x86-64, 2 vCPUs,
+7.8 GiB RAM, `systemd`, Docker 29.10.0) ran `sh scripts/session-start.sh`
+and `sh scripts/cloud-setup.sh --native --dev-tools` (the command of
+`.agents/environment.json`). The startup set the operator's local Git
+identity, installed Rust 1.99.0 with `clippy`, `rustfmt` and
+`x86_64-unknown-linux-musl` into `/opt/rustup`, fetched locked crates into
+`/opt/cargo`, installed `groff`, `mandoc`, `shellcheck` and `musl-tools`,
+verified and self-tested both watchers, and skipped detached `setsid`
+watchers in favor of `--run-watcher watch` and `--run-watcher runs` daemon
+tasks. `. ./scripts/cloud-env.sh` set `CARGO_BUILD_JOBS=2` and
+`RUSTUP_TOOLCHAIN=1.99.0`; `python3 scripts/check-repo.py`,
+`python3 scripts/check-scripts.py`, `shellcheck`, `cargo todo check` and
+`cargo test --locked -p podssh-core` passed.

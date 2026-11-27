@@ -1,6 +1,26 @@
 #!/bin/sh
 # Install the native hosted tools without root or a container engine.
+#
+# Usage: sh scripts/cloud-native.sh [--dev-tools]
+#
+# With --dev-tools, also add the host musl Rust target and install missing
+# groff, mandoc, shellcheck and musl-tools packages when root or passwordless
+# sudo apt-get works.
 set -eu
+
+dev_tools=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dev-tools)
+            dev_tools=1
+            shift
+            ;;
+        *)
+            echo "usage: sh scripts/cloud-native.sh [--dev-tools]" >&2
+            exit 64
+            ;;
+    esac
+done
 
 cd "$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)"
 if [ "$(uname -s)" != Linux ]; then
@@ -46,6 +66,43 @@ install_rustup() (
     timeout 120 "$tmp/rustup-init" -y --no-modify-path --default-toolchain none </dev/null
 )
 
+install_dev_tools() {
+    case "$(uname -m)" in
+        x86_64) musl_target=x86_64-unknown-linux-musl ;;
+        aarch64|arm64) musl_target=aarch64-unknown-linux-musl ;;
+        *) musl_target= ;;
+    esac
+    if [ -n "$musl_target" ] && ! rustup target list --installed | grep -Fxq "$musl_target"; then
+        timeout 300 rustup target add "$musl_target" </dev/null
+    fi
+    missing=
+    for pkg in groff mandoc shellcheck; do
+        if ! command -v "$pkg" >/dev/null 2>&1; then
+            missing="$missing $pkg"
+        fi
+    done
+    if ! command -v musl-gcc >/dev/null 2>&1; then
+        missing="$missing musl-tools"
+    fi
+    if [ -n "$missing" ] && command -v apt-get >/dev/null 2>&1; then
+        apt_sudo=none
+        if [ "$(id -u)" = 0 ]; then
+            apt_sudo=
+        elif command -v sudo >/dev/null 2>&1 && sudo -n -E true 2>/dev/null; then
+            apt_sudo="sudo -n -E"
+        elif command -v sudo >/dev/null 2>&1 &&
+             (sudo -n true 2>/dev/null || sudo -n apt-get --version >/dev/null 2>&1); then
+            apt_sudo="sudo -n"
+        fi
+        if [ "$apt_sudo" != none ]; then
+            # shellcheck disable=SC2086  # $apt_sudo and $missing are word lists
+            DEBIAN_FRONTEND=noninteractive timeout 300 $apt_sudo apt-get update -qq </dev/null &&
+                DEBIAN_FRONTEND=noninteractive timeout 300 $apt_sudo apt-get install -y -qq \
+                    --no-install-recommends $missing </dev/null
+        fi
+    fi
+}
+
 mkdir -p "$CARGO_HOME"
 exec 9>"$CARGO_HOME/podssh-setup.lock"
 if ! flock -w 120 9; then
@@ -61,6 +118,9 @@ if ! rustup which cargo >/dev/null 2>&1 ||
    ! cargo clippy --version >/dev/null 2>&1; then
     timeout 600 rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal \
         --component clippy,rustfmt --no-self-update </dev/null
+fi
+if [ "$dev_tools" = 1 ]; then
+    install_dev_tools
 fi
 rustc --version
 host=$(rustc -vV | sed -n 's/^host: //p')

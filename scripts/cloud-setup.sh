@@ -4,10 +4,12 @@
 # probes first and changes nothing when its result is already there, so a
 # second run is a no-op and a session can run it at each start.
 #
-#   sh scripts/cloud-setup.sh            each step, then the report
-#   sh scripts/cloud-setup.sh --check    the report only; changes nothing
-#   sh scripts/dev.sh setup              the same as the first
-#   sh scripts/cloud-setup.sh --native   prepare hosted Rust and locked crates
+#   sh scripts/cloud-setup.sh                      each step, then the report
+#   sh scripts/cloud-setup.sh --check              the report only; changes nothing
+#   sh scripts/dev.sh setup                        the same as the first
+#   sh scripts/cloud-setup.sh --native [--dev-tools]
+#                                                  prepare hosted Rust and locked crates
+#   sh scripts/cloud-setup.sh --dev-tools          same as --native --dev-tools
 #
 # The steps: the packages of the tests and of the interop checks (apt), a
 # Docker daemon that is installed but not running, Podman's settings for a
@@ -33,26 +35,38 @@ fail() { printf 'setup: FAIL %s\n' "$*" >&2; failed=1; }
 CHECK_ONLY=0
 case ${1:-} in
     --check) CHECK_ONLY=1 ;;
-    --native) exec sh "$SCRIPT_DIR/cloud-native.sh" ;;
+    --native)
+        shift
+        exec sh "$SCRIPT_DIR/cloud-native.sh" "$@"
+        ;;
+    --dev-tools) exec sh "$SCRIPT_DIR/cloud-native.sh" --dev-tools ;;
     "") ;;
     -h | --help)
-        sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
         exit 0
         ;;
     *)
-        echo "setup: unknown argument '$1' (try --check or --help)" >&2
+        echo "setup: unknown argument '$1' (try --check, --native, --dev-tools or --help)" >&2
         exit 64
         ;;
 esac
 
 # Root, or sudo with no password: package installs and the daemon need one.
 # sudo -E keeps the session's proxy variables, which apt and dockerd need.
+# Hosts that grant only passwordless `sudo apt-get` (Antigravity VMs) still
+# allow step_packages through APT_SUDO.
 if [ "$(id -u)" = 0 ]; then
     SUDO=
+    APT_SUDO=
 elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
     SUDO="sudo -E"
+    APT_SUDO="sudo -E"
+elif command -v sudo >/dev/null 2>&1 && sudo -n apt-get --version >/dev/null 2>&1; then
+    SUDO=none
+    APT_SUDO="sudo -n"
 else
     SUDO=none
+    APT_SUDO=none
 fi
 
 # The image that a Dockerfile of images/ names on its FROM line.
@@ -97,17 +111,18 @@ step_packages() {
         say "packages: each is installed"
         return 0
     fi
-    if [ "$CHECK_ONLY" = 1 ] || [ "$SUDO" = none ]; then
+    if [ "$CHECK_ONLY" = 1 ] || [ "$APT_SUDO" = none ]; then
         warn "packages missing: $_miss"
         return 0
     fi
     say "packages: installing $_miss"
     mkdir -p "$LOG_DIR"
-    $SUDO env DEBIAN_FRONTEND=noninteractive timeout 600 apt-get update -q >"$LOG_DIR/apt-update.log" 2>&1
+    # shellcheck disable=SC2086  # $APT_SUDO is empty or sudo flags
+    DEBIAN_FRONTEND=noninteractive timeout 600 $APT_SUDO apt-get update -q >"$LOG_DIR/apt-update.log" 2>&1
     _rc=$?
     [ $_rc -eq 0 ] || warn "apt-get update exit $_rc (see $LOG_DIR/apt-update.log); installing from the lists it has"
-    # shellcheck disable=SC2086  # a list of package names
-    $SUDO env DEBIAN_FRONTEND=noninteractive timeout 900 apt-get install -y -q --no-install-recommends $_miss \
+    # shellcheck disable=SC2086  # $APT_SUDO and $_miss are word lists
+    DEBIAN_FRONTEND=noninteractive timeout 900 $APT_SUDO apt-get install -y -q --no-install-recommends $_miss \
         >"$LOG_DIR/apt-install.log" 2>&1
     _rc=$?
     if [ $_rc -ne 0 ]; then

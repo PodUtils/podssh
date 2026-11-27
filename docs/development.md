@@ -445,14 +445,14 @@ Each such issue is mapped in `TODO/issues.md` and `TODO/github.txt` as any issue
 
 ## A Linux host, or a cloud session
 
-For everyday native work in Claude Code Cloud or Codex Cloud, use
-[hosted sessions](hosted-sessions.md). The full host setup below is for
-container, interoperability and release work.
+For everyday native work in Claude Code Cloud, Codex Cloud or Antigravity /
+Gemini Cloud, use [hosted sessions](hosted-sessions.md). The full host setup
+below is for container, interoperability and release work.
 
 `sh scripts/cloud-setup.sh` (also `sh scripts/dev.sh setup`) makes a Linux
-host with root ready for this work: a Claude Code cloud container, a new VM.
-Each step probes first and changes nothing that is ready, so a second run
-changes nothing, and a session can run it at each start.
+host with root ready for this work: a cloud container, a new VM. Each step
+probes first and changes nothing that is ready, so a second run changes
+nothing, and a session can run it at each start.
 `sh scripts/cloud-setup.sh --check` reports and changes nothing.
 
 1. The packages (apt): Podman and its helpers, OpenSSH (client, server,

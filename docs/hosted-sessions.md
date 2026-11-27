@@ -1,31 +1,48 @@
 # Hosted sessions
 
-Use the existing PodSSH checkout. Claude Code Cloud's SessionStart hook and
-Codex Cloud both use the shared startup script.
+Use the existing PodSSH checkout. Claude Code Cloud's SessionStart hook,
+Codex Cloud and Antigravity / Gemini Cloud all share the startup script.
 
 ```sh
 sh scripts/session-start.sh
 . ./scripts/cloud-env.sh
 ```
 
+In Antigravity / Gemini Cloud, `.agents/environment.json` runs
+`sh scripts/session-start.sh --no-watchers` and
+`sh scripts/cloud-setup.sh --native --dev-tools` on VM startup (logs in
+`/home/antigravity/env-setup.log` and `/home/antigravity/env-setup.exit`);
+run `sh scripts/session-start.sh --no-watchers` by hand if setup did not
+run.
+
 The startup sets the repository-local Git identity. It fast-forwards a clean
 checkout to `origin/main` when possible and preserves dirty checkouts and
 local commits. Resolve Git diagnostics before pushing. The command also
-prepares native Rust and starts the read-only watchers. Claude loads the
-environment for its shell commands through its hook. In a fresh Codex shell,
-source `scripts/cloud-env.sh` from the repository root.
+prepares native Rust and starts the read-only watchers unless the host uses
+daemon tasks (`--no-watchers`, or automatic detection on Antigravity /
+Jules). Claude loads the environment for its shell commands through its
+hook. In a fresh Codex or Antigravity shell, source `scripts/cloud-env.sh`
+from the repository root.
 
 If `git rev-parse --is-shallow-repository` returns `true` and you need more
 history, run `git fetch --unshallow origin main`.
 
 To prepare just the toolchain and dependencies, use
-`sh scripts/cloud-setup.sh --native`. The native bootstrap uses Linux, a C
-compiler, curl, Git, Python 3, `sha256sum` and the Linux utilities
-`flock` and `timeout`. It verifies the pinned Rustup installer on x86-64
-and ARM64, installs Rust with rustfmt and Clippy, and fetches the native
-dependencies from `Cargo.lock`. The default tool and dependency caches are
-under ignored `.work/cloud/`. Warm setup uses those caches. For system
-packages and the container gate, use the [full setup](development.md#a-linux-host-or-a-cloud-session).
+`sh scripts/cloud-setup.sh --native`. Add `--dev-tools`
+(`sh scripts/cloud-setup.sh --native --dev-tools` or
+`sh scripts/cloud-setup.sh --dev-tools`) to also install the host musl
+Rust target and missing `groff`, `mandoc`, `shellcheck` and `musl-tools`
+packages when root or passwordless `sudo apt-get` is available. The native
+bootstrap uses Linux, a C compiler, curl, Git, Python 3, `sha256sum` and
+the Linux utilities `flock` and `timeout`. It verifies the pinned Rustup
+installer on x86-64 and ARM64, installs Rust with rustfmt and Clippy, and
+fetches the native dependencies from `Cargo.lock`. The default tool and
+dependency caches are under ignored `.work/cloud/` unless `RUSTUP_HOME` and
+`CARGO_HOME` are already set (Antigravity pre-sets `/opt/rustup` and
+`/opt/cargo`). Warm setup uses those caches. `scripts/cloud-env.sh` caps
+the default `CARGO_BUILD_JOBS` at the host's CPU count when below 4 (2 on
+Antigravity). For all system packages, Podman and the container gate, use
+the [full setup](development.md#a-linux-host-or-a-cloud-session).
 
 ## Lead and workers
 
@@ -37,11 +54,11 @@ the integration, the record and the checks.
 Select the model and reasoning effort for each assignment. Use a fresh
 brief for each worker.
 
-| Assignment | Claude Code | Codex |
-| --- | --- | --- |
-| Implementation and other work that needs deeper reasoning | Opus 5.5, medium or high | GPT-6.2 Sol, high or xhigh |
-| Housekeeping, QA, and other work | Sonnet 5.5, high | GPT-6.2 Sol, medium |
-| Hardest or apparently impossible tasks, and advisors | Fable 5.2, high | GPT-6.2 Astra, high |
+| Assignment | Claude Code | Codex | Gemini / Antigravity |
+| --- | --- | --- | --- |
+| Implementation and other work that needs deeper reasoning | Opus 5.5, medium or high | GPT-6.2 Sol, high or xhigh | Neon, medium or high |
+| Housekeeping, QA, and other work | Sonnet 5.5, high | GPT-6.2 Sol, medium | Hydrogen, medium or high |
+| Hardest or apparently impossible tasks, and advisors | Fable 5.2, high | GPT-6.2 Astra, high | Neon, highest available (extra / xhigh / max) |
 
 Each worker uses a local branch and worktree under `.claude/worktrees/`.
 Give each worker its task (the entry), its file scope, its proof (the
@@ -70,6 +87,57 @@ ends only when the operator interrupts it or the goal of `AGENTS.md` is
 reached: a green gate, a pushed record, a hard entry or a long context is
 no reason to stop (the context is summarized as it grows).
 
+## Antigravity / Gemini Cloud
+
+- **Environment**: Ubuntu 24.04 Linux VM on x86-64, non-root user
+  `antigravity` (uid 1001, `umask 022`), PID 1 is `systemd` (no subreaper
+  needed), unprivileged user and network namespaces (`unshare -Urn`) and
+  `/dev/net/tun` work, Docker answers natively without `sudo` (`antigravity`
+  is in the `docker` group), and `ssh`, `sshd`, `tmux` and real
+  `/usr/bin/rm` (no `rm` stand-in) are preinstalled. `podman`,
+  `dropbear-bin`, `groff`, `mandoc`, `shellcheck`, `musl-tools`, `zstd` and
+  `lrzsz` are not preinstalled; `--native --dev-tools` adds `groff`,
+  `mandoc`, `shellcheck`, `musl-tools` and the musl Rust target.
+- **Limits and persistence**: 2 vCPUs, ~7.8 GiB RAM with 8 GiB swap, ~85
+  GiB free on the root overlay. The soft open-file limit is `1024` (hard
+  `4096`); raise it with `ulimit -n 4096` if a test needs more descriptors.
+  Keep one Cargo build at a time (`scripts/cloud-env.sh` defaults
+  `CARGO_BUILD_JOBS=2` on 2-vCPU hosts). `/home/antigravity`, `/opt`
+  (`/opt/cargo`, `/opt/rustup`), `/tmp` and `sudo apt-get` packages live on
+  the root overlay: they persist across pause and resume of one
+  conversation and do not carry over to a new conversation. Uploaded
+  project files under `/home/antigravity/upload` persist across
+  conversations.
+- **Checkout and shell**: the checkout is shallow (50 commits) at
+  `/home/antigravity/PodUtils/podssh`. Each command starts a fresh
+  non-interactive shell with no `CLAUDE_ENV_FILE`: source
+  `. ./scripts/cloud-env.sh` before manual Cargo commands. `python3` on
+  `PATH` is pyenv's Python (without system site packages such as `PyYAML`);
+  `/usr/bin/python3` has system packages if a script needs them.
+- **Watchers**: processes started without `IsDaemon: true` may stop when a
+  turn ends, and `.agents/environment.json` setup scripts do not keep
+  long-lived processes. `scripts/session-start.sh` detects
+  `JULES_SESSION_ID` / `ANTIGRAVITY_APP_DATA_DIR` and skips detached
+  `setsid` watchers. Start each watcher as a persistent daemon task
+  (`IsDaemon: true`): `sh scripts/session-start.sh --run-watcher watch` and
+  `sh scripts/session-start.sh --run-watcher runs`.
+- **Network and GitHub**: `github.com` and `api.github.com` pass through
+  `Jules Sandbox Proxy` (`Jules Sandbox Root CA` in
+  `/etc/ssl/certs/ca-certificates.crt`, exported as `SSL_CERT_FILE`;
+  `CARGO_NET_GIT_FETCH_WITH_CLI=true` uses Git's trust store, and
+  `scripts/dev-native.sh` passes `SSL_CERT_FILE` into the Docker build
+  container). Other IPv4 TCP and UDP egress is direct (no IPv6 default
+  route). Use `web.pkgforge.dev` for read-only web and forge lookups first,
+  and authenticated `/opt/antigravity/bin/gh` for GitHub writes, workflow
+  dispatch and fallback reads when GitHub MCP tools are absent.
+- **Subagents**: `invoke_subagent` uses `Workspace: inherit` (branched and
+  shared workspace modes are not supported). The lead creates each local
+  worktree (`git worktree add -b NAME .claude/worktrees/NAME main`) before
+  starting the worker and instructs it to work only inside that directory.
+  Select the worker model from the table above (when `invoke_subagent`
+  exposes tiers rather than effort flags, use `pro` / `inherit` for Neon
+  and `flash` for Hydrogen).
+
 ## Tests in a hosted container
 
 In Codex Cloud, use a short, owned temporary directory for Unix socket
@@ -92,7 +160,11 @@ When PID 1 leaves exited children in the process table, prefix the Cargo
 test command with `docker-init -sg --`. This gives the detach tests a
 subreaper for their child processes.
 
-The watchers use `setsid` and the PodUtils GitHub mirror. The logs are
+The watchers use `setsid` and the PodUtils GitHub mirror. On hosts that
+require explicit daemon tasks (such as Antigravity), run each watcher in
+the foreground as a daemon task:
+`sh scripts/session-start.sh --run-watcher watch` and
+`sh scripts/session-start.sh --run-watcher runs`. The logs are
 `.work/watch.log` for organization activity and `.work/runs.log` for
 Actions. Run the startup again after a watcher stops. When the mirror is
 unavailable, `gh run list --repo PodUtils/podssh --branch main` can read CI

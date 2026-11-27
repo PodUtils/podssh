@@ -1,7 +1,13 @@
 **Resume work**
 
 1. Use the existing checkout. The Claude Code hook and the Codex startup
-   instructions both use `sh scripts/session-start.sh`. If startup reports a
+   instructions both use `sh scripts/session-start.sh`. In Antigravity /
+   Gemini Cloud, `.agents/environment.json` runs
+   `sh scripts/session-start.sh --no-watchers` and
+   `sh scripts/cloud-setup.sh --native --dev-tools` on VM startup; run
+   `sh scripts/session-start.sh --no-watchers` if needed, start both
+   watchers as daemon tasks (`--run-watcher watch` and `--run-watcher runs`),
+   and load `. ./scripts/cloud-env.sh` in each shell. If startup reports a
    failure, see [hosted sessions](../docs/hosted-sessions.md).
 2. Read [PROGRESS.md](PROGRESS.md) for the work order and
    [the handoff](../docs/HANDOFF.md) for recent CI, drafts, and coordination.
