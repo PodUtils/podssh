@@ -239,7 +239,8 @@ pub const SERVE: &[&str] = &[
      pty: it may send only its window size. Writers, the owner among them, take turns: one writer's bytes reach the \
      pty until 200 ms of its silence. The pty's size is the least of each attached window. A seat first gets the \
      screen so far: the program's modes and its last lines, from a ring of 64 KiB. Then it sees the output from \
-     its attach on, and one that falls behind skips ahead. A name opens no forward and runs no command. The \
+     its attach on, and one that falls behind skips ahead. A seat of podssh ssh --frames gets frames of one model \
+     of the shell's screen instead, at its own pace. A name opens no forward and runs no command. The \
      names die with the shell, and each seat then exits 0. A shell on serve's own tty (--pty line or notify) is \
      shared the same way: each seat sees the screen that serve draws. There, the EOF of the owner's channel no longer \
      ends the shell's input: Ctrl-D or exit does.",

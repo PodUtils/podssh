@@ -1724,24 +1724,26 @@ podssh ssh
   refuses the ask: podssh says so in one line, and the session shows each byte.
   A shell with frames is kept as any shell, and podssh serve keeps the model of
   its screen with it. --attach with --frames gets the whole screen first, then
-  its changes; a client without --frames gets the bytes. --expect, --sudo and
-  --su show each byte, and so does a far end that shares its shell by name; one
-  line says so. Through a control master of podssh's, the master asks for the
-  frames and draws them on the client's terminal. A master of OpenSSH's, or an
-  older podssh, carries none: one line says so, and the session shows each
-  byte. podssh each refuses --frames (exit 64): it writes each host's output as
+  its changes; a client without --frames gets the bytes. A shell that podssh
+  serve shares by name gives frames to its owner and to each seat that asks,
+  each at its own pace. --expect, --sudo and --su show each byte; one line says
+  so. Through a control master of podssh's, the master asks for the frames and
+  draws them on the client's terminal. A master of OpenSSH's, or an older
+  podssh, carries none: one line says so, and the session shows each byte.
+  podssh each refuses --frames (exit 64): it writes each host's output as
   lines, with no terminal. ZMODEM and a copy to the clipboard do not cross: a
   frame carries the screen alone. The far end itself answers a program that
-  asks its terminal for the cursor's place or the device's attributes. The
-  window's title and the bell cross with a frame. After a line of podssh's own
-  on the terminal, the next frame draws the whole screen again. For the frames
-  the far end holds at most five copies of the screen, each some 60 KiB at 80
-  by 24. With --frames-scroll it also keeps the text of one screen of lines. A
-  kept shell holds its model for its life, also with no client. With --predict,
-  the guesses are drawn over the frames' screen. A guess goes once a frame
-  shows its echo, or the far end's report finds it wrong. A Windows console
-  that takes no VT sequences ends the session with one line (exit 255). So do
-  bytes of the far end that are no frame.
+  asks its terminal for the cursor's place or the device's attributes. On a
+  shared shell it answers only where the owner asked for frames. The window's
+  title and the bell cross with a frame. After a line of podssh's own on the
+  terminal, the next frame draws the whole screen again. For the frames the far
+  end holds at most five copies of the screen, each some 60 KiB at 80 by 24.
+  With --frames-scroll it also keeps the text of one screen of lines. A kept
+  shell holds its model for its life, also with no client. With --predict, the
+  guesses are drawn over the frames' screen. A guess goes once a frame shows
+  its echo, or the far end's report finds it wrong. A Windows console that
+  takes no VT sequences ends the session with one line (exit 255). So do bytes
+  of the far end that are no frame.
 
   POLICY: with --policy FILE, podssh ssh judges the destination's algorithms by
   an algorithm policy. The verdict falls at the server's host key, before
@@ -11636,11 +11638,12 @@ podssh serve
   until 200 ms of its silence. The pty's size is the least of each attached
   window. A seat first gets the screen so far: the program's modes and its last
   lines, from a ring of 64 KiB. Then it sees the output from its attach on, and
-  one that falls behind skips ahead. A name opens no forward and runs no
-  command. The names die with the shell, and each seat then exits 0. A shell on
-  serve's own tty (--pty line or notify) is shared the same way: each seat sees
-  the screen that serve draws. There, the EOF of the owner's channel no longer
-  ends the shell's input: Ctrl-D or exit does.
+  one that falls behind skips ahead. A seat of podssh ssh --frames gets frames
+  of one model of the shell's screen instead, at its own pace. A name opens no
+  forward and runs no command. The names die with the shell, and each seat then
+  exits 0. A shell on serve's own tty (--pty line or notify) is shared the same
+  way: each seat sees the screen that serve draws. There, the EOF of the
+  owner's channel no longer ends the shell's input: Ctrl-D or exit does.
 
   The owner deletes or rotates a name from a new channel of the same
   connection: the subsystem share@podssh reads one line. The line is rotate

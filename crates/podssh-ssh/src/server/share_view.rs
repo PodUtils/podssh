@@ -3,7 +3,8 @@
 //! tty (T-861) is shared the same way: the discipline's input takes the
 //! writers' bytes through the lease, and its screen goes to each seat.
 //! Each seat that asked gets local echo's reports among its output
-//! (`share_told.rs`, T-896).
+//! (`share_told.rs`, T-896). A seat that asked for frames gets them from
+//! the shell's model in place of the output (`share_frames.rs`, T-303).
 //!
 //! The gate is the attach: a channel logged in under a name that only
 //! watches gets a sink for its input, so no byte of it (typed, pasted
@@ -26,6 +27,7 @@ use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::sync::{broadcast, watch};
 
 use super::channel::{Input, Open};
+use super::frames::FIRST_VIEW;
 use super::share::{Hub, Mode, Pass, Seat, Shares};
 use super::share_told::{FlagsOf, Said, SeatTold, Ticks};
 use crate::terminal::Size;
@@ -60,7 +62,9 @@ pub(super) struct Telling<'a> {
 /// Open a shared shell with the owner's seat: `pty` takes the writers'
 /// bytes under the lease and `resize` sets the least size. Its names go
 /// to the owner's line, told once when the shell starts. The owner's
-/// reports, where it asked, ride the broadcast from the start.
+/// reports, where it asked, ride the broadcast from the start. Where the
+/// owner asked for frames (T-303), its model is the shell's, its view the
+/// first, and its reports go into that view's queue.
 pub(super) fn open_hub(
     open: &mut Open,
     shares: &Shares,
@@ -71,11 +75,19 @@ pub(super) fn open_hub(
 ) -> Arc<Seat> {
     let owner = Hub::open(shares, pty, resize, size);
     owner.hub.tells.source(telling.flags, telling.at_read);
+    let framed = open.frames.clone();
+    if let Some(frames) = framed.as_ref() {
+        owner.hub.keep_frames(frames.clone());
+        owner.set_framed(frames.clone(), FIRST_VIEW);
+    }
     if open.predict
         && let Some(from) = owner.hub.subscribe()
     {
         owner.hub.tells.ask(owner.id());
-        let told = SeatTold::new(telling.owner, owner.id());
+        let told = match framed.as_ref() {
+            Some(frames) => SeatTold::to(Box::pin(frames.aside(FIRST_VIEW)), owner.id()),
+            None => SeatTold::new(telling.owner, owner.id()),
+        };
         tokio::spawn(super::share_told::owner_tells(from, told, open.closed.clone()));
     }
     open.told = Some(shares.mint(&owner.hub).map_or_else(|| NO_RANDOM.to_string(), |names| names.told()));
@@ -140,6 +152,11 @@ where
 pub(super) fn attach(open: &mut Open, pass: &Pass) -> Result<(), String> {
     if open.started() {
         return Err("a program runs on this channel already".into());
+    }
+    // A seat that asked for frames gets the frames of the shell's model in
+    // place of the screen so far and the output (T-303).
+    if let Some(asked) = open.frames.take() {
+        return super::share::framed::attach(open, pass, asked.version());
     }
     // The screen so far, for the seat's rows (a seat with no pty: a usual
     // terminal's), then the output from that point on (T-901).

@@ -2852,6 +2852,69 @@ See also the addition of the donor study (report 14) to T-161: the offset log is
 44. **Shared code first.** The control socket is podssh-ssh's own (T-039), and the frames' modules are item 14's; this
     draft adds no capability that a sibling has, and asks podcrates nothing.
 
+2026-11-26, the calls of the draft of item (b) of the Done's list for a shell shared by name (T-837). They supersede
+"a shell shared by name" of item 12 and item 35.
+
+45. **One model for a shared shell, and a view of it for each seat with frames.** `Shared` holds the model apart from
+    its views (`crates/podssh-ssh/src/server/frames.rs`): a view is one channel's sender (its base, its
+    acknowledgements, its pace), its parked reports, its version, its bell, its queue, its wake and its task. A
+    channel's own pty has one view (`FIRST_VIEW`), a kept shell one at a time (item 29's epochs are views now, with
+    their numbers and their rule), and a shared shell one for each seat that asked
+    (`crates/podssh-ssh/src/server/share_frames.rs`). The pump makes the due frame of each view at each write, and
+    the screen's state is copied once for each write however many views are due. Lost: a model for each seat with
+    frames, fed by the same tee (a parse of each byte for each seat in the owner's pump, which under a flood is the
+    pump's whole time, and a grid for each: the cost that T-161 refused); one sender for all the seats (one base: a
+    seat that never acknowledges would make each frame a whole screen for every seat, and the window of the slowest
+    seat would hold the others back, which item 35 named).
+46. **The model is made at the first ask and kept for the shell's life.** The owner's ask (on its pty, as any channel's)
+    makes it at the shell's start, and the hub takes it (`Hub::keep_frames`); else a name's ask makes it at the
+    seat's attach, of the least size of the seats, from the modes before the ring of the owner's output and that ring
+    (`Hub::frames_for`), as T-901 gives a seat of bytes its screen so far. It is made under the output's lock, and
+    `Hub::said` feeds it under that lock before the reports of local echo are made, so no byte is in the ring and not
+    in the model, and a report never comes before its echo is in the model. It stays when its last view leaves, as a
+    kept shell's does (item 28). Lost: a model for each shared shell from its start (a parse of each byte for each
+    shell with no seat of frames); a model dropped with its last view (made again from the ring at the next ask,
+    which may have lost the screen's start, and a race between the drop and a new ask); a redraw asked of the program
+    at a seat's attach, as item 30 does for a kept shell (a change of the pty's size that each seat sees; the ring of
+    64 KiB holds more than a screen of a repaint, T-901).
+47. **Only the owner's view answers the program's questions**, written on the pty by the owner's view's task, as the
+    owner's terminal would with bytes; a name's view never answers (`Shared::join`), and a model with no view of the
+    owner's answers nothing (`Shared::bare`). The owner is the one seat for the shell's whole life, so a question
+    gets one answer from the model; with an owner of bytes, the owner's terminal answers, as before. A writer of
+    bytes answers through the lease as before (two answers where the owner answers too, which bytes alone already
+    give). Lost: each view's answer (one answer for each seat with frames); the lease's holder's view (it moves with
+    the typing, and the holder of bytes answers itself); the model always (two answers with an owner of bytes), as
+    item 31 rules for a kept shell.
+48. **Nothing of a seat waits for the model.** A view's leave (`Shared::leave`) marks its lane gone and wakes its task;
+    the pump, or a task's look, drops the view at its next look, with its numbers kept for the next view and its
+    answers stopped. A seat's channel closes on the SSH session's task, which takes the client's Ctrl-C too (item 22).
+    A seat's reports of local echo (T-896) ride the broadcast as before; its task writes each into its view's inbox
+    (`Shared::reported_aside`), and the next look places it as the pump places its own (`place`): after the frame of
+    a change that waits, else at once. The model held the echo before the report was made (item 46), so the report
+    never goes before the frame that holds it. Lost: `Shared::reported` from the seat's task (it waits for the model's
+    lock, which the pump holds nearly all the time under a flood, on a worker thread); the reports of each framed
+    seat made in the pump at `Hub::said` (a second copy of `SeatTold`'s rule of one report for each change).
+49. **The model is the pty's size: the least of each seat's** (`Hub::set_size` resizes it with the pty). A seat with a
+    larger window gets frames of the smaller screen, as its bytes would show. Lost: a model for each size.
+50. **Who may ask**: the owner, on a pty of the kernel's, as any channel (the refusal under `--share` is gone); and a
+    login under a name of either right, on a channel whose `pty-req` gave its seat a size
+    (`crates/podssh-ssh/src/server/frames_ask.rs`); a name's channel with no pty is refused, as frames need one. A
+    shell on serve's own tty (`--pty line`, `notify`) gives frames to its seats, fed by the same tee, and no view
+    answers there, as its owner has no pty of the kernel to ask on. A seat of version 2 on a model made for version 1
+    gets no line, as a kept shell's later channel does. Lost: frames for watchers alone (a writer on a slow road
+    needs them as much).
+51. **An acknowledgement goes to its view by its channel** (`Seat::framed`, read by the handler before
+    `Open::frames`), not by its number: views at once number their frames each from the same start. A kept shell
+    keeps item 29's rule (to the newest view, and none before its first number). Lost: numbers that no two views
+    share (a counter shared by the senders, a change of `Sender` for nothing that the routing does not give).
+52. **The tests**: `crates/podssh-ssh/tests/serve_share_frames.rs` (russh's client and podssh's receiver: a watcher
+    that never acknowledges and a writer that does, each with its own base, the owner of bytes as before; an owner
+    with frames whose view answers `CSI 6 n` on the pty, beside a seat of bytes; who may ask, a table);
+    `crates/podssh-ssh/src/server/frames_view_tests.rs` (two views' bases, which view answers as a table, a view
+    that leaves alone, a report beside the pump as a table); `crates/podssh-ssh/src/server/share_frames_tests.rs` (one
+    model, the screen so far from the owner's model or the ring, as a table; the least size; a seat's view goes with
+    it).
+
 ## Prove
 
 ```sh
@@ -3147,37 +3210,46 @@ Drafted 2026-11-26 by a worker, on `main` at `3aed42c`, not built and not run: i
 - The documents: `docs/terminal.md` ("Through a control master", "`podssh each`", "Where there are none"),
   `docs/cli.md` (the paragraph of `--frames`, "Connection sharing"), a row of `docs/STATUS.md`.
 
-What the lead runs, in this order:
+Merged 2026-11-26 (local branch `merge-303h`) and built with no change to the draft: `mux::` 14, `frames::` 51,
+`refuse` 9, `words`, `flag_table`, `man_flag_parity`, `man_json`, `ssh_control` 4 and `frames_e2e` 2 passed; then
+`cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast`, 318 binaries passed, none failed; `llms-full.txt`
+made again; rustfmt. Waits: the interop of `scripts/interop-control.sh` in the build image (T-251), and the manual
+check of a podssh client `--frames` through OpenSSH's master.
 
-```sh
-export CARGO_BUILD_JOBS=4
-cargo test -p podssh-ssh --lib mux::
-cargo test -p podssh-ssh --lib frames::
-cargo test -p podssh-ssh --test frame_rate
-cargo test -p podssh-cli --lib man
-cargo test -p podssh-cli --lib refuse
-cargo test -p podssh-cli --test words --test flag_table --test man_flag_parity --test man_json
-cargo test -p podssh-cli --test ssh_control --test frames_e2e
-```
+Drafted 2026-11-26 by a worker, on `main` at `3aed42c`, merged and verified 2026-11-27 (local branch `merge-303b`,
+after fixing two clippy lints in `frames_view_tests.rs`): item (b) for a shell shared by name (the Decision, items 45
+to 52).
 
-Merged 2026-11-26 (local branch `merge-303h`) and built with no change to the draft: the listed tests passed
-(`mux::` 14, `frames::` 51, `refuse` 9, `words`, `flag_table`, `man_flag_parity`, `man_json`, `ssh_control` 4 and
-`frames_e2e` 2, the bar through `-M -N -S CTL` among them); then `cargo test --locked -p podssh-ssh -p podssh-cli
---no-fail-fast`, 318 binaries passed, none failed; `llms-full.txt` made again; rustfmt. Waits: clippy (also for
-`x86_64-pc-windows-gnu`), the interop of `scripts/interop-control.sh` in the build image (T-251), and the manual check
-of a podssh client `--frames` through OpenSSH's master. Left on T-303: (b) for a shell shared by name (drafted:
-`wip/t303-b-shared-frames` at `ac6a7c4`, not merged), (f) and (g).
+- The model and its views: `crates/podssh-ssh/src/server/frames.rs` (rewritten: the model apart from its views, a
+  `Lane` for each view beside the model, the pump's pass over the views, `Shared::bare`, `Shared::acked_by`,
+  `Shared::reported_aside`), `crates/podssh-ssh/src/server/frames_epoch.rs` (the views: `open_view`, `drop_view`,
+  `join`, `leave`; `restart` and `release` over them; the writer `Aside`), `crates/podssh-ssh/src/server/frames_run.rs`
+  (new: the task of a view, moved out of `frames.rs`, which stood at 572 lines).
+- The shared shell: `crates/podssh-ssh/src/server/share.rs` (the hub's model and a seat's view; `said` feeds the model
+  before the reports, `end` ends it, `set_size` resizes it, a seat's drop leaves its view),
+  `crates/podssh-ssh/src/server/share_frames.rs` (new: `Hub::keep_frames`, `Hub::frames_for`, `Seat::framed`, the
+  attach of a seat with frames and its task), `crates/podssh-ssh/src/server/share_view.rs` (the owner's model in
+  `open_hub`; `attach` hands a seat with frames on), `crates/podssh-ssh/src/server/share_told.rs` (`SeatTold::to`),
+  `crates/podssh-ssh/src/server/pty_child.rs` (the owner's frames under `--share`),
+  `crates/podssh-ssh/src/server/frames_ask.rs` (a seat's ask; an acknowledgement to the seat's view).
+- The tests: `crates/podssh-ssh/tests/serve_share_frames.rs` (new),
+  `crates/podssh-ssh/src/server/frames_view_tests.rs` (new), `crates/podssh-ssh/src/server/share_frames_tests.rs`
+  (new), and `crates/podssh-ssh/src/server/frames_tests.rs` (its looks at the queue and the acknowledgements through
+  the lanes).
+- The manual (`crates/podssh-cli/src/man/notes_frames.rs`, `crates/podssh-cli/src/man/notes_serve.rs`),
+  `docs/terminal.md` ("A shell shared by name with frames"; "Screen on attach"), `docs/cli.md`, a row of
+  `docs/STATUS.md`; `llms.txt` and `llms-full.txt` regenerated; the citations of T-1056 moved to the lines of the new
+  code.
+- Verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): `server::frames` 12, `server::share` 13, `server::kept`
+  11, `serve_share_frames` 3, `serve_share` 7, `serve_predict_share` 2, `serve_keep_frames` 2, `serve_keep` 4,
+  `serve_attach_ticket` 3, `frame_rate` 2, `predict_frames` 1, `predict` 4, `serve_pty` 7, `serve_predict` 3,
+  `serve_predict_kept` 2, `podssh-cli --lib man` 126, `flag_table` 9, `man_flag_parity` 6, `predict_e2e` 3,
+  `ssh_record` 4, `words` 2, `frames_e2e -- --test-threads 1` 5 (`--frames` 713 ms, master 549 ms, no frames 6,863 ms);
+  `scripts/feel_interrupt.py --frames --no-openssh --runs 5`: 830 ms median (2.77 round trips, 771 to 1,142 ms, 6.3x
+  sooner than 5,186 ms); `cargo clippy --locked -p podssh-ssh -p podssh-cli --all-targets -- -D warnings -A
+  clippy::collapsible_if` clean; rustfmt clean.
 
-Then, in the build image, `scripts/interop-control.sh` through `scripts/interop.sh` (OpenSSH 10.3p1's client and its
-`-O check` against a podssh master whose hello now carries an extension; its rows `control.podssh_master.*` must pass
-as before), `podssh man --llms full > llms-full.txt` (the note and two rows of `each` changed), `cargo todo remap` of
-`docs/terminal.md`, `docs/cli.md`, `docs/STATUS.md` and the sources named above, rustfmt (the table of
-`frames_tests.rs` has rows over 120 columns) and the gate's clippy, also for `x86_64-pc-windows-gnu` (the module
-`mframes` is Unix only, as the client and the master are). What to check by hand once: `podssh ssh -M -N -S CTL HOST &`
-to `podssh serve`, then `podssh ssh -S CTL --frames -t HOST` under a flood and Ctrl-C; and the same client through
-`ssh -M -N -f -S CTL` of OpenSSH, which must say "does not carry them" once and show each byte.
-
-Left after these: (b) for shells shared by name (item 35), (f) and (g).
+Left after these: (f) and (g).
 
 
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
@@ -3278,12 +3350,12 @@ reached the far end's model.
 - Read: the far end's lines are a run that ends at the count. `Lines::after`
   (`crates/podssh-ssh/src/frames/scroll.rs:121`) stops at the first kept line whose place is not the
   next one down (`:125`), and the frame's count and its lines are read under one lock of the model
-  (`crates/podssh-ssh/src/server/frames.rs:231`, `crates/podssh-ssh/src/server/frames.rs:163`). A
+  (`crates/podssh-ssh/src/server/frames.rs:190`, `crates/podssh-ssh/src/server/frames.rs:176`). A
   row that `tail` (`crates/podssh-ssh/src/frames/scroll.rs:143`) did not keep is counted all the same,
   so it is said skipped.
 - Read: serve feeds the model each byte that it reads from the pty, with no drop
-  (`crates/podssh-ssh/src/server/child.rs:323`, `crates/podssh-ssh/src/server/frames_epoch.rs:153`,
-  `crates/podssh-ssh/src/server/pty_child.rs:249`).
+  (`crates/podssh-ssh/src/server/child.rs:323`, `crates/podssh-ssh/src/server/frames_epoch.rs:224`,
+  `crates/podssh-ssh/src/server/pty_child.rs:263`).
 - Inferred: so the two rows were neighbours in the far end's model, which never had the nine lines
   between them. Where a pty loses output: at Ctrl-C with `ISIG` and no `NOFLSH`, the driver discards
   its output queue (POSIX; Linux's `n_tty` and the BSD line discipline of macOS both do), so what the

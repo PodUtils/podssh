@@ -255,6 +255,13 @@ impl SeatTold {
         SeatTold { seat, out: Box::pin(write.make_writer_ext(Some(EXT))), told: None }
     }
 
+    /// The reports of `seat` into `out`: a seat with frames (T-303) writes
+    /// them into its view's inbox, whose task sends each after the frame
+    /// that holds the echo of the keys that it counts.
+    pub(super) fn to(out: Pin<Box<dyn AsyncWrite + Send>>, seat: u64) -> SeatTold {
+        SeatTold { seat, out, told: None }
+    }
+
     /// This seat's report in `said`, where it changed. `Err`: the channel
     /// is gone.
     pub(super) async fn tell(&mut self, said: &Said) -> io::Result<()> {

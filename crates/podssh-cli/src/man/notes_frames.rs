@@ -13,13 +13,14 @@ pub const SSH_FRAMES: &str = "--frames shows the far end's latest screen in plac
      into its scrollback. --record keeps what was drawn on the terminal, and podssh play shows it again. Another \
      server refuses the ask: podssh says so in one line, and the session shows each byte. A shell with frames is kept \
      as any shell, and podssh serve keeps the model of its screen with it. --attach with --frames gets the whole \
-     screen first, then its changes; a client without --frames gets the bytes. --expect, --sudo and --su show each \
-     byte, and so does a far end that shares its shell by name; one line says so. Through a control master of \
-     podssh's, the master asks for the frames and draws them on the client's terminal. A master of OpenSSH's, or an \
-     older podssh, carries none: one line says so, and the session shows each byte. podssh each refuses --frames \
-     (exit 64): it writes each host's output as lines, with no terminal. ZMODEM and a copy to the \
-     clipboard do not cross: a frame carries the screen alone. The far end itself answers a program that asks its \
-     terminal for the cursor's place or the device's attributes. \
+     screen first, then its changes; a client without --frames gets the bytes. A shell that podssh serve shares by \
+     name gives frames to its owner and to each seat that asks, each at its own pace. --expect, --sudo and --su \
+     show each byte; one line says so. Through a control master of podssh's, the master asks for the frames and \
+     draws them on the client's terminal. A master of OpenSSH's, or an older podssh, carries none: one line says \
+     so, and the session shows each byte. podssh each refuses --frames (exit 64): it writes each host's output as \
+     lines, with no terminal. ZMODEM and a copy to the clipboard do not cross: a frame carries the screen alone. \
+     The far end itself answers a program that asks its terminal for the cursor's place or the device's attributes. \
+     On a shared shell it answers only where the owner asked for frames. \
      The window's title and the bell cross with a frame. After a line of podssh's own on the terminal, the next \
      frame draws the whole screen again. For the frames the far end holds at most five copies of the screen, each \
      some 60 KiB at 80 by 24. With --frames-scroll it also keeps the text of one screen of lines. A kept \

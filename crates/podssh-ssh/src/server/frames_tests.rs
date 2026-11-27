@@ -5,12 +5,14 @@
 use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::time::Duration;
 
-use tokio::io::{AsyncReadExt, DuplexStream};
+use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream};
 
 use super::epoch::Sink;
 use super::*;
 use crate::frames::receiver::Receiver;
+use crate::frames::sender::COLLECT;
 
 fn size(cols: u32, rows: u32) -> Size {
     Size { cols, rows, px_width: 0, px_height: 0 }
@@ -220,7 +222,7 @@ async fn each_epoch_starts_with_the_whole_screen_and_ends_the_last() {
     tokio::time::timeout(Duration::from_secs(5), task).await.expect("a released epoch's task ends").unwrap();
     sink.write_all(b" two").await.unwrap();
     tokio::time::advance(Duration::from_secs(1)).await;
-    assert!(unpoisoned(&shared.made).queue.is_empty(), "no frame with no channel");
+    assert!(shared.lock().views.is_empty(), "no view, so no frame, with no channel");
 
     let epoch = shared.restart(Version::One);
     let (out, from) = tokio::io::duplex(1 << 16);
@@ -230,7 +232,8 @@ async fn each_epoch_starts_with_the_whole_screen_and_ends_the_last() {
     second.until(|r| r.state().is_some_and(|state| state.screen.contents().contains("one two"))).await;
     assert!(second.receiver.newest() > 1, "the numbers go on from the last epoch's");
     shared.acked(Ack { number: 1, lost: true });
-    assert!(unpoisoned(&shared.told).acks.is_empty(), "an older channel's acknowledgement goes nowhere");
+    let acks = shared.lane(epoch).map(|lane| unpoisoned(&lane.acks).len());
+    assert_eq!(acks, Some(0), "an older channel's acknowledgement goes nowhere");
     drop(sink);
     second.until(Receiver::ended).await;
     tokio::time::timeout(Duration::from_secs(5), task).await.expect("the task ends with the output").unwrap();
@@ -249,7 +252,8 @@ enum Act {
 
 /// The queue, taken: `F` for a frame, the byte for a report.
 fn queued(shared: &Shared) -> String {
-    let made = std::mem::take(&mut unpoisoned(&shared.made).queue);
+    let lane = shared.lane(FIRST_VIEW).expect("the first view");
+    let made = std::mem::take(&mut *unpoisoned(&lane.queue));
     made.into_iter()
         .map(|out| match out {
             Out::Frame(_) => "F".to_string(),

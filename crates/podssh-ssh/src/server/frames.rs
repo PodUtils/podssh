@@ -18,9 +18,9 @@
 //! of the standard library is not fair: a task that waits for it can wait
 //! for seconds. So nothing waits for it but the pump. The handler runs on
 //! the SSH session's task, which also takes the client's Ctrl-C to the
-//! pty: it puts what the client said beside the model ([`Told`]). The pump
-//! applies it, and makes the frame that is due, at each write; the task
-//! that sends only tries the model's lock, and while the pump has it,
+//! pty: it puts what the client said beside the model (a [`Lane`]). The
+//! pump applies it, and makes the frame that is due, at each write; the
+//! task that sends only tries the model's lock, and while the pump has it,
 //! looks again a moment later.
 //!
 //! Local echo's reports (T-160), where the client asked for them too, go
@@ -30,61 +30,84 @@
 //! screen that holds the echo of each key that the report counts, as it
 //! does with bytes, where each report follows the output read before it.
 //!
-//! A kept shell (T-159) holds its model for its whole life, as its ring:
-//! each channel that has the shell with frames is an epoch of the model's
-//! sender, with a base of its own and a task of its own; a channel with
-//! bytes, or none, has the model fed and no frame made (`frames_epoch.rs`).
+//! One model has a view for each channel that has its screen with frames:
+//! the view's own sender (its base, its acknowledgements, its pace), its
+//! queue and its task. A channel's own pty has one view. A kept shell
+//! (T-159) has one at a time, each channel an epoch of its own, and its
+//! model is fed with no view while no channel of frames has it
+//! (`frames_epoch.rs`). A shell shared by name (T-837) has one for each
+//! seat that asked (`share_frames.rs`), so a seat on a slow road holds no
+//! other back. One view at most writes the model's answers to the pty.
 //!
-//! The model costs a grid for each state kept: the screen now, the base,
-//! and at most `HELD` frames that wait, some 60 KiB each at 80 by 24, and
-//! the text of one screen of lines that left its top, for a channel that
-//! asked, and for no other.
+//! The model costs a grid for each state kept: the screen now, and for
+//! each view its base and at most `HELD` frames that wait, some 60 KiB each
+//! at 80 by 24, and the text of one screen of lines that left its top, for
+//! a pty of which a channel asked frames, and for no other.
 
 #![cfg_attr(not(unix), allow(dead_code))]
 
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
-use std::time::Duration;
 
-use tokio::io::{AsyncWrite, AsyncWriteExt};
 use tokio::sync::Notify;
 use tokio::time::Instant;
 
-use crate::frames::screen::Model;
-use crate::frames::sender::{Sender, COLLECT};
+use crate::frames::screen::{Model, State};
+use crate::frames::sender::Sender;
 use crate::frames::wire::{encode, Ack, Head, Version};
 use crate::terminal::Size;
 
-// The epochs of a kept shell's model, the writers of the pump and of the
-// reports.
+// The views of a model: their start and their end, the epochs of a kept
+// shell's model, the writers of the pump and of the reports.
 #[path = "frames_epoch.rs"]
 mod epoch;
 
-/// How long an answer to a program's question may wait on a pty whose
-/// program reads nothing; past it the answer is dropped, not the frames.
-const ANSWER_WAIT: Duration = Duration::from_millis(200);
-/// While the pump holds the model, how soon the task that sends tries it
-/// again: the pump makes the frames that fall due meanwhile itself.
-const BUSY: Duration = COLLECT;
-/// The most acknowledgements kept for the model; the newest count, so the
+// The task that sends the frames of one view.
+#[path = "frames_run.rs"]
+mod run;
+
+/// The number of the view that [`Shared::new`] opens: the channel whose
+/// pty it is.
+pub(in crate::server) const FIRST_VIEW: u64 = 0;
+
+/// The most acknowledgements kept for a view; the newest count, so the
 /// oldest go past it.
 const TOLD_MOST: usize = 8;
 /// The most reports of local echo that wait for a frame; past it the
 /// oldest goes, as a later report's count covers it.
 const PARKED_MOST: usize = 64;
 
-struct Inner {
-    model: Model,
+/// One view of the model: the sender of a channel that has the screen with
+/// frames, under the model's lock.
+struct View {
     sender: Sender,
-    /// The pty's output ended: the last frame goes.
-    ended: bool,
     /// Reports of local echo made while a change waited for its frame.
     parked: VecDeque<Vec<u8>>,
-    /// The version that the channel of this epoch asked for.
+    /// The version that its channel asked for.
     version: Version,
-    /// A channel with frames has the screen: frames are made. A kept
-    /// shell's model with no such channel is fed alone.
-    feeding: bool,
+    /// The bell rang since its last frame.
+    bell: bool,
+    /// Its task writes the model's answers to the pty: one view at most.
+    answers: bool,
+    /// Its part apart from the model.
+    lane: Arc<Lane>,
+}
+
+struct Inner {
+    model: Model,
+    /// The pty's output ended: the last frame of each view goes.
+    ended: bool,
+    /// The views open now, by their numbers.
+    views: BTreeMap<u64, View>,
+    /// The number of the next view.
+    next_view: u64,
+    /// The least number of a new view's first frame: past each number that
+    /// a view gave, so that no acknowledgement of a channel that left
+    /// names a frame of the next.
+    next_number: u64,
+    /// The version that the model was made for: it keeps lines for 2.
+    version: Version,
 }
 
 /// What the task that sends writes, in this order: a frame, on the frames'
@@ -94,44 +117,47 @@ enum Out {
     Report(Vec<u8>),
 }
 
-/// What the client said, apart from the model, so that saying it never
-/// waits for the pump: each acknowledgement with when it came, and the
-/// newest size of the window.
-#[derive(Default)]
-struct Told {
-    acks: VecDeque<(Ack, Instant)>,
-    size: Option<Size>,
-}
-
-/// The queue of one epoch: the channel that has the screen now.
-struct Made {
-    /// 0 for the first channel; each later channel of a kept shell, one
-    /// more.
-    epoch: u64,
+/// The part of one view apart from the model, so that its client's word
+/// never waits for the pump: its acknowledgements with when each came,
+/// the reports of a task that is not the pump, its queue and its wake.
+struct Lane {
+    acks: Mutex<VecDeque<(Ack, Instant)>>,
+    /// Reports of local echo that wait for the model's lock
+    /// ([`Shared::reported_aside`]).
+    inbox: Mutex<VecDeque<Vec<u8>>>,
     /// The frames made and not written yet, in the order of their numbers,
     /// each report of local echo after the frame that it waited for.
-    queue: VecDeque<Out>,
-    /// A frame was made, output came, an acknowledgement came, the size
-    /// changed, or the output ended: the epoch's task looks again.
-    wake: Arc<Notify>,
-    /// The number of this epoch's first frame: an acknowledgement of a
-    /// lower one is an older channel's.
+    queue: Mutex<VecDeque<Out>>,
+    /// A frame was made, output came, its client said something, the size
+    /// changed, or the output ended: the view's task looks again.
+    wake: Notify,
+    /// The number of the view's first frame: an acknowledgement of a lower
+    /// one is an older channel's.
     first: u64,
+    /// The view left: the pump drops it at its next look.
+    gone: AtomicBool,
 }
 
-impl Made {
-    fn new(epoch: u64, first: u64) -> Made {
-        Made { epoch, queue: VecDeque::new(), wake: Arc::new(Notify::new()), first }
+impl Lane {
+    fn new(first: u64) -> Lane {
+        let (acks, inbox, queue) = (Mutex::default(), Mutex::default(), Mutex::default());
+        Lane { acks, inbox, queue, wake: Notify::new(), first, gone: AtomicBool::new(false) }
     }
 }
 
-/// The frames of one channel, or of a kept shell's channels in turn: the
-/// model and its sender, shared by the pty's pump, the task that sends,
-/// and the handler.
+/// The frames of one pty: the model and its views, shared by the pty's
+/// pump, each view's task, and the handler.
 pub(super) struct Shared {
     inner: Mutex<Inner>,
-    told: Mutex<Told>,
-    made: Mutex<Made>,
+    /// Each view's lane, for the handler and the tasks, which never wait
+    /// for the model.
+    lanes: Mutex<BTreeMap<u64, Arc<Lane>>>,
+    /// The newest size of the pty, given to the model before the output
+    /// that follows it.
+    size: Mutex<Option<Size>>,
+    /// A client said something since the pump last looked: it looks only
+    /// then, so a flood costs no lock of the lanes for each write.
+    told: AtomicBool,
 }
 
 fn cells(n: u32) -> u16 {
@@ -142,27 +168,77 @@ fn unpoisoned<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
     lock.lock().unwrap_or_else(|p| p.into_inner())
 }
 
+/// The bytes of a frame of `head` and `body` in `version`, with the lines
+/// after the line `since` where the version carries them.
+fn encoded(model: &Model, version: Version, since: u64, head: Head, body: &[u8]) -> Vec<u8> {
+    let lines = match version {
+        Version::One => Vec::new(),
+        Version::Two => model.lines_after(since),
+    };
+    encode(version, head, &lines, body)
+}
+
+/// The frame of `view` that is due at `now`, made and queued for its task,
+/// with the reports that waited for it; under the model's lock. Whether
+/// anything was queued. `state` is the screen now, made once for each
+/// write however many views are due. The last frame is the task's own.
+fn make_view(model: &Model, view: &mut View, state: &mut Option<State>, now: Instant) -> bool {
+    if view.sender.due().is_none_or(|at| at > now) {
+        return false;
+    }
+    let state = state.get_or_insert_with(|| model.state());
+    let framed = view.sender.frame(state, view.bell, now);
+    let mut queue = unpoisoned(&view.lane.queue);
+    if let Some((head, body)) = framed.as_ref() {
+        view.bell = false;
+        queue.push_back(Out::Frame(encoded(model, view.version, view.sender.since(), *head, body)));
+    }
+    // The change went into a frame, or the client's screen needs none:
+    // the reports that waited for it go after it.
+    let mut queued = framed.is_some();
+    if !view.sender.pending() && !view.parked.is_empty() {
+        queue.extend(view.parked.drain(..).map(Out::Report));
+        queued = true;
+    }
+    queued
+}
+
+/// A report of local echo for `view`, now that the model holds the output
+/// before it: it waits for the frame of a change that no frame holds yet,
+/// and else goes after the frames made.
+fn place(view: &mut View, report: Vec<u8>) {
+    if view.sender.pending() {
+        if view.parked.len() >= PARKED_MOST {
+            view.parked.pop_front();
+        }
+        view.parked.push_back(report);
+    } else {
+        unpoisoned(&view.lane.queue).push_back(Out::Report(report));
+    }
+}
+
 impl Shared {
-    /// For a pty of `size`, whose screen is empty, in frames of `version`.
+    /// For a pty of `size`, whose screen is empty, in frames of `version`,
+    /// with the view of the channel whose pty it is ([`FIRST_VIEW`]), which
+    /// answers the program's questions. Its first frame comes with the
+    /// first output.
     pub(super) fn new(size: Size, version: Version) -> Arc<Shared> {
-        let model = Model::new(cells(size.rows), cells(size.cols), true);
+        let shared = Shared::bare(size, version);
+        shared.open_view(version, true, false);
+        shared
+    }
+
+    /// A model of a pty of `size` with no view, which answers nothing: a
+    /// shared shell's, made at the first seat that asks (`share_frames.rs`).
+    pub(super) fn bare(size: Size, version: Version) -> Arc<Shared> {
+        let model = Model::new(cells(size.rows), cells(size.cols), false);
         // Version 1 carries no line: its model counts none, so a flood that
         // only scrolls makes no frame, as before the lines.
         let model = if version == Version::Two { model } else { model.without_lines() };
-        let (sender, parked) = (Sender::default(), VecDeque::new());
-        let inner = Inner { model, sender, ended: false, parked, version, feeding: true };
-        let (told, made) = (Mutex::new(Told::default()), Mutex::new(Made::new(0, 1)));
-        Arc::new(Shared { inner: Mutex::new(inner), told, made })
-    }
-
-    /// The bytes of a frame of `head` and `body`, with the lines after the
-    /// sender's base where the version carries them.
-    fn encoded(&self, inner: &Inner, head: Head, body: &[u8]) -> Vec<u8> {
-        let lines = match inner.version {
-            Version::One => Vec::new(),
-            Version::Two => inner.model.lines_after(inner.sender.since()),
-        };
-        encode(inner.version, head, &lines, body)
+        let (views, next_view, next_number) = (BTreeMap::new(), 0, 1);
+        let inner = Inner { model, ended: false, views, next_view, next_number, version };
+        let (lanes, size, told) = (Mutex::default(), Mutex::default(), AtomicBool::new(false));
+        Arc::new(Shared { inner: Mutex::new(inner), lanes, size, told })
     }
 
     /// The model, for the pump and the end alone: each other one tries it.
@@ -179,75 +255,105 @@ impl Shared {
         }
     }
 
-    /// The task of the epoch now looks again.
-    fn wake(&self) {
-        unpoisoned(&self.made).wake.notify_one();
+    /// The lane of `view`, while it is open.
+    fn lane(&self, view: u64) -> Option<Arc<Lane>> {
+        unpoisoned(&self.lanes).get(&view).cloned()
     }
 
-    /// The pty has a new size (`window-change`): the model too, before the
-    /// next output, and the next frame is the whole screen in that size.
+    /// Each view's task looks again.
+    fn wake_all(&self) {
+        for lane in unpoisoned(&self.lanes).values() {
+            lane.wake.notify_one();
+        }
+    }
+
+    /// The pty has a new size (`window-change`, or the least of a shared
+    /// shell's seats): the model too, before the next output, and the next
+    /// frame of each view is the whole screen in that size.
     pub(super) fn resize(&self, size: Size) {
-        unpoisoned(&self.told).size = Some(size);
-        self.wake();
+        *unpoisoned(&self.size) = Some(size);
+        self.told.store(true, Ordering::Release);
+        self.wake_all();
     }
 
-    /// The client's acknowledgement (`env frames-ack@podssh`), timed now.
-    /// One of a frame before this epoch is an older channel's, and goes.
+    /// The client's acknowledgement on a pty with one view at a time (a
+    /// channel's own, a kept shell's): to the newest view. One of a frame
+    /// before that view's first is an older channel's, and goes.
     pub(super) fn acked(&self, ack: Ack) {
-        let first = unpoisoned(&self.made).first;
-        if ack.number != 0 && ack.number < first {
+        let newest = unpoisoned(&self.lanes).keys().next_back().copied();
+        if let Some(view) = newest {
+            self.acked_by(view, ack);
+        }
+    }
+
+    /// The acknowledgement of the client of `view` (`env
+    /// frames-ack@podssh`), timed now. A view that left takes none.
+    pub(in crate::server) fn acked_by(&self, view: u64, ack: Ack) {
+        let Some(lane) = self.lane(view) else { return };
+        if ack.number != 0 && ack.number < lane.first {
             return;
         }
-        let mut told = unpoisoned(&self.told);
-        if told.acks.len() >= TOLD_MOST {
-            told.acks.pop_front();
+        let mut acks = unpoisoned(&lane.acks);
+        if acks.len() >= TOLD_MOST {
+            acks.pop_front();
         }
-        told.acks.push_back((ack, Instant::now()));
-        drop(told);
-        self.wake();
+        acks.push_back((ack, Instant::now()));
+        drop(acks);
+        self.told.store(true, Ordering::Release);
+        lane.wake.notify_one();
     }
 
-    /// What the client said, into the model and the sender; under the
-    /// model's lock.
+    /// What the clients said, into the model and the views; under the
+    /// model's lock. The views that left go first.
     fn heard(&self, inner: &mut Inner, now: Instant) {
-        let told = std::mem::take(&mut *unpoisoned(&self.told));
-        if let Some(size) = told.size {
-            inner.model.resize(cells(size.rows), cells(size.cols));
-            inner.sender.changed(now);
+        if !self.told.swap(false, Ordering::AcqRel) {
+            return;
         }
-        for (ack, at) in told.acks {
-            inner.sender.acked(ack, at);
+        let gone: Vec<u64> =
+            inner.views.iter().filter(|(_, view)| view.lane.gone.load(Ordering::Acquire)).map(|(id, _)| *id).collect();
+        for id in gone {
+            self.drop_view(inner, id);
+        }
+        if let Some(size) = unpoisoned(&self.size).take() {
+            inner.model.resize(cells(size.rows), cells(size.cols));
+            for view in inner.views.values_mut() {
+                view.sender.changed(now);
+            }
+        }
+        for view in inner.views.values_mut() {
+            let acks = std::mem::take(&mut *unpoisoned(&view.lane.acks));
+            for (ack, at) in acks {
+                view.sender.acked(ack, at);
+            }
+            let reports = std::mem::take(&mut *unpoisoned(&view.lane.inbox));
+            for report in reports {
+                place(view, report);
+            }
         }
     }
 
-    /// The frame that is due at `now`, made and queued for the task that
-    /// sends, with the reports that waited for it; under the model's lock.
-    /// Whether anything was queued. The last frame is the task's own.
+    /// The frame of each view that is due at `now`; under the model's lock.
+    /// Whether anything was queued. The pump makes them in [`Shared::fed`],
+    /// and each view's task its own.
+    #[cfg(test)]
     fn make(&self, inner: &mut Inner, now: Instant) -> bool {
-        if inner.ended || !inner.feeding || inner.sender.due().is_none_or(|at| at > now) {
+        if inner.ended {
             return false;
         }
-        let bell = inner.model.bell();
-        let framed = inner.sender.frame(&inner.model.state(), bell, now);
-        let mut made = unpoisoned(&self.made);
-        if let Some((head, body)) = framed.as_ref() {
-            inner.model.clear_bell();
-            made.queue.push_back(Out::Frame(self.encoded(inner, *head, body)));
-        }
-        // The change went into a frame, or the client's screen needs none:
-        // the reports that waited for it go after it.
-        let mut queued = framed.is_some();
-        if !inner.sender.pending() && !inner.parked.is_empty() {
-            made.queue.extend(inner.parked.drain(..).map(Out::Report));
-            queued = true;
+        let Inner { model, views, .. } = inner;
+        let mut state = None;
+        let mut queued = false;
+        for view in views.values_mut() {
+            queued |= make_view(model, view, &mut state, now);
         }
         queued
     }
 
-    /// The pty's output, into the model, and the frame that is due; it
-    /// never waits but for the model. The pump of a channel's own pty
-    /// writes it through a `Sink`; a kept shell's pump, at each write that
-    /// its ring takes.
+    /// The pty's output, into the model, and the frame of each view that
+    /// is due; it never waits but for the model. The pump of a channel's
+    /// own pty writes it through a `Sink`; a kept shell's pump, at each
+    /// write that its ring takes; a shared shell's, at each write of the
+    /// owner's output (`share.rs`).
     pub(super) fn fed(&self, buf: &[u8]) {
         let now = Instant::now();
         let mut guard = self.lock();
@@ -255,175 +361,66 @@ impl Shared {
         // A new size goes before the output that follows it.
         self.heard(inner, now);
         inner.model.feed(buf);
-        let first = inner.sender.changed(now);
-        let made = self.make(inner, now);
+        // No view: the model is fed alone, and keeps its bell for the next.
+        if inner.ended || inner.views.is_empty() {
+            return;
+        }
+        if inner.model.bell() {
+            inner.model.clear_bell();
+            inner.views.values_mut().for_each(|view| view.bell = true);
+        }
         let asked = inner.model.answers_wait();
-        let feeding = inner.feeding;
+        let Inner { model, views, .. } = inner;
+        let mut state = None;
+        let mut woken = Vec::new();
+        for view in views.values_mut() {
+            let first = view.sender.changed(now);
+            let made = make_view(model, view, &mut state, now);
+            // A view's task looks again at the first change since its last
+            // frame, at a frame made here, and when an answer waits for it;
+            // the rest of a flood wakes nothing.
+            if first || made || (asked && view.answers) {
+                woken.push(view.lane.clone());
+            }
+        }
         drop(guard);
-        // The task that sends looks again at the first change since its
-        // last frame, at a frame made here, and when an answer waits; the
-        // rest of a flood wakes nothing.
-        if feeding && (first || made || asked) {
-            self.wake();
+        for lane in woken {
+            lane.wake.notify_one();
         }
     }
 
-    /// A report of local echo of the channel of `epoch`, made by the pump
-    /// after the output that it read: it waits for the frame of a change
-    /// that no frame holds yet, and else goes after the frames made. The
-    /// pump alone calls it, so it may wait for the model. A report of an
-    /// older channel goes nowhere.
-    fn reported(&self, epoch: u64, report: Vec<u8>) {
+    /// A report of local echo of `view`, made by the pump after the output
+    /// that it read ([`place`]). The pump alone calls it, so it may wait
+    /// for the model. A report of a view that left goes nowhere.
+    fn reported(&self, view: u64, report: Vec<u8>) {
         let mut inner = self.lock();
-        let mut made = unpoisoned(&self.made);
-        if made.epoch != epoch {
-            return;
-        }
-        if inner.sender.pending() {
-            if inner.parked.len() >= PARKED_MOST {
-                inner.parked.pop_front();
-            }
-            inner.parked.push_back(report);
-        } else {
-            made.queue.push_back(Out::Report(report));
-        }
-        made.wake.notify_one();
+        let Some(mine) = inner.views.get_mut(&view) else { return };
+        place(mine, report);
+        mine.lane.wake.notify_one();
     }
 
-    /// [`Shared::run_told`] with no reports of local echo.
-    #[cfg(test)]
-    pub(super) async fn run(
-        self: Arc<Self>,
-        out: impl AsyncWrite + Unpin + Send,
-        answers: impl AsyncWrite + Unpin + Send,
-    ) {
-        self.run_told(out, answers, None::<tokio::io::Sink>).await;
-    }
-
-    /// Send the frames on `out` (the channel's extended data of
-    /// `crate::frames::EXT`) until the pty's output ends, then the last
-    /// one; `answers` is the pty's master, for the model's answers. A
-    /// channel that is gone ends it. Local echo's reports go on `reports`
-    /// (the extended data of `crate::predict::EXT`), each after the frame
-    /// that it waited for. The channel of the epoch now.
-    pub(super) async fn run_told(
-        self: Arc<Self>,
-        out: impl AsyncWrite + Unpin + Send,
-        answers: impl AsyncWrite + Unpin + Send,
-        reports: Option<impl AsyncWrite + Unpin + Send>,
-    ) {
-        let epoch = self.epoch();
-        self.run_epoch(epoch, out, answers, reports).await;
-    }
-
-    /// [`Shared::run_told`] for the channel of `epoch`: it ends with no
-    /// last frame once another epoch starts, as its channel left.
-    pub(super) async fn run_epoch(
-        self: Arc<Self>,
-        epoch: u64,
-        mut out: impl AsyncWrite + Unpin + Send,
-        mut answers: impl AsyncWrite + Unpin + Send,
-        mut reports: Option<impl AsyncWrite + Unpin + Send>,
-    ) {
-        let Some(wake) = self.wake_of(epoch) else { return };
-        loop {
-            let now = Instant::now();
-            // Never a wait for the model: while the pump has it, it makes
-            // the frames itself, and this task looks again a moment later.
-            let looked = match self.try_lock() {
-                Some(mut guard) => {
-                    // The answers and what the client said are the new
-                    // channel's once another epoch started.
-                    if self.epoch() != epoch {
-                        return;
-                    }
-                    let inner = &mut *guard;
-                    self.heard(inner, now);
-                    self.make(inner, now);
-                    Some((inner.ended, inner.sender.due(), inner.model.take_answers()))
-                }
-                None => None,
-            };
-            // The channel of another epoch has the screen: this one left.
-            let Some(made) = self.take(epoch) else { return };
-            if !sent(made, &mut out, &mut reports).await {
-                return;
-            }
-            let (ended, due) = match looked {
-                Some((ended, due, answer)) => {
-                    if !answer.is_empty() {
-                        // One write: an answer is never cut by the client's keys.
-                        let _ = tokio::time::timeout(ANSWER_WAIT, answers.write_all(&answer)).await;
-                    }
-                    (ended, due)
-                }
-                None => (false, Some(now + BUSY)),
-            };
-            if ended {
-                break;
-            }
-            match due {
-                Some(at) => {
-                    tokio::select! {
-                        () = wake.notified() => {}
-                        () = tokio::time::sleep_until(at) => {}
-                    }
-                }
-                None => wake.notified().await,
-            }
+    /// A report of local echo of `view` made by a task that is not the pump
+    /// (a seat's at a shared shell, after the model took the output before
+    /// it): it never waits for the model, and the pump or the view's task
+    /// places it at its next look ([`place`]), where a change that waits
+    /// for its frame holds it back as the pump's own would.
+    fn reported_aside(&self, view: u64, report: Vec<u8>) {
+        let Some(lane) = self.lane(view) else { return };
+        let mut inbox = unpoisoned(&lane.inbox);
+        if inbox.len() >= PARKED_MOST {
+            inbox.pop_front();
         }
-        // The pump is gone: the model is this task's alone; the reports
-        // that wait go after the last frame.
-        let last = {
-            let mut guard = self.lock();
-            let inner = &mut *guard;
-            let bell = inner.model.bell();
-            let (head, body) = inner.sender.last(&inner.model.state(), bell, Instant::now());
-            let last = self.encoded(inner, head, &body);
-            (last, std::mem::take(&mut inner.parked))
-        };
-        let Some(mut made) = self.take(epoch) else { return };
-        made.push_back(Out::Frame(last.0));
-        made.extend(last.1.into_iter().map(Out::Report));
-        if !sent(made, &mut out, &mut reports).await {
-            return;
-        }
-        let _ = out.flush().await;
-        if let Some(reports) = reports.as_mut() {
-            let _ = reports.flush().await;
-        }
+        inbox.push_back(report);
+        drop(inbox);
+        self.told.store(true, Ordering::Release);
+        lane.wake.notify_one();
     }
-}
-
-/// Write `made` in its order: each frame on `out`, each report on
-/// `reports`. False where the frames' channel is gone; a report that
-/// cannot go ends the reports alone.
-async fn sent(
-    made: VecDeque<Out>,
-    out: &mut (impl AsyncWrite + Unpin + Send),
-    reports: &mut Option<impl AsyncWrite + Unpin + Send>,
-) -> bool {
-    for item in made {
-        match item {
-            Out::Frame(bytes) => {
-                if out.write_all(&bytes).await.is_err() {
-                    return false;
-                }
-            }
-            Out::Report(bytes) => {
-                let failed = match reports.as_mut() {
-                    Some(writer) => writer.write_all(&bytes).await.is_err(),
-                    None => false,
-                };
-                if failed {
-                    *reports = None;
-                }
-            }
-        }
-    }
-    true
 }
 
 #[cfg(test)]
 #[path = "frames_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "frames_view_tests.rs"]
+mod view_tests;
