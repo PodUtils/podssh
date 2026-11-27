@@ -14005,7 +14005,7 @@ clean; the citations moved by `cargo todo remap`. Planted: the exit of a partial
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -14082,6 +14082,17 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
 - **No brake on `/relay`.** An endpoint keeps one connection; many endpoints behind one address would
   meet the brake of mints. The listener's slots (T-748) bound the connections.
 - **A browser's iroh client** (an `Origin`) is refused (403), as each WebSocket of the role refuses one.
+- **No iroh QUIC address discovery (QAD) on the single listener.** iroh-relay's QAD is a separate UDP/QUIC
+  server (`noq::Endpoint::server` speaking ALPN `/iroh-qad/0`, `iroh-relay` in `PodUtils/podcrates`)
+  whose default port is UDP 7842 (`DEFAULT_RELAY_QUIC_PORT`). It cannot
+  share the role's TCP 443 listener, and a host that lets only TCP port 443 in (the premise of this entry)
+  cannot expose it. `pod-iroh` handles a QAD-less relay cleanly: `Udp::Probe` times out and falls back to
+  relay-only (`Answer::Unknown`), and a host that wants direct UDP paths against a QAD-less relay already has
+  `PODSSH_IROH_UDP=on` (`Udp::On`, `pod-iroh/src/endpoint.rs`). Lost: (1) opening a second UDP listener on
+  port 7842 (violates Approach step 6 and Rule 2 "no new listener", and needs an extra port outside 443);
+  (2) multiplexing `/iroh-qad/0` onto `relay serve --quic yes` (breaks `--quic yes`'s `podssh-relay/1`-only
+  ALPN invariant, still requires UDP 443 in beside TCP 443, and iroh clients default to UDP 7842 unless given
+  a custom `RelayQuicConfig` port).
 
 ## Prove
 
@@ -14090,6 +14101,7 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-relay --features serve,derp,iroh-serve --lib -- serve::meet serve::derp
 cargo test -p podssh-relay --features serve,iroh-serve --test relay_meet
 cargo test -p podssh-cli --features iroh --test relay_serve -- serve_meet
+cargo test -p podssh-cli --features iroh --test relay_serve_iroh_net
 cargo test -p podssh-cli --test relay_serve -- serve_meet
 cargo test -p podssh-cli --lib relay_serve::roads
 sh scripts/plant-each.sh t720-iroh-wrong-key t720-derp-wrong-key
@@ -14099,10 +14111,13 @@ Tests: two clients of n0's iroh-relay (`ClientBuilder`) meet through the role an
 of three, a datagram reaches the key that it names alone; a role that mints for a list admits its keys
 alone, with iroh's denial; `/ping`, `/generate_204` and a bad upgrade answer as iroh-relay's server;
 `/relays.json` names the road. Two podssh endpoints of the iroh road (`podssh node --iroh` and `podssh
-ssh iroh:TICKET`) carry 1 MiB each way through the role alone. DERP's hub of three keys forwards to the
-named one alone. Plants: a registry that takes the key of the connection before
-(`t720-iroh-wrong-key`), and a hub that forwards to another key (`t720-derp-wrong-key`); each test fails.
-Tailscale's own `derper` client, if the build image has it, waits for the build image (T-251).
+ssh iroh:TICKET`) carry 1 MiB each way through the role alone. A net whose relay member runs `podssh
+relay serve --relay-roads iroh`, queried via `podssh relay status`, is picked as the iroh road's home
+relay with neither `--iroh-relay` nor `PODSSH_IROH_RELAY` and carries an SSH session end to end
+(`relay_serve_iroh_net`). DERP's hub of three keys forwards to the named one alone. Plants: a registry
+that takes the key of the connection before (`t720-iroh-wrong-key`), and a hub that forwards to another
+key (`t720-derp-wrong-key`); each test fails. Tailscale's own `derper` client, if the build image has it,
+waits for the build image (T-251).
 
 ## Correction
 
@@ -14196,6 +14211,22 @@ table first: caught); `podssh-relay --lib` 78 passed; `--lib -- man:: flags` 93 
 and without `iroh`) clean. Open: a test from end to end (a net whose relay member is `relay serve --relay-roads iroh`,
 asked by `relay status`, then the iroh road's home relay that member), in a build with `iroh`; iroh's QUIC address
 discovery, which the role does not serve.
+
+2026-11-27 (merged from `t720-iroh-net`, verified on Antigravity Linux x86_64, Rust 1.99.0): added the end-to-end
+test `crates/podssh-cli/tests/relay_serve_iroh_net.rs` (`#![cfg(feature = "iroh")]`): starts `podssh relay serve
+--relay-roads iroh`, puts it in a net as a `relay` member, runs `podssh relay status` (with the default
+relay pool and n0's iroh relays pinned to `127.0.0.1`) to cache `meet.iroh`, then starts `podssh node --iroh`
+and runs `podssh ssh iroh:TICKET` with neither `--iroh-relay` nor `PODSSH_IROH_RELAY`, checking that the
+node's ticket names only the member's URL, the SSH session returns `GREETING` over `RELAY_ONLY`, and both
+endpoints came up at the role. Recorded the Decision for iroh QUIC address discovery (omitted on the single
+TCP 443 listener; `pod-iroh` falls back to relay-only and provides `PODSSH_IROH_UDP=on`) and updated
+`docs/relay.md` and `docs/STATUS.md`. Verified: `cargo test --locked -p podssh-cli --features iroh --test
+relay_serve_iroh_net` (2 passed, 2.03 s), `cargo test --locked -p podssh-cli --features iroh --test relay_serve --
+serve_meet` (3 passed), `--test relay_serve -- serve_meet` without `iroh` (2 passed), `cargo test --locked -p
+podssh-relay --features serve,derp,iroh-serve --lib -- serve::meet serve::derp` (19 passed), `--features
+serve,iroh-serve --test relay_meet` (4 passed), `cargo clippy --locked -p podssh-cli --features iroh --test
+relay_serve_iroh_net -- -D warnings -A clippy::collapsible_if` and `cargo fmt` clean. Closed `done` (Tailscale's
+optional `derper` client, if added to the build image, belongs to T-251).
 
 # T-724: `-J node://NAME` and `mcp` destinations that name a node
 

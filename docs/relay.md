@@ -2035,9 +2035,12 @@ where its members used n0's iroh relays and Tailscale's DERP fleet.
   `podssh ts` takes one relay, which a member's DERP of `--derp-keys` may
   refuse (T-720).
 
-What it does not do: iroh's QUIC address discovery (QAD, a UDP port of its
-own), and rate limits of each client, which iroh-relay's own server has;
-the role's slots and its log bound and name each connection.
+What it does not do: iroh's QUIC address discovery (QAD, a separate UDP/QUIC
+listener defaulting to port 7842 with ALPN `/iroh-qad/0`, which cannot share
+the role's single TCP 443 listener; `pod-iroh` falls back to relay-only, and
+`PODSSH_IROH_UDP=on` takes direct UDP after a bind alone), and rate limits of
+each client, which iroh-relay's own server has; the role's slots and its log
+bound and name each connection.
 
 ## A relay that sleeps between frames (T-712)
 
