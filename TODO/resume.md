@@ -2498,7 +2498,7 @@ half round trip, so Ctrl-C stops a flood within a round trip (its paper, §2.3).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3250,6 +3250,31 @@ to 52).
   clippy::collapsible_if` clean; rustfmt clean.
 
 Left after these: (f) and (g).
+
+Verified 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0): items (g), (f), and (h)'s manual check are done, closing T-303:
+
+- **Item (g), planted defects** (`scripts/plants/`, group `resume`, merged from `t303-plant`):
+  - `t303-raw-bytes` (`scripts/plants/t303-raw-bytes.patch`, `.plant`): `crates/podssh-ssh/src/server/pty_child.rs`
+    accepts the frames ask and sends raw pty bytes on `ChannelMsg::Data`; caught by `frames_e2e` (`6.974s`, over three
+    round trips).
+  - `t303-unpaced-frames` (`scripts/plants/t303-unpaced-frames.patch`, `.plant`): `crates/podssh-ssh/src/frames/sender.rs`
+    removes `COLLECT`, `interval()`, and `WINDOW`/`PATIENCE` from `Sender::due`; caught by `frame_rate` (`126356 bytes
+    of frames crossed in 2 s of flood`).
+  - `t303-shared-one-base` (`scripts/plants/t303-shared-one-base.patch`, `.plant`): `crates/podssh-ssh/src/server/frames.rs`
+    routes every view's acknowledgement in `Shared::acked_by` to the newest lane; caught by
+    `server::frames::view_tests::each_view_has_its_own_base_and_acknowledgements`.
+  - Result: `sh scripts/plant-each.sh --here t303-raw-bytes t303-unpaced-frames t303-shared-one-base`: **3 caught, 0 missed, 0 stale**.
+- **Item (f), Mosh reference:** `mosh-server` + `mosh-client` 1.4.0 on loopback through a 150 ms each-way (300 ms RTT),
+  64 KiB/s shaped UDP forwarder, 24x80 pty, 2 s `yes` flood then Ctrl-C to `FEELP>`: **320.1 ms median of 5** (317.7
+  to 464.2 ms; 1.07 round trips), vs podssh `--frames` 830 ms debug / 412 ms release (1.37 round trips) and podssh
+  without frames 5,186 ms (17.3 round trips).
+- **Item (h), OpenSSH control master manual check:** `ssh -M -N -f -S CTL` to `podssh serve --listen`, then
+  `podssh ssh -S CTL --frames -tt ... "echo OPENSSH_MASTER_OK"` exits 0, prints `OPENSSH_MASTER_OK`, and logs once:
+  `podssh: --frames: no frames: the control master does not carry them (only a podssh master of this release or later does); the session shows each byte`.
+- **macOS CI fix** (`95c11c4`): collapsed BSD `od -An -tx1` extra spaces (`tr -s ' '`) in
+  `crates/podssh-ssh/tests/serve_share_frames.rs` so macOS CI matches `ANSWER 1b 5b`.
+
+All items (a) through (h) are verified; T-303 is closed `done` (the build-image `interop-control.sh` run belongs to T-251).
 
 
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road

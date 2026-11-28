@@ -1,0 +1,12 @@
+--- a/crates/podssh-ssh/src/server/pty_child.rs
++++ b/crates/podssh-ssh/src/server/pty_child.rs
+@@ -192,7 +192,8 @@
+                 super::kept_run::start(open, &keeper, id, running, (master, child), motd, marks);
+                 return Ok(());
+             }
+-            if let Some(frames) = open.frames.clone() {
++            // planted: take the frames ask, then send each raw byte of the pty
++            if let Some(frames) = open.frames.clone().filter(|_| false) {
+                 // The screen as frames, where the client asked (T-303): the
+                 // pump feeds serve's model of the screen, and a second task
+                 // sends the frames. It is waited for after the pump, so the

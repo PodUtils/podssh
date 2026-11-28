@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**1003 entries: 3 open, 32 partial, 14 blocked, 954 done.**
+**1003 entries: 3 open, 31 partial, 14 blocked, 955 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 6 | 3 | 106 | 115 |
 | P2 | 0 | 20 | 4 | 351 | 375 |
-| P3 | 3 | 6 | 7 | 496 | 512 |
-| **All** | 3 | 32 | 14 | 954 | 1003 |
+| P3 | 3 | 5 | 7 | 497 | 512 |
+| **All** | 3 | 31 | 14 | 955 | 1003 |
 
 ## Entries
 
@@ -375,7 +375,7 @@ repository and CI).
 | [T-300](roads.md) | P3 | L | backlog | feature | done | `podssh node` publishes a quick tunnel over HTTP/2, with no `cloudflared` |
 | [T-301](roads.md) | P3 | M | backlog | feature | done | The quick tunnel over QUIC, where a probe finds UDP |
 | [T-302](resume.md) | P3 | M | backlog | feature | done | A notice in the terminal while the far end is silent |
-| [T-303](resume.md) | P3 | L | backlog | feature | partial | The latest screen on request: frames that let Ctrl-C show within a round trip |
+| [T-303](resume.md) | P3 | L | backlog | feature | done | The latest screen on request: frames that let Ctrl-C show within a round trip |
 | [T-304](resume.md) | P3 | L | backlog | feature | open | Keys and screen frames as QUIC datagrams on the iroh road |
 | [T-305](resume.md) | P3 | M | backlog | feature | done | Roam at once: a new link beside a silent one |
 | [T-306](resume.md) | P3 | S | backlog | feature | done | A resume deadline that the user sets, for a host that sleeps |

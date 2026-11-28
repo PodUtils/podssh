@@ -1,0 +1,13 @@
+--- a/crates/podssh-ssh/src/server/frames.rs
++++ b/crates/podssh-ssh/src/server/frames.rs
+@@ -289,7 +289,9 @@
+     /// The acknowledgement of the client of `view` (`env
+     /// frames-ack@podssh`), timed now. A view that left takes none.
+     pub(in crate::server) fn acked_by(&self, view: u64, ack: Ack) {
+-        let Some(lane) = self.lane(view) else { return };
++        let _ = view; // planted: one newest lane for every view's acknowledgements
++        let newest = unpoisoned(&self.lanes).keys().next_back().copied();
++        let Some(lane) = newest.and_then(|id| self.lane(id)) else { return };
+         if ack.number != 0 && ack.number < lane.first {
+             return;
+         }

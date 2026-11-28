@@ -1,0 +1,8 @@
+# T-303: acknowledgements of a shared shell's views all go to the newest
+# lane instead of each view's own, so a view that acknowledges gets no base
+# of its own (item 45 and item 51's lost alternative); the test of two views
+# with their own bases must fail.
+ENTRY=T-303
+GROUP=resume
+EXPECT='test server::frames::view_tests::each_view_has_its_own_base_and_acknowledgements \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --lib -- server::frames::view_tests::each_view_has_its_own_base_and_acknowledgements'

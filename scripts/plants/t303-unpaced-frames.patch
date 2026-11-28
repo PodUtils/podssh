@@ -1,0 +1,19 @@
+--- a/crates/podssh-ssh/src/frames/sender.rs
++++ b/crates/podssh-ssh/src/frames/sender.rs
+@@ -126,14 +126,8 @@
+ 
+     /// When the next frame may go; `None` while nothing changed.
+     pub fn due(&self) -> Option<Instant> {
+-        let mut at = self.changed? + COLLECT;
+-        if let Some(last) = self.last {
+-            at = at.max(last + self.interval());
+-            if self.sent.len() >= WINDOW {
+-                at = at.max(last + PATIENCE);
+-            }
+-        }
+-        Some(at)
++        // planted: no collection, no half-RTT pace and no window
++        self.changed
+     }
+ 
+     /// The frame of `state` at `now`, where one is due and the client's

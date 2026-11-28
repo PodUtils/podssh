@@ -1,0 +1,9 @@
+# T-303: the far end's sender sends a frame on each write of the pty with no
+# collection wait, no half-RTT pace and no window of unacknowledged frames;
+# under a flood on a 300 ms, 64 KiB/s link, frames fill the link, and the
+# Prove's test frame_rate must fail.
+ENTRY=T-303
+GROUP=resume
+EXPECT='bytes of frames crossed in 2 s of flood|over three round trips'
+RUN='cargo test --locked -p podssh-ssh --test frame_rate -- under_a_flood_ctrl_c_shows_the_prompt_within_three_round_trips'
+LIMIT=1800

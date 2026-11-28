@@ -1,0 +1,11 @@
+# T-303: podssh serve takes the ask for frames, then sends each raw byte of
+# the pty on the channel's data stream in place of frames; under a flood on
+# a 300 ms, 64 KiB/s link, Ctrl-C waits behind the bytes in flight, and the
+# end-to-end check of the three-round-trip bar must fail.
+ENTRY=T-303
+GROUP=resume
+EXPECT='over three round trips'
+# The stand-in relay is Python, and its certificates openssl's.
+SETUP='if command -v apk >/dev/null; then apk add --no-cache python3 openssl >/dev/null; fi'
+RUN='cargo test --locked -p podssh-cli --test frames_e2e -- with_frames_ctrl_c_shows_the_prompt_within_three_round_trips'
+LIMIT=1800
