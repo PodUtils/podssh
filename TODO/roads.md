@@ -10556,9 +10556,18 @@ the service token on `cf://` only, and reads it from variables (the secret in th
   `_FILE` variables below the environment.
 - **A credential set and no host named reads nothing**, and a line of the settings for a host that is no
   side reads nothing either; a flag that names no side is 64, and a named side with no credential 78.
-- **`RestartPreventExitStatus` keeps `64 78`** until a node sends the headers (the node's road is
-  `pod-relay`'s): with no header on a node's road, Access cannot refuse one, and the node's own 77 for an
-  expired pair must stay restarted. Approach 3's case for the node comes with the take of T-111.
+- **`RestartPreventExitStatus` keeps `64 78` by default, and takes `64 77 78` when `--access-host` is set.**
+  Because systemd's `RestartPreventExitStatus` inspects only the numeric exit code, a single unit cannot both
+  restart on 77 (expired pair) and stop on 77 (Access refusal). Services without `--access-host` keep `64 78`
+  so an expired pair still restarts to pick up a new pair (T-393); services installed with `--access-host`
+  emit `RestartPreventExitStatus=64 77 78` so bad or revoked Access credentials stop instead of looping every
+  5 s (while a running node still rotates to a new pair in place via `node_expiry::hook` before exiting). On
+  `Exit::Forbidden`, `podssh node` probes `/v1/node/<name>` once without `X-Relay-Token` to distinguish a
+  Cloudflare Access 401/403 refusal from the relay's own `403 reverse: forbidden` of a stopped pair, and
+  `node_piping::unasked` skips the Piping Server fallback on an Access refusal so the node exits 77 with a
+  true line naming the Access variables and files (never any credential value). Lost: exiting 78 for Access
+  refusal (contradicts Approach 3, Decision 5, and `exitmap::Fault::Auth`); unconditionally adding 77 to
+  every node unit (breaks T-393's expired-pair restart on non-Access nodes).
 
 ## Prove
 
@@ -10685,6 +10694,34 @@ its one caller. `cargo test -p podssh-cli --test access_relay`: 3 passed, 3 runs
 road behind the gate, through the probe); planted, the probe's way with no header: caught (the node never came online
 on the pair's road). `podssh-ws --lib access` 6 passed. Still waits: the node's 77 kept from a restart (Decision), and
 the live step with a Cloudflare account (Blocker).
+
+2026-11-27 (merged from `t718-access-exit`, verified on Antigravity Linux x86_64, Rust 1.99.0): the node's exit 77 on
+Cloudflare Access refusal and systemd restart prevention:
+
+- `crates/podssh-ws/src/access.rs`: restored `process_names(host)` so the CLI knows whether the process sends Access
+  credentials to a host.
+- `crates/podssh-cli/src/access.rs`: `body_names_access`, `is_access_refusal` (distinguishing Access 401/403 and
+  `/cdn-cgi/access/login` redirects from the relay's `403 reverse: forbidden` and generic proxy 403s, including Access
+  bodies that mention "token"), `probe_is_access_refusal`, `refusal_line` (naming `PODSSH_CF_ACCESS_CLIENT_ID`,
+  `PODSSH_CF_ACCESS_CLIENT_SECRET`, their `_FILE` variables, and `--access-host`/`AccessHost` when unnamed, never any
+  secret value), `node_forbidden_line`, `node_exit_why`, and `ended_with`.
+- `crates/podssh-cli/src/node.rs` & `crates/podssh-cli/src/node_piping.rs`: `node_piping::unasked` skips the Piping
+  Server fallback when the upgrade probe hits a Cloudflare Access refusal; `node::serve` diagnoses `Exit::Forbidden`
+  once without `X-Relay-Token` and exits 77 with the Access refusal line (keeping expired-pair 77 and relay pair
+  refusal 77 unchanged).
+- `crates/podssh-cli/src/pairs.rs` & `crates/podssh-cli/src/operator.rs`: `connect_refusal_for` reports Access
+  401/403 and login redirects with exit 77 and the Access variable names.
+- `crates/podssh-cli/src/node_install/text.rs`: `pod_unit(spec)` sets `unit.restart.prevent = vec![64, 77, 78]` when
+  `--access-host` is present (emitting `RestartPreventExitStatus=64 77 78` on both user and system units via
+  `pod-unit`) and keeps `64 78` otherwise; `docs/cli.md` updated.
+- Verified: `cargo test --locked -p podssh-ws --lib access::` (6 passed), `cargo test --locked -p podssh-cli --lib --
+  access:: pairs:: node_install::` (54 passed), `--test access_headers` (4 passed), `--test access_relay` (4 passed,
+  including `a_node_refused_by_access_exits_77_and_names_the_variables_not_the_secret`), `--test node_expiry` (4),
+  `--test node_restart` (2), `--test node_install` (6), `--test serve_install` (9), `--test io_error_lines` (6);
+  `cargo clippy --locked -p podssh-ws -p podssh-cli --all-targets -- -D warnings -A clippy::collapsible_if` and
+  `cargo fmt` clean.
+- Status stays `partial`: all local work is verified; only the live step against a real Cloudflare Access account
+  remains blocked on the operator (2026-11-09 ruling).
 
 # T-727: SSH login with a short-lived Access certificate over `cf://`
 

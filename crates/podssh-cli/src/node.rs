@@ -389,71 +389,69 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let first = &crate::node_exit::first(&targets);
     // A flow of UDP for each session (T-168); a flow that did not end
     // plainly says so on the node's lines.
-    if crate::node_serve::serving() {
-        let exit = crate::node_serve::with_handler(&mut config, crate::node_serve::Sessions, plain, channel).await;
-        expiry.abort();
-        return upgrade::or_finish(|| finish(&label, exit, err)).await;
-    }
-    if udp {
+    let exit = if crate::node_serve::serving() {
+        crate::node_serve::with_handler(&mut config, crate::node_serve::Sessions, plain, channel).await
+    } else if udp {
         let flow_label = label.clone();
         let flow_say: Arc<dyn Fn(String) + Send + Sync> =
             Arc::new(move |line: String| podssh_ssh::err_line!("podssh node: {flow_label}: {line}"));
         let handler = crate::node_udp::handler(first, DIAL_LIMIT, flow_say);
-        let exit = crate::node_serve::with_handler(&mut config, handler, plain, channel).await;
-        expiry.abort();
-        return upgrade::or_finish(|| finish(&label, exit, err)).await;
-    }
-    let tcp = reverse::tcp::handler(first.host.clone(), first.port, DIAL_LIMIT, roost);
-    let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
-    // The transit relay of Q65 (T-436), the pairs at the net's relay members
-    // (T-434) and croc's relay (T-694) beside the pair's road, with one
-    // keeper for all; never with --plain or --no-e2e.
-    let url = crate::node_transit::url();
-    if let (false, Some(node), true) = (plain, &channel, crate::node_transit::wanted(url.is_some())) {
-        let beside = crate::node_transit::Beside { label: &label, stored, trust: &trust, url, say: say.clone() };
-        let exit = Box::pin(beside.run(&mut config, tcp, node.clone(), routes)).await;
-        expiry.abort();
-        return upgrade::or_finish(|| finish(&label, exit, err)).await;
-    }
-    // TARGET at `open` with no layer: an operator that does not speak the
-    // layer can use the node, and a lost leg ends the session. With the
-    // layer (T-153), a client that loses its leg resumes the session on a
-    // new one, with the same connection to TARGET, dialled only after the
-    // layer's handshake. The channel (T-088) runs above the layer, and
-    // reaches TARGET only once the operator's key is let in.
-    // The keeper of each layered arm is the upgrade's, which hands its
-    // sessions to the next binary and takes those of the one before (T-668).
-    let (stop, deadline) = (upgrade::stop, settings.resume_deadline);
-    let exit = match (plain, channel, routes) {
-        // Routes (T-089): the target of the route that each operator named.
-        (true, Some(node), Some(routes)) => {
-            Box::pin(reverse::run(&mut config, Arc::new(Routed::new(routes, node)), stop())).await
-        }
-        (false, Some(node), Some(routes)) => {
-            let keeper = upgrade::channel_keeper(&node, deadline);
-            let handler = Arc::new(Layered::with_keeper(Routed::new(routes, node), settings, budget, keeper));
-            Box::pin(reverse::run(&mut config, handler, stop())).await
-        }
-        (true, None, _) => Box::pin(reverse::run(&mut config, Arc::new(tcp), stop())).await,
-        (true, Some(node), None) => Box::pin(reverse::run(&mut config, Arc::new(E2e::new(tcp, node)), stop())).await,
-        (false, None, _) => {
-            let handler = Arc::new(Layered::with_keeper(tcp, settings, budget, upgrade::tcp_keeper(deadline)));
-            Box::pin(reverse::run(&mut config, handler, stop())).await
-        }
-        (false, Some(node), None) => {
-            let keeper = upgrade::channel_keeper(&node, deadline);
-            let handler = Arc::new(Layered::with_keeper(E2e::new(tcp, node), settings, budget, keeper));
-            Box::pin(reverse::run(&mut config, handler, stop())).await
+        crate::node_serve::with_handler(&mut config, handler, plain, channel).await
+    } else {
+        let tcp = reverse::tcp::handler(first.host.clone(), first.port, DIAL_LIMIT, roost);
+        let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
+        // The transit relay of Q65 (T-436), the pairs at the net's relay members
+        // (T-434) and croc's relay (T-694) beside the pair's road, with one
+        // keeper for all; never with --plain or --no-e2e.
+        let url = crate::node_transit::url();
+        if let (false, Some(node), true) = (plain, &channel, crate::node_transit::wanted(url.is_some())) {
+            let beside = crate::node_transit::Beside { label: &label, stored, trust: &trust, url, say: say.clone() };
+            Box::pin(beside.run(&mut config, tcp, node.clone(), routes)).await
+        } else {
+            // TARGET at `open` with no layer: an operator that does not speak the
+            // layer can use the node, and a lost leg ends the session. With the
+            // layer (T-153), a client that loses its leg resumes the session on a
+            // new one, with the same connection to TARGET, dialled only after the
+            // layer's handshake. The channel (T-088) runs above the layer, and
+            // reaches TARGET only once the operator's key is let in.
+            // The keeper of each layered arm is the upgrade's, which hands its
+            // sessions to the next binary and takes those of the one before (T-668).
+            let (stop, deadline) = (upgrade::stop, settings.resume_deadline);
+            match (plain, channel, routes) {
+                // Routes (T-089): the target of the route that each operator named.
+                (true, Some(node), Some(routes)) => {
+                    Box::pin(reverse::run(&mut config, Arc::new(Routed::new(routes, node)), stop())).await
+                }
+                (false, Some(node), Some(routes)) => {
+                    let keeper = upgrade::channel_keeper(&node, deadline);
+                    let handler = Arc::new(Layered::with_keeper(Routed::new(routes, node), settings, budget, keeper));
+                    Box::pin(reverse::run(&mut config, handler, stop())).await
+                }
+                (true, None, _) => Box::pin(reverse::run(&mut config, Arc::new(tcp), stop())).await,
+                (true, Some(node), None) => {
+                    Box::pin(reverse::run(&mut config, Arc::new(E2e::new(tcp, node)), stop())).await
+                }
+                (false, None, _) => {
+                    let handler = Arc::new(Layered::with_keeper(tcp, settings, budget, upgrade::tcp_keeper(deadline)));
+                    Box::pin(reverse::run(&mut config, handler, stop())).await
+                }
+                (false, Some(node), None) => {
+                    let keeper = upgrade::channel_keeper(&node, deadline);
+                    let handler = Arc::new(Layered::with_keeper(E2e::new(tcp, node), settings, budget, keeper));
+                    Box::pin(reverse::run(&mut config, handler, stop())).await
+                }
+            }
         }
     };
     expiry.abort();
-    upgrade::or_finish(|| finish(&label, exit, err)).await
+    let access_why = crate::access::node_exit_why(&exit, &config.pair, &trust, &proxy).await;
+    upgrade::or_finish(|| finish(&label, exit, access_why, err)).await
 }
 
 /// The exit code for each end of a node, by the table of `exitmap`, and what
 /// to do next.
-fn finish(label: &str, exit: Exit, err: &mut dyn Write) -> i32 {
-    let Some((fault, why)) = ended(label, exit) else {
+fn finish(label: &str, exit: Exit, access_why: Option<String>, err: &mut dyn Write) -> i32 {
+    let Some((fault, why)) = crate::access::ended_with(label, exit, access_why) else {
         let _ = writeln!(err, "podssh node: {label}: stopped");
         return 0;
     };

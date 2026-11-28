@@ -348,6 +348,7 @@ fn a_retired_variable_in_an_env_file_is_refused_with_its_line() {
 
 /// T-718: a node's service keeps its hosts of Cloudflare Access, by name;
 /// their credentials are files of the file of variables, never words.
+/// Units carrying `--access-host` keep exit 77 from restarting in systemd.
 #[test]
 fn the_service_of_a_node_keeps_its_hosts_of_access() {
     let args = crate::node_args::NodeArgs {
@@ -358,4 +359,17 @@ fn the_service_of_a_node_keeps_its_hosts_of_access() {
     let words = super::text::service_args(&args, "lab", Path::new("/e/node-lab.env")).unwrap();
     let at = words.iter().position(|w| w == "--access-host").expect("the flag");
     assert_eq!(&words[at..at + 4], ["--access-host", "edge.example", "--access-host", "a.example,b.example"]);
+
+    let access_spec = spec(&["node", "lab", "127.0.0.1:22", "--access-host", "edge.example"]);
+    let user_unit = unit(&access_spec).expect("a user unit");
+    assert!(user_unit.contains("RestartPreventExitStatus=64 77 78\n"), "{user_unit}");
+    let account = super::system::Account {
+        user: "alice".into(),
+        uid: 1000,
+        gid: 1000,
+        home: PathBuf::from("/home/alice"),
+        shell: None,
+    };
+    let sys_unit = super::system_text::unit(&access_spec, &account).expect("a system unit");
+    assert!(sys_unit.contains("RestartPreventExitStatus=64 77 78\n"), "{sys_unit}");
 }

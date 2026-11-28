@@ -207,7 +207,7 @@ pub(crate) fn to_node(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wri
                 code
             }
         },
-        Err(e) => pairs::connect_refusal(&e, &label).report(verb, err),
+        Err(e) => pairs::connect_refusal_for(&e, &label, Some(&part.relay.host)).report(verb, err),
     }
 }
 

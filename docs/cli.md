@@ -4426,7 +4426,10 @@ commands. The rules behind them:
   than 230), and `RestartPreventExitStatus=64 78`: a refused command line or
   setting stays down, as no start changes it, but 77 (an expired pair, a
   refusal of the relay) starts again, so that a pair made again with `relay
-  pair NAME` is taken at the next start with no new `--install`. The
+  pair NAME` is taken at the next start with no new `--install`. A unit
+  installed with `--access-host` sets `RestartPreventExitStatus=64 77 78`
+  instead, so bad or revoked Cloudflare Access credentials stop restarting
+  instead of looping every 5 s. The
   LaunchAgent (`~/Library/LaunchAgents/dev.podssh.node.NAME.plist`) has
   `RunAtLoad`, `KeepAlive` and a `ThrottleInterval` of 5 s, and is loaded
   by `launchctl bootstrap gui/UID`, removed by `bootout`; its stderr goes

@@ -86,6 +86,13 @@ pub fn process_headers() -> pod_ws::Headers {
     }
 }
 
+/// Whether this process sends Cloudflare Access credentials to `host`
+/// (`AccessHost` in the settings, or `--access-host` on the command line).
+pub fn process_names(host: &str) -> bool {
+    let named = *PROCESS.lock().unwrap_or_else(|e| e.into_inner());
+    named.is_some_and(|named| named.for_host(host).is_some())
+}
+
 /// The headers of `named` for each host that a road names.
 fn headers_of(named: &'static Named) -> pod_ws::Headers {
     pod_ws::Headers::new(move |host: &str| {
@@ -248,10 +255,13 @@ mod tests {
     #[test]
     fn the_way_of_the_process_carries_the_hosts_that_were_set() {
         set_process(Named::new(["edge.example".to_string()], service("id", "s")));
+        assert!(process_names("edge.example") && process_names("EDGE.example."));
+        assert!(!process_names("relay.example"));
         let way = crate::client::way(&ProxyChoice::Direct);
         assert!(format!("{:?}", way.extra("edge.example").unwrap()).contains(CLIENT_ID));
         assert!(!format!("{:?}", way.extra("relay.example").unwrap()).contains(CLIENT_ID));
         set_process(Named::default());
+        assert!(!process_names("edge.example"), "none set, none named");
         let way = crate::client::way(&ProxyChoice::Direct);
         assert!(!format!("{:?}", way.extra("edge.example").unwrap()).contains(CLIENT_ID), "none set, none sent");
     }

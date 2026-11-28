@@ -143,8 +143,10 @@ pub(crate) async fn unasked(pair: &Pair, trust: &Trust) -> Option<(Vec<Server>, 
     // gate in front of the relay reads the probe as the node's own upgrade.
     let way = podssh_ws::client::way(&ProxyChoice::FromEnvironment);
     match probe::upgrade(&pair.relay, &pair.name, &way, trust, PROBE_LIMIT).await {
-        Probe::Refused(why) => Some((servers, why)),
-        Probe::Passes | Probe::Unknown(_) => None,
+        // A Cloudflare Access refusal is not a proxy blocking WebSocket
+        // upgrades: stay on the pair's road so the node exits 77 naming Access.
+        Probe::Refused(why) if !crate::access::probe_is_access_refusal(&pair.relay.host, &why) => Some((servers, why)),
+        Probe::Refused(_) | Probe::Passes | Probe::Unknown(_) => None,
     }
 }
 

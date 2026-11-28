@@ -163,6 +163,150 @@ pub fn take_flags(flags: &[String]) -> Result<(), Refusal> {
     Ok(())
 }
 
+/// Bound on the one-shot probe that distinguishes a Cloudflare Access refusal
+/// from a relay's own 403 of a stopped pair when a node ends with `Forbidden`.
+const PROBE_LIMIT: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Whether `body` names Cloudflare Access itself (its banner, its login path,
+/// or its header names), so a body mentioning "token" is never taken for the
+/// relay's own refusal.
+pub fn body_names_access(body: &str) -> bool {
+    let lower = body.to_ascii_lowercase();
+    lower.contains("cloudflare access")
+        || lower.contains(podssh_ws::cloudflare::LOGIN_PATH)
+        || lower.contains("cf-access-")
+}
+
+/// Whether an HTTP refusal `(status, body)` from a relay host is Cloudflare
+/// Access refusing the connection rather than the relay refusing the pair or a
+/// generic proxy blocking WebSocket upgrades.
+///
+/// `named` is whether this process sends Access credentials to that host
+/// (`--access-host` or `AccessHost`).
+pub fn is_access_refusal(status: u16, body: &str, named: bool) -> bool {
+    if (300..400).contains(&status) {
+        return body.contains(podssh_ws::cloudflare::LOGIN_PATH);
+    }
+    if !matches!(status, 401 | 403) {
+        return false;
+    }
+    if body_names_access(body) {
+        return true;
+    }
+    if !named {
+        return false;
+    }
+    // This host is named for Access: a 401/403 that is not the relay's own
+    // refusal (such as `reverse: forbidden`) came from Access before the relay
+    // saw the pair.
+    let probe = podssh_ws::ConnectError::Refused { status: 403, body: body.to_string() };
+    podssh_relay::piping::probe::upgrade_refused(&probe)
+}
+
+/// Whether `why` from `pod_piping::probe::upgrade`'s `Probe::Refused` is a
+/// Cloudflare Access refusal rather than a proxy blocking WebSocket upgrades.
+pub fn probe_is_access_refusal(host: &str, why: &str) -> bool {
+    probe_is_access_refusal_for(why, podssh_ws::access::process_names(host))
+}
+
+/// Pure helper of [`probe_is_access_refusal`], tested without global state.
+pub(crate) fn probe_is_access_refusal_for(why: &str, named: bool) -> bool {
+    if body_names_access(why) {
+        return true;
+    }
+    named && (why.contains("HTTP 401") || why.contains("HTTP 403"))
+}
+
+/// One line explaining a Cloudflare Access refusal on `host`, naming the
+/// variables and files to check (never a credential value). `body` must
+/// already be masked against the credentials sent.
+pub fn refusal_line(host: &str, status: u16, body: &str, named: bool) -> String {
+    use crate::ssh::cloudflare::{CLIENT_ID_ENV, CLIENT_SECRET_ENV};
+    let shown = podssh_ws::text::one_line(body);
+    let detail = if shown.is_empty() { String::new() } else { format!(": {shown}") };
+    if named {
+        format!(
+            "Cloudflare Access refused the connection to {host} (HTTP {status}{detail}): check {CLIENT_ID_ENV} and \
+             {CLIENT_SECRET_ENV}, or the files of {CLIENT_ID_FILE_ENV} and {CLIENT_SECRET_FILE_ENV}"
+        )
+    } else {
+        format!(
+            "Cloudflare Access refused the connection to {host} (HTTP {status}{detail}): name {host} with {HOST_FLAG} \
+             (or AccessHost) and set {CLIENT_ID_ENV} and {CLIENT_SECRET_ENV}, or the files of {CLIENT_ID_FILE_ENV} \
+             and {CLIENT_SECRET_FILE_ENV}"
+        )
+    }
+}
+
+/// After a node's pair road returned `Exit::Forbidden`, probe `/v1/node/<name>`
+/// once with no `X-Relay-Token` and with this process's Access headers for
+/// `relay.host` to distinguish a Cloudflare Access refusal from the relay
+/// refusing the pair itself.
+pub async fn node_forbidden_line(
+    relay: &podssh_relay::relay::Relay,
+    pair_name: &str,
+    trust: &podssh_ws::Trust,
+    proxy: &podssh_ws::ProxyChoice,
+) -> Option<String> {
+    if podssh_ws::names::check_node_name(pair_name).is_err() {
+        return None;
+    }
+    let way = podssh_ws::client::way(proxy);
+    let extra = way.extra(&relay.host).ok()?;
+    let (tls, _) = way.open_tls(&relay.host, relay.port, &relay.host, trust, PROBE_LIMIT, &[]).await.ok()?;
+    let key = podssh_ws::handshake::generate_key().ok()?;
+    let host = match relay.port {
+        443 => relay.host.clone(),
+        port => podssh_ws::dial::authority(&relay.host, port),
+    };
+    let agent = podssh_ws::text::one_line(&way.user_agent);
+    let mut req = Zeroizing::new(
+        format!("GET /v1/node/{pair_name} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: {agent}\r\n").into_bytes(),
+    );
+    extra.write(&mut req);
+    req.extend_from_slice(b"Upgrade: websocket\r\nConnection: Upgrade\r\n");
+    req.extend_from_slice(format!("Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n").as_bytes());
+    let answer = tokio::time::timeout(PROBE_LIMIT, podssh_ws::client::upgrade_with(tls, &req, &key)).await;
+    let err = match answer {
+        Ok(Err(e)) => extra.masked(e),
+        _ => return None,
+    };
+    let named = podssh_ws::access::process_names(&relay.host);
+    match err {
+        podssh_ws::ConnectError::Refused { status, body } if is_access_refusal(status, &body, named) => {
+            Some(refusal_line(&relay.host, status, &body, named))
+        }
+        _ => None,
+    }
+}
+
+/// For [`podssh_relay::reverse::Exit::Forbidden`], probe once to distinguish a
+/// Cloudflare Access refusal from a stopped or invalid pair; `None` otherwise.
+pub(crate) async fn node_exit_why(
+    exit: &podssh_relay::reverse::Exit,
+    pair: &podssh_relay::pair::Pair,
+    trust: &podssh_ws::Trust,
+    proxy: &podssh_ws::ProxyChoice,
+) -> Option<String> {
+    match exit {
+        podssh_relay::reverse::Exit::Forbidden => node_forbidden_line(&pair.relay, &pair.name, trust, proxy).await,
+        _ => None,
+    }
+}
+
+/// [`crate::node::ended`], with a diagnosed Cloudflare Access refusal in place
+/// of the generic pair refusal on [`podssh_relay::reverse::Exit::Forbidden`].
+pub(crate) fn ended_with(
+    label: &str,
+    exit: podssh_relay::reverse::Exit,
+    access_why: Option<String>,
+) -> Option<(crate::exitmap::Fault, String)> {
+    match (exit, access_why) {
+        (podssh_relay::reverse::Exit::Forbidden, Some(why)) => Some((crate::exitmap::Fault::Auth, why)),
+        (exit, _) => crate::node::ended(label, exit),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,5 +375,82 @@ mod tests {
         };
         assert_eq!(setting(CLIENT_SECRET_FILE_ENV, &d).as_deref(), Some("/run/secret"));
         assert_eq!(setting(crate::ssh::cloudflare::CLIENT_SECRET_ENV, &d), None, "never a secret itself");
+    }
+
+    #[test]
+    fn access_refusals_are_distinguished_from_relay_and_proxy_refusals() {
+        let cases = [
+            // Relay's own pair/token refusals stay pair refusals even on a named Access host.
+            (403, "reverse: forbidden", true, false),
+            (403, "reverse: forbidden", false, false),
+            (403, "missing or wrong token", true, false),
+            (401, "reverse: missing or wrong token", true, false),
+            // Access gate banners are recognized whether or not the host was named.
+            (403, "Forbidden: this application is behind Cloudflare Access", true, true),
+            (403, "Forbidden: this application is behind Cloudflare Access", false, true),
+            // Access messages mentioning "token" must not be misread as the relay's own.
+            (403, "Cloudflare Access: invalid service token", true, true),
+            (401, "invalid Cf-Access-Client-Secret token", false, true),
+            // Terse 401/403 is Access when this host was named for Access, else a way refusal.
+            (401, "Unauthorized", true, true),
+            (401, "", true, true),
+            (403, "Forbidden", true, true),
+            (403, "Forbidden", false, false),
+            (403, "Forbidden: WebSocket upgrades are not allowed by policy", false, false),
+            // Access login redirect.
+            (302, "a redirect to https://team.cloudflareaccess.com/cdn-cgi/access/login/r.test", false, true),
+            (302, "a redirect to https://other.example/login", true, false),
+            // Transient or conflict statuses are never Access auth refusals.
+            (409, "reverse: already connected", true, false),
+            (502, "Bad Gateway", true, false),
+            (503, "Service Unavailable", true, false),
+        ];
+        for (status, body, named, want) in cases {
+            assert_eq!(is_access_refusal(status, body, named), want, "{status} {body:?} named={named}");
+        }
+    }
+
+    #[test]
+    fn probe_refusals_keep_access_on_the_pair_road_and_proxies_on_piping() {
+        let access_banner =
+            "the relay refused the session: HTTP 403: Forbidden: this application is behind Cloudflare Access";
+        assert!(probe_is_access_refusal_for(access_banner, true));
+        assert!(probe_is_access_refusal_for(access_banner, false));
+        let terse = "the relay refused the session: HTTP 403: Forbidden";
+        assert!(probe_is_access_refusal_for(terse, true));
+        assert!(!probe_is_access_refusal_for(terse, false));
+        let proxy = "the relay refused the session: HTTP 403: Forbidden: WebSocket upgrades are not allowed by policy";
+        assert!(!probe_is_access_refusal_for(proxy, false));
+        let upgrade = "the relay refused the session: HTTP 426: Upgrade Required";
+        assert!(!probe_is_access_refusal_for(upgrade, true));
+    }
+
+    #[test]
+    fn refusal_lines_and_node_exit_keep_77_and_name_the_variables() {
+        use crate::exitmap::Fault;
+        use podssh_relay::reverse::Exit;
+
+        let named_line = refusal_line("relay-a.test", 403, "Forbidden\nline 2", true);
+        assert!(named_line.contains("Cloudflare Access") && named_line.contains("relay-a.test"), "{named_line}");
+        assert!(named_line.contains("HTTP 403: Forbidden line 2"), "{named_line}");
+        assert!(named_line.contains(CLIENT_ID_FILE_ENV) && named_line.contains(CLIENT_SECRET_FILE_ENV), "{named_line}");
+        assert!(!named_line.contains(HOST_FLAG), "{named_line}");
+
+        let unnamed_line = refusal_line("relay-a.test", 401, "", false);
+        assert!(unnamed_line.contains("HTTP 401)") && unnamed_line.contains(HOST_FLAG), "{unnamed_line}");
+        assert!(unnamed_line.contains("AccessHost") && unnamed_line.contains(CLIENT_SECRET_FILE_ENV), "{unnamed_line}");
+
+        let (fault, why) = ended_with("box", Exit::Forbidden, Some(named_line.clone())).unwrap();
+        assert_eq!((fault, fault.code(), why), (Fault::Auth, 77, named_line));
+
+        // Without an Access diagnosis, Forbidden stays the pair's refusal (77).
+        let (fault, why) = ended_with("box", Exit::Forbidden, None).unwrap();
+        assert_eq!((fault, fault.code()), (Fault::Auth, 77));
+        assert!(why.contains("the relay refused the pair (403)"), "{why}");
+
+        // An expired pair stays PairExpired (77) and never blames Access.
+        let (fault, why) = ended_with("box", Exit::PairExpired, Some("ignored".into())).unwrap();
+        assert_eq!((fault, fault.code()), (Fault::PairExpired, 77));
+        assert!(why.contains("the pair expired") && !why.contains("ignored"), "{why}");
     }
 }

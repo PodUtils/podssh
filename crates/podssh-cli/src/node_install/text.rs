@@ -174,6 +174,11 @@ pub(super) fn base_unit(kind: Kind, name: &str, program: &Path) -> pod_unit::Uni
 pub(super) fn pod_unit(spec: &Spec) -> Result<pod_unit::Unit, Refusal> {
     let mut unit = base_unit(spec.kind, &spec.name, &spec.exe).args(&spec.args);
     unit.dir = spec.dir.clone();
+    // T-718: keep exit 77 from looping every 5 s on bad or revoked Cloudflare
+    // Access credentials; services without `--access-host` keep `64 78`.
+    if spec.args.iter().any(|w| w == crate::access::HOST_FLAG || w.starts_with("--access-host=")) {
+        unit.restart.prevent = vec![64, 77, 78];
+    }
     super::system_text::apply_hardening(spec, &mut unit.hardening)?;
     Ok(unit)
 }

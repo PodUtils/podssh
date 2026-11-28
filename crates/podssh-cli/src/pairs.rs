@@ -103,6 +103,11 @@ fn connect_code(e: &ConnectError) -> i32 {
         ConnectError::Refused { status: 426, .. } => Fault::Config.code(),
         ConnectError::Refused { status: 401 | 403, .. }
         | ConnectError::Dial(DialError::ProxyRefused { status: 403 | 407, .. }) => Fault::Auth.code(),
+        ConnectError::Refused { status, body }
+            if (300..400).contains(status) && body.contains(podssh_ws::cloudflare::LOGIN_PATH) =>
+        {
+            Fault::Auth.code()
+        }
         _ => Fault::RelayUnreachable.code(),
     }
 }
@@ -237,7 +242,18 @@ pub(crate) fn session_end(code: u16, reason: &str) -> String {
 /// A connection to the relay that failed for a pair: its code, and for a
 /// refused token the remedy.
 pub(crate) fn connect_refusal(e: &ConnectError, label: &str) -> Refusal {
+    connect_refusal_for(e, label, None)
+}
+
+/// [`connect_refusal`], naming `host` when the caller knows the pair's relay
+/// host so a Cloudflare Access 401/403 refusal names its variables (T-718).
+pub(crate) fn connect_refusal_for(e: &ConnectError, label: &str, host: Option<&str>) -> Refusal {
+    let named = host.is_some_and(podssh_ws::access::process_names);
     let message = match e {
+        // Cloudflare Access refused the connection before the relay saw the pair (T-718).
+        ConnectError::Refused { status, body } if crate::access::is_access_refusal(*status, body, named) => {
+            crate::access::refusal_line(host.unwrap_or("the relay"), *status, body, named)
+        }
         // The way's refusal of the upgrade, not the relay's (T-821, found
         // behind pod-lab's ws-upgrade-refused): said as it is.
         // A 426 is the relay's own of a dialect (T-643), never the way's here.
@@ -380,5 +396,32 @@ mod tests {
         let refusal = super::connect_refusal(&refused, "lab");
         assert_eq!(refusal.code, 78);
         assert!(refusal.message.ends_with("update the relay"), "{}", refusal.message);
+    }
+
+    /// T-718: a Cloudflare Access refusal exits 77 and names the Access
+    /// variables instead of blaming the pair or a WebSocket-blocking proxy.
+    #[test]
+    fn a_cloudflare_access_refusal_exits_77_and_names_the_variables() {
+        use podssh_ws::ConnectError;
+        let gate = ConnectError::Refused {
+            status: 403,
+            body: "Forbidden: this application is behind Cloudflare Access".into(),
+        };
+        let refusal = super::connect_refusal_for(&gate, "lab", Some("relay-a.test"));
+        assert_eq!(refusal.code, 77);
+        assert!(
+            refusal.message.contains("Cloudflare Access")
+                && refusal.message.contains("relay-a.test")
+                && refusal.message.contains(crate::access::CLIENT_SECRET_FILE_ENV),
+            "{}",
+            refusal.message
+        );
+        let redirect = ConnectError::Refused {
+            status: 302,
+            body: "a redirect to https://team.cloudflareaccess.com/cdn-cgi/access/login/relay-a.test".into(),
+        };
+        let refusal = super::connect_refusal_for(&redirect, "lab", Some("relay-a.test"));
+        assert_eq!(refusal.code, 77);
+        assert!(refusal.message.contains("Cloudflare Access"), "{}", refusal.message);
     }
 }

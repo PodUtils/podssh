@@ -766,7 +766,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:7394`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:7397`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -904,7 +904,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:861-864`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:370`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:7390-7394`).
+`podssh proxy` sysexits (`docs/cli.md:7393-7397`).
 
 ## Approach
 
@@ -4756,7 +4756,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   at each start before (`crates/podssh-cli/src/node_quick.rs:260` says "asked = api::request(&trust,
   &proxy, &*say) => asked,"). Both pass as parts of the run (Decision, items 2 and 3).
 - The Approach's "the road's own connection is made again" needs nothing more on two roads: the Piping
-  Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:236` says "let secret
+  Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:238` says "let secret
   = Arc::new(Secret::of_pair(&pair.name, pair.connect_token()));"), and the OpenTunnel road's route is in
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
@@ -5665,12 +5665,12 @@ upgrade, `podssh operator` and `podssh relay status` say "stopped, or has expire
   `PairError`); `create_by` maps the `403` of `/v1/pair` the same (PodUtils/podcrates:crates/pod-relay/src/pair/once.rs).
 - Read: podssh said the crate's words (`crates/podssh-cli/src/pairs.rs:86`), for `relay pair`
   (`crates/podssh-cli/src/relay_cmd.rs:301`) and `relay status`; an operator's `403` at the upgrade had its own words,
-  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:239`).
+  "it was stopped, or has expired", with the relay's body dropped (`crates/podssh-cli/src/pairs.rs:244`).
 - Read: the store keeps no mark of `--once`, so the operator cannot tell a spent token from a stopped pair.
 
 ## Approach
 
-1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:119`): a `403` of a request for a new pair says that the relay
+1. `made_refusal` (`crates/podssh-cli/src/pairs.rs:124`): a `403` of a request for a new pair says that the relay
    refused to make a pair, that a relay of `--mint keys:FILE` or `net` makes pairs for the keys of its list alone, and
    this client's fingerprint, with `podssh keygen -y` for the owner's list. Exit 77 as before.
 2. `refusal`: a `403` of a pair's token names each cause that gives it, the spent token of `--once` among them.
@@ -6447,7 +6447,7 @@ says the second in the system's words once, with no "(os error N)".
 - Read, at `9574133`: `grants::ask` (`crates/podssh-cli/src/grants.rs:58`) put the words of `pod-relay`'s
   `grant::read_file` in its line as they were; that function writes `{e}` of the `io::Error` of `metadata` and
   `read_to_string` (PodUtils/podcrates:crates/pod-relay/src/grant/mod.rs, at `v0.85.0`).
-- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:261`) said any other `ConnectError`
+- Read, at `9574133`: `pairs::connect_refusal` (`crates/podssh-cli/src/pairs.rs:277`) said any other `ConnectError`
   by its `to_string()`, whose dial failure carries the suffix; `proxy` passes each line of a failed open through
   `podssh_ws::text::plain` (`crates/podssh-cli/src/proxy.rs`, its failed open).
 
@@ -6634,7 +6634,7 @@ last line should say that another node serves the pair.
 ## Premise
 
 - Read, at `9574133`: the pair's road of `node.rs` ends a 409 that lasts 30 s with `Exit::NameInUse`, which `finish`
-  says as "another node serves this pair (409), ..." with 69 (`crates/podssh-cli/src/node.rs:470`); each road beside
+  says as "another node serves this pair (409), ..." with 69 (`crates/podssh-cli/src/node.rs:468`); each road beside
   it (the transit relay, croc's bridge, the last fallbacks, the members) passes the pair's road's end through.
 - Read, at `9574133`: the Piping Server road of `node_piping.rs`, which serves the pair's road beside its door, said
   the pair's road's fault as "the pair's road ended: ...; the Piping Server road goes on" and kept nothing of it; when
@@ -6642,9 +6642,9 @@ last line should say that another node serves the pair.
 
 ## Approach
 
-1. The pair's road of `node_piping` gives its fault (`crates/podssh-cli/src/node_piping.rs:287`); when both roads
+1. The pair's road of `node_piping` gives its fault (`crates/podssh-cli/src/node_piping.rs:289`); when both roads
    ended by themselves, that fault is the node's end: its line on the journal's stderr and its code, 69 for a 409
-   (`crates/podssh-cli/src/node_piping.rs:306`). A stop (Ctrl-C, an upgrade) and the end of a pair alone are as before.
+   (`crates/podssh-cli/src/node_piping.rs:308`). A stop (Ctrl-C, an upgrade) and the end of a pair alone are as before.
 2. The default road keeps its 69, which the Prove checks by hand.
 
 ## Decision
