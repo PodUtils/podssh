@@ -1,0 +1,8 @@
+# T-738: a hosted piece uploaded unsealed; the carrier test that inspects
+# stored bytes must find the plaintext and fail. scripts/interop-filehost-0x0.sh
+# also applies the same patch against a live mia/0x0 container and checks that
+# stored_bytes_in_mia_0x0_hold_no_plaintext catches it on disk.
+ENTRY=T-738
+GROUP=resume
+EXPECT='test filehost::carrier_tests::a_host_and_a_board_keep_ciphertext_alone \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-relay --features filehost --lib -- filehost::carrier_tests::a_host_and_a_board_keep_ciphertext_alone'

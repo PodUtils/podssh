@@ -234,6 +234,8 @@ struct Lab {
     hosts: Hosts,
     proxy: Proxy,
     _broker: Mosquitto,
+    real_ox0: bool,
+    next_hosts: Vec<String>,
     ca: String,
     target: String,
     node_home: PathBuf,
@@ -248,6 +250,10 @@ impl Lab {
     fn new(name: &str) -> Option<Lab> {
         let home = scratch(name);
         let broker = Mosquitto::start(&home)?;
+        let ox0_port: Option<u16> = std::env::var("PODSSH_0X0_TEST_PORT")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+            .map(|v| v.trim().parse().expect("PODSSH_0X0_TEST_PORT must be a TCP port"));
         let (forms, missed) = podssh_relay::filehost::services::forms(&[FIRST, NEXT]);
         assert!(missed.is_empty() && forms.len() == 2, "the catalog's forms: {missed:?}");
         let point = podssh_relay::code::brokers(None, None).into_iter().next().expect("a broker in the catalog");
@@ -255,22 +261,41 @@ impl Lab {
         // Each name that the binary will ask the proxy for, in one
         // certificate of the test's CA.
         let mut names: Vec<String> = vec!["127.0.0.1".into(), point.url.host.clone()];
+        let mut next_hosts: Vec<String> = Vec::new();
         for form in &forms {
-            names.push(podssh_relay::filehost::http::place(&form.upload).expect("an https:// upload").0.host);
+            let host = podssh_relay::filehost::http::place(&form.upload).expect("an https:// upload").0.host;
+            if form.id == NEXT {
+                next_hosts.push(host.clone());
+                next_hosts.extend(form.serves.iter().cloned());
+            }
+            names.push(host);
             names.extend(form.serves.iter().cloned());
         }
         names.sort();
         names.dedup();
+        next_hosts.sort();
+        next_hosts.dedup();
         let named: Vec<&str> = names.iter().map(String::as_str).collect();
         let (acceptor, ca) = update_support::acceptor(&home, &named);
         let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
         let (derp, hosts, proxy) = runtime.block_on(async {
             let derp = Front::start(acceptor.clone()).await;
             let hosts = Hosts::start(acceptor.clone(), forms.clone(), &[(FIRST, BUSY_AFTER)]).await;
-            let broker_front = filehost_stand_in::front(acceptor, broker.port).await;
+            let broker_front = filehost_stand_in::front(acceptor.clone(), broker.port).await;
+            let ox0_front = match ox0_port {
+                Some(port) => Some(filehost_stand_in::front(acceptor, port).await),
+                None => None,
+            };
             let mut routes = HashMap::new();
             for name in names.iter().filter(|n| *n != "127.0.0.1") {
-                routes.insert(name.clone(), if *name == point.url.host { broker_front } else { hosts.port });
+                let target = if *name == point.url.host {
+                    broker_front
+                } else if let Some(front) = ox0_front.filter(|_| next_hosts.contains(name)) {
+                    front
+                } else {
+                    hosts.port
+                };
+                routes.insert(name.clone(), target);
             }
             (derp, hosts, Proxy::start(routes).await)
         });
@@ -296,6 +321,8 @@ impl Lab {
             hosts,
             proxy,
             _broker: broker,
+            real_ox0: ox0_port.is_some(),
+            next_hosts,
             ca: ca.to_string_lossy().into_owned(),
             target: format!("127.0.0.1:{port}"),
             allow: allow.to_string_lossy().into_owned(),
@@ -376,15 +403,20 @@ fn a_session_of_ssh_goes_through_the_file_hosts_and_the_broker_with_equal_digest
         assert!(r.strange.is_empty(), "requests that no form explains: {:#?}", r.strange);
         assert_eq!(count(&r.uploads, FIRST), BUSY_AFTER, "the first host until it was busy: {r:#?}");
         assert!(count(&r.busy, FIRST) >= 1, "the first host answered 429: {r:#?}");
-        assert!(count(&r.uploads, NEXT) >= 1, "the next host took the next pieces: {r:#?}");
-        assert!(count(&r.fetches, FIRST) >= 1 && count(&r.fetches, NEXT) >= 1, "each host's pieces read: {r:#?}");
-        assert!(count(&r.deletes, NEXT) >= 1, "a piece read at a host that deletes was deleted: {r:#?}");
+        assert!(count(&r.fetches, FIRST) >= 1, "the first host's pieces read: {r:#?}");
         assert_eq!(r.bad_deletes, 0, "each delete with the piece's own token");
         assert_eq!((r.pages, r.missing), (0, 0), "no page for a file, no file twice: {r:#?}");
-        // Each piece that the host that deletes lost was deleted by the
-        // reader, and nothing else took one away.
-        let gone = r.ever.iter().filter(|(url, k)| k.id == NEXT && !r.kept.contains_key(*url)).count();
-        assert_eq!(gone, count(&r.deletes, NEXT), "{r:#?}");
+        if lab.real_ox0 {
+            assert_eq!(count(&r.uploads, NEXT), 0, "NEXT must go to real mia/0x0, not the in-process stand-in");
+        } else {
+            assert!(count(&r.uploads, NEXT) >= 1, "the next host took the next pieces: {r:#?}");
+            assert!(count(&r.fetches, NEXT) >= 1, "the next host's pieces read: {r:#?}");
+            assert!(count(&r.deletes, NEXT) >= 1, "a piece read at a host that deletes was deleted: {r:#?}");
+            // Each piece that the host that deletes lost was deleted by the
+            // reader, and nothing else took one away.
+            let gone = r.ever.iter().filter(|(url, k)| k.id == NEXT && !r.kept.contains_key(*url)).count();
+            assert_eq!(gone, count(&r.deletes, NEXT), "{r:#?}");
+        }
         // No host holds a run of the plaintext: the pieces are sealed (and
         // the channel and SSH run above them).
         for kept in r.ever.values() {
@@ -394,6 +426,25 @@ fn a_session_of_ssh_goes_through_the_file_hosts_and_the_broker_with_equal_digest
             }
         }
     });
+    if lab.real_ox0 {
+        let ox0_hits = lab
+            .proxy
+            .asked
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|t| lab.next_hosts.iter().any(|h| t.eq_ignore_ascii_case(&format!("{h}:443"))))
+            .count();
+        assert!(ox0_hits >= 3, "expected upload+fetch+delete against real mia/0x0, saw {ox0_hits}");
+        if let Some(dir) = std::env::var_os("PODSSH_0X0_STORAGE_DIR").filter(|v| !v.is_empty()) {
+            let leftover: Vec<PathBuf> = std::fs::read_dir(&dir)
+                .expect("read PODSSH_0X0_STORAGE_DIR")
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .filter(|p| p.is_file())
+                .collect();
+            assert!(leftover.is_empty(), "every piece read from mia/0x0 must be deleted; left: {leftover:?}");
+        }
+    }
     let refused = lab.proxy.refused.lock().unwrap().clone();
     eprintln!("the proxy refused {refused:?} (roads that the test did not stand in for)");
     drop(lab.runtime);

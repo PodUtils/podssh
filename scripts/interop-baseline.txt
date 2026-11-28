@@ -73,6 +73,7 @@ harness trojan trojan 11 scripts/interop-trojan.sh
 harness acme acme 8 scripts/interop-acme.sh
 harness go-ssh go-ssh 8 scripts/interop-go-ssh.sh
 harness cgroup cgroup 5 scripts/interop-cgroup.sh
+harness filehost-0x0 filehost-0x0 4 scripts/interop-filehost-0x0.sh
 
 # scripts/interop.sh
 ssh.exit.dropbear.0 pass
@@ -954,3 +955,9 @@ cgroup.lines pass
 cgroup.cpuset pass
 cgroup.free pass
 cgroup.hostns pass
+# scripts/interop-filehost-0x0.sh
+filehost-0x0.upload_fetch_delete pass
+filehost-0x0.carrier_256k_failover pass
+filehost-0x0.ciphertext_only pass
+filehost-0x0.planted_unsealed pass
+filehost-0x0.binary_session env-allowed PODSSH_0X0_BINARY=yes and mosquitto (full paced CLI session)

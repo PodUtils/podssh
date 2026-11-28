@@ -15536,6 +15536,42 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   carrier, as the end-to-end channel and SSH above the road hide the plaintext from a host in the test of the
   binary.
 
+Partial (2026-11-27, merged from `t738-0x0`, verified on Antigravity Linux x86_64, Rust 1.99.0): `mia/0x0` interop
+harness and planted defect added:
+
+- `scripts/interop-filehost-0x0.sh` (registered in `scripts/interop-baseline.txt` as `filehost-0x0`, floor 4, 1
+  `env-allowed`): fetches `https://git.0x0.st/mia/0x0.git` at pinned commit
+  `0cd289d9812675f60a9d81b0b9ce0a3d08cc4d35`, builds it on `images/box/Dockerfile`'s pinned Alpine image with
+  Waitress (`--url-scheme=https`, `FHOST_USE_X_ACCEL_REDIRECT=False`, `FHOST_STORAGE_PATH=/data/up`, SQLite on a
+  bind-mounted `/data` volume), and runs the interop checks and planted unsealed-upload check against the real
+  `mia/0x0` container with timeouts and trap cleanup.
+- `crates/podssh-cli/tests/filehost_0x0.rs` (feature `filehost`, gated on `PODSSH_0X0_TEST_PORT`):
+  - `upload_fetch_and_delete_against_mia_0x0`: `HttpHost` using `pod-services`' exact `null-pointer-0x0` form
+    through a local CONNECT proxy and TLS front; checks `https://.../s/...` URL, `X-Token` header, disk file in
+    `PODSSH_0X0_STORAGE_DIR`, byte-for-byte fetch, `X-Token` + `delete` removal on disk, and 404 on a second fetch;
+  - `carrier_moves_256_kib_each_way_with_429_failover_and_deletes_pieces`: `Carrier` + `link::dial`/`link::accept`
+    moving 256 KiB each way with equal SHA-256 digests over Mosquitto (when `PODSSH_MOSQUITTO_TEST_BIN` is set, else
+    an in-memory board), a first host answering 429 failing over to `mia/0x0`, and every stored piece deleted from
+    `mia/0x0` on disk;
+  - `stored_bytes_in_mia_0x0_hold_no_plaintext`: inspects the actual file written by `mia/0x0` in
+    `PODSSH_0X0_STORAGE_DIR` before `receive` deletes it and asserts no plaintext marker appears on disk or on the
+    board.
+- `crates/podssh-cli/tests/carrier_filehost.rs`: optional `PODSSH_0X0_TEST_PORT` (and `PODSSH_0X0_STORAGE_DIR`)
+  routing for `null-pointer-0x0` so the full paced CLI binary session can also run against real `mia/0x0` + Mosquitto
+  (`PODSSH_0X0_BINARY=yes`).
+- `scripts/plants/t738-unsealed-upload.patch` and `scripts/plants/t738-unsealed-upload.plant`: planted defect of the
+  Prove (uploading `piece.to_vec()` unsealed in `Carrier::send`), verified both in `scripts/interop-filehost-0x0.sh`
+  against `mia/0x0`'s disk storage (`plaintext found in mia/0x0 storage`) and in `plants.yml` (`GROUP=resume`).
+- `.github/workflows/mqtt-interop.yml`: sibling job `filehost-0x0` running `scripts/interop-filehost-0x0.sh` with
+  Mosquitto and scoring its log with `cargo todo interop --logs`.
+- Verified locally: `cargo test --locked -p podssh-cli --features filehost --test carrier_filehost` (2 passed),
+  `cargo test --locked -p podssh-cli --features filehost --test filehost_0x0` (3 passed),
+  `sh scripts/plant-each.sh --here t738-unsealed-upload` (1 caught, 0 missed, 0 stale),
+  `cargo clippy --locked -p podssh-cli --features filehost --all-targets -- -D warnings -A clippy::collapsible_if`,
+  `cargo fmt`, and `shellcheck -x scripts/interop-filehost-0x0.sh` clean.
+- Left to close T-738: `https://git.0x0.st/mia/0x0.git` timed out from this cloud VM; read the `filehost-0x0` job of
+  `mqtt-interop.yml` on GitHub Actions (`ubuntu-24.04`) after push and close T-738 once green.
+
 # T-739: VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes
 
 **Source:** the operator's ruling Q78 (2026-11-02).

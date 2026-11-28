@@ -1,0 +1,12 @@
+--- a/crates/podssh-relay/src/filehost/carrier.rs
++++ b/crates/podssh-relay/src/filehost/carrier.rs
+@@ -123,8 +123,7 @@
+             // No host and no host's pace: the board alone carries it.
+             self.keys.seal(Kind::Inline, way, link, n, piece, &mut OsEntropy)
+         } else {
+-            let sealed = self.keys.seal(Kind::Piece, way, link, n, piece, &mut OsEntropy);
+-            let (host, stored) = self.upload(sealed.map_err(|e| e.to_string())?).await?;
++            let (host, stored) = self.upload(piece.to_vec()).await?;
+             let note = json!({ "h": host.name(), "u": stored.url, "t": stored.token }).to_string();
+             self.keys.seal(Kind::Note, way, link, n, note.as_bytes(), &mut OsEntropy)
+         };

@@ -34,8 +34,11 @@ on:
       - "crates/podssh-cli/src/node_filehost.rs"
       - "crates/podssh-cli/src/ssh/filehost.rs"
       - "crates/podssh-cli/tests/carrier_filehost.rs"
+      - "crates/podssh-cli/tests/filehost_0x0.rs"
       - "crates/podssh-cli/tests/filehost_stand_in/**"
       - "crates/podssh-cli/src/relay_code.rs"
+      - "scripts/interop-filehost-0x0.sh"
+      - "scripts/plants/t738-*"
       - ".github/workflows/mqtt-interop.yml"
 
 permissions:
@@ -81,6 +84,30 @@ jobs:
           timeout 2400 cargo test --locked -p podssh-cli --features filehost --test carrier_filehost -- --nocapture 2>&1 | tee "$RUNNER_TEMP/carrier.log"
           grep -q "test result: ok. 2 passed" "$RUNNER_TEMP/carrier.log"
           if grep -q "did not run" "$RUNNER_TEMP/carrier.log"; then echo "a test did not run"; exit 1; fi
+
+  filehost-0x0:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: "4"
+      PODSSH_ENGINE: docker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Eclipse Mosquitto, with no daemon of its own
+        run: |
+          set -eu
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends mosquitto
+          sudo systemctl stop mosquitto.service || true
+          echo "PODSSH_MOSQUITTO_TEST_BIN=$(command -v mosquitto || echo /usr/sbin/mosquitto)" >> "$GITHUB_ENV"
+      - name: the file-host carrier against real mia/0x0 (T-738)
+        run: |
+          set -u
+          rc=0
+          timeout 2100 sh scripts/interop-filehost-0x0.sh > "$RUNNER_TEMP/filehost-0x0.log" 2>&1 || rc=$?
+          cat "$RUNNER_TEMP/filehost-0x0.log"
+          [ "$rc" -eq 0 ] || { echo "interop-filehost-0x0 exited $rc"; exit 1; }
+          cargo todo interop --logs "$RUNNER_TEMP/filehost-0x0.log"
 
   live:
     if: github.event_name == 'workflow_dispatch' && inputs.live == 'yes'
