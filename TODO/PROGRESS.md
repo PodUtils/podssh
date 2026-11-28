@@ -6,84 +6,100 @@ this page keeps no history (git does).
 
 ## State
 
-Read on 2026-11-25.
+Read on 2026-11-27.
 
-1. **The gate.** Green at `1d39c43` (2026-11-25, run 45626673455, each job), after red runs at `13623b3` and
-   `c6fa76a` on the job `windows` alone (T-465's test, closed). Read the gate of the last push first (a push cancels
-   the gate of the one before it). Earlier green runs are in `docs/STATUS.md`.
+1. **The gate.** On `72084ae` (2026-11-27, run 46068660337), 17 of 18 jobs passed (`windows`, `gate (lint)`, `gate (ts)`,
+   `gate (release)`, `gate (iroh)`, `gate (ssh)`, and all interop/deny/secrets/issue-sync workflows); only `macos` failed
+   on BSD `od -An -tx1` extra spaces in `serve_share_frames.rs`, fixed on `main` at `95c11c4`. Read the gate of this
+   session's final push first (and `mqtt-interop.yml`'s new `filehost-0x0` job for T-738). Earlier green runs are in
+   `docs/STATUS.md`.
 2. **Releases.** The newest beta is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is `v1.0.1`
    (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete and the black-box pass of T-809 is
    clean (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the
    migration (T-446, T-684). podssh stays a beta until the owner calls it stable, and nothing goes to crates.io (T-687).
 3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-106 and T-898 (measurements); of item 4,
-   T-738 is partial and T-740 blocked. M5's `podssh serve` is on `main` (Q92): commands, shells, a pty, direct-tcpip,
-   SFTP, the options of a key line, `--listen`, kept shells, `--audit-log` and `--totp`.
-4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
-   failure: T-779, T-796, T-849, T-858. M5's server, each waiting for
-   its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
-   none. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
-   attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
-   `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
-5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
-   and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-899 (a tester's Dev Tunnel, #215), T-740 (a working Bare
-   node, podcrates T-200), T-905 (a `ConnectError` of `pod-ws`, COORD-149), and cfb's T-711, T-719, T-722, T-727 and T-729.
+   T-738 is partial (harness and plant merged, awaiting `mqtt-interop.yml` on GitHub Actions) and T-740 blocked. M5's `podssh serve`
+   is on `main` (Q92): commands, shells, a pty, direct-tcpip, SFTP, the options of a key line, `--listen`, kept shells,
+   `--audit-log` and `--totp`. T-303 (screen frames on request, items a to h) and T-720 (relay role iroh/DERP + net discovery)
+   are closed `done`.
+4. **Partial entries** (31 total; each `## Done` names its next step). Tests that failed at random, each waiting for its next
+   failure or clean streak: T-779 (5 more clean runs of `scripts/m5-in-sandbox.sh`), T-796, T-849, T-858. M5's server, each
+   waiting for its run in the build image (T-251) or operator real sandbox: T-107 to T-112, T-114, T-117, T-118, T-222, T-248.
+   The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the attestation run at the next
+   release tag). Roads, pace and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (far-link ping cap and
+   relay forward 16 KiB merged; awaits `feel-netem.yml` re-run and COORD-156 #369 8 KiB chunking in podcrates), T-710, T-718
+   (all local work done; only live Cloudflare Access account waits on the operator), T-738 (awaits `mqtt-interop.yml`
+   `filehost-0x0` job), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820 (`node_install/` moved onto `pod-unit` at
+   `ccc5a72`; remaining items await podcrates).
+5. **Blocked entries** (14 total; each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
+   and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-899 (a tester's Dev Tunnel,
+   #215), T-740 (a working Bare node, podcrates T-200), T-967 (operator ruling on former release signer; `Source::former` ready in
+   `v0.86.0`), T-1021 (operator ruling on public last fallbacks for user's own relay), and cfb's T-711, T-719, T-722, T-727 and T-729.
 6. **Issues and the sessions of PodUtils.** An issue from outside the team is changed by the sync only once it has the
    label `confirmed` (the owner's rulings "Strangers" and "Issues"). Each session writes to another by a COORD issue in
-   its own repository only, never by a direct message (the owner, 2026-11-12). The open COORD issues and what each waits
-   for are in `docs/HANDOFF.md`. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10 included
-   (the owner's ruling "Priority").
-7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at `v0.85.0`
-   (`docs/HANDOFF.md` lists them). Taken, so worked on in PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`,
+   its own repository only, never by a direct message (the owner, 2026-11-12). The open COORD issues (#349, #357, #358, #363,
+   #368, #369) and what each waits for are in `docs/HANDOFF.md`. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work
+   order, M10 included (the owner's ruling "Priority"). Dependabot PRs #364 (`peeroxide 1.8.1`), #365 (`trufflehog 3.100.0`), and
+   #366 (`taiki-e/install-action 2.90.8`) remain open for the next session.
+7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at `v0.86.0` (`22d1a75`, taken at
+   `72084ae`; `docs/HANDOFF.md` lists them). Taken, so worked on in PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`,
    `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`,
    `pod-session`, `pod-e2e`, `pod-relay`, `pod-warp`, `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`,
    `pod-derp`, `pod-egress`, `pod-tor`, `pod-iroh`, `pod-release` (`podssh update` runs on it), `pod-cover`, `pod-h2`
-   (the fork of h2 that podssh vendored) and `pod-tpm` (the codec of `crates/podssh-ssh/src/tpm/`). podssh
-   keeps glue over them: `resolve.rs`, and `via.rs`, `forwarder.rs`, `wstunnel.rs`, `wisp.rs`, `meek.rs`,
-   `webtunnel.rs`, `pt.rs`, `cloudflare.rs`, `vless.rs`, `vmess.rs`, `trojan.rs`, `shadowsocks.rs`, `eice.rs` and
-   `iap.rs` of `podssh-ws`; `code/`, `session/`, `src/e2e/`, `transit/mod.rs` and the relay client's modules over
-   `context.rs` of `podssh-relay`; `acme/mod.rs` of `podssh-cli`; `tpm/` of `podssh-ssh` (the probe, the forms of SSH,
-   the policy key, the agent's and serve's keys, the storage key kept at `0x81000001`, and Windows' TBS with its bound
-   and cancel, which `pod-tpm`'s `tbs` lacks). Nothing is frozen. Next, as podcrates names them:
-   `pod-cloudflare` and `pod-ts`; then `pod-relay-serve` last. The plan (Q101, settled 2026-11-05 with podnet's
-   session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
-   crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
-   keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). Drafts that wait (2026-11-26),
-   each pushed as a `wip/*` branch, in the order of their merge: T-303 (b), `wip/t303-b-shared-frames` at `ac6a7c4`
-   (complete, not built); the fixes of the tenth black-box pass, `wip/qa10-t1057-t1064` (the entries of findings
-   1 to 5, 10 and 11 drafted, 14 a WIP; the findings are its file docs/research/qa10-findings.md) and `wip/qa10-t1065-t1072` (the entries of findings
-   6 to 9 drafted, 12 a WIP, 13, 15 and the lease's words not begun). Both workers stopped at a usage limit; a new worker resumes
-   each branch. T-303 (h) is merged (`wip/t303-h-master-frames`, `75424e1`). Before (2026-11-25):
-   merged: T-952's sweep, T-953 to T-962 (the SSH client), T-963 to T-975 (the local tools; T-967 and T-975 blocked), T-976 to T-986 (run, each, job, mcp and play), and
-   the drafts of T-834, T-846/T-788/T-753, T-906 to T-912, T-913 to T-917 and T-919 to T-922 were merged. A read-only
-   advisor on T-627, T-780 and T-796 stopped at a usage limit; its report goes into those entries. Each `draft/*`,
-   `beta/*` and `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy
-   of a cloud session refuses deletes).
+   (the fork of h2 that podssh vendored), `pod-unit` (`node_install/` moved at `ccc5a72`) and `pod-tpm` (the codec of
+   `crates/podssh-ssh/src/tpm/`). podssh keeps glue over them: `resolve.rs`, and `via.rs`, `forwarder.rs`, `wstunnel.rs`,
+   `wisp.rs`, `meek.rs`, `webtunnel.rs`, `pt.rs`, `cloudflare.rs`, `vless.rs`, `vmess.rs`, `trojan.rs`, `shadowsocks.rs`,
+   `eice.rs` and `iap.rs` of `podssh-ws`; `code/`, `session/`, `src/e2e/`, `transit/mod.rs` and the relay client's modules over
+   `context.rs` of `podssh-relay`; `acme/mod.rs` and `node_install/` of `podssh-cli`; `tpm/` of `podssh-ssh` (the probe, the
+   forms of SSH, the policy key, the agent's and serve's keys, the storage key kept at `0x81000001`, and Windows' TBS with its
+   bound and cancel, which `pod-tpm`'s `tbs` lacks). Nothing is frozen. Next, as podcrates names them: `pod-cloudflare` and
+   `pod-ts`; then `pod-relay-serve` last. The plan (Q101, settled 2026-11-05 with podnet's session): each crate may link C and
+   declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from crates.io; podssh's pure-Rust TLS provider and the
+   RSA verifier stay behind a feature of `pod-tls`; `pod-relay` keeps the `blocking` facade for podvm; neither podssh's session
+   nor podnet's edits podcrates.
+8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). **None waiting** (2026-11-27): all
+   previous `wip/*` branches (`wip/t303-b-shared-frames`, `wip/qa10-t1057-t1064`, `wip/qa10-t1065-t1072`) and all five local
+   worker branches (`t820`, `t670-pace`, `t720-iroh-net`, `t303-plant`, `t718-access-exit`, `t738-0x0`) are merged, verified,
+   and their local worktrees removed. Each `draft/*`, `wip/*`, `beta/*` and `release/*` branch on GitHub that is already in `main`
+   is deleted by the owner by hand (the git proxy of a cloud session refuses deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
    `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the disk fills, remove `target/` whole,
    never files under it (it reached 46 GB on 2026-11-25). Never amend a commit that was pushed, not even on a draft
    branch. A merge in progress waits on a local branch `merge-NNN`, never on `main`. Push through a guard that runs
    `cargo todo check --base HEAD~1`, `python scripts/check-repo.py` and the gate's `cargo fmt $PKGS -- --check`, each by
    its own exit code (a pipe's `| tail` gives 0: stale citations went out twice); never `cargo fmt --all`, which formats
-   `vendor/`. Run a package's tests with `--no-fail-fast`: a plain run stops at `job_far`'s three known failures here.
-   A test that dials a closed port dials port 1, never a port it freed (T-904).
+   `vendor/`. Run a package's tests with `--no-fail-fast`: a plain run stops at `job_far`'s three known failures on hosts with an
+   `rm` guard (Antigravity VMs carry real `/usr/bin/rm` and pass all 11 `job_far` tests). A test that dials a closed port dials
+   port 1, never a port it freed (T-904).
 
 ## Tonight
 
-The session of 2026-11-25 (afternoon and evening), a lead with workers (the ruling "Lead and workers"). Done: the red
-gates of `13623b3` and `c6fa76a` (T-465), T-831, T-900, podcrates `v0.85.0` taken (T-684), T-834 (the bearer), T-753
-(a cut channel is 69), T-923 (six more waits beside the channel), T-627, T-780, T-756, T-788 and T-846 closed with their
-causes; the fourth black-box pass's 18 findings (T-906 to T-922) fixed; T-796's bounds merged; COORD-148 to COORD-151
-(#358 to #361) to podcrates. The fifth black-box pass's findings were fixed too: the file commands (T-924 to T-937) and the reverse road, the relay
-and the net (T-938 to T-951); COORD-152 (#362) carries their asks of podcrates. The next session, in order: the gate of
-the last push; T-796's planted run (T-251); podcrates' answers to COORD-147 to COORD-152; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass
-is clean**, and none before T-684 ends).
+The session of 2026-11-27 (Antigravity Linux x86_64, Rust 1.99.0), lead with parallel drafting workers. Done and verified on
+`main`: T-303 (b) shared-shell frames (`0f336a5`), macOS BSD `od` fix for `serve_share_frames` (`95c11c4`), T-303 (f) Mosh 1.4.0
+reference (320.1 ms median of 5), (g) 3 planted defects caught, and (h) OpenSSH control master fallback, **closing T-303**
+(`dec781f`); `PodUtils/podcrates#263` COORD-157 `docs/hosted-sessions.md` alignment (`412cad1`); QA10 batches A and B
+(T-1057 to T-1072 closed, `cc1ae69` and `0184f95`); `PodUtils/podcrates v0.86.0` take (`72084ae`, closing T-905, T-975, and
+COORDs #359–#362 and #367, removing 6 duplicate glue layers); T-820 `node_install/` moved onto `pod-unit` (`ccc5a72`); T-670
+`podssh ping` road window cap + 16 KiB relay serve downlink read cap (`c4f5b8f`); T-720 end-to-end net iroh relay discovery test
+and QAD Decision, **closing T-720** (`857e7f7`); T-718 Access refusal exit 77 and `RestartPreventExitStatus=64 77 78` via
+`pod-unit` (`7cb5678`); T-738 `mia/0x0` interop harness, tests, plant, and `mqtt-interop.yml` job (`e87a8f9`); COORD-156 (#369)
+opened `(to podcrates)`.
+
+Next session, in order: (1) check the CI `build` run and `mqtt-interop.yml` `filehost-0x0` job on this push (close T-738 once
+`filehost-0x0` is green; repair any red job first); (2) dispatch `feel-netem.yml` (`T-660`/`T-666`/`T-670` `far` typing rate)
+and `box.yml` (`T-248`); (3) handle Dependabot PRs #365 (`trufflehog 3.100.0`), #366 (`taiki-e/install-action 2.90.8`), and #364
+(`peeroxide 1.8.1`, verify `--features hyperdht`); (4) run T-779's 5 clean `scripts/m5-in-sandbox.sh` runs and T-248's local
+Prove; (5) check for any new `PodUtils/podcrates` tag answering #349/#357/#358/#363/#368/#369 and evaluate newly unparked T-304
+(`pod-iroh` QUIC datagrams). **No beta until T-684 and T-809's black-box pass are clean.**
 
 ## Baseline
 
-Measured on 2026-11-24 in a Claude Code cloud container (Linux x86_64, Rust 1.99.1, `CARGO_BUILD_JOBS=4`):
-`cargo test --workspace --no-fail-fast` ran 427 suites, 4272 passed, 3 failed. The 3 are `job_far` at the container's
-stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
+Measured on 2026-11-27 on Antigravity Linux x86_64 (2 vCPUs, 7.8 GiB RAM, Rust 1.99.0, `CARGO_BUILD_JOBS=2`, real `/usr/bin/rm`,
+Docker, `mosh` 1.4.0, `mosquitto` 2.0.18): targeted test suites, clippy (`-D warnings -A clippy::collapsible_if`), `cargo fmt`,
+`cargo todo check` (1003 entries: 3 open, 31 partial, 14 blocked, 955 done), and `python3 scripts/check-repo.py` all green on
+`main`. On `72084ae`, CI `build` (`46068660337`) passed 17 of 18 jobs (including `windows` and all Linux gates) plus all interop,
+deny, secrets, and issue-sync workflows; the lone `macos` failure (`serve_share_frames.rs` BSD `od` spacing) is fixed at
+`95c11c4`.
 
 ## Counts
 
@@ -144,19 +160,19 @@ These entries stay open in the index. The condition in each entry tells when it 
 
 | Entry | Start condition |
 | --- | --- |
-| T-303 | A user asks for frames of the screen: T-161 measured a model of it on the far end (2.5 MB of scrollback a shell) and took none (`docs/design.md`, section 5) |
-| T-304 | T-303 is done: frames of the screen exist |
+| T-304 | Unparked (T-303 closed 2026-11-27); note `pod-iroh` moved to `PodUtils/podcrates` (Rule Q3) |
 | T-499 | draft-ietf-httpbis-connect-tcp is an RFC, and a server over HTTP/2 or HTTP/1.1 implements it |
 
 ## Questions for the operator
 
-Two are open (2026-11-26):
+Two are open (2026-11-27):
 
 - **T-967, the former signer of the releases.** `podssh update --version TAG` installs no release made before the
   repository moved: each was signed by the release workflow under the repository's former name, and T-683's ruling
   allows no second signer. Should this build accept that one former identity for the tags through `v1.1.0-beta.3`
-  only, with the files still fetched from PodUtils/podssh? Recommendation: yes; the mechanism is asked of podcrates
-  (COORD-153). Until a ruling, `update` gives a true line with the download page (T-967 stays blocked on it).
+  only, with the files still fetched from PodUtils/podssh? Recommendation: yes; `pod-release`'s `Source::former`
+  mechanism is already in `v0.86.0` (COORD-153). Until a ruling, `update` gives a true line with the download page
+  (T-967 stays blocked on it).
 
 - **T-1021, a node at the user's own relay and the public last fallbacks.** A node whose pair is at the user's own
   relay (`PODSSH_RELAY` or `--relay-host` naming a relay that is not the default deployment) also waits, unasked, at

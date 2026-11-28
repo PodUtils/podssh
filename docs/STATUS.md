@@ -6,21 +6,21 @@ measured it.
 
 ## Where things stand
 
-Read on 2026-11-24; the rows below are the measurements.
+Read on 2026-11-27; the rows below are the measurements.
 
 - **Releases.** The newest is `v1.1.0-beta.3` (2026-11-05); the newest stable is `v1.0.1`
   (2026-11-03). `v1.1.0`, the release of M10, waits for the move of the shared crates to
   PodUtils/podcrates (T-684, T-446); betas may go out before it.
-- **What works.** The SSH client with the options of OpenSSH, the files commands (`cp`, `mv`,
-  `scp`, `sftp`, `edit`), `proxy` and `pipe`, the reverse road (`node`, `operator`, `relay`) with
-  the resumable layer, `podssh relay serve` (the relay as a role of podssh), the net of a user's own
-  nodes (`net`, exit, routes, `share`, `funnel`), `doctor`, `keygen`, `man`, `chat`, `mcp` and
-  `update`; each with its rows below. `podssh serve --stdio` is in work, milestone M5 (T-107 to T-114).
+- **What works.** The SSH client with the options of OpenSSH, screen frames (`--frames`, T-303),
+  the files commands (`cp`, `mv`, `scp`, `sftp`, `edit`), `proxy` and `pipe`, the reverse road
+  (`node`, `operator`, `relay`) with the resumable layer, `podssh relay serve` (T-720), the net
+  of a user's own nodes (`net`, exit, routes, `share`, `funnel`), `doctor`, `keygen`, `man`,
+  `chat`, `mcp` and `update`; `podssh serve --stdio` is in work, milestone M5 (T-107 to T-114).
 - **The roads.** Beside the relay: `--direct`, iroh, WARP, Tor, Tailscale's DERP, the HTTP and
   HTTP/2 roads in part (T-319, T-321), the quick tunnel, and the public carriers and last fallbacks of M10 (Piping Server,
   Wisp, OpenTunnel, croc, Serveo, ssh-j, localhost.run, localtunnel, bore and others), and ZeroTier's
   road, live through ZeroTier Inc.'s roots and relay and in the release's features on Unix (T-733).
-- **The gate.** Green at `dd1f9a9` on `main` (2026-11-24, run 45413276289, each job).
+- **The gate.** 17/18 jobs passed at `72084ae` (2026-11-27, run 46068660337); macOS BSD `od` fix at `95c11c4`.
 - **Where the work is:** [TODO/PROGRESS.md](../TODO/PROGRESS.md) (the queue and the order) and
   [HANDOFF.md](HANDOFF.md) (the next step of each partial entry).
 
